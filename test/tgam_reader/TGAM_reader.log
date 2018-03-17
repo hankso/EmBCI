@@ -1,0 +1,179 @@
+2017-12-17 14:08:06,864: TgamReader.py [line:207] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:08:06,865: TgamReader.py [line:208] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:08:13,867: TgamReader.py [line:212] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:08:13,872: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:08:14,878: TgamReader.py [line: 93] root  WARNING : RUN mode!
+2017-12-17 14:08:18,965: TgamReader.py [line:103] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:08:18,969: TgamReader.py [line:110] root  ERROR   : Terminated...
+2017-12-17 14:08:25,751: TgamReader.py [line:207] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:08:25,752: TgamReader.py [line:208] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:08:27,501: TgamReader.py [line:212] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:08:27,507: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:08:27,511: TgamReader.py [line: 85] root  WARNING : TEST mode!
+2017-12-17 14:08:30,279: TgamReader.py [line: 90] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:08:32,112: TgamReader.py [line:207] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:08:32,113: TgamReader.py [line:208] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:08:33,166: TgamReader.py [line:212] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:08:33,170: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:08:34,176: TgamReader.py [line: 93] root  WARNING : RUN mode!
+2017-12-17 14:08:41,541: TgamReader.py [line:103] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:08:41,546: TgamReader.py [line:110] root  ERROR   : Terminated...
+2017-12-17 14:09:16,081: TgamReader.py [line:208] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:09:16,082: TgamReader.py [line:209] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:09:17,880: TgamReader.py [line:213] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:09:17,884: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:09:18,889: TgamReader.py [line: 93] root  WARNING : RUN mode!
+2017-12-17 14:09:21,648: TgamReader.py [line:103] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:09:21,649: TgamReader.py [line:110] root  ERROR   : Terminated...
+2017-12-17 14:09:28,197: TgamReader.py [line:208] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:09:28,197: TgamReader.py [line:209] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:09:29,555: TgamReader.py [line:213] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:09:29,559: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:09:30,566: TgamReader.py [line: 93] root  WARNING : RUN mode!
+2017-12-17 14:09:32,922: TgamReader.py [line:103] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:09:32,927: TgamReader.py [line:110] root  ERROR   : Terminated...
+2017-12-17 14:10:29,197: TgamReader.py [line:207] root  ERROR   : Please choose one from all available ports 
+2017-12-17 14:10:29,198: TgamReader.py [line:208] root  ERROR   : /dev/ttyUSB0 | /dev/rfcomm0: 
+2017-12-17 14:10:31,173: TgamReader.py [line:212] root  WARNING : Port /dev/rfcomm0 selected
+2017-12-17 14:10:31,179: TgamReader.py [line: 69] root  DEBUG   : Successfully load serial. Start reading...
+2017-12-17 14:10:32,184: TgamReader.py [line: 93] root  WARNING : RUN mode!
+2017-12-17 14:10:37,011: TgamReader.py [line:103] root  ERROR   : Keyboard interrupt detected
+2017-12-17 14:10:37,016: TgamReader.py [line:110] root  ERROR   : Terminated...
+2018-01-10 23:05:30,780: TgamReader.py [line:209] root  WARNING : Port /dev/ttyUSB0 selected
+2018-01-10 23:05:30,787: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:06:08,219: TgamReader.py [line:209] root  WARNING : Port /dev/ttyUSB0 selected
+2018-01-10 23:06:08,221: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:06:47,522: TgamReader.py [line:209] root  WARNING : Port /dev/ttyUSB0 selected
+2018-01-10 23:06:47,524: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:07:59,972: TgamReader.py [line:211] root  WARNING : Port /dev/ttyUSB0 selected
+2018-01-10 23:07:59,974: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:07:59,980: TgamReader.py [line:135] root  ERROR   : invalid literal for int() with base 10: 'g\xb3H\xf8147834'
+2018-01-10 23:08:00,120: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (1,) and (2,)
+2018-01-10 23:08:00,147: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (2,) and (3,)
+2018-01-10 23:08:00,183: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (3,) and (4,)
+2018-01-10 23:08:00,232: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (4,) and (5,)
+2018-01-10 23:08:00,269: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (5,) and (6,)
+2018-01-10 23:08:00,299: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (6,) and (7,)
+2018-01-10 23:08:00,330: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (7,) and (8,)
+2018-01-10 23:08:00,361: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (8,) and (9,)
+2018-01-10 23:08:00,394: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (9,) and (10,)
+2018-01-10 23:08:00,433: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (10,) and (11,)
+2018-01-10 23:08:00,467: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (11,) and (12,)
+2018-01-10 23:08:00,494: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (12,) and (13,)
+2018-01-10 23:08:00,521: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (13,) and (14,)
+2018-01-10 23:08:00,549: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (14,) and (15,)
+2018-01-10 23:08:00,578: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (15,) and (16,)
+2018-01-10 23:08:00,607: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (16,) and (17,)
+2018-01-10 23:08:00,636: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (17,) and (18,)
+2018-01-10 23:08:00,663: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (18,) and (19,)
+2018-01-10 23:08:00,693: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (19,) and (20,)
+2018-01-10 23:08:00,724: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (20,) and (21,)
+2018-01-10 23:08:00,758: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (21,) and (22,)
+2018-01-10 23:08:00,787: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (22,) and (23,)
+2018-01-10 23:08:00,815: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (23,) and (24,)
+2018-01-10 23:08:00,842: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (24,) and (25,)
+2018-01-10 23:08:00,869: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (25,) and (26,)
+2018-01-10 23:08:00,896: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (26,) and (27,)
+2018-01-10 23:08:00,923: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (27,) and (28,)
+2018-01-10 23:08:00,966: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (28,) and (29,)
+2018-01-10 23:08:01,002: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (29,) and (30,)
+2018-01-10 23:08:01,040: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (30,) and (31,)
+2018-01-10 23:08:01,078: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (31,) and (32,)
+2018-01-10 23:08:01,108: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (32,) and (33,)
+2018-01-10 23:08:01,134: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (33,) and (34,)
+2018-01-10 23:08:01,162: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (34,) and (35,)
+2018-01-10 23:08:01,192: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (35,) and (36,)
+2018-01-10 23:08:01,223: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (36,) and (37,)
+2018-01-10 23:08:01,259: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (37,) and (38,)
+2018-01-10 23:08:01,288: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (38,) and (39,)
+2018-01-10 23:08:01,315: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (39,) and (40,)
+2018-01-10 23:08:01,343: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (40,) and (41,)
+2018-01-10 23:08:01,372: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (41,) and (42,)
+2018-01-10 23:08:01,404: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (42,) and (43,)
+2018-01-10 23:08:01,440: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (43,) and (44,)
+2018-01-10 23:08:01,467: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (44,) and (45,)
+2018-01-10 23:08:01,498: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (45,) and (46,)
+2018-01-10 23:08:01,530: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (46,) and (47,)
+2018-01-10 23:08:01,587: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (47,) and (48,)
+2018-01-10 23:08:01,619: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (48,) and (49,)
+2018-01-10 23:08:01,649: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (49,) and (50,)
+2018-01-10 23:08:01,680: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (50,) and (51,)
+2018-01-10 23:08:01,715: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (51,) and (52,)
+2018-01-10 23:08:01,754: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (52,) and (53,)
+2018-01-10 23:08:01,793: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (53,) and (54,)
+2018-01-10 23:08:01,824: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (54,) and (55,)
+2018-01-10 23:08:01,855: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (55,) and (56,)
+2018-01-10 23:08:01,885: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (56,) and (57,)
+2018-01-10 23:08:01,918: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (57,) and (58,)
+2018-01-10 23:08:01,952: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (58,) and (59,)
+2018-01-10 23:08:01,991: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (59,) and (60,)
+2018-01-10 23:08:02,034: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (60,) and (61,)
+2018-01-10 23:08:02,077: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (61,) and (62,)
+2018-01-10 23:08:02,125: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (62,) and (63,)
+2018-01-10 23:08:02,155: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (63,) and (64,)
+2018-01-10 23:08:02,185: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (64,) and (65,)
+2018-01-10 23:08:02,220: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (65,) and (66,)
+2018-01-10 23:08:02,268: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (66,) and (67,)
+2018-01-10 23:08:02,304: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (67,) and (68,)
+2018-01-10 23:08:02,336: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (68,) and (69,)
+2018-01-10 23:08:02,367: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (69,) and (70,)
+2018-01-10 23:08:02,402: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (70,) and (71,)
+2018-01-10 23:08:02,452: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (71,) and (72,)
+2018-01-10 23:08:02,483: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (72,) and (73,)
+2018-01-10 23:08:02,513: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (73,) and (74,)
+2018-01-10 23:08:02,542: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (74,) and (75,)
+2018-01-10 23:08:02,570: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (75,) and (76,)
+2018-01-10 23:08:02,599: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (76,) and (77,)
+2018-01-10 23:08:02,637: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (77,) and (78,)
+2018-01-10 23:08:02,667: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (78,) and (79,)
+2018-01-10 23:08:02,696: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (79,) and (80,)
+2018-01-10 23:08:02,725: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (80,) and (81,)
+2018-01-10 23:08:02,754: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (81,) and (82,)
+2018-01-10 23:08:02,787: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (82,) and (83,)
+2018-01-10 23:08:02,818: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (83,) and (84,)
+2018-01-10 23:08:02,845: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (84,) and (85,)
+2018-01-10 23:08:02,873: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (85,) and (86,)
+2018-01-10 23:08:02,901: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (86,) and (87,)
+2018-01-10 23:08:02,931: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (87,) and (88,)
+2018-01-10 23:08:02,960: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (88,) and (89,)
+2018-01-10 23:08:02,990: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (89,) and (90,)
+2018-01-10 23:08:03,018: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (90,) and (91,)
+2018-01-10 23:08:03,050: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (91,) and (92,)
+2018-01-10 23:08:03,078: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (92,) and (93,)
+2018-01-10 23:08:03,104: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (93,) and (94,)
+2018-01-10 23:08:03,131: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (94,) and (95,)
+2018-01-10 23:08:03,158: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (95,) and (96,)
+2018-01-10 23:08:03,184: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (96,) and (97,)
+2018-01-10 23:08:03,210: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (97,) and (98,)
+2018-01-10 23:08:03,238: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (98,) and (99,)
+2018-01-10 23:08:03,268: TgamReader.py [line:135] root  ERROR   : x and y must have same first dimension, but have shapes (99,) and (100,)
+2018-01-10 23:08:12,933: TgamReader.py [line:132] root  ERROR   : Keyboard interrupt detected
+2018-01-10 23:08:12,935: TgamReader.py [line:138] root  ERROR   : Terminated...
+2018-01-10 23:50:41,884: TgamReader.py [line:213] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:50:41,888: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:50:42,891: TgamReader.py [line:125] root  WARNING : MCU mode!
+2018-01-10 23:50:47,524: TgamReader.py [line:134] root  ERROR   : Keyboard interrupt detected
+2018-01-10 23:50:47,525: TgamReader.py [line:140] root  ERROR   : Terminated...
+2018-01-10 23:51:33,285: TgamReader.py [line:213] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:51:33,287: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:51:34,288: TgamReader.py [line:125] root  WARNING : MCU mode!
+2018-01-10 23:52:32,831: TgamReader.py [line:215] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:52:32,834: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:52:33,837: TgamReader.py [line:125] root  WARNING : MCU mode!
+2018-01-10 23:52:35,721: TgamReader.py [line:136] root  ERROR   : Keyboard interrupt detected
+2018-01-10 23:52:35,725: TgamReader.py [line:142] root  ERROR   : Terminated...
+2018-01-10 23:53:29,230: TgamReader.py [line:213] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:53:29,231: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:53:30,232: TgamReader.py [line:125] root  WARNING : MCU mode!
+2018-01-10 23:53:32,137: TgamReader.py [line:133] root  ERROR   : Keyboard interrupt detected
+2018-01-10 23:53:48,520: TgamReader.py [line:140] root  ERROR   : Terminated...
+2018-01-10 23:54:19,762: TgamReader.py [line:213] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:54:19,763: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:54:20,765: TgamReader.py [line:125] root  WARNING : MCU mode!
+2018-01-10 23:54:23,441: TgamReader.py [line:136] root  ERROR   : invalid literal for int() with base 10: ''
+2018-01-10 23:54:23,442: TgamReader.py [line:136] root  ERROR   : invalid literal for int() with base 10: '9-'
+2018-01-10 23:54:30,157: TgamReader.py [line:133] root  ERROR   : Keyboard interrupt detected
+2018-01-10 23:54:49,621: TgamReader.py [line:140] root  ERROR   : Terminated...
+2018-01-10 23:56:43,703: TgamReader.py [line:214] root  WARNING : Port /dev/ttyUSB1 selected
+2018-01-10 23:56:43,704: TgamReader.py [line: 77] root  DEBUG   : Successfully load serial. Start reading...
+2018-01-10 23:56:44,705: TgamReader.py [line:125] root  WARNING : MCU mode!
