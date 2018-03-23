@@ -9,6 +9,8 @@ Created on Wed Feb 28 10:56:36 2018
 @author: Hank
 @page:   https://github.com/hankso
 """
+
+# pip install numpy, scipy
 import numpy as np
 import scipy.signal as signal
 
@@ -45,13 +47,29 @@ def stft(X, sample_rate, nperseg, noverlap, *args, **kwargs):
                               nperseg=nperseg, noverlap=noverlap)[2])
 
 def fft(X, sample_rate, *args, **kwargs):
-    pass
+    '''
+    Fast Fourier Transform
+    Input shape:  n_sample x n_channel x window_size
+    Output shape: n_sample x n_channel x window_size/2
+    
+    Returns
+    -------
+    freq: frequence bin list, with a length same as amp
+    amp:  amptitude of each frequence bin, you can plot
+          with plt.plot(freq, amp) to get Amp-Freq img.
+    '''
+    amp = 2 * abs(np.fft.rfft(X)) / float(len(X))
+    amp[:, :, 0] /= 2
+    if len(X) % 2:
+        amp[-1] /= 2
+    freq= np.linspace(0, sample_rate/2, amp)
+    return freq, amp
 
 def bandwidth_filter(X, sample_rate, min_freq, max_freq, *args, **kwargs):
     pass
 
 def PSD(X, sample_rate, *args, **kwargs):
-    pass
+    return X
 
 
 class Processer(object):
@@ -77,31 +95,41 @@ class Processer(object):
         '''
         self._fs = sample_rate
         self._ws = sample_rate * sample_time
-# =============================================================================
-#         self.preprocessers = []
-#         
-#     def __getstate__(self):
-#         '''
-#         make instance of this class picklable
-#         '''
-#         pass
-#     
-#     def process(self, data):
-#         for func_str in self.preprocessers:
-#             data = self.__getattribute__(func_str)(data)
-#         return data
-#     
-#     def add_preprocesser(self, func):
-#         self.preprocessers += [func]
-# =============================================================================
         
+    def check_shape(func):
+        def wrapper(self, X):
+            if type(X) is not np.ndarray:
+                X = np.array(X)
+            # simple 1D time series.
+            # Input: windowsize
+            if len(X.shape) == 1:
+                return func(self, X.reshape(1, -1))
+            # 2D array
+            # Input: n_channel x window_size
+            elif len(X.shape) == 2:
+                return func(self, X)
+            # 3D array
+            # Input: n_sample x n_channel x window_size
+            elif len(X.shape) == 3:
+                return np.array([func(self, sample) for sample in X])
+            # 3D+
+            # Input: ... x n_sample x n_channel x window_size
+            else:
+                raise RuntimeError(('Input data shape {} is not supported.\n'
+                                    'Please offer (n_channel x window_size) '
+                                    '2D data or (n_sample x n_channel x '
+                                    'window_size) 3D data.').format(X.shape))
+        return wrapper
         
+    @check_shape
     def remove_DC(self, X):
         return remove_DC(X)
     
+    @check_shape
     def notch(self, X):
         return notch(X, self._fs, Q=40, Hz=50)
 
+    @check_shape
     def stft(self, X):
         # you mustn't normalize because amptitude difference between
         # channels is also important infomation for classification
@@ -113,15 +141,27 @@ class Processer(object):
         noverlap = int(self._fs / 5 * 0.67)
         return stft(X, self._fs, nperseg, noverlap)
 
+    @check_shape
     def fft(self, X):
         return fft(X, self._fs)
-    
+
+    @check_shape    
     def bandwidth_filter(self, X):
         return bandwidth_filter(X, self._fs, min_freq=10, max_freq=450)
-    
+
+    @check_shape    
     def PSD(self, X):
         return PSD(X, self._fs)
     
     
 if __name__ == '__main__':
     p = Processer(250, 2)
+    
+    # fake data with shape of (10 samples x 8 channels x 1024 window_size)
+    X = np.random.random((10, 8, 1024))
+    print('create data with shape {}'.format(X.shape))
+    print('after remove DC shape {}'.format(p.remove_DC(X).shape))
+    print('after notch shape {}'.format(p.notch(X).shape))
+    print('after fft shape {}'.format(p.fft(X)[1].shape))
+    print('after stft shape {}'.format(p.stft(X).shape))
+    print('after psd shape {}'.format(p.PSD(X).shape))

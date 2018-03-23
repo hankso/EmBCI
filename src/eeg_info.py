@@ -7,7 +7,6 @@ Created on Wed Nov 22 13:45:05 2017
 """
 import numpy as np
 
-
 class EEG_Info(object):
     '''
     I am learning how to handle EEG data, which can be collected by varieties 
@@ -46,7 +45,8 @@ class EEG_Info(object):
             else:
                 raise RuntimeError(('Input data shape {} is not supported.\n'
                                     'Please offer (n_channel x window_size) '
-                                    '2D data').format(X.shape))
+                                    '2D data or (n_sample x n_channel x '
+                                    'window_size) 3D data.').format(X.shape))
         return wrapper
 
     @check_shape
@@ -122,7 +122,7 @@ class EEG_Info(object):
         pass
 
     @check_shape
-    def power_spectrum(self, X, sample_rate = None, time = None, method = 2):
+    def power_spectrum(self, X, sample_rate, method = 2):
         '''
         There are two kinds of defination of power spectrum(PS hereafter).
         1. PS = fft(autocorrelation(X))
@@ -147,16 +147,16 @@ class EEG_Info(object):
         -------
         freq, power
         '''
-        if method == 2:
-            if not time:
-                if not sample_rate:
-                    raise IOError('At least one of sample_rate and time should be given')
-                else: time = len(X)/float(sample_rate)
-            freq, amp = self.fft(X, time = time)
-            return freq, amp**2/time
+        if method == 1:
+            pass
+        
+        elif method == 2:
+            sample_time = len(X) / sample_rate
+            freq, amp = self.fft(X, sample_rate)
+            return freq, amp**2/sample_time
         
     @check_shape
-    def fft(self, X, sample_rate = None, time = None, freq_max = None):
+    def fft(self, X, sample_rate, time = None, freq_max = None):
         '''
         People use FT(Fourier Transform) to extract frequency domain
         info from time domain data in mathmatic questions. But when
@@ -178,21 +178,19 @@ class EEG_Info(object):
         Attention: samples(sample_rate * time) should bigger than 
         twice of the max frequence you insterested in, i.e. time
         should longer than 1 second.
+        
+        Returns
+        -------
+        freq: np.linspace(0, sample_rate/2, length/2)
+        amp:  np.ndarray, length/2
         '''
-        num = len(X)
-        raw = np.fft.fft(X)
-        amp = 2*abs(raw[:(num+1)/2]) / float(num)
+        length = len(X)
+        amp = 2 * abs(np.fft.rfft(X)) / float(length)
         amp[0] /= 2
-        if num % 2:
+        if length % 2:
             amp[-1] /= 2
-        freq= np.arange(0, len(amp))
-        if time and not sample_rate:
-            sample_rate = int(num/time)
-        if sample_rate:
-            return freq[:sample_rate/2], amp[:sample_rate/2]
-        else:
-            return freq, amp
-
+        freq= np.arange(0, sample_rate/2, len(amp))
+        return freq, amp
 
     @check_shape
     def wavelet(self, X):

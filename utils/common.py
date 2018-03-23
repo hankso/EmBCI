@@ -5,21 +5,43 @@ Created on Tue Feb 27 16:03:02 2018
 
 @author: hank
 """
+# built-in
 from __future__ import print_function
-from serial.tools.list_ports import comports
 import time
 import os
 import sys
+
+# In python2 raw_input return str and input retrun eval(str)
+if sys.version_info.major == 2:
+    input = raw_input
+
+# pip install pyserial, pylsl
 import pylsl
-import matplotlib
-import matplotlib.pyplot as plt
+from serial.tools.list_ports import comports
+
+
+def check_dir(func):
+    '''
+    check if user folder exist before saving data etc.
+    '''
+
+    def wrapper(*args, **kwargs):
+        if not args:
+            print('This wrapper may be used in wrong place.')
+        elif not isinstance(args[0], str):
+            print('This wrapper may be used in wrong place.')
+        elif not os.path.exists('./data/' + args[0]): # args[0] is username
+            os.mkdir('./data/' + args[0])
+            os.mkdir('./models/' + args[0])
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
     '''
     输出prompt，提示用户输入选择，并判断输入是否有效，比如运行一个命令之前
 
-    This function is to let user input answer.
+    This function is to guide user make choices.
 
     Example
     -------
@@ -34,46 +56,43 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
     k = answer.keys()
     while times:
         times -= 1
-        rst = raw_input(prompt)
+        rst = input(prompt).lower()
+        
+        # answer == {}, maybe user want raw_input str returned
         if not k:
-            if rst:
-                return rst
-            else:
-                if raw_input('you entered nothing, confirm? [Y/n]') == 'y':
-                    return None
-                else:
+            if not rst:
+                if input('nothing input, confirm? [Y/n] ').lower() == 'n':
+                    times += 1
                     continue
+            return rst
+        
+        # answer != {}, check keys
         if rst in k:
             return answer[rst]
-        print('Invalid argument!', end='')
-        if k:
-            print('Choose from [ "%s" ]' % '" | "'.join(k))
-    return None
+        print('Invalid argument! Choose from [ "%s" ]' % '" | "'.join(k))
+    return ''
 
 
 def time_stamp(localtime=None, fm='%Y%m%d-%H:%M:%S'):
-    if localtime is None:
-        localtime = time.localtime()
-    return time.strftime(fm, localtime)
+    return time.strftime(fm, localtime if localtime else time.localtime())
 
 
 def first_use():
     '''
     初次使用时的用户引导输出
     '''
-    print('Welcome! It seems this is the first time you'
-          ' use this EMG recognizing system. We need to'
-          'collect some data from you. It may take a while...\n'
-          'You can record any number of actions you want. '
-          'And next time you do that again we will recognize it.'
-          '\nNow start recording.', end='')
-    return check_input('Check all electrodes and ensure they '
-                       'are stable in right position, are they? ')
+    print('Welcome!\nIt seems this is the first time you use this Bio-Signal '
+          'recognizing program.\nYou need to record some action data first.\n'
+          'Then next time you do that action again it will be recognized.\n'
+          'Now start recording.', end='')
+    return check_input('Check all electrodes and ensure they are '
+                       'stable in right position, are they? ')
 
 
 def find_outlets(name, **kwargs):
     '''
     寻找已经存在的pylsl注册的stream
+    
     '''
     if name is None:
         stream_list = pylsl.resolve_stream()
@@ -123,7 +142,7 @@ def find_ports(timeout=5):
             continue
         port_list = comports()
         if len(port_list) == 1:
-            port = port_list[0].device
+            port = port_list[0]
         else:
             dv = map(lambda x: x.device, port_list)
             ds = map(lambda x: x.description, port_list)
@@ -131,10 +150,11 @@ def find_ports(timeout=5):
                       '\n    '.join([i+' - '+j for i, j in zip(dv, ds)]) +
                       '\nport name: ')
             port = check_input(prompt, answer={i: i for i in dv})
+            port = port_list[dv.index(port)]
         if port:
-            print('Select port {} -- {}'.format(port_list[0].device,
-                                                port_list[0].description))
-            return port
+            print('Select port {} -- {}'.format(port.device,
+                                                port.description))
+            return port.device
         else:
             break
     sys.exit('No port available! Abort.')
@@ -156,6 +176,7 @@ def _combine_action(d1, d2):
     return d1
 
 
+@check_dir
 def get_label_list(username):
     '''
     扫描./data/username文件夹下的数据，列出存储的数据和数量
@@ -169,8 +190,6 @@ def get_label_list(username):
          ...
     }
     '''
-    if not os.path.exists('./data/' + username):
-        os.mkdir('./data/' + username)
     paths = [i[:-4] for i in os.listdir('./data/' + username)]
     if len(paths) == 0:
         label_list = {}
@@ -179,103 +198,29 @@ def get_label_list(username):
     else:
         label_list = reduce(_combine_action, paths)
 
-    # 去掉logging数据
-    for label in label_list.keys():
-        if label.startswith('logging'):
-            label_list.pop(label)
-
     a, n = len(label_list), sum(label_list.values())
     summary = (
-        'There are %d actions with %d data recorded.\n    ' % (a, n) +
+        '\nThere are %d actions with %d data recorded.\n    ' % (a, n) +
         '\n    '.join([k + '\t\t%d' % v for k, v in label_list.iteritems()])
     )
     return label_list, summary
 
 
-class Plotter():
-    def __init__(self, where_to_plot=None, n_channel=1):
-        '''
-        Plot multichannel streaming data on a figure ,
-        or in a window if it is offered.
-        Param:
-            where_to_plot can be a matplotlib figure or a list of axes.
-            default None, to create a new figure and split it into n_channels
-            window, one for each window
-        '''
-        if where_to_plot == None:
-            self.figure = plt.figure()
-            for i in xrange(n_channel):
-                self.figure.add_axes((0, i*(1.0/n_channel),
-                                      1, 1.0/n_channel),
-                                     facecolor='black')
-            self.axes = self.figure.axes
-            
-        elif type(where_to_plot) == matplotlib.figure.Figure:
-            if not len(where_to_plot.axes):
-                for i in xrange(n_channel):
-                    where_to_plot.add_axes((0, i*(1.0/n_channel),
-                                            1, 1.0/n_channel),
-                                           facecolor='black')
-            self.figure, self.axes = where_to_plot, where_to_plot.axes
-            
-        elif type(where_to_plot) in [matplotlib.axes.Axes,
-                                     matplotlib.axes.Subplot]:
-            self.figure, self.axes = where_to_plot.figure, [where_to_plot]
-            
-        elif type(where_to_plot) == list and len(where_to_plot):
-            if type(where_to_plot[0]) in [matplotlib.axes.Axes,
-                                          matplotlib.axes.Subplot]:
-                self.figure = where_to_plot[0].figure
-                self.axes = where_to_plot
-                
-        else:
-            raise RuntimeError(('Unknown type param where_to_plot: {}\n'
-                                'matplotlib.figure.Figure or list of axes'
-                                'is recommended.').format(type(where_to_plot)))
-        # clear all axes
-        for a in self.axes:
-            a.cla()
-    
-    def plot(self, data):
-        '''
-        only update line data to save time
-        '''
-        shape = data.shape()
-        if len(shape) == 3:
-            # n_sample x n_channel x window_size
-            for i, ch in enumerate(data[0]):
-                if len(self.axes[i].lines):
-                    self.axes[i].lines[0].set_ydata(ch)
-                else:
-                    self.axes[i].plot(ch)
-        elif len(shape) == 4:
-            # n_sample x n_channel x freq x time
-            for i, img in enumerate(data[0]):
-                if len(self.axes[i].images):
-                    self.axes[i].images[0].set_data(img)
-                else:
-                    self.axes[i].imshow(ch)
-        return data
+def record_animate(times):
+    while times > 0:
+        times -= 1
+        time.sleep(1)
+        print('=', end='')
+    # not implemented
 
 
 if __name__ == '__main__':
-# =============================================================================
-#     os.chdir('../')
-#     username = 'test'
-# =============================================================================
-# =============================================================================
-#     first_use()
-# =============================================================================
-# =============================================================================
-#     print(time_stamp())
-# =============================================================================
-# =============================================================================
-#     print(find_ports())
-# =============================================================================
-# =============================================================================
-#     print(find_outlets('testing'))
-# =============================================================================
-# =============================================================================
-#     print(get_label_list(username)[1])
-# =============================================================================
+    os.chdir('../')
+    username = 'test'
+    first_use()
+    record_animate(5)
+    print('time stamp: ' + time_stamp())
+    print(find_ports())
+    print(find_outlets('testing'))
+    print(get_label_list(username)[1])
     pass

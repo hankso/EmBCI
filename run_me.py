@@ -5,16 +5,16 @@ Created on Sun Mar  4 20:04:34 2018
 
 @author: hank
 """
+# built-in
 from __future__ import print_function
 import time
-
 import sys
 sys.path += ['./src', './utils']
 
+# from ./utils
 from classifier import Models
 from frame import sEMG
-#from IO import Serial_reader as Reader
-from IO import Pylsl_reader as Reader
+from data_socket import Pylsl_reader as Reader
 from common import check_input
 
 if __name__ == '__main__':
@@ -36,12 +36,12 @@ if __name__ == '__main__':
     
     reader = Reader(sample_rate, sample_time, username, n_channels)
     reader.start()
-    model  = Models(sample_rate, sample_time, model_name='Default')
+    model  = Models(sample_rate, sample_time, model_type='Default')
 
     try:
         sEMG(username, reader, model)
     except KeyboardInterrupt:
-        reader.stop()
+        reader.do_stop()
 # =============================================================================
 #     except SystemExit as e:
 #         print(e)

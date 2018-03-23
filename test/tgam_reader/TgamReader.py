@@ -75,7 +75,7 @@ class TGAM_Reader(object):
                 self.logger.debug('Successfully load serial. Start reading...')
                 self._r = self.serial.read
                 break
-            except IOError, e:
+            except IOError as e:
                 self._mode = 'closed'
                 self.logger.error(e)
                 break
@@ -113,13 +113,13 @@ class TGAM_Reader(object):
                                                        self.data['raw'][-1]))
                     self._parse_buffer()
                     print(','.join(self.data[ch] \
-                    			   for ch in self.data.keys() \
+                    	           for ch in self.data.keys() \
                     			   if ch is not '_time'))
                     #================
                 except KeyboardInterrupt:
                     self.logger.error('Keyboard interrupt detected')
                     break
-                except Exception, e:
+                except Exception as e:
                     self.logger.error(e)
             self.csv_log.close()
 
@@ -136,7 +136,7 @@ class TGAM_Reader(object):
                 except KeyboardInterrupt:
                     self.logger.error('Keyboard interrupt detected')
                     break
-                except Exception, e:
+                except Exception as e:
                     self.logger.error(e)
             self.plot(self.data)
 
@@ -283,9 +283,8 @@ if __name__ == '__main__':
 
     r = TGAM_Reader(baudrate = 115200,
                     test = True if sys.argv[-1]=='True' else False,
-                    parsed_by_mcu = True,
+                    parsed_by_mcu = False,
                     logger = logger)
     r.start()
 
     logging.shutdown()
-    plt.close('all')

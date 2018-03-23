@@ -5,16 +5,22 @@ Created on Tue Feb 27 14:36:27 2018
 
 @author: hank
 """
+# built-in
 from __future__ import print_function
 import os
 import time
 import json
-import numpy as np
-
 import sys
 sys.path += ['../utils']
+
+# pip install numpy
+import numpy as np
+
+# from ../utils
 from common import time_stamp, check_input, first_use
 from IO import load_data, save_action
+from data_socket import Serial_commander
+from data_socket import glove_box_command_dict_v1
 
 
 def sEMG(username, reader, model):
@@ -22,8 +28,7 @@ def sEMG(username, reader, model):
     # it's in a seperate thread, stop recording by `reader.do_stop()`
     if not reader.isOpen():
         reader.start()
-    
-    
+        
     #==========================================================================
     
     # user initializition
@@ -146,17 +151,24 @@ def sEMG(username, reader, model):
     # online recognizing, mainloop
     
     #==========================================================================
+    commander = Serial_commander(9600, glove_box_command_dict_v1)
+    
     print('now start online recognizing...')
     while reader.isOpen():
         if reader.streaming:
             data = np.array(
-                    [reader.buffer[ch][-reader.window_size:] \
+                    [reader.buffer[ch] \
                      for ch in reader.buffer if ch is not 'time']
                 ).reshape(1, reader.n_channel, reader.window_size)
         # here input shape: 1 x n_channel x window_size
         class_num = model.predict(data)
+        
+        # you can redirect this predicted result(string) to any output
+        
         if class_num:
             action_name = action_dict[class_num]
-            # you can redirect this predicted result(string) to any output
-            print(action_name)
-        
+            print('[Predict action name] ' + action_name)
+            
+            action_cmd = commander.send(action_name)
+            print('sending control command %s for action %s' % (action_cmd,
+                                                                action_name))

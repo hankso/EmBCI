@@ -5,16 +5,20 @@ Created on Tue Feb 27 22:59:33 2018
 
 @author: ASDF(JTQ)
 """
-import numpy as np
-import keras
-from sklearn import svm
+# built-in
 import math
 import sys
 sys.path += ['../utils']
+
+# pip install numpy, sklearn, keras
+import numpy as np
+from sklearn import svm
+import keras
 from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical
 
+# from ../utils
 from preprocessing import Processer
 
 
@@ -57,27 +61,9 @@ class Models():
             freq: int(1 + math.floor(float(nperseg)/2))
             time: int(1 + math.ceil(float(window_size)/(nperseg-noverlap)))
             '''
-# =============================================================================
-#             self._plotter_src = Plotter(n_channel = input_shape[1])
-#             self._plotter_AC = Plotter(n_channel = input_shape[1])
-#             self._plotter_notch = Plotter(n_channel = input_shape[1])
-#             self._plotter_stft = Plotter(n_channel = input_shape[1])
-# =============================================================================
-# =============================================================================
-#             self._preprocessers += [self._plotter_src.plot]
-# =============================================================================
             self._preprocessers += [self._p.remove_DC]
-# =============================================================================
-#             self._preprocessers += [self._plotter_AC.plot]
-# =============================================================================
             self._preprocessers += [self._p.notch]
-# =============================================================================
-#             self._preprocessers += [self._plotter_notch.plot]
-# =============================================================================
             self._preprocessers += [self._p.stft]
-# =============================================================================
-#             self._preprocessers += [self._plotter_stft.plot]
-# =============================================================================
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
             
             nperseg = int(self._sample_rate / 5)
@@ -88,10 +74,12 @@ class Models():
             self._Default(nb_classes, (f, t, input_shape[1]))
             self.epochs, self.batch_size = 100, 20
 
-
             
         elif self.model_type == 'CNN_LSTM':
-            
+            self._preprocessers += [self._p.remove_DC]
+            self._preprocessers += [self._p.notch]
+            self._preprocessers += [self._p.stft]
+            self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
             nperseg = int(self._sample_rate / 5)
             noverlap = int(self._sample_rate / 5 * 0.67)
             f = int(1+math.floor(float(nperseg)/2))
@@ -99,6 +87,7 @@ class Models():
             
             self._CNN_LSTM(nb_classes, (f, t, input_shape[1]))
             self.epochs, self.batch_size = 60, 20
+            
             
         elif self.model_type == 'Double_Dense':
             self._Double_Dense(nb_classes, input_shape)
@@ -134,7 +123,7 @@ class Models():
         self.model.add(Flatten())
         self.model.add(Dense(128, activation='relu'))
         self.model.add(Dense(64, activation='relu'))
-        self.model.add(Dense(nb_classes, activation='softmax'))     
+        self.model.add(Dense(nb_classes, activation='softmax'))
         self.model.compile(loss='categorical_crossentropy',
                            optimizer='adadelta',
                            metrics=['accuracy'])
@@ -166,20 +155,21 @@ class Models():
         if not self.built:
             raise RuntimeError('you need to build the model first')
         if self.model_type == 'SVM':
-            # TODO: save  trained svm
+            # TODO: save trained svm
             raise RuntimeError('SVM can not be saved yet')
         self.model.save(model_name)
         
     def load(self, model_name):
         self._preprocessers = []
         self.model = keras.models.load_model(model_name)
-        if self.model.name in ['Default', 'CNN_LSTM']:
-            self._preprocessers += [self._p.remove_DC]
-            self._preprocessers += [self._p.notch]
-            self._preprocessers += [self._p.stft]
-            self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
-        elif self.model.name in ['Double_Dense']:
-            pass
+        # TODO: fix bug, model name can be saved but cannot be loaded
+        #if self.model.name in ['Default', 'CNN_LSTM']:
+        self._preprocessers += [self._p.remove_DC]
+        self._preprocessers += [self._p.notch]
+        self._preprocessers += [self._p.stft]
+        self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
+        #elif self.model.name in ['Double_Dense']:
+        #    pass
         self.built = True
         
     def train(self, data, label):
@@ -214,7 +204,6 @@ class Models():
 #             tmp = self.model.predict_classes(data, verbose=0)
 # =============================================================================
             tmp = self.model.predict_proba(data, verbose=0)
-            
             print('predict: {}'.format(tmp))
             if tmp.max() > 0.54 and tmp.argmax() != self._result:
                 self._result = tmp.argmax()
