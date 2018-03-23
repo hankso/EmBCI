@@ -14,6 +14,9 @@ import sys
 # In python2 raw_input return str and input retrun eval(str)
 if sys.version_info.major == 2:
     input = raw_input
+# In python3 reduce need to be imported while python2 not
+else:
+    from functools import reduce
 
 # pip install pyserial, pylsl
 import pylsl
@@ -53,7 +56,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
         This will call pip and try install pycnbi. [Y/n] y
         (return True)
     '''
-    k = answer.keys()
+    k = list(answer.keys())
     while times:
         times -= 1
         rst = input(prompt).lower()
@@ -106,8 +109,8 @@ def find_outlets(name, **kwargs):
     if len(stream_list) == 1:
         stream = stream_list[0]
     else:
-        dv = map(lambda x: x.name, stream_list)
-        ds = map(lambda x: x.type, stream_list)
+        dv = [stream.name() for stream in stream_list]
+        ds = [stream.type() for stream in stream_list]
         prompt = ('Please choose one from all available streams:\n    ' +
                   '\n    '.join(['%d %s - %s' % (i, j, k) \
                                  for i, j, k in enumerate(zip(dv, ds))]) +
@@ -144,8 +147,8 @@ def find_ports(timeout=5):
         if len(port_list) == 1:
             port = port_list[0]
         else:
-            dv = map(lambda x: x.device, port_list)
-            ds = map(lambda x: x.description, port_list)
+            dv = [port.device for port in port_list]
+            ds = [port.description for port in port_list]
             prompt = ('Please choose one from all available ports:\n    ' +
                       '\n    '.join([i+' - '+j for i, j in zip(dv, ds)]) +
                       '\nport name: ')
@@ -201,7 +204,7 @@ def get_label_list(username):
     a, n = len(label_list), sum(label_list.values())
     summary = (
         '\nThere are %d actions with %d data recorded.\n    ' % (a, n) +
-        '\n    '.join([k + '\t\t%d' % v for k, v in label_list.iteritems()])
+        '\n    '.join([k + '\t\t%d' % label_list[k] for k in label_list])
     )
     return label_list, summary
 

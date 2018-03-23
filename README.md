@@ -1,6 +1,7 @@
 # required modules
-simply run `sudo pip install -r ./requirements.txt`
+simply run `sudo pip install -r ./requirements.txt` or `sudo pip3 install -r ./requirements.txt`
 
+This program is py2 && py3 compatiable after 2018.03.23 modification(theorically...)
 
 # python packages on orangepi zero plus
 >backports-abc==0.5

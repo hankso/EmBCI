@@ -6,3 +6,4 @@ keras
 pylsl
 pyserial
 matplotlib
+h5py

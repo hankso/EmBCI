@@ -288,6 +288,14 @@ glove_box_command_dict_v1 = {
 
 
 if __name__ == '__main__':
+    username = 'test'
+    
     commander = Serial_commander(9600, command_dict=glove_box_command_dict_v1)
     commander.start()
     commander.send('thumb')
+    
+    # openbci 8-channel 250Hz
+    s = Serial_reader(250, 5, username, 1, log=True)
+    s.run()
+    p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
+    p.run()

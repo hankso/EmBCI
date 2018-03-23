@@ -135,7 +135,7 @@ def sEMG(username, reader, model):
         model.load(model_name)
         with open(model_name[:-3] + '-action-dict.json', 'r') as f:
             action_dict = json.load(f)
-        for i in action_dict.keys():
+        for i in list(action_dict.keys()):
             action_dict[int(i)] = action_dict[i]
             action_dict.pop(i)
         print('done')

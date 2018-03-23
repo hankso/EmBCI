@@ -5,9 +5,10 @@ Created on Thu Mar 22 08:26:16 2018
 
 @author: hank
 """
-# pip install matplotlib
+# pip install matplotlib, numpy
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 class Plotter():
     def __init__(self, where_to_plot=None, n_channel=1):
@@ -21,7 +22,7 @@ class Plotter():
         '''
         if where_to_plot == None:
             self.figure = plt.figure()
-            for i in xrange(n_channel):
+            for i in range(n_channel):
                 self.figure.add_axes((0, i*(1.0/n_channel),
                                       1, 1.0/n_channel),
                                      facecolor='black')
@@ -29,7 +30,7 @@ class Plotter():
             
         elif type(where_to_plot) == matplotlib.figure.Figure:
             if not len(where_to_plot.axes):
-                for i in xrange(n_channel):
+                for i in range(n_channel):
                     where_to_plot.add_axes((0, i*(1.0/n_channel),
                                             1, 1.0/n_channel),
                                            facecolor='black')
@@ -57,7 +58,7 @@ class Plotter():
         '''
         only update line data to save time
         '''
-        shape = data.shape()
+        shape = data.shape
         if len(shape) == 3:
             # n_sample x n_channel x window_size
             for i, ch in enumerate(data[0]):
@@ -75,4 +76,8 @@ class Plotter():
         return data
 
 if __name__ == '__main__':
+    plt.ion()
+    fake_data = np.random.random((1, 8, 1000))
+    print(fake_data.shape)
     p = Plotter(n_channel=8)
+    p.plot(fake_data)

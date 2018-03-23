@@ -112,7 +112,7 @@ def save_action(username, reader):
     reader:   where does data come from
     '''
     label_list = get_label_list(username)[0]
-    while check_input('Start record action? [Y/n] '):
+    while check_input('\nStart record action? [Y/n] '):
         record_animate(reader.sample_time)
         try:
             # reader.buffer is a dict
@@ -148,27 +148,9 @@ def save_action(username, reader):
 
 
 if __name__ == '__main__':
-# =============================================================================
-#     os.chdir('../')
-# =============================================================================
-# =============================================================================
-#     username = 'test'
-# =============================================================================
-# =============================================================================
-#     data, label, action_dict = load_data(username, summary=True)
-# =============================================================================
-# =============================================================================
-#     save_data(username, data, 'testing', summary=True)
-# =============================================================================
-    
-    # openbci 8-channel 250Hz
-# =============================================================================
-#     s = Serial_reader(250, 5, username, 1, log=True)
-#     s.run()
-# =============================================================================
-# =============================================================================
-#     p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
-#     p.run()
-# =============================================================================
+    os.chdir('../')
+    username = 'test'
+    data, label, action_dict = load_data(username, summary=True)
+    save_data(username, data, 'testing', summary=True)
     
     pass

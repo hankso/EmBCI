@@ -56,13 +56,13 @@ def fft(X, sample_rate, *args, **kwargs):
     -------
     freq: frequence bin list, with a length same as amp
     amp:  amptitude of each frequence bin, you can plot
-          with plt.plot(freq, amp) to get Amp-Freq img.
+          with plt.plot(freq, amp[0, 0]) to get Amp-Freq img.
     '''
     amp = 2 * abs(np.fft.rfft(X)) / float(len(X))
     amp[:, :, 0] /= 2
-    if len(X) % 2:
-        amp[-1] /= 2
-    freq= np.linspace(0, sample_rate/2, amp)
+    if amp.shape[-1] % 2:
+        amp[:, :, -1] /= 2
+    freq= np.linspace(0, sample_rate/2, amp.shape[-1])
     return freq, amp
 
 def bandwidth_filter(X, sample_rate, min_freq, max_freq, *args, **kwargs):
@@ -103,22 +103,23 @@ class Processer(object):
             # simple 1D time series.
             # Input: windowsize
             if len(X.shape) == 1:
-                return func(self, X.reshape(1, -1))
+                return func(self, X.reshape(1, 1, -1))
             # 2D array
             # Input: n_channel x window_size
             elif len(X.shape) == 2:
-                return func(self, X)
+                return func(self, X.reshape(1, X.shape[0], X.shape[1]))
             # 3D array
             # Input: n_sample x n_channel x window_size
             elif len(X.shape) == 3:
-                return np.array([func(self, sample) for sample in X])
+                return func(self, X)
             # 3D+
             # Input: ... x n_sample x n_channel x window_size
             else:
                 raise RuntimeError(('Input data shape {} is not supported.\n'
-                                    'Please offer (n_channel x window_size) '
-                                    '2D data or (n_sample x n_channel x '
-                                    'window_size) 3D data.').format(X.shape))
+                                    'Please offer time series 1D data, or '
+                                    '(n_channel x window_size) 2D data or '
+                                    '(n_sample x n_channel x window_size) '
+                                    '3D data.').format(X.shape))
         return wrapper
         
     @check_shape
