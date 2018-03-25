@@ -3,6 +3,9 @@ simply run `sudo pip install -r ./requirements.txt` or `sudo pip3 install -r ./r
 
 This program is py2 && py3 compatiable after 2018.03.23 modification(theorically...)
 
+# How to use
+Simply run `python2 run_me.py` or `python3 run_me.py`
+
 # python packages on orangepi zero plus
 >backports-abc==0.5
 >backports.shutil-get-terminal-size==1.0.0

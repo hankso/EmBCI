@@ -19,16 +19,9 @@ import numpy as np
 # from ../utils
 from common import time_stamp, check_input, first_use
 from IO import load_data, save_action
-from data_socket import Serial_commander
-from data_socket import glove_box_command_dict_v1
 
 
-def sEMG(username, reader, model):
-    # start reading data from socket(bluetooth@serial or pylsl@localhost:port)
-    # it's in a seperate thread, stop recording by `reader.do_stop()`
-    if not reader.isOpen():
-        reader.start()
-        
+def sEMG(username, reader, model, commander):
     #==========================================================================
     
     # user initializition
@@ -151,24 +144,36 @@ def sEMG(username, reader, model):
     # online recognizing, mainloop
     
     #==========================================================================
-    commander = Serial_commander(9600, glove_box_command_dict_v1)
-    
     print('now start online recognizing...')
     while reader.isOpen():
         if reader.streaming:
             data = np.array(
-                    [reader.buffer[ch] \
+                    [reader.buffer[ch][-reader.window_size:] \
                      for ch in reader.buffer if ch is not 'time']
                 ).reshape(1, reader.n_channel, reader.window_size)
         # here input shape: 1 x n_channel x window_size
-        class_num = model.predict(data)
+        class_num, action_prob = model.predict(data)
         
         # you can redirect this predicted result(string) to any output
+        action_name = action_dict[class_num]
+# =============================================================================
+#         print('[Predict action name] ' + action_name)
+# =============================================================================
         
-        if class_num:
-            action_name = action_dict[class_num]
-            print('[Predict action name] ' + action_name)
-            
-            action_cmd = commander.send(action_name)
+        action_cmd = commander.send(action_name, action_prob)
+        if action_cmd:
             print('sending control command %s for action %s' % (action_cmd,
                                                                 action_name))
+
+
+def P300(username, reader, model, commander):
+    raise NotImplemented
+    
+def SSVEP():
+    raise NotImplemented
+    
+def TGAM_relax(username, reader, model, commander):
+    raise NotImplemented
+    
+def MotorImageinary(username, reader, model, commander):
+    raise NotImplemented

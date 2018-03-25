@@ -11,17 +11,18 @@ import time
 import os
 import sys
 
+# pip install pyserial, pylsl
+import pylsl
+from serial.tools.list_ports import comports
+
+
 # In python2 raw_input return str and input retrun eval(str)
 if sys.version_info.major == 2:
     input = raw_input
 # In python3 reduce need to be imported while python2 not
 else:
     from functools import reduce
-
-# pip install pyserial, pylsl
-import pylsl
-from serial.tools.list_ports import comports
-
+    
 
 def check_dir(func):
     '''
@@ -214,7 +215,7 @@ def record_animate(times):
         times -= 1
         time.sleep(1)
         print('=', end='')
-    # not implemented
+    # TODO: not implemented
 
 
 if __name__ == '__main__':

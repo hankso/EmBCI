@@ -6,6 +6,8 @@ Created on Thu Mar 22 09:25:36 2018
 @author: hank
 """
 # built-in
+from __future__ import print_function
+import os
 import time
 import threading
 
@@ -15,6 +17,15 @@ import pylsl
 
 # from ./
 from common import find_ports, find_outlets
+# =============================================================================
+# from gyms import TorcsEnv
+# =============================================================================
+# =============================================================================
+# from gyms import PlaneClient
+# =============================================================================
+
+
+
 
 class _basic_reader(object):
     def __init__(self, sample_rate, sample_time, username, n_channel):
@@ -53,6 +64,38 @@ class _basic_reader(object):
     def do_stop(self):
         self._flag_stop.set()
         self.streaming = False
+        
+class _basic_commander(object):
+    def __init__(self, command_dict):
+        self._command_dict = command_dict
+        self._last_time = time.time()
+        
+    def _time_duration(time):
+        def decorator(func):
+            def wrapper(self, *args, **kwargs):
+                if (time.time() - self._last_time) < time:
+                    print('.', end='')
+                    return None
+                else:
+                    self._last_time = time.time()
+                    return func(self, *args, **kwargs)
+            return wrapper
+        return decorator
+        
+    def start(self):
+        raise NotImplemented('you can not use this class')
+        
+    def send(self, action_name):
+        raise NotImplemented('you can not use this class')
+        
+    def write(self, action_name):
+        '''
+        wrapper for usage of `print(cmd, file=commander)`
+        '''
+        self.send(action_name)
+        
+    def close(self):
+        raise NotImplemented('you can not use this class')
         
 
 class Pylsl_reader(_basic_reader):
@@ -114,7 +157,7 @@ class Pylsl_reader(_basic_reader):
                     
                 #==============================================================
                 d, t = self._inlet.pull_sample()
-                d = [t - self._start_time] + d[:self.n_channel]
+                d = [t - self._start_time] + d[1:self.n_channel + 1]
                 for i, ch in enumerate(self.ch_list):
                     self.buffer[ch].append(d[i])
                     if len(self.buffer[ch]) > self.window_size:
@@ -167,7 +210,7 @@ class Serial_reader(_basic_reader):
         if self._send_to_pylsl:
             info = pylsl.StreamInfo('Serial_reader', 'unknown', self.n_channel,
                                     self.sample_rate, 'float32', port)
-            self.outlet = pylsl.StreamOutlet(info, max_buflen=self.sample_time)
+            self.outlet = pylsl.StreamOutlet(info)
         
         # 2. start main thread
         # here we only need to check one time whether send_to_pylsl is set
@@ -232,43 +275,61 @@ class Serial_reader(_basic_reader):
         
     def isOpen(self):
         return self._serial.isOpen()
-
-class Serial_commander():
-    def __init__(self, baudrate, command_dict, CR = True, LF = True):
-        self._serial = serial.Serial(baudrate=baudrate)
-        self._command_dict = command_dict
-        self._CR = CR
-        self._LF = LF
     
-    def start(self):
-        print('[Serial commander] finding availabel ports...')
-        self._serial.port = find_ports()
-        self._serial.open()
     
-    def send(self, key):
-        if key not in self._command_dict:
-            print('Wrong command key! Abort.')
-            return
-        self._serial.write(self._command_dict[key])
-        if self._CR:
-            self._serial.write('\r')
-        if self._LF:
-            self._serial.write('\n')
-        return self._command_dict[key]
-    
-    def isOpen(self):
-        return self._serial.isOpen()
-    
-    def reconnect(self):
-        try:
-            self._serial.close()
-            time.sleep(1)
-            self._serial.open()
-            print('[Serial commander] reconnect success.')
-        except:
-            print('[Serial commander] reconnect failed.')
-            
-    
+# =============================================================================
+# class Torcs_commander(_basic_commander):
+#     def __init__(self, command_dict = {}):
+#         super(Torcs_commander, self).__init__(command_dict)
+#         
+#     def start(self):
+#         print('[Torcs commander] initializing TORCS...')
+#         self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
+#         self.env.reset()
+#     
+# # =============================================================================
+# #     # TODO: set time duration
+# #     @_time_duration(1)
+# # =============================================================================
+#     def send(self, key, prob, *args, **kwargs):
+#         cmd = [abs(prob) if key == 'right' else -abs(prob)]
+#         print('[Torcs commander] sending cmd {}'.format(cmd))
+#         self.env.step(cmd)
+#         return cmd
+#     
+#     def write(self, key):
+#         self.send(key)
+#         
+#     def close(self):
+#         self.env.end()
+# 
+# # action_class : command_str
+# plane_command_dict = {
+#         'left':'3',
+#         'right':'4',
+#         'up':'1',
+#         'down':'2',
+#         'disconnect':'9'
+# }
+# 
+# 
+# class Plane_commander(_basic_commander):
+#     def __init__(self, command_dict=plane_command_dict):
+#         super(Plane_commander, self).__init__(command_dict)
+#         
+#     def start(self):
+#         self.client = PlaneClient()
+#     
+#     def send(self, key, *args, **kwargs):
+#         if key not in self._command_dict:
+#             print('Wrong command key! Abort.')
+#             return
+#         self.client.send(self._command_dict[key])
+#         return self._command_dict[key]
+#     
+#     def close(self):
+#         pass
+# =============================================================================
 
 # action_class : command_str
 glove_box_command_dict_v1 = {
@@ -287,15 +348,63 @@ glove_box_command_dict_v1 = {
 }
 
 
+class Serial_commander(_basic_commander):
+    def __init__(self, baudrate=9600,
+                 command_dict=glove_box_command_dict_v1,
+                 CR = True, LF = True):
+        super(Serial_commander, self).__init__(command_dict)
+        self._serial = serial.Serial(baudrate=baudrate)
+        self._CR = CR
+        self._LF = LF
+        self._last_time = time.time()
+        
+    def start(self):
+        print('[Serial commander] finding availabel ports...')
+        self._serial.port = find_ports()
+        self._serial.open()
+    
+    def send(self, key, *args, **kwargs):
+        if (time.time() - self._last_time) < 5:
+            return None
+        self._last_time = time.time()
+        if key not in self._command_dict:
+            print('Wrong command key! Abort.')
+            return
+        self._serial.write(self._command_dict[key])
+        if self._CR:
+            self._serial.write('\r')
+        if self._LF:
+            self._serial.write('\n')
+        return self._command_dict[key]
+    
+    def close(self):
+        self._serial.close()
+    
+    def isOpen(self):
+        return self._serial.isOpen()
+    
+    def reconnect(self):
+        try:
+            self._serial.close()
+            time.sleep(1)
+            self._serial.open()
+            print('[Serial commander] reconnect success.')
+        except:
+            print('[Serial commander] reconnect failed.')
+            
+
+
 if __name__ == '__main__':
     username = 'test'
     
     commander = Serial_commander(9600, command_dict=glove_box_command_dict_v1)
     commander.start()
     commander.send('thumb')
-    
-    # openbci 8-channel 250Hz
-    s = Serial_reader(250, 5, username, 1, log=True)
-    s.run()
-    p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
-    p.run()
+# =============================================================================
+#     
+#     # openbci 8-channel 250Hz
+#     s = Serial_reader(250, 5, username, 1)
+#     s.start()
+#     p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
+#     p.start()
+# =============================================================================

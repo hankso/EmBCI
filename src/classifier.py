@@ -72,7 +72,7 @@ class Models():
             t = int(1+math.ceil(float(input_shape[2])/(nperseg-noverlap)))
             
             self._Default(nb_classes, (f, t, input_shape[1]))
-            self.epochs, self.batch_size = 100, 20
+            self.epochs, self.batch_size = 60, 25
 
             
         elif self.model_type == 'CNN_LSTM':
@@ -92,6 +92,7 @@ class Models():
         elif self.model_type == 'Double_Dense':
             self._Double_Dense(nb_classes, input_shape)
             self.epochs, self.batch_size = 60, 20
+            
             
         elif self.model_type == 'SVM':
             # src:    n_sample x n_channel x window_size
@@ -150,6 +151,9 @@ class Models():
         self.model.add(Dense(72, activation='relu'))
         self.model.add(Flatten())
         self.model.add(Dense(nb_classes, activation='softmax'))
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer='adadelta',
+                           metrics=['accuracy'])
     
     def save(self, model_name):
         if not self.built:
@@ -204,12 +208,18 @@ class Models():
 #             tmp = self.model.predict_classes(data, verbose=0)
 # =============================================================================
             tmp = self.model.predict_proba(data, verbose=0)
-            print('predict: {}'.format(tmp))
-            if tmp.max() > 0.54 and tmp.argmax() != self._result:
-                self._result = tmp.argmax()
-                return tmp.argmax()
-            else:
-                return None
+# =============================================================================
+#             print('predict: {}'.format(tmp))
+# =============================================================================
+# =============================================================================
+#             if tmp.max() > 0.54 and tmp.argmax() != self._result:
+#                 self._result = tmp.argmax()
+#                 print('last result: {} {}'.format(tmp.argmax(), tmp.max()))
+#                 return tmp.argmax(), tmp.max()
+#             else:
+#                 return None, None
+# =============================================================================
+        return tmp.argmax(), tmp.max()
         
     
 if __name__ == '__main__':
