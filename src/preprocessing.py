@@ -6,7 +6,7 @@ Created on Wed Feb 28 10:56:36 2018
 @author: Song Tian Cheng
 @page:   https://github.com/rotom407
 
-@author: Hank
+@author: hank
 @page:   https://github.com/hankso
 """
 
@@ -44,7 +44,8 @@ def stft(X, sample_rate, nperseg, noverlap, *args, **kwargs):
     time = int(1.0 + math.ceil( float(X.shape[-1]) / (nperseg - noverlap) ) )
     '''
     return np.abs(signal.stft(X, fs=sample_rate,
-                              nperseg=nperseg, noverlap=noverlap)[2])
+                              nperseg=nperseg,
+                              noverlap=noverlap))
 
 def fft(X, sample_rate, *args, **kwargs):
     '''
@@ -69,14 +70,28 @@ def bandwidth_filter(X, sample_rate, min_freq, max_freq, *args, **kwargs):
     pass
 
 def PSD(X, sample_rate, *args, **kwargs):
-    return X
+    '''
+    Power Spectrum Density
+    Input shape:  n_sample x n_channel x window_size
+    Output shape: n_sample x n_channel x window_size/2
+    PSD: np.conjugate(amp) * amp
+    Magnitude: np.absolute(amp)
+    Angle, Phase: np.angle(amp)
+    '''
+    tmp = np.fft.fft(X)
+    tmp *= np.conjugate(tmp)
+    return tmp
 
 
 class Processer(object):
     def __init__(self, sample_rate, sample_time):
+    
+    
         '''
         A collection of all available signal preprocessing methods.
         Use this class to offer default params for each fucntion.
+        
+        # TODO 8: Fix this pickle problem
         
         This class contains two main methods:
             add_preprocesser -- you can input a built-in or user defined
@@ -93,6 +108,8 @@ class Processer(object):
         This is elegant enough but not suitable here. So function
         more detail at https://docs.python.org/2/library/pickle.html
         '''
+        
+        
         self._fs = sample_rate
         self._ws = sample_rate * sample_time
         
@@ -164,5 +181,5 @@ if __name__ == '__main__':
     print('after remove DC shape {}'.format(p.remove_DC(X).shape))
     print('after notch shape {}'.format(p.notch(X).shape))
     print('after fft shape {}'.format(p.fft(X)[1].shape))
-    print('after stft shape {}'.format(p.stft(X).shape))
+    print('after stft shape {}'.format(p.stft(X)[2].shape))
     print('after psd shape {}'.format(p.PSD(X).shape))

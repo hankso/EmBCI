@@ -7,3 +7,4 @@ pylsl
 pyserial
 matplotlib
 h5py
+gym

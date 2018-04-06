@@ -6,16 +6,28 @@ Created on Tue Mar  6 20:45:20 2018
 @author: hank
 """
 # built-in
+from __future__ import print_function
 import os
 import sys
+import time
+import threading
+import socket
 
 # pip install numpy, scipy
 import scipy.io as sio
 import numpy as np
+import serial
+import pylsl
 
 # from ./
-from common import check_dir, check_input, get_label_list
-from common import record_animate
+from common import check_dir, check_input, get_label_list, Timer
+from common import record_animate, get_self_ip_addr
+from common import find_ports, find_outlets, find_spi_devices
+from gyms import TorcsEnv
+from gyms import PlaneClient
+from gpio4 import SysfsGPIO
+from ads1299 import ADS1299
+
 
 @check_dir
 def save_data(username,
@@ -49,7 +61,7 @@ def save_data(username,
 
     #==========================================================================
 
-    # TODO: data save('.fif')
+    # TODO 5: data save('.fif')
 
     #==========================================================================
 
@@ -95,7 +107,7 @@ def load_data(username, summary=True):
 
     #==========================================================================
 
-    # TODO: data load('.fif')
+    # TODO 6: data load('.fif')
 
     #==========================================================================
 
@@ -106,9 +118,9 @@ def load_data(username, summary=True):
 
 def save_action(username, reader):
     '''
-    引导用户存储一段数据并给数据打上标签，需要username和数据流对象
+    引导用户存储一段数据并给数据打上标签，需要username和reader数据流对象
 
-    username: where will data be saved to, i.e. which folder
+    username: where will data be saved to
     reader:   where does data come from
     '''
     label_list = get_label_list(username)[0]
@@ -147,10 +159,644 @@ def save_action(username, reader):
     return label_list
 
 
+
+
+class _basic_reader(object):
+    def __init__(self, sample_rate, sample_time, username, n_channel):
+        # basic stream reader information
+        self.sample_rate = sample_rate
+        self.sample_time = sample_time
+        self.n_channel = n_channel
+        self.window_size = sample_rate * sample_time
+        
+        # channels are defined here
+        self.ch_list = ['time'] + ['channel%d' % i for i in range(n_channel)]
+        self.buffer = {ch: [] for ch in self.ch_list}
+
+        # use these flags to controll the data streaming thread
+        self.streaming = False
+        self._flag_pause = threading.Event()
+        self._flag_close = threading.Event()
+
+    def start(self):
+        '''
+        rewrite this to start buffing data from different sources
+        '''
+        raise NotImplementedError('not implemented yet')
+        
+    def close(self):
+        self._flag_close.set()
+        self.streaming = False
+
+    def pause(self):
+        self._flag_pause.clear()
+        self.streaming = False
+        
+    def resume(self):
+        self._flag_pause.set()
+        self.streaming = True
+        
+
+class Pylsl_reader(_basic_reader):
+    '''
+    Connect to a data stream on localhost:port and read data into buffer.
+    There should be at least one stream available.
+    '''
+    _num = 1
+    def __init__(self,
+                 sample_rate=256,
+                 sample_time=2,
+                 username='test',
+                 n_channel=1,
+                 servername=None):
+        super(Pylsl_reader, self).__init__(sample_rate, sample_time,
+                                           username, n_channel)
+        self._servername = servername
+        self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
+        Pylsl_reader._num += 1
+        
+    def start(self):
+        '''
+        Here we take window_size(sample_rate x sample_time) as max_buflen
+        In doc of pylsl.StreamInlet:
+            max_buflen -- Optionally the maximum amount of data to buffer (in
+                  seconds if there is a nominal sampling rate, otherwise 
+                  x100 in samples). Recording applications want to use a 
+                  fairly large buffer size here, while real-time 
+                  applications would only buffer as much as they need to 
+                  perform their next calculation. (default 360)
+        '''
+        # 1. find available streaming info and build an inlet 
+        print(self._name + 'finding availabel outlets...')
+        info = find_outlets(self._servername)
+        if info.channel_count() < self.n_channel:
+            raise RuntimeError(('You want %d channel data but only %d channels'
+                                ' is offered by pylsl stream outlet you select'
+                                '.') % (self.n_channel, info.channel_count()))
+        max_buflen = (self.sample_time if info.nominal_srate() != 0 else \
+                      int(self.window_size/100) + 1)
+        self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
+        self._start_time = info.created_at()
+        
+        # 2. start streaming thread to fetch data into buffer continuously
+        self._thread = threading.Thread(target=self._read_data)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        
+        # 3. set flags
+        self._flag_pause.set()
+        self.streaming = True
+    
+    def _read_data(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                d, t = self._inlet.pull_sample()
+                d = [t - self._start_time] + d[1:self.n_channel + 1]
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._inlet.close_stream()
+            print(self._name + 'pylsl reader shut down.')
+    
+    def isOpen(self):
+        '''
+        use inlet status as reader open flag
+        '''
+        try:
+            self._inlet.open_stream(0.01)
+            return True
+        except:
+            return False
+    
+
+class Serial_reader(_basic_reader):
+    '''
+    Connect to a serial port and fetch data into buffer.
+    There should be at least one port available.
+    '''
+    _num = 1
+    def __init__(self,
+                 sample_rate=256,
+                 sample_time=2,
+                 username='test',
+                 n_channel=1,
+                 baudrate=115200,
+                 send_to_pylsl=False):
+        super(Serial_reader, self).__init__(sample_rate, sample_time,
+                                            username, n_channel)
+        self._serial = serial.Serial(baudrate=baudrate)
+        self._name = '[Serial reader %d] ' % Serial_reader._num
+        Serial_reader._num += 1
+        self._send_to_pylsl = send_to_pylsl
+        
+    def start(self):
+        # 1. find serial port and connect to it
+        print(self._name + 'finding availabel ports...')
+        port = find_ports()
+        self._serial.port = port
+        self._serial.open()
+        
+        # 2. start main thread
+        # here we only need to check one time whether send_to_pylsl is set
+        # if put this work in thread, it will be checked thousands times.
+        if self._send_to_pylsl:
+            self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo('Serial_reader',
+                                                              'unknown',
+                                                              self.n_channel,
+                                                              self.sample_rate,
+                                                              'float32', port))
+            self._thread = threading.Thread(target=self._read_data_send_pylsl)
+        else:
+            self._thread = threading.Thread(target=self._read_data)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        
+        # 3. set pause flag and streaming flag
+        self._flag_pause.set()
+        self.streaming = True
+
+    def _read_data(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                d = self._serial.read_until().strip().split(',')
+                d = [time.time() - self._start_time] + d[:self.n_channel]
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(float(d[i]))
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._serial.close()
+            print(self._name + 'serial reader shut down.')
+            
+    def _read_data_send_pylsl(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                d = self._serial.read_until().strip().split(',')
+                d = [time.time() - self._start_time] + [float(i) for i in \
+                                                        d[:self.n_channel]]
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(float(d[i]))
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+                self.outlet.push_sample(d[1:])
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._serial.close()
+            print(self._name + 'serial reader shut down.')
+        
+    def isOpen(self):
+        return self._serial.isOpen()
+
+
+class SPI_reader(_basic_reader):
+    '''
+    Read data from SPI connection with ADS1299.
+    This class is only used on ARM. It depends on module `spidev` and `gpio3`
+    '''
+    _num = 1
+    def __init__(self,
+                 sample_rate=500,
+                 sample_time=2,
+                 username='test',
+                 n_channel=8,
+                 send_to_pylsl=True):
+        super(SPI_reader, self).__init__(sample_rate, sample_time,
+                                         username, n_channel)
+        self._name = '[SPI reader %d] ' % SPI_reader._num
+        SPI_reader._num += 1
+        
+        self._send_to_pylsl = send_to_pylsl
+        
+        self._ads1299 = ADS1299()
+        
+    def start(self):
+        # 1. find avalable spi devices
+        print(self._name + 'finding available spi devices...')
+        dev = self._ads1299.open(max_speed_hz=10e6)
+        self._ads1299.start()
+        
+        # 2. start main thread
+        # here we only need to check one time whether send_to_pylsl is set
+        # if put this work in thread, it will be checked thousands times.
+        if self._send_to_pylsl:
+            self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo('SPI_reader',
+                                                              'unknown',
+                                                              self.n_channel,
+                                                              self.sample_rate,
+                                                              'float32',
+                                                              'spi '+str(dev)))
+            self._thread = threading.Thread(target=self._read_data_send_pylsl)
+        else:
+            self._thread = threading.Thread(target=self._read_data)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        
+        # 3. set pause flag and streaming flag
+        self._flag_pause.set()
+        self.streaming = True
+    
+    def _read_data(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                d = list(self._ads1299.read())
+                d = [time.time() - self._start_time] + d[:self.n_channel]
+                dat = []
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    dat += [d[i]]
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._close_spi_gpio()
+            print(self._name + 'SPI reader shut down.')
+    
+    def _read_data_send_pylsl(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                d = list(self._ads1299.read())
+                d = [time.time() - self._start_time] + d[:self.n_channel]
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+                self.outlet.push_sample(d[1:])
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._close_spi_gpio()
+            print(self._name + 'SPI reader shut down.')
+            
+    def close(self):
+        self._ads1299.close()
+
+
+class Socket_reader(_basic_reader):
+    '''
+    Maybe socket client is a more proper name but this is also easy to 
+    understand. Read data from socket.
+    '''
+    _num = 1
+    def __init__(self,
+                 sample_rate=250,
+                 sample_time=2,
+                 username='test',
+                 n_channel=8):
+        super(_basic_reader, self).__init__(sample_rate, sample_time,
+                                            username, n_channel)
+        self._name = '[Socket reader %d] ' % Socket_reader._num
+        Socket_reader._num += 1
+        
+        # TCP IPv4 socket connection
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+    def start(self):
+        # 1. IP addr and port are offered by user, connect to that host:port
+        print(self._name + 'configuring addr... input "quit" to abort')
+        while 1:
+            r = check_input(('please input an address in format "host,port"\n'
+                             '>>> 192.168.0.1:8888 (example)\n>>> '), {})
+            if r == 'quit':
+                raise SystemExit(self._name + 'mannually exit')
+            try:
+                host, port = r.split(':')
+                assert int(port) > 0
+                socket.inet_aton(host)
+                break
+            except:
+                print(self._name + 'invalid addr!')
+        self.client.connect((host, int(port)))
+        
+        # 2. read data in another thread
+        self._thread = threading.Thread(target=self._read_data)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        
+        # 3. set pause flag and streaming flag
+        self._flag_pause.set()
+        self.streaming = True
+    
+    def _read_data(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                # 8-channel float32 data = 8*32bits = 32bytes
+                # d is np.ndarray with a shape of (8, 1)
+                d = np.frombuffer(self.client.recv(32))
+                d = [time.time() - self._start_time] + list(d)[:self.n_channel]
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            self._close_spi_gpio()
+            print(self._name + 'Socket reader shut down.')
+    
+
+class Socket_server(object):
+    '''
+    Send data to socket host:port, default to 0.0.0.0:9999
+    '''
+    _num = 1
+    def __init__(self, host='0.0.0.0', port=9999):
+# =============================================================================
+#         if host is None:
+#             host = get_self_ip_addr()
+# =============================================================================
+            
+        self._name = '[Socket server %d] ' % Socket_server._num
+        Socket_server._num += 1
+        self.connections = []
+        
+        # TCP IPv4 socket connection
+        self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.bind((host, port))
+        self._server.listen(5)
+        self._server.settimeout(1)
+        print(self._name + 'binding socket server at %s:%d' % (host, port))
+        
+        # handle connection in a seperate thread
+        self._flag_close = threading.Event()
+        self._thread = threading.Thread(target=self._manage_connections)
+        self._thread.setDaemon(True)
+        self._thread.start()
+    
+    def _manage_connections(self):
+        while not self._flag_close.isSet():
+            # accept connection, wait for 1 second
+            try:
+                con, addr = self._server.accept()
+                print(self._name + 'accept client from {}:{}'.format(
+                        *con.getpeername()))
+                self.connections += [con]
+            except:
+                pass
+            
+            # clear closed connections, each one cost 1 second
+            for i, con in zip(range(len(self.connections)), self.connections):
+                try:
+                    con.settimeout(1)
+                    if con.recv(1024) == '':
+                        print(self._name + 'lost client from {}:{}'.format(
+                                *con.getpeername()))
+                        con.close()
+                        self.connections.pop(i)
+                except:
+                    pass
+    
+    def send(self, data):
+        if not isinstance(data, np.ndarray):
+            data = np.array(data, dtype=np.float32)
+        for con in self.connections:
+            con.sendall(data.tobytes())
+            
+    def close(self):
+        print(self._name + 'stop broadcasting data...')
+        self._flag_close.set()
+        for con in self.connections:
+            con.close()
+        self._server.close()
+        print(self._name + 'Socket server shut down.')
+
+    def have_listener(self):
+        return len(self.connections)
+
+        
+class _basic_commander(object):
+    def __init__(self, command_dict):
+        self._command_dict = command_dict
+        
+    def start(self):
+        raise NotImplemented('you can not use this class')
+        
+    def send(self, key):
+        raise NotImplemented('you can not use this class')
+        
+    def write(self, key):
+        '''
+        wrapper for usage of `print(cmd, file=commander)`
+        '''
+        self.send(key)
+        
+    def close(self):
+        raise NotImplemented('you can not use this class')
+    
+
+
+class Torcs_commander(_basic_commander):
+    '''
+    Send command to TORCS(The Open Race Car Simulator)
+    You can output predict result from classifier to the 
+    game to control race car(left, right, throttle, brake...)
+    '''
+    _num = 1
+    def __init__(self, command_dict = {}):
+        super(Torcs_commander, self).__init__(command_dict)
+        self._name = '[Torcs commander %d] ' % Torcs_commander._num
+        Torcs_commander._num += 1
+        
+    def start(self):
+        print(self._name + 'initializing TORCS...')
+        self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
+        self.env.reset()
+    
+    @Timer.duration('Torcs_commander', 1, warning='')
+    def send(self, key, prob, *args, **kwargs):
+        cmd = [abs(prob) if key == 'right' else -abs(prob)]
+        print(self._name + 'sending cmd {}'.format(cmd))
+        self.env.step(cmd)
+        return cmd
+        
+    def close(self):
+        self.env.end()
+
+
+
+# action_class : command_str
+plane_command_dict = {
+        'left':'3',
+        'right':'4',
+        'up':'1',
+        'down':'2',
+        'disconnect':'9'
+}
+
+class Plane_commander(_basic_commander):
+    '''
+    Send command to plane war game.
+    Controlling plane with `left`, `right`, `up` and `down`.
+    '''
+    def __init__(self, command_dict=plane_command_dict):
+        super(Plane_commander, self).__init__(command_dict)
+        
+    def start(self):
+        self.client = PlaneClient()
+    
+    @Timer.duration('Plane_commander', 1, warning='')
+    def send(self, key, *args, **kwargs):
+        if key not in self._command_dict:
+            print(self._name + 'Wrong command {}! Abort.'.format(key))
+            return
+        self.client.send(self._command_dict[key])
+        return self._command_dict[key]
+    
+    def close(self):
+        pass
+
+
+
+class Pylsl_commander(_basic_commander):
+    '''
+    Send predict result to pylsl as an online command stream
+    '''
+    _num = 1
+    def __init__(self, command_dict):
+        super(Pylsl_commander, self).__init__(command_dict)
+        self._name = '[Pylsl commander %d] ' % Pylsl_commander._num
+        Pylsl_commander._num += 1
+        
+    def start(self):
+        self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo('Pylsl_commander',
+                                                          'predict result',
+                                                          1, 0.0, 'string'))
+    
+    @Timer.duration('Pylsl commander', 0)
+    def send(self, key, *args, **kwargs):
+        if not isinstance(key, str):
+            raise RuntimeError(self._name + ( 'only accept str but got type {}'
+                                              .format(type(key)) ) )
+        self.outlet.push_sample([key])
+        
+    def close(self):
+        pass
+
+
+
+# action_class : command_str
+command_dict_glove_box = {
+        'thumb':'1',
+        'index':'2',
+        'middle':'3',
+        'ring':'5',
+        'little':'4',
+        'grab-all':'6',
+        'relax':'7',
+        'grab':'8',
+        'thumb-index':'A',
+        'thumb-middle':'B',
+        'thumb-ring':'C',
+        'thumb-little':'D',
+}
+
+class Serial_commander(_basic_commander):
+    _num =  1
+    def __init__(self, baudrate=9600,
+                 command_dict=command_dict_glove_box,
+                 CR = True, LF = True):
+        super(Serial_commander, self).__init__(command_dict)
+        self._serial = serial.Serial(baudrate=baudrate)
+        self._CR = CR
+        self._LF = LF
+        self._name + '[Serial commander %d] ' % Serial_commander._num
+        Serial_commander._num += 1
+        
+    def start(self):
+        print(self._name + 'finding availabel ports...')
+        self._serial.port = find_ports()
+        self._serial.open()
+    
+    @Timer.duration('Serial_commander', 5, warning='')
+    def send(self, key, *args, **kwargs):
+        if key not in self._command_dict:
+            print(self._name + ' Wrong command {}! Abort.'.format(key))
+            return
+        self._serial.write(self._command_dict[key])
+        if self._CR:
+            self._serial.write('\r')
+        if self._LF:
+            self._serial.write('\n')
+        return self._command_dict[key]
+    
+    def close(self):
+        self._serial.close()
+    
+    def reconnect(self):
+        try:
+            self._serial.close()
+            time.sleep(1)
+            self._serial.open()
+            print(self._name + 'reconnect success.')
+        except:
+            print(self._name + 'reconnect failed.')
+            
+
+command_dict_arduino_screen = {
+        'point':     '#0\r\n' + '{}\r\n'*2,   # x, y
+        'line':      '#1\r\n' + '{}\r\n'*4,   # x1, y1, x2, y2
+        'circle':    '#2\r\n' + '{}\r\n'*3,   # x, y, r
+        'rectangle': '#3\r\n' + '{}\r\n'*4,   # x1, y1, x2, y2
+        'text':      '#4\r\n' + '{}\r\n'*3,   # x, y, text(str)
+}
+
+class Screen_commander(Serial_commander):
+    def __init__(self, baudrate=115200, 
+                 command_dict=command_dict_arduino_screen):
+        super(Screen_commander, self).__init__(baudrate, command_dict)
+        self._name = self._name[:-2] + ' for screen' + self._name[-2:]
+        
+    @Timer.duration('Screen_commander', 1.0/10.0)
+    def send(self, key, *args, **kwargs):
+        if key not in self._command_dict:
+            print(self._name + 'Wrong command {}! Abort.'.format(key))
+            return
+        try:
+            self._serial.write(self._command_dict[key].format(*args))
+        except IndexError:
+            print(self._name + 'unmatch key {} and params {}!'.format(
+                    self._command_dict[key], args))
+
+
+
+
+
 if __name__ == '__main__':
     os.chdir('../')
     username = 'test'
     data, label, action_dict = load_data(username, summary=True)
     save_data(username, data, 'testing', summary=True)
-    
+
+# =============================================================================
+#     commander = Serial_commander(9600, command_dict=glove_box_command_dict_v1)
+#     commander.start()
+#     commander.send('thumb')
+# =============================================================================
+# =============================================================================
+#     
+#     # openbci 8-channel 250Hz
+#     s = Serial_reader(250, 5, username, 1)
+#     s.start()
+#     p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
+#     p.start()
+# =============================================================================
     pass

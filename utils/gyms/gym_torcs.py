@@ -9,7 +9,19 @@ import collections as col
 import os
 import time
 
-autostart_path = './gyms/autostart.sh'
+autostart_script = '''sh
+xte 'key Return'
+xte 'usleep 100000'
+xte 'key Return'
+xte 'usleep 100000'
+xte 'key Up'
+xte 'usleep 100000'
+xte 'key Up'
+xte 'usleep 100000'
+xte 'key Return'
+xte 'usleep 100000'
+xte 'key Return'
+'''
 
 class TorcsEnv:
     terminal_judge_start = 500  # Speed limit is applied after this step
@@ -35,7 +47,7 @@ class TorcsEnv:
         else:
             os.system('torcs  -nofuel -nodamage -nolaptime &')
         time.sleep(0.5)
-        os.system('sh ' + autostart_path)
+        os.system(autostart_script)
         time.sleep(0.5)
 
         """
@@ -210,7 +222,7 @@ class TorcsEnv:
         else:
             os.system('torcs -nofuel -nodamage -nolaptime &')
         time.sleep(0.5)
-        os.system('sh ' + autostart_path)
+        os.system(autostart_script)
         time.sleep(0.5)
 
     def agent_to_torcs(self, u):

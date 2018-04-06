@@ -4,6 +4,7 @@
 Created on Tue Feb 27 22:59:33 2018
 
 @author: ASDF(JTQ)
+@author: hank
 """
 # built-in
 import math
@@ -18,7 +19,7 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical
 
-# from ../utils
+# from ./
 from preprocessing import Processer
 
 
@@ -90,14 +91,21 @@ class Models():
             
             
         elif self.model_type == 'Double_Dense':
-            self._Double_Dense(nb_classes, input_shape)
+            '''
+            src: n_sample x n_channel x window_size
+            out: n_sample x n_channel x window_size
+            label: n_sample x 1
+            '''
+            self._Double_Dense(nb_classes, input_shape[1:3])
             self.epochs, self.batch_size = 60, 20
             
             
         elif self.model_type == 'SVM':
-            # src:    n_sample x n_channel x window_size
-            # target: n_sample x series(n_channel * freq * time)
-            # label:  n_sample x 1
+            '''
+            src:    n_sample x n_channel x window_size
+            target: n_sample x series(n_channel * freq * time)
+            label:  n_sample x 1
+            '''
             self._preprocessers += [self._p.remove_DC,
                                     self._p.notch,
                                     self._p.stft]
@@ -129,8 +137,9 @@ class Models():
                            optimizer='adadelta',
                            metrics=['accuracy'])
         
-    def _CNN_LSTM(self, nb_classes, data_shape):
-        input_shape = (data_shape[1], data_shape[2], data_shape[3])
+    def _CNN_LSTM(self, nb_classes, input_shape):
+        print('building model with data shape{}'.format(input_shape))
+        
         self.model.add(TimeDistributed(Conv2D(32, 5, 5, padding='same'),
                                         activation='relu',
                                         input_shape = input_shape))
@@ -147,6 +156,7 @@ class Models():
         self.model = svm.SVC()
     
     def _Double_Dense(self, nb_classes, input_shape):
+        print('building model with data shape{}'.format(input_shape))
         self.model.add(Dense(128, activation='relu', input_shape=input_shape))
         self.model.add(Dense(72, activation='relu'))
         self.model.add(Flatten())
@@ -159,14 +169,14 @@ class Models():
         if not self.built:
             raise RuntimeError('you need to build the model first')
         if self.model_type == 'SVM':
-            # TODO: save trained svm
+            # TODO 4: save trained svm
             raise RuntimeError('SVM can not be saved yet')
         self.model.save(model_name)
         
     def load(self, model_name):
         self._preprocessers = []
         self.model = keras.models.load_model(model_name)
-        # TODO: fix bug, model name can be saved but cannot be loaded
+        # TODO 5: fix bug, model name can be saved but cannot be loaded
         #if self.model.name in ['Default', 'CNN_LSTM']:
         self._preprocessers += [self._p.remove_DC]
         self._preprocessers += [self._p.notch]

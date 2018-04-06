@@ -10,19 +10,16 @@ from __future__ import print_function
 import time
 import os
 import sys
+import socket
 
 # pip install pyserial, pylsl
 import pylsl
 from serial.tools.list_ports import comports
 
-
-# In python2 raw_input return str and input retrun eval(str)
-if sys.version_info.major == 2:
-    input = raw_input
 # In python3 reduce need to be imported while python2 not
-else:
+if sys.version_info.major == 3:
     from functools import reduce
-    
+
 
 def check_dir(func):
     '''
@@ -57,6 +54,9 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
         This will call pip and try install pycnbi. [Y/n] y
         (return True)
     '''
+    # In python2 raw_input return str and input retrun eval(str)
+    if sys.version_info.major == 2:
+        input = raw_input
     k = list(answer.keys())
     while times:
         times -= 1
@@ -164,6 +164,71 @@ def find_ports(timeout=5):
     sys.exit('No port available! Abort.')
 
 
+
+class Timer(object):
+    '''
+    Want to looply execute some function every specific time duration?
+    You may use this class.
+    
+    There is only one method(static) in this class:
+        
+        duration(name, time_in_sec, warning='.')
+        
+    name is a str id of the function, you can name it whatever you want but
+    just make it distinguishable, and the second param is time duration in
+    second.
+    
+    Example
+    =======
+    >>> @Timer.duration('testing', 3, warning='cant call me so frequently!')
+    ... def testing(foo):
+    ...     print(foo)
+    
+    >>> while 1:
+    ...     time.sleep(1)
+    ...     testing('now you are executing testing function')
+    now you are executing testing function
+    cant call me so frequently!
+    cant call me so frequently!
+    now you are executing testing function
+    cant call me so frequently!
+    cant call me so frequently!
+    ...
+    '''
+    last_time_dict = {}
+    @staticmethod
+    def duration(name, time_in_sec, warning='.'):
+        if name not in Timer.last_time_dict:
+            Timer.last_time_dict[name] = time.time()
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                if (time.time() - Timer.last_time_dict[name]) < time_in_sec:
+                    print(warning, end='')
+                    return None
+                else:
+                    Timer.last_time_dict[name] = time.time()
+                    return func(*args, **kwargs)
+            return wrapper
+        return decorator
+
+
+def get_self_ip_addr(self):
+    '''
+    Create a UDP socket which can broadcast data packages even there is no
+    listeners. So this socket can actually connect to any hosts you offer 
+    even they are unreachable. Here use '8.8.8.8' google public DNS addr.
+    '''
+    try:
+        tmp_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        tmp_s.connect(('8.8.8.8', 1))
+        host, port = tmp_s.getsockname()
+    except:
+        host = '127.0.0.1'
+    finally:
+        tmp_s.close()
+        return host
+        
+
 def _combine_action(d1, d2):
     ''' only used in get_label_list '''
     if type(d1) is not dict:
@@ -215,7 +280,89 @@ def record_animate(times):
         times -= 1
         time.sleep(1)
         print('=', end='')
-    # TODO: not implemented
+    # TODO 10: not implemented
+
+
+# TODO 11: interesting function copied from package `mne`, modify it for our usage
+# =============================================================================
+# def sys_info(fid=None, show_paths=False):
+#     """Print the system information for debugging.
+# 
+#     This function is useful for printing system information
+#     to help triage bugs.
+# 
+#     Parameters
+#     ----------
+#     fid : file-like | None
+#         The file to write to. Will be passed to :func:`print()`.
+#         Can be None to use :data:`sys.stdout`.
+#     show_paths : bool
+#         If True, print paths for each module.
+# 
+#     Examples
+#     --------
+#     Running this function with no arguments prints an output that is
+#     useful when submitting bug reports::
+# 
+# import mne
+# mne.sys_info() # doctest: +SKIP
+#         Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
+#         Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
+#         Executable:    /usr/bin/python
+# 
+#         mne:           0.12.dev0
+#         numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
+#         scipy:         0.18.0.dev0+3deede3
+#         matplotlib:    1.5.1+1107.g1fa2697
+# 
+#         sklearn:       0.18.dev0
+#         nibabel:       2.1.0dev
+#         mayavi:        4.3.1
+#         pycuda:        2015.1.3
+#         skcuda:        0.5.2
+#         pandas:        0.17.1+25.g547750a
+# 
+#     """  # noqa: E501
+#     ljust = 15
+#     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+#     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
+#     out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+#     old_stdout = sys.stdout
+#     capture = StringIO()
+#     try:
+#         sys.stdout = capture
+#         np.show_config()
+#     finally:
+#         sys.stdout = old_stdout
+#     lines = capture.getvalue().split('\n')
+#     libs = []
+#     for li, line in enumerate(lines):
+#         for key in ('lapack', 'blas'):
+#             if line.startswith('%s_opt_info' % key):
+#                 libs += ['%s=' % key +
+#                          lines[li + 1].split('[')[1].split("'")[1]]
+#     libs = ', '.join(libs)
+#     version_texts = dict(pycuda='VERSION_TEXT')
+#     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
+#                      'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
+#                      'pandas'):
+#         if mod_name == '':
+#             out += '\n'
+#             continue
+#         out += ('%s:' % mod_name).ljust(ljust)
+#         try:
+#             mod = __import__(mod_name)
+#         except Exception:
+#             out += 'Not found\n'
+#         else:
+#             version = getattr(mod, version_texts.get(mod_name, '__version__'))
+#             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+#             if mod_name == 'numpy':
+#                 extra = ' {%s}%s' % (libs, extra)
+#             out += '%s%s\n' % (version, extra)
+#     print(out, end='', file=fid)
+# =============================================================================
+
 
 
 if __name__ == '__main__':

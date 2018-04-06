@@ -56,12 +56,10 @@ def plot_raw(x, y, sample_rate=256, win_width=100):
 
 
 if __name__ == '__main__':
-    filepath = ('/home/hank/Documents/Git'
-                '/MyBCI/tgam_reader'
-                '/raw_data_20171217-14:10:32.csv')
+    filepath = './raw_data_20171217-14:10:32.csv'
     csv = np.loadtxt(filepath, delimiter=',')
     try:
-        a = cv2_plot_raw(csv[:, 0][:], csv[:, 1][:])
+        cv2_plot_raw(csv[:, 0][:], csv[:, 1][:])
         #plt.ion()
         #time.sleep(1)
         #for i in range(csv.shape[0]-100):

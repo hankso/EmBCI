@@ -53,6 +53,7 @@
 # Try `snakeoil.py --help` to get started.
 
 # for Python3-based torcs python robot client
+from __future__ import print_function
 import socket
 import sys
 import getopt

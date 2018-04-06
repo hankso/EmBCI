@@ -175,5 +175,5 @@ def SSVEP():
 def TGAM_relax(username, reader, model, commander):
     raise NotImplemented
     
-def MotorImageinary(username, reader, model, commander):
+def MotorImaginary(username, reader, model, commander):
     raise NotImplemented
