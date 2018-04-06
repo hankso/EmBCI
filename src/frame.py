@@ -17,7 +17,7 @@ sys.path += ['../utils']
 import numpy as np
 
 # from ../utils
-from common import time_stamp, check_input, first_use
+from common import time_stamp, check_input, first_use, record_animate
 from IO import load_data, save_action
 
 
@@ -146,11 +146,15 @@ def sEMG(username, reader, model, commander):
     #==========================================================================
     print('now start online recognizing...')
     while reader.isOpen():
-        if reader.streaming:
-            data = np.array(
-                    [reader.buffer[ch][-reader.window_size:] \
-                     for ch in reader.buffer if ch is not 'time']
-                ).reshape(1, reader.n_channel, reader.window_size)
+        if not reader.streaming:
+            break
+        print('start recording in 2s')
+        time.sleep(2)
+        record_animate(reader.sample_time)
+        data = np.array(
+                [reader.buffer[ch][-reader.window_size:] \
+                 for ch in reader.buffer if ch is not 'time']
+            ).reshape(1, reader.n_channel, reader.window_size)
         # here input shape: 1 x n_channel x window_size
         class_num, action_prob = model.predict(data)
         
@@ -159,11 +163,11 @@ def sEMG(username, reader, model, commander):
 # =============================================================================
 #         print('[Predict action name] ' + action_name)
 # =============================================================================
-        
-        action_cmd = commander.send(action_name, action_prob)
-        if action_cmd:
-            print('sending control command %s for action %s' % (action_cmd,
-                                                                action_name))
+        if action_prob > 0.6:
+            action_cmd = commander.send(action_name, action_prob)
+            if action_cmd:
+                print('sending control command %s for action %s' % (
+                        action_cmd, action_name))
 
 
 def P300(username, reader, model, commander):

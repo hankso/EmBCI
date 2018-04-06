@@ -124,15 +124,20 @@ def save_action(username, reader):
     reader:   where does data come from
     '''
     label_list = get_label_list(username)[0]
-    while check_input('\nStart record action? [Y/n] '):
+#    while check_input('\nStart record action? [Y/n] '):
+    name_list = np.random.choice(['left, right, grab'], (1, 3*10))
+    for i in range(3*10):
+        action_name = name_list.pop()
+        print('action name: %s, start recording in 2s' % action_name)
+        time.sleep(2)
         record_animate(reader.sample_time)
         try:
             # reader.buffer is a dict
-            action_data = [reader.buffer[ch] \
+            action_data = [reader.buffer[ch][-reader.window_size:] \
                            for ch in reader.ch_list if ch is not 'time']
-            action_name = check_input(("Input action name or nothing to abort"
-                                       "('-' is not allowed in the name): "),
-                                      answer={})
+#            action_name = check_input(("Input action name or nothing to abort"
+#                                       "('-' is not allowed in the name): "),
+#                                      answer={})
 
             if action_name and '-' not in action_name:
                 # input shape: 1 x n_channel x window_size
@@ -150,6 +155,9 @@ def save_action(username, reader):
                     label_list[action_name] += 1
                 else:
                     label_list[action_name] = 1
+                    
+            print('')
+            time.sleep(2)
 
         except AssertionError:
             sys.exit('initialization failed')

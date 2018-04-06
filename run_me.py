@@ -16,13 +16,13 @@ from classifier import Models
 from frame import sEMG
 from common import check_input
 # =============================================================================
-# from data_socket import Serial_reader as Reader
+# from IO import Serial_reader as Reader
 # =============================================================================
-from data_socket import Pylsl_reader as Reader
+from IO import Pylsl_reader as Reader
 
-from data_socket import Serial_commander as Commander
+from IO import Serial_commander as Commander
 # =============================================================================
-# from data_socket import Plane_commander as Commander
+# from IO import Plane_commander as Commander
 # =============================================================================
 
 
@@ -65,6 +65,7 @@ if __name__ == '__main__':
         sEMG(username, reader, model, commander)
     except KeyboardInterrupt:
         reader.do_stop()
+        commander.close()
 
     print('loging out...')
     time.sleep(3)

@@ -276,11 +276,15 @@ def get_label_list(username):
 
 
 def record_animate(times):
-    while times > 0:
-        times -= 1
-        time.sleep(1)
-        print('=', end='')
-    # TODO 10: not implemented
+    t = 0.0
+    while t < 10*times:
+        print('\r[%s>%s] %.2f%%' % ('='*int(t),
+                                  ' '*int(10*times-t-1),
+                                  10.0*t/times), end='')
+        t += 0.1*times
+        time.sleep(times/100.0)
+    print('\r[{}] finished'.format('='*10*times))
+        
 
 
 # TODO 11: interesting function copied from package `mne`, modify it for our usage
