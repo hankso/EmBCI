@@ -145,7 +145,7 @@ class Processer(object):
     
     @check_shape
     def notch(self, X):
-        return notch(X, self._fs, Q=40, Hz=50)
+        return notch(X, self._fs, Q=50, Hz=50)
 
     @check_shape
     def stft(self, X):

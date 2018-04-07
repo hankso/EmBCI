@@ -5,10 +5,18 @@ Created on Thu Mar 22 08:26:16 2018
 
 @author: hank
 """
-# pip install matplotlib, numpy
+# built-in
+import time
+import sys, os; sys.path += ['../src']
+
+# pip install matplotlib, numpy, scipy
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.io as sio
+
+# from ../src
+from preprocessing import Processer
 
 class Plotter():
     def __init__(self, window_size, where_to_plot=None, n_channel=1):
@@ -75,9 +83,66 @@ class Plotter():
         # Return data in case of using Plotter.plot as callback function
         return data
 
+
+
+def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
+    for ch, d in enumerate(data):
+        plt.figure('%s_%d' % (actionname, ch))
+        
+        plt.subplot(321)
+        plt.title('raw data')
+        plt.plot(d[0], linewidth=0.5)
+        
+        plt.subplot(323)
+        plt.title('remove_DC and notch')
+        plt.plot(p.notch(p.remove_DC(d))[0, 0], linewidth=0.5)
+        
+        plt.subplot(325)
+        plt.title('after fft')
+        plt.plot(p.fft(p.notch(p.remove_DC(data)))[1][0, 0], linewidth=0.5)
+        
+        plt.subplot(343)
+        plt.title('after stft')
+        f, t, amp = p.stft(p.remove_DC(p.notch(d)))
+        plt.pcolormesh(t, f, np.log10(amp[0, 0]))
+        highest_col = [col[1] for col in sorted(zip(np.sum(amp[0, 0], axis=0),
+                                                    range(len(t))))[-3:]]
+        
+        plt.plot((t[highest_col], t[highest_col]),
+                 (0, f[-1]), 'r')
+        plt.ylabel('Freq / Hz')
+        plt.xlabel('Time / s')
+        
+        plt.subplot(344)
+        plt.title('Three Max Amptitude'.format(t[highest_col]))
+        for i in highest_col:
+            plt.plot(amp[0, 0, :, i], label='time: {}s'.format(t[i]), linewidth=0.5)
+            plt.legend()
+        
+        plt.subplot(324)
+        t = time.time()
+    #    plt.psd(d, Fs=250, label='raw', linewidth=0.5)
+        plt.psd(p.remove_DC(p.notch(d))[0, 0], Fs=250, label='filter', linewidth=0.5)
+        plt.legend()
+        plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+        
+        plt.subplot(326)
+        t = time.time()
+        
+        plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+
+
+
 if __name__ == '__main__':
     plt.ion()
     fake_data = np.random.random((1, 8, 1000))
     print(fake_data.shape)
     p = Plotter(window_size = 1000, n_channel=8)
     p.plot(fake_data)
+
+    # data shape: 1 x n_channel x window_size
+    filename = '../data/test/grab-1.mat'
+    actionname = os.path.basename(filename)
+    data = sio.loadmat(filename)[actionname.split('-')[0]]
+    p = Processer(250, 2)
+    view_data_with_matplotlib(data, actionname)

@@ -97,7 +97,7 @@ class Models():
             label: n_sample x 1
             '''
             self._Double_Dense(nb_classes, input_shape[1:3])
-            self.epochs, self.batch_size = 60, 20
+            self.epochs, self.batch_size = 200, 15
             
             
         elif self.model_type == 'SVM':
@@ -234,4 +234,4 @@ class Models():
     
 if __name__ == '__main__':
     test = Models(250, 2, 'Default')
-    test.build(nb_classes=6, input_shape=(2, 2, 500))
+    test.build(nb_classes=6, input_shape=(50, 1, 500))

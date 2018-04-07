@@ -19,6 +19,7 @@ import numpy as np
 # from ../utils
 from common import time_stamp, check_input, first_use, record_animate
 from IO import load_data, save_action
+from visualization import view_data_with_matplotlib
 
 
 def sEMG(username, reader, model, commander):
@@ -155,11 +156,10 @@ def sEMG(username, reader, model, commander):
                 [reader.buffer[ch][-reader.window_size:] \
                  for ch in reader.buffer if ch is not 'time']
             ).reshape(1, reader.n_channel, reader.window_size)
-        # here input shape: 1 x n_channel x window_size
-        class_num, action_prob = model.predict(data)
         
-        # you can redirect this predicted result(string) to any output
+        class_num, action_prob = model.predict(data)
         action_name = action_dict[class_num]
+        view_data_with_matplotlib(data, action_name, model.p)
 # =============================================================================
 #         print('[Predict action name] ' + action_name)
 # =============================================================================

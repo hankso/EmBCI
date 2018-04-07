@@ -1,6 +1,6 @@
-#include <Servo.h>
+//#include <Servo.h>
 
-Servo hand;
+//Servo hand;
 /*
 Read analog value from myo module on arduino. Sat, Feb 24 2018 17:25
 */
@@ -14,9 +14,9 @@ uint32_t stamp = micros();
 void setup() {
     pinMode(myoRaw, INPUT);
     pinMode(myoSig, INPUT);
-    hand.attach(2);
+//    hand.attach(2);
     Serial.begin(115200);
-//    Serial.println("started");
+    Serial.println("started");
 }
 
 void loop() {
@@ -27,10 +27,10 @@ void loop() {
     Serial.println(analogRead(myoRaw));
     stamp = micros();
 
-    if (Serial.available()) {
-      char degree = Serial.parseInt();
-      if (degree < 180 && degree > 0)
-        hand.write(degree);
-    }
+//    if (Serial.available()) {
+//      char degree = Serial.parseInt();
+//      if (degree < 180 && degree > 0)
+//        hand.write(degree);
+//    }
 //    Serial.write(" ");
 }
