@@ -26,7 +26,7 @@ from common import find_ports, find_outlets
 from gyms import TorcsEnv
 from gyms import PlaneClient
 from gpio4 import SysfsGPIO
-from ads1299 import ADS1299
+from ads1299_api import ADS1299_API
 
 
 @check_dir
@@ -369,7 +369,7 @@ class Serial_reader(_basic_reader):
         return self._serial.isOpen()
 
 
-class SPI_reader(_basic_reader):
+class ADS1299_reader(_basic_reader):
     '''
     Read data from SPI connection with ADS1299.
     This class is only used on ARM. It depends on module `spidev` and `gpio3`
@@ -380,21 +380,25 @@ class SPI_reader(_basic_reader):
                  sample_time=2,
                  username='test',
                  n_channel=8,
-                 send_to_pylsl=True):
-        super(SPI_reader, self).__init__(sample_rate, sample_time,
+                 send_to_pylsl=True,
+                 device=(1, 0)):
+        super(ADS1299_reader, self).__init__(sample_rate, sample_time,
                                          username, n_channel)
-        self._name = '[SPI reader %d] ' % SPI_reader._num
-        SPI_reader._num += 1
+        self._name = '[ADS1299 reader %d] ' % ADS1299_reader._num
+        ADS1299_reader._num += 1
         
         self._send_to_pylsl = send_to_pylsl
         
-        self._ads1299 = ADS1299()
+        self._ads = ADS1299_API()
+        
+        self.device = device
         
     def start(self):
         # 1. find avalable spi devices
-        print(self._name + 'finding available spi devices...')
-        dev = self._ads1299.open(max_speed_hz=10e6)
-        self._ads1299.start()
+        print(self._name + 'finding available spi devices... ', end='')
+        dev = self._ads.open(max_speed_hz=1000000, self.device)
+        print('spi*-*' % dev)
+        self._ads.start()
         
         # 2. start main thread
         # here we only need to check one time whether send_to_pylsl is set
@@ -405,7 +409,7 @@ class SPI_reader(_basic_reader):
                                                               self.n_channel,
                                                               self.sample_rate,
                                                               'float32',
-                                                              'spi '+str(dev)))
+                                                              'spi%d-%d '%dev))
             self._thread = threading.Thread(target=self._read_data_send_pylsl)
         else:
             self._thread = threading.Thread(target=self._read_data)
@@ -420,7 +424,7 @@ class SPI_reader(_basic_reader):
         try:
             while not self._flag_close.isSet():
                 self._flag_pause.wait()
-                d = list(self._ads1299.read())
+                d = list(self._ads.read())
                 d = [time.time() - self._start_time] + d[:self.n_channel]
                 dat = []
                 for i, ch in enumerate(self.ch_list):
@@ -432,7 +436,7 @@ class SPI_reader(_basic_reader):
             print(self._name + str(e))
         finally:
             print(self._name + 'stop fetching data...')
-            self._close_spi_gpio()
+            self.close()
             print(self._name + 'SPI reader shut down.')
     
     def _read_data_send_pylsl(self):
@@ -450,11 +454,11 @@ class SPI_reader(_basic_reader):
             print(self._name + str(e))
         finally:
             print(self._name + 'stop fetching data...')
-            self._close_spi_gpio()
+            self.close()
             print(self._name + 'SPI reader shut down.')
             
     def close(self):
-        self._ads1299.close()
+        self._ads.close()
 
 
 class Socket_reader(_basic_reader):
