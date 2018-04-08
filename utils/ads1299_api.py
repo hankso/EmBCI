@@ -80,7 +80,7 @@ class ADS1299_API(object):
         self._test_mode = test_mode
         self._opened = False
         
-    def open(self, max_speed_hz=1000000, dev=(1, 0)):
+    def open(self, dev, max_speed_hz=10000000):
         self.spi.open(dev[0], dev[1])
         self._opened = True
         self.spi.max_speed_hz = max_speed_hz

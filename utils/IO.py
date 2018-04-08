@@ -396,8 +396,8 @@ class ADS1299_reader(_basic_reader):
     def start(self):
         # 1. find avalable spi devices
         print(self._name + 'finding available spi devices... ', end='')
-        dev = self._ads.open(max_speed_hz=1000000, self.device)
-        print('spi*-*' % dev)
+        dev = self._ads.open(self.device, max_speed_hz=1000000)
+        print('spi%d-%d' % dev)
         self._ads.start()
         
         # 2. start main thread
