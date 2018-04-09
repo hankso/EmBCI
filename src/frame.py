@@ -19,7 +19,7 @@ import numpy as np
 # from ../utils
 from common import time_stamp, check_input, first_use, record_animate
 from IO import load_data, save_action
-from visualization import view_data_with_matplotlib
+#from visualization import view_data_with_matplotlib
 
 
 def sEMG(username, reader, model, commander):
@@ -159,12 +159,12 @@ def sEMG(username, reader, model, commander):
         
         class_num, action_prob = model.predict(data)
         action_name = action_dict[class_num]
-        view_data_with_matplotlib(data, action_name, model.p)
+#        view_data_with_matplotlib(data, action_name, model.p)
 # =============================================================================
 #         print('[Predict action name] ' + action_name)
 # =============================================================================
         if action_prob > 0.6:
-            action_cmd = commander.send(action_name, action_prob)
+            action_cmd = commander.send('text', len(action_name), action_name)
             if action_cmd:
                 print('sending control command %s for action %s' % (
                         action_cmd, action_name))

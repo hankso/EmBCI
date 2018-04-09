@@ -399,6 +399,7 @@ class ADS1299_reader(_basic_reader):
         dev = self._ads.open(self.device, max_speed_hz=1000000)
         print('spi%d-%d' % dev)
         self._ads.start()
+        self._start_time = time.time()
         
         # 2. start main thread
         # here we only need to check one time whether send_to_pylsl is set
@@ -436,14 +437,14 @@ class ADS1299_reader(_basic_reader):
             print(self._name + str(e))
         finally:
             print(self._name + 'stop fetching data...')
-            self.close()
+            self._ads.close()
             print(self._name + 'SPI reader shut down.')
     
     def _read_data_send_pylsl(self):
         try:
             while not self._flag_close.isSet():
                 self._flag_pause.wait()
-                d = list(self._ads1299.read())
+                d = list(self._ads.read())
                 d = [time.time() - self._start_time] + d[:self.n_channel]
                 for i, ch in enumerate(self.ch_list):
                     self.buffer[ch].append(d[i])
@@ -454,11 +455,9 @@ class ADS1299_reader(_basic_reader):
             print(self._name + str(e))
         finally:
             print(self._name + 'stop fetching data...')
-            self.close()
+            self._ads.close()
             print(self._name + 'SPI reader shut down.')
             
-    def close(self):
-        self._ads.close()
 
 
 class Socket_reader(_basic_reader):
@@ -472,13 +471,13 @@ class Socket_reader(_basic_reader):
                  sample_time=2,
                  username='test',
                  n_channel=8):
-        super(_basic_reader, self).__init__(sample_rate, sample_time,
+        super(Socket_reader, self).__init__(sample_rate, sample_time,
                                             username, n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         Socket_reader._num += 1
         
         # TCP IPv4 socket connection
-        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
     def start(self):
         # 1. IP addr and port are offered by user, connect to that host:port
@@ -495,7 +494,8 @@ class Socket_reader(_basic_reader):
                 break
             except:
                 print(self._name + 'invalid addr!')
-        self.client.connect((host, int(port)))
+        self._client.connect((host, int(port)))
+        self._start_time = time.time()
         
         # 2. read data in another thread
         self._thread = threading.Thread(target=self._read_data)
@@ -512,17 +512,20 @@ class Socket_reader(_basic_reader):
                 self._flag_pause.wait()
                 # 8-channel float32 data = 8*32bits = 32bytes
                 # d is np.ndarray with a shape of (8, 1)
-                d = np.frombuffer(self.client.recv(32))
+                d = np.frombuffer(self._client.recv(32), np.float32)
                 d = [time.time() - self._start_time] + list(d)[:self.n_channel]
                 for i, ch in enumerate(self.ch_list):
                     self.buffer[ch].append(d[i])
                     if len(self.buffer[ch]) > self.window_size:
                         self.buffer[ch].pop(0)
+        except IndexError:
+            print('Maybe server send out data too fast, and '
+                  'this client cannot keep up to it.')
         except Exception as e:
             print(self._name + str(e))
         finally:
             print(self._name + 'stop fetching data...')
-            self._close_spi_gpio()
+            self._client.close()
             print(self._name + 'Socket reader shut down.')
     
 
@@ -538,8 +541,8 @@ class Socket_server(object):
 # =============================================================================
             
         self._name = '[Socket server %d] ' % Socket_server._num
-        Socket_server._num += 1
         self.connections = []
+        Socket_server._num += 1
         
         # TCP IPv4 socket connection
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -578,8 +581,6 @@ class Socket_server(object):
                     pass
     
     def send(self, data):
-        if not isinstance(data, np.ndarray):
-            data = np.array(data, dtype=np.float32)
         for con in self.connections:
             con.sendall(data.tobytes())
             
@@ -598,6 +599,11 @@ class Socket_server(object):
 class _basic_commander(object):
     def __init__(self, command_dict):
         self._command_dict = command_dict
+        try:
+            print('[Command Dict] %s' % command_dict['_desc'])
+        except:
+            print('[Command Dict] current command dict does not have a '
+                  'key named _desc to describe itself. pls add it.')
         
     def start(self):
         raise NotImplemented('you can not use this class')
@@ -651,7 +657,9 @@ plane_command_dict = {
         'right':'4',
         'up':'1',
         'down':'2',
-        'disconnect':'9'
+        'disconnect':'9',
+        '_desc': ("plane war game support command : "
+                  "left, right, up, down, disconnect")
 }
 
 class Plane_commander(_basic_commander):
@@ -719,6 +727,8 @@ command_dict_glove_box = {
         'thumb-middle':'B',
         'thumb-ring':'C',
         'thumb-little':'D',
+        '_desc': ("This is a dict for glove box version 1.0. Support command: "
+                  "thumb, index, middle, ring, little, grab-all, relax, grab"),
 }
 
 class Serial_commander(_basic_commander):
@@ -730,7 +740,7 @@ class Serial_commander(_basic_commander):
         self._serial = serial.Serial(baudrate=baudrate)
         self._CR = CR
         self._LF = LF
-        self._name + '[Serial commander %d] ' % Serial_commander._num
+        self._name = '[Serial commander %d] ' % Serial_commander._num
         Serial_commander._num += 1
         
     def start(self):
@@ -763,17 +773,37 @@ class Serial_commander(_basic_commander):
             print(self._name + 'reconnect failed.')
             
 
-command_dict_arduino_screen = {
-        'point':     '#0\r\n' + '{}\r\n'*2,   # x, y
-        'line':      '#1\r\n' + '{}\r\n'*4,   # x1, y1, x2, y2
+command_dict_arduino_screen_v1 = {
+        'point':     '#0\r\n' + '{}\r\n'*2,
+        'line':      '#1\r\n' + '{}\r\n'*4,
         'circle':    '#2\r\n' + '{}\r\n'*3,   # x, y, r
         'rectangle': '#3\r\n' + '{}\r\n'*4,   # x1, y1, x2, y2
         'text':      '#4\r\n' + '{}\r\n'*3,   # x, y, text(str)
+        '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
+                  "Commands  | Args\n"
+                  "point     | x, y\n"
+                  "line      | x1, y1, x2, y2\n"
+                  "circle    | x, y, r\n"
+                  "rectangle | x1, y1, x2, y2\n"
+                  "text      | x, y, str")
+}
+
+command_dict_arduino_screen_v2 = {
+        'points': 'P{:c}{}',
+        'point': 'D{:c}{}',
+        'text': 'S{:c}{:s}',
+        'clear': 'C',
+        '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
+                  "Commands | Args\n"
+                  "points   | len(pts), bytearray([y for x, y in pts])\n"
+                  "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
+                  "test     | len(str), str\n"
+                  "clear    | none, clear screen"),
 }
 
 class Screen_commander(Serial_commander):
     def __init__(self, baudrate=115200, 
-                 command_dict=command_dict_arduino_screen):
+                 command_dict=command_dict_arduino_screen_v2):
         super(Screen_commander, self).__init__(baudrate, command_dict)
         self._name = self._name[:-2] + ' for screen' + self._name[-2:]
         
@@ -790,6 +820,17 @@ class Screen_commander(Serial_commander):
 
 
 
+def ADS1299_Socket(sample_rate = 500,
+                   bias_enabled=False,
+                   test_mode=True):
+    ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
+    server = Socket_server()
+    last_time = time.time()
+    while 1:
+        while (time.time() - last_time) < 1.0/sample_rate:
+            pass
+        last_time = time.time()
+        server.send(ads.read())
 
 
 if __name__ == '__main__':

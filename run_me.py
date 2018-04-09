@@ -18,9 +18,9 @@ from common import check_input
 # =============================================================================
 # from IO import Serial_reader as Reader
 # =============================================================================
-from IO import Pylsl_reader as Reader
+from IO import ADS1299_reader as Reader
 
-from IO import Serial_commander as Commander
+from IO import Screen_commander as Commander
 # =============================================================================
 # from IO import Plane_commander as Commander
 # =============================================================================

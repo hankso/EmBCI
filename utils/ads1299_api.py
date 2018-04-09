@@ -159,8 +159,6 @@ class ADS1299_API(object):
         #======================================================================
         self.write(RDATAC)
         
-        self._last_time = time.time()
-            
     def close(self):
         if self._opened:
             self.write(SDATAC)
@@ -176,16 +174,12 @@ class ADS1299_API(object):
         return self.spi.xfer2([0x00] * (27))
     
     def read(self):
-        while (time.time() - self._last_time) < 1.0/self._sample_rate:
-            pass
-        self._last_time = time.time()
-        
         num = self.read_raw()[3:]
         byte = ''
         for i in range(8):
             tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i])
             byte += tmp + ('\xff' if num[3*i] > 127 else '\x00')
-        return np.frombuffer(byte, np.int32)
+        return np.frombuffer(byte, np.int32).astype(np.float32) * self.scale
     
     def write(self, byte):
         self.spi.xfer2([byte])
