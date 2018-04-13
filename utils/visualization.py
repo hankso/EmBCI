@@ -143,6 +143,6 @@ if __name__ == '__main__':
     # data shape: 1 x n_channel x window_size
     filename = '../data/test/grab-1.mat'
     actionname = os.path.basename(filename)
-    data = sio.loadmat(filename)[actionname.split('-')[0]]
+    data = sio.loadmat(filename)[actionname.split('-')[0]][0]
     p = Processer(250, 2)
     view_data_with_matplotlib(data, actionname)

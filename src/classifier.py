@@ -218,17 +218,6 @@ class Models():
 #             tmp = self.model.predict_classes(data, verbose=0)
 # =============================================================================
             tmp = self.model.predict_proba(data, verbose=0)
-# =============================================================================
-#             print('predict: {}'.format(tmp))
-# =============================================================================
-# =============================================================================
-#             if tmp.max() > 0.54 and tmp.argmax() != self._result:
-#                 self._result = tmp.argmax()
-#                 print('last result: {} {}'.format(tmp.argmax(), tmp.max()))
-#                 return tmp.argmax(), tmp.max()
-#             else:
-#                 return None, None
-# =============================================================================
         return tmp.argmax(), tmp.max()
         
     

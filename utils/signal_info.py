@@ -7,7 +7,7 @@ Created on Wed Nov 22 13:45:05 2017
 """
 import numpy as np
 
-class EEG_Info(object):
+class Signal_Info(object):
     '''
     I am learning how to handle EEG data, which can be collected by varieties 
     of hardwares such as Mindset(Neurosky) and Epoc(Emotiv), etc.
@@ -21,24 +21,25 @@ class EEG_Info(object):
         pass
     
     def check_shape(func):
-        def wrapper(self, X):
+        def param_wrapper(self, X, *args, **kwargs):
             if type(X) is not np.ndarray:
-                X = np.array(X)
+                X = np.array(X, *args, **kwargs)
                 
             # simple 1D time series.
             # Input: windowsize
             if len(X.shape) == 1:
-                return func(self, X.reshape(1, -1))
+                return func(self, X.reshape(1, -1), *args, **kwargs)
             
             # 2D array
             # Input: n_channel x window_size
             elif len(X.shape) == 2:
-                return func(self, X)
+                return func(self, X, *args, **kwargs)
             
             # 3D array
             # Input: n_sample x n_channel x window_size
             elif len(X.shape) == 3:
-                return np.array([func(self, sample) for sample in X])
+                return np.array([func(self, sample, *args, **kwargs) \
+                                 for sample in X])
             
             # 3D+
             # Input: ... x n_sample x n_channel x window_size
@@ -47,7 +48,7 @@ class EEG_Info(object):
                                     'Please offer (n_channel x window_size) '
                                     '2D data or (n_sample x n_channel x '
                                     'window_size) 3D data.').format(X.shape))
-        return wrapper
+        return param_wrapper
 
     @check_shape
     def average(self, X):
@@ -156,7 +157,7 @@ class EEG_Info(object):
             return freq, amp**2/sample_time
         
     @check_shape
-    def fft(self, X, sample_rate, time = None, freq_max = None):
+    def fft(self, X, sample_rate):
         '''
         People use FT(Fourier Transform) to extract frequency domain
         info from time domain data in mathmatic questions. But when
@@ -184,12 +185,11 @@ class EEG_Info(object):
         freq: np.linspace(0, sample_rate/2, length/2)
         amp:  np.ndarray, length/2
         '''
-        length = len(X)
-        amp = 2 * abs(np.fft.rfft(X)) / float(length)
-        amp[0] /= 2
-        if length % 2:
-            amp[-1] /= 2
-        freq= np.arange(0, sample_rate/2, len(amp))
+        amp = 2 * abs(np.fft.rfft(X)) / float(X.shape[1])
+        amp[:, 0] /= 2
+        if X.shape[1] % 2:
+            amp[:, -1] /= 2
+        freq = np.linspace(0, sample_rate/2, amp.shape[1])
         return freq, amp
 
     @check_shape
@@ -210,3 +210,27 @@ class EEG_Info(object):
         synchronous the subject's brain is.
         '''
         pass
+    
+    @check_shape
+    def peek_extract(self, X, low, high, sample_rate):
+        '''
+        Extract peek between frequency duration (n_min, n_max)
+        4-6Hz 最大幅值对应的频率以及幅值
+        '''
+        x, y = self.fft(X, sample_rate)
+        duration = (x.shape[0] - 1) / (sample_rate / 2)
+        return [(ch.argmax() / duration, ch.max()) \
+                for ch in X[:, low*duration:high*duration]]
+    
+    @check_shape
+    def energy(self, X, low, high, sample_rate):
+        '''
+        一段频段内的能量和
+        energy sum of duration (low, high)
+        '''
+        x, y = self.fft(X, sample_rate)
+        duration = (x.shape[0] - 1) / (sample_rate / 2)
+        return [sum(ch) * duration for ch in X[:, low*duration:high*duration]]
+            
+if __name__ == '__main__':
+    e = Signal_Info()

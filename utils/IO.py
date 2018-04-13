@@ -13,11 +13,12 @@ import time
 import threading
 import socket
 
-# pip install numpy, scipy
+# pip install numpy, scipy, serial, mne
 import scipy.io as sio
 import numpy as np
 import serial
 import pylsl
+import mne
 
 # from ./
 from common import check_dir, check_input, get_label_list, Timer
@@ -33,17 +34,20 @@ from ads1299_api import ADS1299_API
 def save_data(username,
               data,
               label,
-              summary=False):
+              sample_rate,
+              print_summary=False,
+              save_fif=False):
     '''
     保存数据的函数，传入参数为username,data,label(这一段数据的标签)
-    可以用summary=True打印输出已经存储的数据的label及数量
+    可以用print_summary=True输出已经存储的数据的label及数量
 
     Input data shape
     ----------------
         n_sample x n_channel x window_size
 
-    data name format:
+    data file name:
         ${DIR}/data/${username}/${label}-${num}.${surfix}
+    current supported format is 'mat'(default) and 'fif'(set save_fif=True)
     '''
     # check data format and shape
     if not isinstance(data, np.ndarray):
@@ -54,23 +58,30 @@ def save_data(username,
 
     label_list = get_label_list(username)[0]
     num = '1' if label not in label_list else str(label_list[label] + 1)
-    fn = './data/%s/%s.mat' % (username, '-'.join([label, num]))
-
-    print('{} data save to '.format(data.shape) + fn)
+    
+    fn = './data/%s/%s.mat'%(username, '-'.join([label, num]))
     sio.savemat(fn, {label: data}, do_compression=True)
+    print('{} data save to {}'.format(data.shape, fn))
+    
+    if save_fif:
+        if not os.path.exists('./data/fif'):
+            os.mkdir('./data/fif')
+        if not os.path.exists('./data/fif/' + username):
+            os.mkdir('./data/fif/' + username)
+        for sample in data:
+            fn = './data/fif/%s/%s-raw.fif.gz' % (username,
+                                                  '-'.join([label, num]))
+            num += 1
+            info = mne.create_info(ch_names=sample.shape[0], sfreq=sample_rate)
+            mne.io.RawArray(sample, info).save(fn, verbose=0)
+            print('{} data save to {}'.format(sample.shape, fn))
 
-    #==========================================================================
-
-    # TODO 5: data save('.fif')
-
-    #==========================================================================
-
-    if summary:
+    if print_summary:
         print(get_label_list(username)[1])
 
 
 @check_dir
-def load_data(username, summary=True):
+def load_data(username, print_summary=True):
     '''
     读取./data/username文件夹下的所有数据，返回三维数组
 
@@ -104,50 +115,49 @@ def load_data(username, summary=True):
                     continue
                 label += dat.shape[0] * [n]  # n_samples
                 data = np.stack([s for s in data] + [s for s in dat])
-
-    #==========================================================================
-
-    # TODO 6: data load('.fif')
-
-    #==========================================================================
-
-    if summary:
+                
+    if print_summary:
         print(get_label_list(username)[1])
     return np.array(data), np.array(label), action_dict
 
 
-def save_action(username, reader):
+def save_action(username, reader, action_list=['relax', 'grab']):
     '''
     引导用户存储一段数据并给数据打上标签，需要username和reader数据流对象
 
     username: where will data be saved to
     reader:   where does data come from
     '''
+    print(('\nYou have to finish each action in '
+           '{} seconds.').format(reader.sample_time))
+    rst = check_input(('How many times you would like to record for each '
+                       'action?(empty to abort): '), {}, times=999)
+    if not rst:
+        return
+    try:
+        num = int(rst)
+    except ValueError:
+        return
     label_list = get_label_list(username)[0]
-#    while check_input('\nStart record action? [Y/n] '):
-    name_list = np.random.choice(['left, right, grab'], (1, 3*10))
-    for i in range(3*10):
+    name_list = action_list * num
+    np.random.shuffle(name_list)
+    for i in range(len(action_list) * num):
         action_name = name_list.pop()
         print('action name: %s, start recording in 2s' % action_name)
         time.sleep(2)
         record_animate(reader.sample_time)
         try:
-            # reader.buffer is a dict
-            action_data = [reader.buffer[ch][-reader.window_size:] \
-                           for ch in reader.ch_list if ch is not 'time']
-#            action_name = check_input(("Input action name or nothing to abort"
-#                                       "('-' is not allowed in the name): "),
-#                                      answer={})
-
             if action_name and '-' not in action_name:
                 # input shape: 1 x n_channel x window_size
-                action_data = np.array(action_data)
-                action_data = action_data.reshape(1,
-                                                  reader.n_channel,
-                                                  reader.window_size)
 
                 #==========================================================
-                save_data(username, action_data, action_name, summary=True)
+                save_data(username,
+                          reader.channel_data().reshape(1,
+                                             reader.n_channel,
+                                             reader.window_size),
+                          action_name,
+                          reader.sample_rate,
+                          print_summary=True)
                 #==========================================================
 
                 # update label_list
@@ -170,7 +180,7 @@ def save_action(username, reader):
 
 
 class _basic_reader(object):
-    def __init__(self, sample_rate, sample_time, username, n_channel):
+    def __init__(self, sample_rate, sample_time, n_channel):
         # basic stream reader information
         self.sample_rate = sample_rate
         self.sample_time = sample_time
@@ -185,6 +195,9 @@ class _basic_reader(object):
         self.streaming = False
         self._flag_pause = threading.Event()
         self._flag_close = threading.Event()
+        
+        # info pipe
+        self.info = [0] * 10
 
     def start(self):
         '''
@@ -204,6 +217,22 @@ class _basic_reader(object):
         self._flag_pause.set()
         self.streaming = True
         
+    @property
+    def real_sample_rate(self):
+        try:
+            tmp = self.buffer['time'][-10:]
+            return 10.0/(tmp[-1] - tmp[0])
+        except:
+            return 0
+    
+    def channel_data(self, size=None):
+        if size is None:
+            size = self.window_size
+        return np.array([self.buffer[ch][-size:] for ch in self.ch_list[1:]])
+    
+    def isOpen(self):
+        return not self._flag_close.isSet()
+    
 
 class Pylsl_reader(_basic_reader):
     '''
@@ -214,11 +243,9 @@ class Pylsl_reader(_basic_reader):
     def __init__(self,
                  sample_rate=256,
                  sample_time=2,
-                 username='test',
                  n_channel=1,
                  servername=None):
-        super(Pylsl_reader, self).__init__(sample_rate, sample_time,
-                                           username, n_channel)
+        super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._servername = servername
         self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
         Pylsl_reader._num += 1
@@ -292,12 +319,10 @@ class Serial_reader(_basic_reader):
     def __init__(self,
                  sample_rate=256,
                  sample_time=2,
-                 username='test',
                  n_channel=1,
                  baudrate=115200,
                  send_to_pylsl=False):
-        super(Serial_reader, self).__init__(sample_rate, sample_time,
-                                            username, n_channel)
+        super(Serial_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._serial = serial.Serial(baudrate=baudrate)
         self._name = '[Serial reader %d] ' % Serial_reader._num
         Serial_reader._num += 1
@@ -378,12 +403,10 @@ class ADS1299_reader(_basic_reader):
     def __init__(self,
                  sample_rate=500,
                  sample_time=2,
-                 username='test',
                  n_channel=8,
                  send_to_pylsl=True,
                  device=(1, 0)):
-        super(ADS1299_reader, self).__init__(sample_rate, sample_time,
-                                         username, n_channel)
+        super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[ADS1299 reader %d] ' % ADS1299_reader._num
         ADS1299_reader._num += 1
         
@@ -469,10 +492,8 @@ class Socket_reader(_basic_reader):
     def __init__(self,
                  sample_rate=250,
                  sample_time=2,
-                 username='test',
                  n_channel=8):
-        super(Socket_reader, self).__init__(sample_rate, sample_time,
-                                            username, n_channel)
+        super(Socket_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         Socket_reader._num += 1
         
@@ -592,8 +613,48 @@ class Socket_server(object):
         self._server.close()
         print(self._name + 'Socket server shut down.')
 
-    def have_listener(self):
+    def has_listener(self):
         return len(self.connections)
+
+
+class Fake_data_generator(_basic_reader):
+    def __init__(self, sample_rate=250, sample_time=3, n_channel=8):
+        super(Fake_data_generator, self).__init__(sample_rate, sample_time, n_channel)
+        self._name = '[Fake data generator] '
+        
+    def start(self):
+        print(self._name + 'establishing pylsl outlet...')
+        self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo(
+                'fake_data_generator',
+                'unknown',
+                self.n_channel,
+                self.sample_rate,
+                'float32',
+                'used for debugging'))
+        self._start_time = time.time()
+        self._thread = threading.Thread(target=self._read_data_send_pylsl)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        self._flag_pause.set()
+        self.streaming = True
+        
+    def _read_data_send_pylsl(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                time.sleep(0.9/self.sample_rate)
+                d = [time.time() - self._start_time] + list(np.random.random(self.n_channel))
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+                self.outlet.push_sample(d[1:])
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop generating data...')
+            print(self._name + 'fake data generator shut down.')
+
 
         
 class _basic_commander(object):
@@ -639,7 +700,7 @@ class Torcs_commander(_basic_commander):
         self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
         self.env.reset()
     
-    @Timer.duration('Torcs_commander', 1, warning='')
+    @Timer.duration('Torcs_commander', 1)
     def send(self, key, prob, *args, **kwargs):
         cmd = [abs(prob) if key == 'right' else -abs(prob)]
         print(self._name + 'sending cmd {}'.format(cmd))
@@ -673,7 +734,7 @@ class Plane_commander(_basic_commander):
     def start(self):
         self.client = PlaneClient()
     
-    @Timer.duration('Plane_commander', 1, warning='')
+    @Timer.duration('Plane_commander', 1)
     def send(self, key, *args, **kwargs):
         if key not in self._command_dict:
             print(self._name + 'Wrong command {}! Abort.'.format(key))
@@ -691,7 +752,7 @@ class Pylsl_commander(_basic_commander):
     Send predict result to pylsl as an online command stream
     '''
     _num = 1
-    def __init__(self, command_dict):
+    def __init__(self, command_dict={'_desc':'send command to pylsl'}):
         super(Pylsl_commander, self).__init__(command_dict)
         self._name = '[Pylsl commander %d] ' % Pylsl_commander._num
         Pylsl_commander._num += 1
@@ -748,7 +809,7 @@ class Serial_commander(_basic_commander):
         self._serial.port = find_ports()
         self._serial.open()
     
-    @Timer.duration('Serial_commander', 5, warning='')
+    @Timer.duration('Serial_commander', 5)
     def send(self, key, *args, **kwargs):
         if key not in self._command_dict:
             print(self._name + ' Wrong command {}! Abort.'.format(key))
@@ -819,12 +880,13 @@ class Screen_commander(Serial_commander):
                     self._command_dict[key], args))
 
 
-
-def ADS1299_Socket(sample_rate = 500,
-                   bias_enabled=False,
-                   test_mode=True):
+def ADS1299_to_Socket(sample_rate = 500,
+                      bias_enabled=False,
+                      test_mode=True):
     ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
+    ads.start()
     server = Socket_server()
+    
     last_time = time.time()
     while 1:
         while (time.time() - last_time) < 1.0/sample_rate:
@@ -836,9 +898,9 @@ def ADS1299_Socket(sample_rate = 500,
 if __name__ == '__main__':
     os.chdir('../')
     username = 'test'
-    data, label, action_dict = load_data(username, summary=True)
-    save_data(username, data, 'testing', summary=True)
-    os.system('rm data/%s/testing*' % username)
+    data, label, action_dict = load_data(username)
+    save_data(username, data, 'testing', 250, print_summary=True)
+    os.system('rm ./data/%s/testing*' % username)
 # =============================================================================
 #     commander = Serial_commander(9600, command_dict=glove_box_command_dict_v1)
 #     commander.start()
@@ -847,9 +909,9 @@ if __name__ == '__main__':
 # =============================================================================
 #     
 #     # openbci 8-channel 250Hz
-#     s = Serial_reader(250, 5, username, 1)
+#     s = Serial_reader(250, 5, 1)
 #     s.start()
-#     p = Pylsl_reader('OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
+#     p = Pylsl_reader(servername='OpenBCI_EEG', sample_rate=250, sample_time=2, n_channel=2)
 #     p.start()
 # =============================================================================
     pass

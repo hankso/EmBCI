@@ -18,12 +18,18 @@ from common import check_input
 # =============================================================================
 # from IO import Serial_reader as Reader
 # =============================================================================
-from IO import ADS1299_reader as Reader
+# =============================================================================
+# from IO import ADS1299_reader as Reader
+# =============================================================================
+from IO import Fake_data_generator as Reader
 
-from IO import Screen_commander as Commander
+# =============================================================================
+# from IO import Screen_commander as Commander
+# =============================================================================
 # =============================================================================
 # from IO import Plane_commander as Commander
 # =============================================================================
+from IO import Pylsl_commander as Commander
 
 
 
@@ -41,8 +47,6 @@ if __name__ == '__main__':
     sample_time = 2
     n_channels  = 2
     
-    
-    
     window_size = sample_rate * sample_time
     try:
         print('username: ' + username)
@@ -50,8 +54,8 @@ if __name__ == '__main__':
         username = check_input('Hi! Please offer your username: ', answer={})
     
     # start reading data from socket(bluetooth@serial or pylsl@localhost:port)
-    # it's in a seperate thread, stop recording by `reader.do_stop()`
-    reader = Reader(sample_rate, sample_time, username, n_channels)
+    # it's in a seperate thread, stop recording by `reader.close()`
+    reader = Reader(sample_rate, sample_time, n_channels)
     reader.start()
     
     # available classification models see Models.supported_models
@@ -64,7 +68,7 @@ if __name__ == '__main__':
     try:
         sEMG(username, reader, model, commander)
     except KeyboardInterrupt:
-        reader.do_stop()
+        reader.close()
         commander.close()
 
     print('loging out...')

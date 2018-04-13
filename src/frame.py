@@ -66,22 +66,13 @@ def sEMG(username, reader, model, commander):
         # no pre-saved model
         if not first_use():
             sys.exit('terminated')
-        print(('\nYou have to finish each action in '
-               '{} seconds.').format(reader.sample_time))
+        while not check_input('start record data?[Y/n] '):
+            pass
         
-        #==========================================
-        action_list = save_action(username, reader)
-        #==========================================
-        
-        while len(os.listdir('./data/'+username)) < 15 * len(action_list):
-            if check_input('Please record more data and actions: [Y/n] '):
-            
-                #==========================================
-                action_list = save_action(username, reader)
-                #==========================================
-                
-            else:
-                break
+        #===============================================
+        save_action(username, reader, ['left', 'right'])
+        #===============================================
+
         if not os.path.exists('./data/'+username):
             sys.exit('No data saved for training.')
         
@@ -112,7 +103,7 @@ def sEMG(username, reader, model, commander):
             print(e)
             sys.exit(0)
         finally:
-            model_name = action_list = model_flag = data = label = f = None
+            model_name = model_flag = data = label = f = None
         
         # vars:
         #     'action_dict', 'model', 'reader', 'username'
@@ -145,29 +136,24 @@ def sEMG(username, reader, model, commander):
     # online recognizing, mainloop
     
     #==========================================================================
-    print('now start online recognizing...')
+    last_result = None
     while reader.isOpen():
         if not reader.streaming:
             break
         print('start recording in 2s')
         time.sleep(2)
         record_animate(reader.sample_time)
-        data = np.array(
-                [reader.buffer[ch][-reader.window_size:] \
-                 for ch in reader.buffer if ch is not 'time']
-            ).reshape(1, reader.n_channel, reader.window_size)
-        
-        class_num, action_prob = model.predict(data)
+        class_num, class_prob = model.predict(reader.channel_data().reshape(
+                1, reader.n_channel, reader.window_size))
         action_name = action_dict[class_num]
-#        view_data_with_matplotlib(data, action_name, model.p)
-# =============================================================================
-#         print('[Predict action name] ' + action_name)
-# =============================================================================
-        if action_prob > 0.6:
+        print('[Predict action name] ' + action_name)
+        if class_prob > 0.54 and action_name != last_result:
+            last_result = action_name
+#            view_data_with_matplotlib(data, action_name, model.p)
             action_cmd = commander.send('text', len(action_name), action_name)
-            if action_cmd:
-                print('sending control command %s for action %s' % (
-                        action_cmd, action_name))
+            if action_cmd is not None:
+                print('send control command %s for action %s' % (action_cmd,
+                                                                 action_name))
 
 
 def P300(username, reader, model, commander):

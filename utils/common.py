@@ -11,21 +11,44 @@ import time
 import os
 import sys
 import socket
+import threading
 
-# pip install pyserial, pylsl
+# pip install pyserial, pylsl, numpy
 import pylsl
 from serial.tools.list_ports import comports
+import numpy as np
 
 # In python3 reduce need to be imported while python2 not
 if sys.version_info.major == 3:
     from functools import reduce
 
+# from ./
+from signal_info import Signal_Info
+signal_info = Signal_Info()
+
+def energy_time_duration(reader, low, high, duration):
+    '''
+    一段时间内某频段的能量总和
+    calculate energy density of time duration
+    '''
+    def _run(flag):
+        start_time = time.time()
+        reader.info = np.array([0.0] * reader.n_channel)
+        while not flag.isSet():
+            time.sleep(duration)
+            reader.info += np.array(signal_info.energy(reader.channel_data(),
+                                                       low, high,
+                                                       reader.sample_rate))
+        dt = time.time() - start_time
+#        reader.info /= dt
+    stop_flag = threading.Event()
+    threading.Thread(target=_run, args=(stop_flag, )).start()
+    return stop_flag
 
 def check_dir(func):
     '''
     check if user folder exist before saving data etc.
     '''
-
     def wrapper(*args, **kwargs):
         if not args:
             print('This wrapper may be used in wrong place.')
@@ -197,7 +220,7 @@ class Timer(object):
     '''
     last_time_dict = {}
     @staticmethod
-    def duration(name, time_in_sec, warning='.'):
+    def duration(name, time_in_sec, warning=''):
         if name not in Timer.last_time_dict:
             Timer.last_time_dict[name] = time.time()
         def decorator(func):
@@ -375,7 +398,9 @@ if __name__ == '__main__':
     first_use()
     record_animate(5)
     print('time stamp: ' + time_stamp())
-    print(find_ports())
-    print(find_outlets('testing'))
+# =============================================================================
+#     print(find_ports())
+#     print(find_outlets('testing'))
+# =============================================================================
     print(get_label_list(username)[1])
     pass

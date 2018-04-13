@@ -13,9 +13,6 @@ import struct
 import spidev
 import numpy as np
 
-# from ./
-from common import Timer
-
 # ADS1299 Pin mapping
 PIN_DRDY        = 97
 PIN_PWRDN       = 98
@@ -37,13 +34,12 @@ STOP            = 0x0A
 RDATAC          = 0x10
 SDATAC          = 0x11
 RDATA           = 0x12
-
-# ADS1299 Sample rate value
+# ADS1299 Sample rate value dict
 SR_DICT = {
-    250: 0x96,
-    500: 0x95,
-    1000: 0x94,
-    2000: 0x93,
+    250:          0x96,
+    500:          0x95,
+    1000:         0x94,
+    2000:         0x93,
 }
 
 
@@ -54,7 +50,7 @@ class ADS1299_API(object):
     un-pythonic at all. Hard to understand, hard to use.
     So I rewrite it with spidev and SysfsGPIO(instead of RPi.GPIO, SysfsGPIO
     works on both RaspberryPI, BananaPi, OrangePi and any hardware running 
-    Linux).
+    Linux, theoretically).
     
     Methods
     -------
@@ -64,8 +60,8 @@ class ADS1299_API(object):
         read_raw: return raw 8-channel * 3 = 24 bytes data
         read: return parsed np.ndarray data with shape of (8,)
         write: transfer one byte to ads1299
-        write_register
-        write_registers
+        write_register: write one register with index and value
+        write_registers: write series registers with start index and values
     '''
     def __init__(self,
                  sample_rate=500,
@@ -74,6 +70,7 @@ class ADS1299_API(object):
                  scale=5.0/24/2**24):
 #        self.spi = spi.SPI_SysfsGPIO(13, 14, 15, 16)
         self.spi = spidev.SpiDev()
+        
         self.scale = scale
         self._sample_rate = sample_rate
         self._bias_enabled = bias_enabled
@@ -82,9 +79,8 @@ class ADS1299_API(object):
         
     def open(self, dev, max_speed_hz=10000000):
         self.spi.open(dev[0], dev[1])
-        self._opened = True
         self.spi.max_speed_hz = max_speed_hz
-#        self.spi.mode = spi.MODE_CPOLN_CPHAN_MSB 
+        self._opened = True
 #        self._DRDY = gpio4.SysfsGPIO(PIN_DRDY)
 #        self._PWRDN = gpio4.SysfsGPIO(PIN_PWRDN)
 #        self._RESET = gpio4.SysfsGPIO(PIN_RESET)
@@ -111,19 +107,7 @@ class ADS1299_API(object):
         time.sleep(0.17+0.83)
         
         self.write(START)
-        
         time.sleep(1)
-        
-# =============================================================================
-#         # pulse at RESET here we send command instead of writing pin value
-#         #self._RESET.value=0
-#         #time.sleep(2.0*666.0/1e9)
-#         #self._RESET.value=1
-#         self.write(RESET)
-#         
-#         # wait for 18*666.0/1e9 second
-#         time.sleep(1.2e-5)
-# =============================================================================
         
         # device wakes up in RDATAC mode, send SDATAC 
         # command so registers can be written

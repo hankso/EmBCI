@@ -45,7 +45,7 @@ def stft(X, sample_rate, nperseg, noverlap, *args, **kwargs):
     '''
     return np.abs(signal.stft(X, fs=sample_rate,
                               nperseg=nperseg,
-                              noverlap=noverlap))
+                              noverlap=noverlap)[2])
 
 def fft(X, sample_rate, *args, **kwargs):
     '''
