@@ -18,18 +18,18 @@ from common import check_input
 # =============================================================================
 # from IO import Serial_reader as Reader
 # =============================================================================
+from IO import ADS1299_reader as Reader
 # =============================================================================
-# from IO import ADS1299_reader as Reader
+# from IO import Fake_data_generator as Reader
 # =============================================================================
-from IO import Fake_data_generator as Reader
 
-# =============================================================================
-# from IO import Screen_commander as Commander
-# =============================================================================
+from IO import Screen_commander as Commander
 # =============================================================================
 # from IO import Plane_commander as Commander
 # =============================================================================
-from IO import Pylsl_commander as Commander
+# =============================================================================
+# from IO import Pylsl_commander as Commander
+# =============================================================================
 
 
 
@@ -64,12 +64,8 @@ if __name__ == '__main__':
     # control glove-box or plane-war-game or torcs-car-game
     commander = Commander()
     commander.start()
-
-    try:
-        sEMG(username, reader, model, commander)
-    except KeyboardInterrupt:
-        reader.close()
-        commander.close()
+    
+    sEMG(username, reader, model, commander)
 
     print('loging out...')
-    time.sleep(3)
+    time.sleep(1)

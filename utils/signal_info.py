@@ -23,7 +23,7 @@ class Signal_Info(object):
     def check_shape(func):
         def param_wrapper(self, X, *args, **kwargs):
             if type(X) is not np.ndarray:
-                X = np.array(X, *args, **kwargs)
+                X = np.array(X)
                 
             # simple 1D time series.
             # Input: windowsize
@@ -218,9 +218,9 @@ class Signal_Info(object):
         4-6Hz 最大幅值对应的频率以及幅值
         '''
         x, y = self.fft(X, sample_rate)
-        duration = (x.shape[0] - 1) / (sample_rate / 2)
-        return [(ch.argmax() / duration, ch.max()) \
-                for ch in X[:, low*duration:high*duration]]
+        duration = float(x.shape[0] - 1) / (sample_rate / 2)
+        return [(ch.argmax()/duration + low, ch.max()) \
+                for ch in y[:, int(low*duration):int(high*duration)]**2]
     
     @check_shape
     def energy(self, X, low, high, sample_rate):
@@ -229,8 +229,9 @@ class Signal_Info(object):
         energy sum of duration (low, high)
         '''
         x, y = self.fft(X, sample_rate)
-        duration = (x.shape[0] - 1) / (sample_rate / 2)
-        return [sum(ch) * duration for ch in X[:, low*duration:high*duration]]
+        duration = float(x.shape[0] - 1) / (sample_rate / 2)
+        return [sum(ch) * duration \
+                for ch in y[:, int(low*duration):int(high*duration)]**2]
             
 if __name__ == '__main__':
     e = Signal_Info()

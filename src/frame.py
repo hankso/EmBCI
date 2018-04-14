@@ -10,15 +10,18 @@ from __future__ import print_function
 import os
 import time
 import json
+import threading
 import sys
 sys.path += ['../utils']
 
 # pip install numpy
 import numpy as np
+import matplotlib.pyplot as plt; plt.ion()
 
 # from ../utils
-from common import time_stamp, check_input, first_use, record_animate
+from common import time_stamp, check_input, first_use, record_animate, Timer
 from IO import load_data, save_action
+from signal_info import Signal_Info
 #from visualization import view_data_with_matplotlib
 
 
@@ -136,25 +139,72 @@ def sEMG(username, reader, model, commander):
     # online recognizing, mainloop
     
     #==========================================================================
-    last_result = None
-    while reader.isOpen():
-        if not reader.streaming:
-            break
-        print('start recording in 2s')
-        time.sleep(2)
-        record_animate(reader.sample_time)
-        class_num, class_prob = model.predict(reader.channel_data().reshape(
-                1, reader.n_channel, reader.window_size))
-        action_name = action_dict[class_num]
-        print('[Predict action name] ' + action_name)
-        if class_prob > 0.54 and action_name != last_result:
-            last_result = action_name
-#            view_data_with_matplotlib(data, action_name, model.p)
-            action_cmd = commander.send('text', len(action_name), action_name)
-            if action_cmd is not None:
-                print('send control command %s for action %s' % (action_cmd,
-                                                                 action_name))
-
+    display_ch = 'channel0'
+    def draw_point(pause_flag, stop_flag, lock):
+        while not stop_flag.isSet():
+            pause_flag.wait()
+            d = np.array(reader.buffer[display_ch][-10:]) * 48 + 16
+            lock.acquire()
+            commander.send('points', len(d), bytearray(d.astype(np.uint8)))
+            lock.release()
+#    pause_flag = threading.Event(); pause_flag.set()
+#    stop_flag = threading.Event(); stop_flag.clear()
+#    lock = threading.Lock()
+#    t = threading.Thread(target=draw_point, args=(pause_flag, stop_flag, lock))
+#    t.setDaemon(True)
+#    t.start()
+    si = Signal_Info()
+    try:
+        last_time = time.time()
+        while 1:
+            while (time.time() - last_time) < 1.0:
+                time.sleep(0.1)
+            last_time = time.time()
+            data = reader.buffer[display_ch]
+            plt.clf()
+            plt.subplot(221); plt.plot(data)
+            psd = np.concatenate((si.fft(data, reader.sample_rate)[1][0]**2, [0] * 3))
+            plt.subplot(222); plt.plot(np.log10(psd))
+#            psd = psd / psd.max() * 48 + 16
+#            commander.send('points', 128, bytearray(psd.astype(np.uint8)))
+            max_freq, max_amp = si.peek_extract(data, 4, 6, reader.sample_rate)[0]
+            plt.subplot(223); plt.title('max energy %f at %fHz' % (max_amp, max_freq))
+            print('4-6Hz频段能量最大频率为%dHz, 其幅值为%f' % (max_freq, max_amp))
+            
+    except KeyboardInterrupt:
+        reader.close()
+        commander.close()
+    '''
+    try:
+        while reader.isOpen():
+            if not reader.streaming:
+                break
+            print('start recording in 2s')
+            time.sleep(2)
+            record_animate(reader.sample_time)
+            class_num, class_prob = model.predict(
+                    reader.channel_data().reshape(1,
+                                                  reader.n_channel,
+                                                  reader.window_size))
+            action_name = action_dict[class_num]
+            print('[Predict action name] ' + action_name)
+            print(class_prob)
+            
+            if class_prob > 0.5:
+                lock.acquire()
+                time.sleep(1.0/25.0)
+                action_cmd = commander.send('text',
+                                            len(action_name),
+                                            action_name)
+                lock.release()
+                if action_cmd is not None:
+                    print('send control command %s for action %s' % (
+                            action_cmd, action_name))
+    except KeyboardInterrupt:
+        reader.close()
+        commander.close()
+        stop_flag.set()
+    '''
 
 def P300(username, reader, model, commander):
     raise NotImplemented

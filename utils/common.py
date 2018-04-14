@@ -83,7 +83,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
     k = list(answer.keys())
     while times:
         times -= 1
-        rst = input(prompt).lower()
+        rst = input(prompt)
         
         # answer == {}, maybe user want raw_input str returned
         if not k:
@@ -96,7 +96,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
         # answer != {}, check keys
         if rst in k:
             return answer[rst]
-        print('Invalid argument! Choose from [ "%s" ]' % '" | "'.join(k))
+        print('Invalid %s! Choose from [ "%s" ]' % (rst, '" | "'.join(k)))
     return ''
 
 

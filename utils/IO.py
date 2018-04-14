@@ -669,14 +669,14 @@ class _basic_commander(object):
     def start(self):
         raise NotImplemented('you can not use this class')
         
-    def send(self, key):
+    def send(self, key, *args, **kwargs):
         raise NotImplemented('you can not use this class')
         
-    def write(self, key):
+    def write(self, key, *args, **kwargs):
         '''
         wrapper for usage of `print(cmd, file=commander)`
         '''
-        self.send(key)
+        self.send(key, *args, **kwargs)
         
     def close(self):
         raise NotImplemented('you can not use this class')
@@ -760,7 +760,8 @@ class Pylsl_commander(_basic_commander):
     def start(self):
         self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo('Pylsl_commander',
                                                           'predict result',
-                                                          1, 0.0, 'string'))
+                                                          1, 0.0, 'string',
+                                                          'pylsl commander'))
     
     @Timer.duration('Pylsl commander', 0)
     def send(self, key, *args, **kwargs):
@@ -858,7 +859,7 @@ command_dict_arduino_screen_v2 = {
                   "Commands | Args\n"
                   "points   | len(pts), bytearray([y for x, y in pts])\n"
                   "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
-                  "test     | len(str), str\n"
+                  "text     | len(str), str\n"
                   "clear    | none, clear screen"),
 }
 
@@ -868,16 +869,23 @@ class Screen_commander(Serial_commander):
         super(Screen_commander, self).__init__(baudrate, command_dict)
         self._name = self._name[:-2] + ' for screen' + self._name[-2:]
         
-    @Timer.duration('Screen_commander', 1.0/10.0)
+    @Timer.duration('Screen_commander', 1.0/25.0)
     def send(self, key, *args, **kwargs):
         if key not in self._command_dict:
             print(self._name + 'Wrong command {}! Abort.'.format(key))
             return
         try:
-            self._serial.write(self._command_dict[key].format(*args))
+            cmd = self._command_dict[key].format(*args)
+            self._serial.write(cmd)
+            return cmd
         except IndexError:
             print(self._name + 'unmatch key {} and params {}!'.format(
                     self._command_dict[key], args))
+    
+    def close(self):
+        time.sleep(1.0/25.0)
+        self.send('clear')
+        self._serial.close()
 
 
 def ADS1299_to_Socket(sample_rate = 500,
