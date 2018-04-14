@@ -169,7 +169,10 @@ def sEMG(username, reader, model, commander):
 #            commander.send('points', 128, bytearray(psd.astype(np.uint8)))
             max_freq, max_amp = si.peek_extract(data, 4, 6, reader.sample_rate)[0]
             plt.subplot(223); plt.title('max energy %f at %fHz' % (max_amp, max_freq))
-            print('4-6Hz频段能量最大频率为%dHz, 其幅值为%f' % (max_freq, max_amp))
+            print('4-6Hz频段能量最大频率为%fHz, 其幅值为%f' % (max_freq, max_amp))
+            e = si.energy(data, 4, 10, reader.sample_rate)
+            plt.subplot(224); plt.title('energy sum of 4-10Hz is %f' % e)
+            print('4-6Hz频段的能量和为%f' % e)
             
     except KeyboardInterrupt:
         reader.close()

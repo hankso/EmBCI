@@ -18,10 +18,10 @@ from common import check_input
 # =============================================================================
 # from IO import Serial_reader as Reader
 # =============================================================================
-from IO import ADS1299_reader as Reader
 # =============================================================================
-# from IO import Fake_data_generator as Reader
+# from IO import ADS1299_reader as Reader
 # =============================================================================
+from IO import Fake_data_generator as Reader
 
 from IO import Screen_commander as Commander
 # =============================================================================
