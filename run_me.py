@@ -13,39 +13,34 @@ sys.path += ['./src', './utils']
 
 # from ./utils
 from classifier import Models
-from frame import sEMG
+from frame import sEMG_Recognition, Display_Signal_Info
 from common import check_input
-# =============================================================================
-# from IO import Serial_reader as Reader
-# =============================================================================
-# =============================================================================
-# from IO import ADS1299_reader as Reader
-# =============================================================================
+
+#from IO import Serial_reader as Reader
+#from IO import ADS1299_reader as Reader
 from IO import Fake_data_generator as Reader
 
-from IO import Screen_commander as Commander
-# =============================================================================
-# from IO import Plane_commander as Commander
-# =============================================================================
-# =============================================================================
-# from IO import Pylsl_commander as Commander
-# =============================================================================
+#from IO import Screen_commander as Commander
+#from IO import Plane_commander as Commander
+from IO import Pylsl_commander as Commander
 
 
 
 if __name__ == '__main__':
     
+    # myo
+    sample_rate = 512
+    sample_time = 3
+    n_channels  = 1
+    
 # =============================================================================
-#     # myo
-#     sample_rate = 512
-#     sample_time = 3
-#     n_channels  = 1
+#     # OpenBCI 250Hz 2s 500samples 2channel
+#     sample_rate = 250
+#     sample_time = 2
+#     n_channels  = 2
 # =============================================================================
     
-    # OpenBCI 250Hz 2s 500samples 2channel
-    sample_rate = 250
-    sample_time = 2
-    n_channels  = 2
+    username = 'test'
     
     window_size = sample_rate * sample_time
     try:
@@ -57,6 +52,7 @@ if __name__ == '__main__':
     # it's in a seperate thread, stop recording by `reader.close()`
     reader = Reader(sample_rate, sample_time, n_channels)
     reader.start()
+    time.sleep(reader.sample_time)
     
     # available classification models see Models.supported_models
     model  = Models(sample_rate, sample_time, model_type='Default')
@@ -65,7 +61,8 @@ if __name__ == '__main__':
     commander = Commander()
     commander.start()
     
-    sEMG(username, reader, model, commander)
+#    sEMG_Recognition(username, reader, model, commander)
+    Display_Signal_Info(reader, commander)
 
     print('loging out...')
     time.sleep(1)

@@ -17,6 +17,8 @@ import scipy.io as sio
 
 # from ../src
 from preprocessing import Processer
+from common import mapping
+from IO import Screen_commander, command_dict_uart_screen_v1
 
 class Plotter():
     def __init__(self, window_size, where_to_plot=None, n_channel=1):
@@ -91,11 +93,11 @@ def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
         
         plt.subplot(321)
         plt.title('raw data')
-        plt.plot(d[0], linewidth=0.5)
+        plt.plot(d, linewidth=0.5)
         
         plt.subplot(323)
         plt.title('remove_DC and notch')
-        plt.plot(p.notch(p.remove_DC(d))[0, 0], linewidth=0.5)
+        plt.plot(p.notch(d)[0, 0], linewidth=0.5)
         
         plt.subplot(325)
         plt.title('after fft')
@@ -131,7 +133,49 @@ def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
         
         plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
 
-
+def screen_plot_one_channel(commander, data,
+                            color=5, width=220, height=176, pad=False):
+    if not isinstance(data, list):
+        data = list(data)
+    if pad:
+        if len(data) < width:
+            data += [0] * (width-len(data))
+        if len(data) > width:
+            data = data[:width]
+    commander.send('clear')
+    data = mapping(data, high = height).astype(np.uint8)
+    print(data.shape)
+    for x in range(data.shape[0]):
+        # first del last point
+        if x >= width:
+            commander.send('point', x = x%width, y = data[x-width], c = 0)
+        time.sleep(0.5/220)
+        
+        # then draw current point
+        commander.send('point', x = x%width, y = data[x], c = color)
+        time.sleep(0.5/220)
+        
+def screen_plot_multichannels(commander, data, color,
+                              width=220, height=176):
+    if not isinstance(data, np.ndarray):
+        data = np.array(data)
+    if len(data.shape) != 2:
+        raise
+    n_channel, window_size = data.shape
+    for ch in range(n_channel):
+        data[ch] = mapping(data[ch],
+                           low = ch*176.0/n_channel+5,
+                           high = (ch+1)*176.0/n_channel-5).astype(np.uint8)
+    commander.send('clear')
+    for x in range(window_size):
+        for ch in range(n_channel):
+            if x >= width:
+                commander.send('point',
+                               x = x%width, y = data[ch, x-width], c = 0)
+            time.sleep(0.5/220)
+            commander.send('point',
+                           x = x%width, y = data[ch, x], c = color[ch])
+            time.sleep(0.5/220)
 
 if __name__ == '__main__':
     plt.ion()
@@ -146,3 +190,24 @@ if __name__ == '__main__':
     data = sio.loadmat(filename)[actionname.split('-')[0]][0]
     p = Processer(250, 2)
     view_data_with_matplotlib(data, actionname)
+# =============================================================================
+#     
+# =============================================================================
+    c = Screen_commander(command_dict=command_dict_uart_screen_v1)
+    c.start()
+    time.sleep(1)
+    print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
+    
+    data = np.sin(np.linspace(0, 6*np.pi, 600))
+    data = np.repeat(data.reshape(1, 600), 8, axis=0)
+    try:
+        while 1:
+            screen_plot_one_channel(c, data, width=220, height=76)
+            screen_plot_multichannels(c, data, range(8))
+            print('new screen!')
+    except KeyboardInterrupt:
+        c.close()
+# =============================================================================
+#         
+# =============================================================================
+    pass

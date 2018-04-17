@@ -229,13 +229,6 @@ class TGAM_Reader(object):
                     self.logger.error('Invalid input!')
         raise IOError('No port available! Abort.')
 
-    def mapping(self, a, range = (0, 255)):
-        if not isinstance(range, tuple) or len(range) != 2: return
-        a = np.array(a).astype(np.float32)
-        if not len(a): return a
-        if a.min() == a.max(): return a
-        return (a-a.min())*(range[1]-range[0])/(a.max()-a.min())+range[0]
-
     def plot(self, data, max_win_length = 100):
         '''
         raw,       time

@@ -12,7 +12,7 @@ After compiled:
     5984/30720 (19%) Flash
     317/2048 (15%) RAM
 */
-//#define ATTINY
+//#define ATTINY_85
 
 #include <SoftwareSerial.h>
 #define SYNC 0xAA       // flag of data
@@ -20,7 +20,7 @@ After compiled:
 #define RAW             // parse raw data(512Hz)
 #define PACKAGE         // parse package data(1Hz)
 
-#if defined(ATTINY)
+#if defined(ATTINY_85)
     SoftwareSerial myport(0, 2); //RX, TX
     #define Serial myport // on attiny85 there is no hardware Serial
     #define ledPin 1

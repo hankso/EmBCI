@@ -16,7 +16,7 @@ void setup() {
     pinMode(myoSig, INPUT);
 //    hand.attach(2);
     Serial.begin(115200);
-    Serial.println("started");
+//    Serial.println("started");
 }
 
 void loop() {

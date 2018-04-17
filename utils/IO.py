@@ -152,9 +152,7 @@ def save_action(username, reader, action_list=['relax', 'grab']):
 
                 #==========================================================
                 save_data(username,
-                          reader.channel_data().reshape(1,
-                                             reader.n_channel,
-                                             reader.window_size),
+                          reader.get_data(),
                           action_name,
                           reader.sample_rate,
                           print_summary=True)
@@ -225,10 +223,12 @@ class _basic_reader(object):
         except:
             return 0
     
-    def channel_data(self, size=None):
+    def get_data(self, size=None):
         if size is None:
             size = self.window_size
-        return np.array([self.buffer[ch][-size:] for ch in self.ch_list[1:]])
+        return np.array([self.buffer[ch][-size:] \
+                         for ch in self.ch_list[1:]])\
+                .reshape(1, self.n_channel, self.window_size)
     
     def isOpen(self):
         return not self._flag_close.isSet()
@@ -334,6 +334,7 @@ class Serial_reader(_basic_reader):
         port = find_ports()
         self._serial.port = port
         self._serial.open()
+        self._start_time = time.time()
         
         # 2. start main thread
         # here we only need to check one time whether send_to_pylsl is set
@@ -775,7 +776,6 @@ class Pylsl_commander(_basic_commander):
 
 
 
-# action_class : command_str
 command_dict_glove_box = {
         'thumb':'1',
         'index':'2',
@@ -789,8 +789,10 @@ command_dict_glove_box = {
         'thumb-middle':'B',
         'thumb-ring':'C',
         'thumb-little':'D',
-        '_desc': ("This is a dict for glove box version 1.0. Support command: "
-                  "thumb, index, middle, ring, little, grab-all, relax, grab"),
+        '_desc': ("This is a dict for glove box version 1.0.\n"
+                  "Support command:\n\t"
+                  "thumb, index, middle, ring\n\t"
+                  "little, grab-all, relax, grab\n"),
 }
 
 class Serial_commander(_basic_commander):
@@ -836,31 +838,56 @@ class Serial_commander(_basic_commander):
             
 
 command_dict_arduino_screen_v1 = {
-        'point':     '#0\r\n' + '{}\r\n'*2,
-        'line':      '#1\r\n' + '{}\r\n'*4,
-        'circle':    '#2\r\n' + '{}\r\n'*3,   # x, y, r
-        'rectangle': '#3\r\n' + '{}\r\n'*4,   # x1, y1, x2, y2
-        'text':      '#4\r\n' + '{}\r\n'*3,   # x, y, text(str)
+        'point':  '#0\r\n{x},{y}\r\n',
+        'line':   '#1\r\n{x1},{y1},{x2},{y2}\r\n',
+        'circle': '#2\r\n{x},{y},{r}\r\n',
+        'rect':   '#3\r\n{x1},{y1},{x2},{y2}\r\n',
+        'text':   '#4\r\n{x},{y},{s}\r\n',
+        'clear':  '#5\r\n',
         '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
-                  "Commands  | Args\n"
-                  "point     | x, y\n"
-                  "line      | x1, y1, x2, y2\n"
-                  "circle    | x, y, r\n"
-                  "rectangle | x1, y1, x2, y2\n"
-                  "text      | x, y, str")
+                  "you need to pass in args as `key`=`value`(dict)\n\n"
+                  "Commands | args\n"
+                  "point    | x, y\n"
+                  "line     | x1, y1, x2, y2\n"
+                  "circle   | x, y, r\n"
+                  "rect     | x1, y1, x2, y2\n"
+                  "text     | x, y, s\n")
 }
 
 command_dict_arduino_screen_v2 = {
         'points': 'P{:c}{}',
-        'point': 'D{:c}{}',
-        'text': 'S{:c}{:s}',
-        'clear': 'C',
+        'point':  'D{:c}{}',
+        'text':   'S{:c}{:s}',
+        'clear':  'C',
         '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
                   "Commands | Args\n"
                   "points   | len(pts), bytearray([y for x, y in pts])\n"
                   "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
                   "text     | len(str), str\n"
-                  "clear    | none, clear screen"),
+                  "clear    | no args, clear screen\n"),
+}
+
+command_dict_uart_screen_v1 = {
+        'point':  'PS({x},{y},{c});\r\n',
+        'line':   'PL({x1},{y1},{x2},{y2},{c});\r\n',
+        'circle': 'CIR({x},{y},{r},{c});\r\n',
+        'circlef':'CIRF({x},{y},{r},{c});\r\n',
+        'rect':   'BOX({x1},{y1},{x2},{y2},{c});\r\n',
+        'rectf':  'BOXF({x1},{y1},{x2},{y2},{c});\r\n',
+        'text':   'DC16({x},{y},{s},{c});\r\n',
+        'dir':    'DIR({:d});\r\n',
+        'clear':  'CLR(0);\r\n',
+        '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
+                  "Commands | Args\n"
+                  "point    | x, y, c\n"
+                  "line     | x1, y1, x2, y2, c\n"
+                  "circle   | x, y, r, c\n"
+                  "circlef  | x, y, r, c, filled circle\n"
+                  "rect     | x1, y1, x2, y2, c\n"
+                  "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
+                  "text     | x, y, s(string), c(color)\n"
+                  "dir      | a num, 0 means vertical, 1 means horizental\n"
+                  "clear    | clear screen will black\n")
 }
 
 class Screen_commander(Serial_commander):
@@ -869,13 +896,13 @@ class Screen_commander(Serial_commander):
         super(Screen_commander, self).__init__(baudrate, command_dict)
         self._name = self._name[:-2] + ' for screen' + self._name[-2:]
         
-    @Timer.duration('Screen_commander', 1.0/25.0)
+#    @Timer.duration('Screen_commander', 1.0/25.0)
     def send(self, key, *args, **kwargs):
         if key not in self._command_dict:
             print(self._name + 'Wrong command {}! Abort.'.format(key))
             return
         try:
-            cmd = self._command_dict[key].format(*args)
+            cmd = self._command_dict[key].format(*args, **kwargs)
             self._serial.write(cmd)
             return cmd
         except IndexError:
@@ -886,6 +913,7 @@ class Screen_commander(Serial_commander):
         time.sleep(1.0/25.0)
         self.send('clear')
         self._serial.close()
+        
 
 
 def ADS1299_to_Socket(sample_rate = 500,

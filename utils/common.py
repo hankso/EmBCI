@@ -45,6 +45,14 @@ def energy_time_duration(reader, low, high, duration):
     threading.Thread(target=_run, args=(stop_flag, )).start()
     return stop_flag
 
+def mapping(a, low=0, high=255):
+    a = np.array(a, np.float32)
+    if not len(a) or a.min() == a.max():
+        return a
+    if high < low:
+        raise RuntimeError('low should be small than high')
+    return (a - a.min()) * (high - low) / (a.max() - a.min()) + low
+
 def check_dir(func):
     '''
     check if user folder exist before saving data etc.

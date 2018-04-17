@@ -46,8 +46,8 @@ class Models():
             
         self.built = False
         self.model_type = model_type
+        self.fs = sample_rate
         self._p = Processer(sample_rate, sample_time)
-        self._sample_rate = sample_rate
         self._result = None
         self._preprocessers = []
         
@@ -67,8 +67,8 @@ class Models():
             self._preprocessers += [self._p.stft]
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
             
-            nperseg = int(self._sample_rate / 5)
-            noverlap = int(self._sample_rate / 5 * 0.67)
+            nperseg = int(self.fs / 5)
+            noverlap = int(self.fs / 5 * 0.67)
             f = int(1+math.floor(float(nperseg)/2))
             t = int(1+math.ceil(float(input_shape[2])/(nperseg-noverlap)))
             
@@ -77,15 +77,14 @@ class Models():
 
             
         elif self.model_type == 'CNN_LSTM':
-            self._preprocessers += [self._p.remove_DC]
-            self._preprocessers += [self._p.notch]
-            self._preprocessers += [self._p.stft]
+            self._preprocessers += [self._p.remove_DC,
+                                    self._p.notch,
+                                    self._p.stft]
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
-            nperseg = int(self._sample_rate / 5)
-            noverlap = int(self._sample_rate / 5 * 0.67)
+            nperseg = int(self.fs / 5)
+            noverlap = int(self.fs / 5 * 0.67)
             f = int(1+math.floor(float(nperseg)/2))
             t = int(1+math.ceil(float(input_shape[2])/(nperseg-noverlap)))
-            
             self._CNN_LSTM(nb_classes, (f, t, input_shape[1]))
             self.epochs, self.batch_size = 60, 20
             
@@ -96,14 +95,15 @@ class Models():
             out: n_sample x n_channel x window_size
             label: n_sample x 1
             '''
-            self._Double_Dense(nb_classes, input_shape[1:3])
+            self._preprocessers += [self._p.remove_DC, self._p.notch]
+            self._Double_Dense(nb_classes, input_shape[1:])
             self.epochs, self.batch_size = 200, 15
             
             
         elif self.model_type == 'SVM':
             '''
-            src:    n_sample x n_channel x window_size
-            target: n_sample x series(n_channel * freq * time)
+            src: n_sample x n_channel x window_size
+            out: n_sample x series(n_channel * freq * time)
             label:  n_sample x 1
             '''
             self._preprocessers += [self._p.remove_DC,
@@ -214,10 +214,9 @@ class Models():
         if self.model_type == 'SVM':
             tmp = self.model.predict_proba(data)
         elif self.model_type in ['Default', 'CNN_LSTM', 'Double_Dense']:
-# =============================================================================
-#             tmp = self.model.predict_classes(data, verbose=0)
-# =============================================================================
+            #tmp = self.model.predict_classes(data, verbose=0)
             tmp = self.model.predict_proba(data, verbose=0)
+            
         return tmp.argmax(), tmp.max()
         
     

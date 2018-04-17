@@ -10,26 +10,31 @@ from __future__ import print_function
 import os
 import time
 import json
-import threading
 import sys
 sys.path += ['../utils']
 
 # pip install numpy
 import numpy as np
-import matplotlib.pyplot as plt; plt.ion()
+import matplotlib.pyplot as plt
 
 # from ../utils
-from common import time_stamp, check_input, first_use, record_animate, Timer
+from common import time_stamp, check_input, first_use, record_animate
 from IO import load_data, save_action
 from signal_info import Signal_Info
-#from visualization import view_data_with_matplotlib
+from preprocessing import Processer
 
 
-def sEMG(username, reader, model, commander):
+# TODO: put this in __init__.py
+# =============================================================================
+# __all__ = ['sEMG_Recognition', 'Display_Signal_Info', 'P300', 'SSVEP',
+#            'TGAM_relax', 'MotorImaginary']
+# =============================================================================
+
+
+
+def sEMG_Recognition(username, reader, model, commander):
     #==========================================================================
-    
     # user initializition
-    
     #==========================================================================
     if not os.path.exists('./models/' + username):
         # no this user before
@@ -57,13 +62,10 @@ def sEMG(username, reader, model, commander):
     
     # we must clear workspace frequently on orangepi, which only has 512MB RAM
     # variables existing:
-    #     'model_flag', 'username', 'reader'
-    
+    #     'model_flag', 'username', 'reader', 'model', 'commander'
     
     #==========================================================================
-    
     # record data and train classifier
-    
     #==========================================================================
     if model_flag is True:
         # no pre-saved model
@@ -109,13 +111,10 @@ def sEMG(username, reader, model, commander):
             model_name = model_flag = data = label = f = None
         
         # vars:
-        #     'action_dict', 'model', 'reader', 'username'
-            
+        #     'action_dict', 'username', 'reader', 'model', 'commander'
             
     #==========================================================================
-    
     # load saved classifier
-    
     #==========================================================================
     else:
         model_name = './models/%s/%s' % (username, model_flag)
@@ -131,83 +130,114 @@ def sEMG(username, reader, model, commander):
         model_name = model_flag = f = i = None
     
     # vars:
-    #     'action_dict', 'model', 'reader', 'username'
-        
+    #     'action_dict', 'username', 'reader', 'model', 'commander'
 
     #==========================================================================
-    
     # online recognizing, mainloop
-    
     #==========================================================================
-    display_ch = 'channel0'
-    def draw_point(pause_flag, stop_flag, lock):
-        while not stop_flag.isSet():
-            pause_flag.wait()
-            d = np.array(reader.buffer[display_ch][-10:]) * 48 + 16
-            lock.acquire()
-            commander.send('points', len(d), bytearray(d.astype(np.uint8)))
-            lock.release()
-#    pause_flag = threading.Event(); pause_flag.set()
-#    stop_flag = threading.Event(); stop_flag.clear()
-#    lock = threading.Lock()
-#    t = threading.Thread(target=draw_point, args=(pause_flag, stop_flag, lock))
-#    t.setDaemon(True)
-#    t.start()
-    si = Signal_Info()
     try:
-        last_time = time.time()
-        while 1:
-            while (time.time() - last_time) < 1.0:
-                time.sleep(0.1)
-            last_time = time.time()
-            data = reader.buffer[display_ch]
-            plt.clf()
-            plt.subplot(221); plt.plot(data)
-            psd = np.concatenate((si.fft(data, reader.sample_rate)[1][0]**2, [0] * 3))
-            plt.subplot(222); plt.plot(np.log10(psd))
-#            psd = psd / psd.max() * 48 + 16
-#            commander.send('points', 128, bytearray(psd.astype(np.uint8)))
-            max_freq, max_amp = si.peek_extract(data, 4, 6, reader.sample_rate)[0]
-            plt.subplot(223); plt.title('max energy %f at %fHz' % (max_amp, max_freq))
-            print('4-6Hz频段能量最大频率为%fHz, 其幅值为%f' % (max_freq, max_amp))
-            e = si.energy(data, 4, 10, reader.sample_rate)
-            plt.subplot(224); plt.title('energy sum of 4-10Hz is %f' % e)
-            print('4-6Hz频段的能量和为%f' % e)
-            
-    except KeyboardInterrupt:
-        reader.close()
-        commander.close()
-    '''
-    try:
+        # main thread
         while reader.isOpen():
             if not reader.streaming:
                 break
             print('start recording in 2s')
             time.sleep(2)
             record_animate(reader.sample_time)
-            class_num, class_prob = model.predict(
-                    reader.channel_data().reshape(1,
-                                                  reader.n_channel,
-                                                  reader.window_size))
+            class_num, class_prob = model.predict(reader.get_data())
             action_name = action_dict[class_num]
-            print('[Predict action name] ' + action_name)
+            print('[Predict action name] ' + action_name, end='')
             print(class_prob)
             
             if class_prob > 0.5:
-                lock.acquire()
-                time.sleep(1.0/25.0)
+#                lock.acquire()
+#                time.sleep(1.0/25.0)
                 action_cmd = commander.send('text',
                                             len(action_name),
                                             action_name)
-                lock.release()
+#                lock.release()
                 if action_cmd is not None:
                     print('send control command %s for action %s' % (
                             action_cmd, action_name))
+                    
     except KeyboardInterrupt:
         reader.close()
         commander.close()
-        stop_flag.set()
-    '''
+    
+    
+def Display_Signal_Info(reader, commander):
+# =============================================================================
+#     display_ch = 'channel0'
+#     def draw_point(pause_flag, stop_flag, lock):
+#         while not stop_flag.isSet():
+#             pause_flag.wait()
+#             d = np.array(reader.buffer[display_ch][-10:]) * 48 + 16
+#             lock.acquire()
+#             commander.send('points', len(d), bytearray(d.astype(np.uint8)))
+#             lock.release()
+#     pause_flag = threading.Event(); pause_flag.set()
+#     stop_flag = threading.Event(); stop_flag.clear()
+#     lock = threading.Lock()
+#     t = threading.Thread(target=draw_point, args=(pause_flag, stop_flag, lock))
+#     t.setDaemon(True)
+#     t.start()
+# =============================================================================
+    si = Signal_Info()
+    p = Processer(reader.sample_rate, reader.sample_time)
+    display_ch = 'channel0'
+    try:
+        fig, axes = plt.subplots(nrows=3, ncols=2)
+        data = reader.buffer[display_ch]
+        # display raw data
+        axes[0, 0].plot(data, linewidth=0.5)
+        axes[0, 0].set_title('Raw data')
+        line_raw = axes[0, 0].lines[0]
+        # display time series data after notch and remove_DC
+        data = p.remove_DC(p.notch(data))
+        axes[0, 1].plot(data[0])
+        axes[0, 1].set_title('after notch and remove DC')
+        line_wave = axes[0, 1].lines[0]
+        # display amp-freq data after fft
+        axes[1, 0].plot(np.log10(p.fft(data)[0]))
+        axes[1, 0].set_title('channel data after FFT')
+        line_fft = axes[1, 0].lines[0]
+        # display PSD
+        axes[1, 1].plot(np.log10(p.psd(data)[0]))
+        axes[1, 1].set_title('Power Spectrum Density')
+        line_psd = axes[1, 1].lines[0]
+        # display 2D array after stft
+        axes[2, 0].imshow(np.log10(p.stft(data)[0]))
+        axes[2, 0].set_title('after STFT')
+        img_stft = axes[2, 0].images[0]
+        # display signal info
+        axes[2, 1].text(0.5, 0.75, '4-6Hz has max energy %f at %fHz' % (0, 0),
+                        size=10, ha='center', va='center', color='r')
+        axes[2, 1].text(0.5, 0.25, '4-10Hz sum of energy is %f' % 0,
+                        size=10, ha='center', va='center', color='r')
+        axes[2, 1].set_title('signal info')
+        axes[2, 1].set_axis_off()
+        text_p = axes[2, 1].texts[0]
+        text_s = axes[2, 1].texts[1]
+        
+        while 1:
+            data = reader.buffer[display_ch]
+            line_raw.set_ydata(data)
+            data = p.remove_DC(p.notch(data))
+            line_wave.set_ydata(data[0])
+            line_fft.set_ydata(np.log10(p.fft(data)[0]))
+            line_psd.set_ydata(np.log10(p.psd(data)[0]))
+            img_stft.set_data(np.log10(p.stft(data)[0]))
+#            e = si.energy(data, 4, 10, reader.sample_rate)[0]
+#            max_freq, max_amp = si.peek_extract(data, 4, 6, reader.sample_rate)[0]
+            text_p.set_text('4-6Hz has max energy %f at %fHz' % \
+                            si.peek_extract(data, 4, 6, reader.sample_rate)[0][::-1])
+            text_s.set_text('4-10Hz sum of energy is %f' % \
+                            si.energy(data, 4, 10, reader.sample_rate)[0])
+            plt.show()
+            plt.pause(0.1)
+            
+    except KeyboardInterrupt:
+        reader.close()
+        commander.close()
 
 def P300(username, reader, model, commander):
     raise NotImplemented

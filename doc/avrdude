@@ -1,1 +1,1 @@
-/home/hank/programs/arduino-1.8.5/hardware/tools/avr/bin/avrdude -C/home/hank/programs/arduino-1.8.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -Uflash:w:/tmp/arduino_build_905999/muscle-reader.ino.hex:i
+avrdude -C ~/avrdude.conf -v -p atmega328p -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:~/target.hex:i
