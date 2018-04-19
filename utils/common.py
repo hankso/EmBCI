@@ -24,13 +24,13 @@ if sys.version_info.major == 3:
 
 # from ./
 from signal_info import Signal_Info
-signal_info = Signal_Info()
 
 def energy_time_duration(reader, low, high, duration):
     '''
     一段时间内某频段的能量总和
     calculate energy density of time duration
     '''
+    signal_info = Signal_Info()
     def _run(flag):
         start_time = time.time()
         reader.info = np.array([0.0] * reader.n_channel)
@@ -40,12 +40,27 @@ def energy_time_duration(reader, low, high, duration):
                                                        low, high,
                                                        reader.sample_rate))
         dt = time.time() - start_time
-#        reader.info /= dt
     stop_flag = threading.Event()
     threading.Thread(target=_run, args=(stop_flag, )).start()
     return stop_flag
 
 def mapping(a, low=0, high=255):
+    '''
+    Mapping data to new array values all in duartion [low, high]
+    
+    Return
+    ======
+    np.array
+    
+    Example
+    =======
+    >>> a = [0, 1, 2.5, 4.9, 5]
+    >>> b = mapping(a, low=0, high=1024)
+    >>> a
+    [0, 1, 2.5, 4.9, 5]
+    >>> b
+    array([   0.  ,  204.8 ,  512.  , 1003.52, 1024.  ], dtype=float32)
+    '''
     a = np.array(a, np.float32)
     if not len(a) or a.min() == a.max():
         return a
@@ -124,7 +139,7 @@ def first_use():
                        'stable in right position, are they? ')
 
 
-def find_outlets(name, **kwargs):
+def find_outlets(name=None, **kwargs):
     '''
     寻找已经存在的pylsl注册的stream
     
@@ -145,10 +160,11 @@ def find_outlets(name, **kwargs):
         ds = [stream.type() for stream in stream_list]
         prompt = ('Please choose one from all available streams:\n    ' +
                   '\n    '.join(['%d %s - %s' % (i, j, k) \
-                                 for i, j, k in enumerate(zip(dv, ds))]) +
-                  '\nstream name: ')
-        stream = check_input(prompt, answer={i: stream_list[i] \
-                                             for i in range(len(stream_list))})
+                                 for i, (j, k) in enumerate(zip(dv, ds))]) +
+                  '\nstream name(default 0): ')
+        answer={str(i):stream for i, stream in enumerate(stream_list)}
+        answer[''] = stream_list[0]
+        stream = check_input(prompt, answer)
     if stream:
         print(('Select stream {name} -- {chs} channel {type_num} {fmt} data '
                'from {source} on server {host}').format(
@@ -162,7 +178,7 @@ def find_outlets(name, **kwargs):
     sys.exit('No stream available! Abort.')
     
 
-def find_ports(timeout=5):
+def find_ports(timeout=3):
     '''
     利用check_input和serial.tools.list_ports.comports寻找当前电脑上的串口
     如果有多个可用的串口，提示用户选择一个
@@ -174,6 +190,7 @@ def find_ports(timeout=5):
         timeout -= 1
         if len(comports()) == 0:
             time.sleep(1)
+            print('[Find port] rescanning available ports')
             continue
         port_list = comports()
         if len(port_list) == 1:
@@ -182,10 +199,12 @@ def find_ports(timeout=5):
             dv = [port.device for port in port_list]
             ds = [port.description for port in port_list]
             prompt = ('Please choose one from all available ports:\n    ' +
-                      '\n    '.join([i+' - '+j for i, j in zip(dv, ds)]) +
-                      '\nport name: ')
-            port = check_input(prompt, answer={i: i for i in dv})
-            port = port_list[dv.index(port)]
+                      '\n    '.join(['%d %s - %s' % (i, j, k) \
+                                     for i, (j, k) in enumerate(zip(dv, ds))]) +
+                      '\nport name(default 0): ')
+            answer = {str(i):port for i, port in enumerate(port_list)}
+            answer[''] = port_list[0]
+            port = check_input(prompt, answer)
         if port:
             print('Select port {} -- {}'.format(port.device,
                                                 port.description))
@@ -406,9 +425,7 @@ if __name__ == '__main__':
     first_use()
     record_animate(5)
     print('time stamp: ' + time_stamp())
-# =============================================================================
-#     print(find_ports())
-#     print(find_outlets('testing'))
-# =============================================================================
+#    print(find_ports())
+#    print(find_outlets('testing'))
     print(get_label_list(username)[1])
     pass

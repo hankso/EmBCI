@@ -85,9 +85,12 @@ class Plotter():
         # Return data in case of using Plotter.plot as callback function
         return data
 
-
-
-def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
+def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
+    if not isinstance(data, np.ndarray):
+        data = np.array(data)
+    if len(data.shape) != 2:
+        raise
+    p = Processer(sample_rate, sample_time)
     for ch, d in enumerate(data):
         plt.figure('%s_%d' % (actionname, ch))
         
@@ -97,17 +100,19 @@ def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
         
         plt.subplot(323)
         plt.title('remove_DC and notch')
-        plt.plot(p.notch(d)[0, 0], linewidth=0.5)
+        plt.plot(p.notch(d)[0], linewidth=0.5)
         
         plt.subplot(325)
         plt.title('after fft')
-        plt.plot(p.fft(p.notch(p.remove_DC(data)))[1][0, 0], linewidth=0.5)
+        plt.plot(p.fft(p.notch(p.remove_DC(data)))[0], linewidth=0.5)
         
         plt.subplot(343)
         plt.title('after stft')
-        f, t, amp = p.stft(p.remove_DC(p.notch(d)))
-        plt.pcolormesh(t, f, np.log10(amp[0, 0]))
-        highest_col = [col[1] for col in sorted(zip(np.sum(amp[0, 0], axis=0),
+        amp = p.stft(p.remove_DC(p.notch(d)))[0]
+        f = np.linspace(0, sample_rate/2, amp.shape[0])
+        t = np.linspace(0, sample_time, amp.shape[1])
+        plt.pcolormesh(t, f, np.log10(amp))
+        highest_col = [col[1] for col in sorted(zip(np.sum(amp, axis=0),
                                                     range(len(t))))[-3:]]
         
         plt.plot((t[highest_col], t[highest_col]),
@@ -118,13 +123,12 @@ def view_data_with_matplotlib(data, actionname, p=Processer(250, 2)):
         plt.subplot(344)
         plt.title('Three Max Amptitude'.format(t[highest_col]))
         for i in highest_col:
-            plt.plot(amp[0, 0, :, i], label='time: {}s'.format(t[i]), linewidth=0.5)
+            plt.plot(amp[:, i], label='time: {}s'.format(t[i]), linewidth=0.5)
             plt.legend()
         
         plt.subplot(324)
         t = time.time()
-    #    plt.psd(d, Fs=250, label='raw', linewidth=0.5)
-        plt.psd(p.remove_DC(p.notch(d))[0, 0], Fs=250, label='filter', linewidth=0.5)
+        plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filter', linewidth=0.5)
         plt.legend()
         plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
         
@@ -178,35 +182,36 @@ def screen_plot_multichannels(commander, data, color,
             time.sleep(0.5/220)
 
 if __name__ == '__main__':
-    plt.ion()
-    fake_data = np.random.random((1, 8, 1000))
-    print(fake_data.shape)
-    p = Plotter(window_size = 1000, n_channel=8)
-    p.plot(fake_data)
-
-    # data shape: 1 x n_channel x window_size
+#    plt.ion()
+#    fake_data = np.random.random((1, 8, 1000))
+#    print(fake_data.shape)
+#    p = Plotter(window_size = 1000, n_channel=8)
+#    p.plot(fake_data)
+# =============================================================================
+# 
+# =============================================================================
     filename = '../data/test/grab-1.mat'
     actionname = os.path.basename(filename)
     data = sio.loadmat(filename)[actionname.split('-')[0]][0]
-    p = Processer(250, 2)
-    view_data_with_matplotlib(data, actionname)
+    sample_rate=250; sample_time=2
+    view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
 # =============================================================================
 #     
 # =============================================================================
-    c = Screen_commander(command_dict=command_dict_uart_screen_v1)
-    c.start()
-    time.sleep(1)
-    print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
-    
-    data = np.sin(np.linspace(0, 6*np.pi, 600))
-    data = np.repeat(data.reshape(1, 600), 8, axis=0)
-    try:
-        while 1:
-            screen_plot_one_channel(c, data, width=220, height=76)
-            screen_plot_multichannels(c, data, range(8))
-            print('new screen!')
-    except KeyboardInterrupt:
-        c.close()
+#    c = Screen_commander(command_dict=command_dict_uart_screen_v1)
+#    c.start()
+#    time.sleep(1)
+#    print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
+#    
+#    data = np.sin(np.linspace(0, 6*np.pi, 600))
+#    data = np.repeat(data.reshape(1, 600), 8, axis=0)
+#    try:
+#        while 1:
+#            screen_plot_one_channel(c, data, width=220, height=76)
+#            screen_plot_multichannels(c, data, range(8))
+#            print('new screen!')
+#    except KeyboardInterrupt:
+#        c.close()
 # =============================================================================
 #         
 # =============================================================================
