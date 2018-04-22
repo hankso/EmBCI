@@ -151,7 +151,9 @@ class Screen_GUI(object):
                   'orange': 13, 'pink': 14, 'white': 15}
     widget = {'point':[], 'line':[], 'circle':[], 'circlef':[],
               'rect':[], 'rectf':[], 'text':[], 'button':[], 'img':[]}
-    def __init__(self, reader, touch_screen_port='/dev/ttyS2'):
+    def __init__(self, reader,
+                 touch_screen_port='/dev/ttyS2',
+                 screen_port='/dev/ttyS1'):
         self.r = reader
         # commander init
         self._c = Screen_commander(baudrate=115200,
