@@ -15,6 +15,7 @@ import numpy as np
 
 # from ./
 import gpio4
+from common import Timer
 
 # ADS1299 Pin mapping
 PIN_DRDY        = 6 # pin PA06
@@ -82,6 +83,10 @@ class ADS1299_API(object):
         self._bias_enabled = bias_enabled
         self._test_mode = test_mode
         self._opened = False
+        @Timer.duration('ads1299_read', 1.0/sample_rate)
+        def read_raw(self):
+            return self.spi.xfer2([0x00] * (27))
+        self.read_raw = read_raw
         
     def open(self, dev, max_speed_hz=1000000):
         '''
@@ -165,15 +170,9 @@ class ADS1299_API(object):
 #            self._DRDY.export = False
 #            self._PWRDN.export = False
 #            self._RESET.export = False
-
-    def read_raw(self):
-        '''
-        Return list with length 3 + 8_ch * 3_bytes = 27 uint8
-        '''
-        return self.spi.xfer2([0x00] * (27))
     
     def read(self):
-        num = self.read_raw()[3:]
+        num = self.read_raw(self)[3:]
         byte = ''
         for i in range(8):
             tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i])

@@ -12,8 +12,8 @@ import threading
 import json
 
 # pip install matplotlib, numpy, scipy, pyserial, PIL
-import matplotlib
-import matplotlib.pyplot as plt
+#import matplotlib
+#import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as sio
 import serial
@@ -426,10 +426,10 @@ if __name__ == '__main__':
 # =============================================================================
 # 
 # =============================================================================
-    filename = '../data/test/grab-2.mat'
-    actionname = os.path.basename(filename)
-    data = sio.loadmat(filename)[actionname.split('-')[0]][0]
-    sample_rate=500; sample_time=6
+#    filename = '../data/test/grab-2.mat'
+#    actionname = os.path.basename(filename)
+#    data = sio.loadmat(filename)[actionname.split('-')[0]][0]
+#    sample_rate=500; sample_time=6
 #    view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
 # =============================================================================
 #     
