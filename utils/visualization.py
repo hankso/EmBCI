@@ -158,7 +158,7 @@ class Screen_GUI(object):
         # commander init
         self._c = Screen_commander(baudrate=115200,
                                    command_dict=command_dict_uart_screen_v1)
-        self._c.start()
+        self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
         
         self._e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,

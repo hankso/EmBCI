@@ -424,7 +424,7 @@ class ADS1299_reader(_basic_reader):
         
         self._send_to_pylsl = send_to_pylsl
         
-        self._ads = ADS1299_API()
+        self._ads = ADS1299_API(sample_rate)
         
         self.device = device
         
@@ -827,9 +827,9 @@ class Serial_commander(_basic_commander):
         self._name = '[Serial commander %d] ' % Serial_commander._num
         Serial_commander._num += 1
         
-    def start(self):
+    def start(self, port=None):
         print(self._name + 'finding availabel ports...')
-        self._serial.port = find_ports()
+        self._serial.port = port if port else find_ports()
         self._serial.open()
     
     @Timer.duration('Serial_commander', 5)
