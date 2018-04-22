@@ -196,6 +196,7 @@ class _basic_reader(object):
         
         # info pipe
         self.info = [0] * 10
+        self._started = False
 
     def start(self):
         '''
@@ -222,6 +223,10 @@ class _basic_reader(object):
             return 10.0/(tmp[-1] - tmp[0])
         except:
             return 0
+    
+    @property
+    def ch_data(self):
+        return [self.buffer[ch][-1] for ch in self.ch_list[1:]]
     
     def get_data(self, size=None):
         if size is None:
@@ -261,6 +266,8 @@ class Pylsl_reader(_basic_reader):
                   applications would only buffer as much as they need to 
                   perform their next calculation. (default 360)
         '''
+        if self._started:
+            return
         # 1. find available streaming info and build an inlet 
         print(self._name + 'finding availabel outlets...')
         info = find_outlets(self._servername)
@@ -281,6 +288,7 @@ class Pylsl_reader(_basic_reader):
         # 3. set flags
         self._flag_pause.set()
         self.streaming = True
+        self._started = True
     
     def _read_data(self):
         try:
@@ -329,6 +337,8 @@ class Serial_reader(_basic_reader):
         self._send_to_pylsl = send_to_pylsl
         
     def start(self):
+        if self._started:
+            return
         # 1. find serial port and connect to it
         print(self._name + 'finding availabel ports...')
         port = find_ports()
@@ -354,6 +364,7 @@ class Serial_reader(_basic_reader):
         # 3. set pause flag and streaming flag
         self._flag_pause.set()
         self.streaming = True
+        self._started = True
 
     def _read_data(self):
         try:
@@ -418,6 +429,8 @@ class ADS1299_reader(_basic_reader):
         self.device = device
         
     def start(self):
+        if self._started:
+            return
         # 1. find avalable spi devices
         print(self._name + 'finding available spi devices... ', end='')
         dev = self._ads.open(self.device, max_speed_hz=1000000)
@@ -444,6 +457,7 @@ class ADS1299_reader(_basic_reader):
         # 3. set pause flag and streaming flag
         self._flag_pause.set()
         self.streaming = True
+        self._started = True
     
     def _read_data(self):
         try:
@@ -502,6 +516,8 @@ class Socket_reader(_basic_reader):
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
     def start(self):
+        if self._started:
+            return
         # 1. IP addr and port are offered by user, connect to that host:port
         print(self._name + 'configuring addr... input "quit" to abort')
         while 1:
@@ -527,6 +543,7 @@ class Socket_reader(_basic_reader):
         # 3. set pause flag and streaming flag
         self._flag_pause.set()
         self.streaming = True
+        self._started = True
     
     def _read_data(self):
         try:
@@ -624,6 +641,8 @@ class Fake_data_generator(_basic_reader):
         self._name = '[Fake data generator] '
         
     def start(self):
+        if self._started:
+            return
         print(self._name + 'establishing pylsl outlet...')
         self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo(
                 'fake_data_generator',
@@ -638,6 +657,7 @@ class Fake_data_generator(_basic_reader):
         self._thread.start()
         self._flag_pause.set()
         self.streaming = True
+        self._started = True
         
     def _read_data_send_pylsl(self):
         try:
@@ -838,12 +858,12 @@ class Serial_commander(_basic_commander):
             
 
 command_dict_arduino_screen_v1 = {
-        'point':  '#0\r\n{x},{y}\r\n',
-        'line':   '#1\r\n{x1},{y1},{x2},{y2}\r\n',
-        'circle': '#2\r\n{x},{y},{r}\r\n',
-        'rect':   '#3\r\n{x1},{y1},{x2},{y2}\r\n',
-        'text':   '#4\r\n{x},{y},{s}\r\n',
-        'clear':  '#5\r\n',
+        'point':  ['#0\r\n{x},{y}\r\n', 0.5],
+        'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+        'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
+        'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+        'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
+        'clear':  ['#5\r\n', 1.0],
         '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
                   "you need to pass in args as `key`=`value`(dict)\n\n"
                   "Commands | args\n"
@@ -855,10 +875,10 @@ command_dict_arduino_screen_v1 = {
 }
 
 command_dict_arduino_screen_v2 = {
-        'points': 'P{:c}{}',
-        'point':  'D{:c}{}',
-        'text':   'S{:c}{:s}',
-        'clear':  'C',
+        'points': ['P{:c}{}', 0.1],
+        'point':  ['D{:c}{}', 0.05],
+        'text':   ['S{:c}{:s}', 0.1],
+        'clear':  ['C', 0.5],
         '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
                   "Commands | Args\n"
                   "points   | len(pts), bytearray([y for x, y in pts])\n"
@@ -868,15 +888,15 @@ command_dict_arduino_screen_v2 = {
 }
 
 command_dict_uart_screen_v1 = {
-        'point':  'PS({x},{y},{c});\r\n',
-        'line':   'PL({x1},{y1},{x2},{y2},{c});\r\n',
-        'circle': 'CIR({x},{y},{r},{c});\r\n',
-        'circlef':'CIRF({x},{y},{r},{c});\r\n',
-        'rect':   'BOX({x1},{y1},{x2},{y2},{c});\r\n',
-        'rectf':  'BOXF({x1},{y1},{x2},{y2},{c});\r\n',
-        'text':   'DC16({x},{y},{s},{c});\r\n',
-        'dir':    'DIR({:d});\r\n',
-        'clear':  'CLR(0);\r\n',
+        'point':  ['PS({x},{y},{c});\r\n', 0.4/220],
+        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 4.0/220],
+        'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
+        'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
+        'rect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
+        'rectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
+        'text':   ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
+        'dir':    ['DIR({:d});\r\n', 3.0/220],
+        'clear':  ['CLR(0);\r\n', 12.0/220],
         '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
                   "Commands | Args\n"
                   "point    | x, y, c\n"
@@ -886,7 +906,7 @@ command_dict_uart_screen_v1 = {
                   "rect     | x1, y1, x2, y2, c\n"
                   "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
                   "text     | x, y, s(string), c(color)\n"
-                  "dir      | a num, 0 means vertical, 1 means horizental\n"
+                  "dir      | one num, 0 means vertical, 1 means horizental\n"
                   "clear    | clear screen will black\n")
 }
 
@@ -902,8 +922,10 @@ class Screen_commander(Serial_commander):
             print(self._name + 'Wrong command {}! Abort.'.format(key))
             return
         try:
-            cmd = self._command_dict[key].format(*args, **kwargs)
+            cmd, delay = self._command_dict[key]
+            cmd = cmd.format(*args, **kwargs)
             self._serial.write(cmd)
+            time.sleep(delay)
             return cmd
         except IndexError:
             print(self._name + 'unmatch key {} and params {}!'.format(
@@ -916,16 +938,10 @@ class Screen_commander(Serial_commander):
         
 
 
-def ADS1299_to_Socket(sample_rate = 500,
-                      bias_enabled=False,
-                      test_mode=True):
-    ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
-    ads.start()
-    server = Socket_server()
-    
+def ADS1299_to_Socket(ads, server):
     last_time = time.time()
     while 1:
-        while (time.time() - last_time) < 1.0/sample_rate:
+        while (time.time() - last_time) < 1.0/ads.sample_rate:
             pass
         last_time = time.time()
         server.send(ads.read())

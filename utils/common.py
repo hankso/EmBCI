@@ -12,6 +12,7 @@ import os
 import sys
 import socket
 import threading
+import select
 
 # pip install pyserial, pylsl, numpy
 import pylsl
@@ -213,6 +214,46 @@ def find_ports(timeout=3):
             break
     sys.exit('No port available! Abort.')
 
+
+def virtual_serial():
+    '''
+    generate a pair of virtual serial port at /dev/pts/*
+    really useful when debugging without a real UART device
+    e.g.:
+        /dev/pts/0 <--> /dev/pts/1
+        s = serial.Serial('/dev/pts/1',115200)
+        m = serial.Serial('/dev/pts/0',115200)
+        s.write('hello?\n')
+        m.read_until() ==> 'hello?\n'
+    '''
+    master1, slave1 = os.openpty()
+    master2, slave2 = os.openpty()
+    #  RX1 TX1 RX2 TX2
+    c = [0,  0,  0,  0]
+    print('Pty opened!\nPort1: %s\nPort2: %s' \
+          % (os.ttyname(slave1),os.ttyname(slave2)))
+    def echo(flag_close):
+        while not flag_close.isSet():
+            readable = select.select([master1,master2],[],[],1)
+#            if readable:
+#                if max(c) < 1024:
+#                    print('\rRX1: %dB TX1: %dB' % tuple(c[:2]), end='')
+#                else:
+#                    print('\rRX1: %dKB TX1: %dKB' % (c[0]/1024.0, c[1]/1024.0), end='')
+            for port in readable[0]:
+                msg = os.read(port, 128)
+                if port == master1:
+                    c[0] += len(msg)
+                    c[3] += os.write(master2, msg)
+                else:
+                    c[2] += len(msg)
+                    c[1] += os.write(master1, msg)
+        print('[Virtual Serial] shutdown...')
+    flag_close = threading.Event()
+    t = threading.Thread(target=echo, args=(flag_close,))
+    t.setDaemon(True)
+    t.start()
+    return flag_close
 
 
 class Timer(object):

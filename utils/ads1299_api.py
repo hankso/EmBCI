@@ -13,10 +13,14 @@ import struct
 import spidev
 import numpy as np
 
+# from ./
+import gpio4
+
 # ADS1299 Pin mapping
-PIN_DRDY        = 97
-PIN_PWRDN       = 98
-PIN_RESET       = 99
+PIN_DRDY        = 6 # pin PA06
+PIN_PWRDN       = 2 # pin PA02
+PIN_START       = 3 # pin PA03
+PIN_RESET       = 7 # pin PA07
 # ADS1299 Registers
 REG_CONFIG1     = 0x01
 REG_CONFIG2     = 0x02
@@ -34,6 +38,8 @@ STOP            = 0x0A
 RDATAC          = 0x10
 SDATAC          = 0x11
 RDATA           = 0x12
+WREG            = 0x40
+RREG            = 0x20
 # ADS1299 Sample rate value dict
 SR_DICT = {
     250:          0x96,
@@ -72,18 +78,26 @@ class ADS1299_API(object):
         self.spi = spidev.SpiDev()
         
         self.scale = scale
-        self._sample_rate = sample_rate
+        self.sample_rate = sample_rate
         self._bias_enabled = bias_enabled
         self._test_mode = test_mode
         self._opened = False
         
-    def open(self, dev, max_speed_hz=10000000):
+    def open(self, dev, max_speed_hz=1000000):
+        '''
+        connect to user space SPI interface `/dev/spidev*.*`
+        param `dev` must be tuple/list, e.g. (1, 0) means `/dev/spidev1.0`
+        '''
         self.spi.open(dev[0], dev[1])
         self.spi.max_speed_hz = max_speed_hz
         self._opened = True
 #        self._DRDY = gpio4.SysfsGPIO(PIN_DRDY)
 #        self._PWRDN = gpio4.SysfsGPIO(PIN_PWRDN)
 #        self._RESET = gpio4.SysfsGPIO(PIN_RESET)
+        self._START = gpio4.SysfsGPIO(PIN_START)
+        self._START.export = True
+        self._START.direction = 'out'
+        self._START.value = 0
         return dev
         
     def start(self):
@@ -96,7 +110,6 @@ class ADS1299_API(object):
         #======================================================================
         # power up
         #======================================================================
-        
         #self._PWRDN.value=1
         # we tie it high
         
@@ -105,9 +118,6 @@ class ADS1299_API(object):
         
         # wait for tPOR(2**18*666.0/1e9 = 0.1746) and tBG(assume 0.83)
         time.sleep(0.17+0.83)
-        
-        self.write(START)
-        time.sleep(1)
         
         # device wakes up in RDATAC mode, send SDATAC 
         # command so registers can be written
@@ -118,7 +128,7 @@ class ADS1299_API(object):
         #======================================================================
         
         # common setting
-        self.write_register(REG_CONFIG1, SR_DICT[self._sample_rate])
+        self.write_register(REG_CONFIG1, SR_DICT[self.sample_rate])
         self.write_register(REG_CONFIG3, 0xE0)
         self.write_register(REG_BIAS_SENSP, 0x00)
         self.write_register(REG_BIAS_SENSN, 0x00)
@@ -138,6 +148,9 @@ class ADS1299_API(object):
                 self.write_register(REG_BIAS_SENSN, 0b11111111)
                 self.write_register(REG_CONFIG3, 0xEC)
         
+        self._START.value = 1
+        time.sleep(1)
+        
         #======================================================================
         # start streaming data
         #======================================================================
@@ -147,9 +160,11 @@ class ADS1299_API(object):
         if self._opened:
             self.write(SDATAC)
             self.spi.close()
-#            self._DRDY.close()
-#            self._PWRDN.close()
-#            self._RESET.close()
+            self._START.value = 0
+            self._START.export = False
+#            self._DRDY.export = False
+#            self._PWRDN.export = False
+#            self._RESET.export = False
 
     def read_raw(self):
         '''
@@ -169,14 +184,14 @@ class ADS1299_API(object):
         self.spi.xfer2([byte])
         
     def write_register(self, reg, byte):
-        self.spi.xfer2([reg|0x40, 0x00, byte])
+        self.spi.xfer2([reg|WREG, 0x00, byte])
         
     def write_registers(self, start_reg, byte_array):
-        self.spi.xfer2([start_reg|0x40, len(byte_array) - 1] + byte_array)
+        self.spi.xfer2([start_reg|WREG, len(byte_array) - 1] + byte_array)
 
-        
-        
-        
-        
-        
-        
+    def read_register(self, reg):
+        return self.spi.xfer2([reg|RREG, 0x00, 0x00])[3]
+    
+    def read_registers(self, start_reg, num):
+        return self.spi.xfer2([start_reg|RREG, num - 1] + [0] * num)[2:]
+    

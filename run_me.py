@@ -21,8 +21,8 @@ from common import check_input
 from IO import Fake_data_generator as Reader
 
 #from IO import Screen_commander as Commander
-#from IO import Plane_commander as Commander
-from IO import Pylsl_commander as Commander
+from IO import Plane_commander as Commander
+#from IO import Pylsl_commander as Commander
 
 
 
