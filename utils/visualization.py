@@ -22,6 +22,7 @@ from PIL import Image
 # from ../src
 from preprocessing import Processer
 from common import mapping
+from signal_info import Signal_Info
 from IO import Screen_commander, command_dict_uart_screen_v1
 
 class Plotter():
@@ -381,10 +382,10 @@ class Screen_GUI(object):
     def list_elements(self):
         return self._e.keys()
     
-    def plot_waveform(self, n_channel=1):
+    def plot_waveform(self, x, y, n_channel=1, scale=100):
         n_channel = min(n_channel, self.r.n_channel)
         self.color = np.arange(1, 1 + n_channel)
-        self.scale = np.repeat(15, n_channel)
+        self.scale = np.repeat(scale, n_channel)
         self.area = [0, 40, 220, 144]
         # store old widget
         self.tmp = self.widget.copy()
@@ -393,16 +394,35 @@ class Screen_GUI(object):
         # start and stop flag
         flag_close = threading.Event()
         # plot page widgets
-        self.draw_text(32, 20, '波形显示', c=2)
+        self.draw_text(32, 20, '波形显示', c=2) # 0
         self.draw_button(156, 20, '返回',
                          callback=lambda x, y: flag_close.set())
+        self.draw_text(4, 145, '4-6Hz最大峰值') # 1
+        self.draw_text(156, 145, '@') # 2
+        self.draw_text(108, 145, '      ', c=1) # 3
+        self.draw_text(164, 145, '      ', c=1) # 4
         self.render()
         data = np.zeros((self.area[2], n_channel))
         ch_height = (self.area[3] - self.area[1] - 1)/n_channel
         bias = [self.area[1] + ch_height/2 + ch_height*ch \
                 for ch in range(n_channel)]
+        si = Signal_Info()
         x = 0
+        last_time = time.time()
         while not flag_close.isSet():
+            if (time.time() - last_time) > 1:
+                last_time = time.time()
+                amp, fre = self.widget['text'][3:5]
+                self._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
+                self._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
+                f, a = si.peek_extract(self.r.get_data(),
+                                       4, 6, self.r.sample_rate)[0, 0]
+                amp['s'] = '%3.3f' % a
+                fre['s'] = '%1.2fHz' % f
+                print(amp['s'], fre['s'])
+                self._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
+                self._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
+                
             # first delete last point
             for i in range(n_channel):
                 self._c.send('point', x=x, y=data[x][i], c=0)

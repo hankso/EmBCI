@@ -239,6 +239,75 @@ class _basic_reader(object):
         return not self._flag_close.isSet()
     
 
+class Files_reader(_basic_reader):
+    '''
+    Read date from mat, fif, csv... file and simulate as a common data reader
+    '''
+    _num = 1
+    def __init__(self,
+                 filename,
+                 sample_rate=256,
+                 sample_time=2,
+                 n_channel=1):
+        super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
+        self.filename = filename
+        self._name = '[Files reader %d] ' % Files_reader._num
+        Files_reader._num += 1
+    
+    def start(self):
+        if self._started:
+            return
+        print(self._name + 'reading data file...')
+        while 1:
+            try:
+                if self.filename.endswith('.mat'):
+                    actionname = os.path.basename(self.filename).split('-')[0]
+                    self._data = sio.loadmat(self.filename)[actionname][0]
+                    self._data = self._data.reshape(self.n_channel,
+                                self.sample_rate * self.sample_time).T
+                    self._generator = self._get_data_generator()
+                    break
+                elif self.filename.endswith('.fif'):
+                    raise NotImplemented
+            except IOError:
+                self.filename = check_input(('No such file! Please check and '
+                                             'input file name: '), {})
+            except ValueError:
+                print(self._name + 'Bad data shape {}!'.format(self._data.shape))
+                print(self._name + 'Abort...')
+                return
+                
+        self._start_time = time.time()
+        self._thread = threading.Thread(target=self._read_data)
+        self._thread.setDaemon(True)
+        self._thread.start()
+        self._flag_pause.set()
+        self.streaming = True
+        self._started = True
+        
+    def _get_data_generator(self):
+        for i in self._data:
+            yield i
+        
+    def _read_data(self):
+        try:
+            while not self._flag_close.isSet():
+                self._flag_pause.wait()
+                time.sleep(1.0/self.sample_rate)
+                d, t = self._generator.next(), time.time()
+                d = [t - self._start_time] + list(d)
+                for i, ch in enumerate(self.ch_list):
+                    self.buffer[ch].append(d[i])
+                    if len(self.buffer[ch]) > self.window_size:
+                        self.buffer[ch].pop(0)
+        except Exception as e:
+            print(self._name + str(e))
+        finally:
+            print(self._name + 'stop fetching data...')
+            print(self._name + 'shut down.')
+    
+    
+
 class Pylsl_reader(_basic_reader):
     '''
     Connect to a data stream on localhost:port and read data into buffer.
