@@ -12,9 +12,9 @@ import sys
 sys.path += ['./src', './utils']
 
 # from ./utils
-from classifier import Models
-from frame import sEMG_Recognition, Display_Signal_Info
 from common import check_input
+from classifier import Models
+from frame import Matplotlib_Plot_Info, sEMG_Recognition
 
 #from IO import Serial_reader as Reader
 #from IO import ADS1299_reader as Reader
@@ -41,18 +41,14 @@ if __name__ == '__main__':
 # =============================================================================
     
     username = 'test'
-    
-    window_size = sample_rate * sample_time
     try:
         print('username: ' + username)
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
     
-    # start reading data from socket(bluetooth@serial or pylsl@localhost:port)
-    # it's in a seperate thread, stop recording by `reader.close()`
+    # start reading data, it's in a seperate thread, stop by `reader.close()`
     reader = Reader(sample_rate, sample_time, n_channels)
     reader.start()
-    time.sleep(reader.sample_time)
     
     # available classification models see Models.supported_models
     model  = Models(sample_rate, sample_time, model_type='Default')
@@ -62,7 +58,7 @@ if __name__ == '__main__':
     commander.start()
     
 #    sEMG_Recognition(username, reader, model, commander)
-    Display_Signal_Info(reader, commander)
+    Matplotlib_Plot_Info(reader, commander)
 
     print('loging out...')
     time.sleep(1)

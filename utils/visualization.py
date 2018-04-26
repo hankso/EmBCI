@@ -10,6 +10,7 @@ import time
 import sys, os; sys.path += ['../src']
 import threading
 import json
+import glob
 
 # pip install matplotlib, numpy, scipy, pyserial, PIL
 #import matplotlib
@@ -21,7 +22,7 @@ from PIL import Image
 
 # from ../src
 from preprocessing import Processer
-from common import mapping
+from common import mapping, time_stamp, check_input
 from signal_info import Signal_Info
 from IO import Screen_commander, command_dict_uart_screen_v1
 
@@ -91,6 +92,7 @@ class Plotter():
         return data
 
 def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
+    import matplotlib.pyplot as plt; plt.ion()
     if not isinstance(data, np.ndarray):
         data = np.array(data)
     if len(data.shape) != 2:
@@ -135,13 +137,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         t = time.time()
         plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filter', linewidth=0.5)
         plt.legend()
-        plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
-        
-        plt.subplot(326)
-        t = time.time()
-        
         plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
-
 
 class Screen_GUI(object):
     '''
@@ -150,29 +146,26 @@ class Screen_GUI(object):
     _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
                   'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
                   'orange': 13, 'pink': 14, 'white': 15}
+    _e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,
+          'rect': 6, 'rectf': 0, 'text': 15, 'press': 1}
     widget = {'point':[], 'line':[], 'circle':[], 'circlef':[],
               'rect':[], 'rectf':[], 'text':[], 'button':[], 'img':[]}
-    def __init__(self, reader,
-                 touch_screen_port='/dev/ttyS2',
-                 screen_port='/dev/ttyS1'):
-        self.r = reader
-        # commander init
-        self._c = Screen_commander(baudrate=115200,
-                                   command_dict=command_dict_uart_screen_v1)
+    def __init__(self, screen_port='/dev/ttyS1', screen_baud=115200,
+                 command_dict=None):
+        if command_dict is None:
+            command_dict = command_dict_uart_screen_v1
+        self._c = Screen_commander(screen_baud, command_dict)
         self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
         
-        self._e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,
-                   'rect': 6, 'rectf': 0, 'text': 15, 'press': 1}
-        # touch screen listener init
-        self._t = serial.Serial(touch_screen_port, 115200)
+        # this function only used to display `Cheitech co.` LOGO.
+        #self.display_logo()
+        
+    def init_touch_screen(self, port='/dev/ttyS2', baud=115200):
+        self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
-        # these codes only used to display `Cheitech co.` LOGO.
-        self._display_logo()
-        self.load_layout()
-        self.render()
         self._touch_thread.start()
     
     def draw_img(self, x, y, img):
@@ -193,10 +186,10 @@ class Screen_GUI(object):
         ct = self._e['text'] if ct == None else ct
         cr = self._e['rect'] if cr == None else cr
         ca = self._e['press'] if ca == None else ca
-        callback = (lambda x, y : (x, y)) if callback == None else callback
+        f = self._default_button_callback if callback == None else callback
         self.widget['button'].append({
                 'x1': max(x-2, 0), 'y1': max(y-2, 0), 'x2': x + w, 'y2': y + h,
-                'x': x, 'y': y, 's': s.encode('gbk'), 'callback': callback,
+                'x': x, 'y': y, 's': s.encode('gbk'), 'callback': f,
                 'id': num, 'ct': ct, 'cr': cr, 'ca': ca})
     
     def draw_point(self, x, y, c=None):
@@ -233,22 +226,30 @@ class Screen_GUI(object):
         c = self._e['text'] if c == None else c
         self.widget['text'].append({'x': x, 'y': y,
                    's': unicode(s).encode('gbk'), 'id': num, 'c': c})
-            
+    
     def remove_element(self, name=None, num=None):
-        if name not in self.widget:
-            print('no candidates for this widget `{}`'.format(name))
-            print('choose one from ' + ' | '.join(self.widget.keys()))
+        if not sum([len(i) for i in self.widget.values()]):
+            print('No elements now!')
             return
-        ids = map(lambda x: x['id'], self.widget[name])
-        try:
-            self.widget[name].pop(ids.index(num))
-            self.render()
-        except ValueError:
-            print('no candidates for this {}:`{}`'.format(name, num))
-            print('choose one from ' + ' | '.join([str(i) for i in ids]))
+        if name not in self.widget:
+            if name is not None:
+                print('No candidates for this element `{}`'.format(name))
+            print('Choose one from ' + ' | '.join(self.widget.keys()))
+            return
+        if not len(self.widget[name]):
+            print('No %s elements now!' % name)
+            return
+        ids = [str(i['id']) for i in self.widget[name]]
+        if str(num) not in ids:
+            if num is not None:
+                print('no candidates for this {}:`{}`'.format(name, num))
+            print('choose one from ' + ' | '.join(ids))
+            return
+        self.widget[name].pop(ids.index(str(num)))
+        self.render()
     
     def move_element(self, name, num, x, y):
-        ids = map(lambda x: x['id'], self.widget[name])
+        ids = [i['id'] for i in self.widget[name]]
         e = self.widget[name][ids.index(num)]
         try:
             e['x'] += x; e['y'] += y
@@ -265,21 +266,35 @@ class Screen_GUI(object):
             i['s'] = i['s'].decode('gbk')
         for i in self.widget['img']:
             i['data'] = i['data'].tobytes()
-        with open('../files/layout.json', 'w') as f:
+        with open('../files/layout-%s.json' % time_stamp(), 'w') as f:
             json.dump(self.widget, f)
         
     def load_layout(self):
-        with open('../files/layout.json', 'r') as f:
-            tmp = json.load(f)
+        while 1:
+            prompt = 'choose one from ' + ' | '.join([os.path.basename(i) \
+                    for i in glob.glob('../files/layout*.json')])
+            try:
+                with open(check_input(prompt, {}), 'r') as f:
+                    tmp = json.load(f)
+            except KeyboardInterrupt:
+                print('Abort')
+                return
+            except:
+                print('error!')
         for i in tmp['button']:
             i['s'] = i['s'].encode('gbk')
-            i['callback'] = (lambda x, y : (x, y)) \
+            i['callback'] = self._default_button_callback \
                             if i['callback'] == None else i['callback']
         for i in tmp['text']:
             i['s'] = i['s'].encode('gbk')
         for i in self.widget['img']:
             i['data'] = np.frombuffer(i['data'], np.uint8).reshape(i['shape'])
         self.widget.update(tmp)
+        self.render()
+        
+    def _default_button_callback(self, bt):
+        print('[Touch Screen] touch point at %d, %d at %.3f' \
+              % (bt['x'], bt['y'], time.time()))
         
     def render(self, *args, **kwargs):
         '''
@@ -327,8 +342,6 @@ class Screen_GUI(object):
             index = self._t.read_until().strip().split(',')
             if index:
                 x, y = int(index[0]), int(index[1])
-                print('[Touch Screen] touch point at %d, %d at %.3f' \
-                      % (x, y, time.time()))
                 for bt in self.widget['button']:
                     if x > bt['x1'] and x < bt['x2'] \
                     and y > bt['y1'] and y < bt['y2']:
@@ -338,7 +351,10 @@ class Screen_GUI(object):
                         self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
                                      x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
                         time.sleep(0.2)
-                        bt['callback'](x, y)
+                        if bt['callback'] is None:
+                            self._default_button_callback(bt)
+                        else:
+                            bt['callback'](bt)
         print('[Touch Screen] exiting...')
     
     def _display_logo(self):
@@ -381,63 +397,6 @@ class Screen_GUI(object):
     
     def list_elements(self):
         return self._e.keys()
-    
-    def plot_waveform(self, x, y, n_channel=1, scale=100):
-        n_channel = min(n_channel, self.r.n_channel)
-        self.color = np.arange(1, 1 + n_channel)
-        self.scale = np.repeat(scale, n_channel)
-        self.area = [0, 40, 220, 144]
-        # store old widget
-        self.tmp = self.widget.copy()
-        for element in self.widget:
-            self.widget[element] = []
-        # start and stop flag
-        flag_close = threading.Event()
-        # plot page widgets
-        self.draw_text(32, 20, '波形显示', c=2) # 0
-        self.draw_button(156, 20, '返回',
-                         callback=lambda x, y: flag_close.set())
-        self.draw_text(4, 145, '4-6Hz最大峰值') # 1
-        self.draw_text(156, 145, '@') # 2
-        self.draw_text(108, 145, '      ', c=1) # 3
-        self.draw_text(164, 145, '      ', c=1) # 4
-        self.render()
-        data = np.zeros((self.area[2], n_channel))
-        ch_height = (self.area[3] - self.area[1] - 1)/n_channel
-        bias = [self.area[1] + ch_height/2 + ch_height*ch \
-                for ch in range(n_channel)]
-        si = Signal_Info()
-        x = 0
-        last_time = time.time()
-        while not flag_close.isSet():
-            if (time.time() - last_time) > 1:
-                last_time = time.time()
-                amp, fre = self.widget['text'][3:5]
-                self._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
-                self._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
-                f, a = si.peek_extract(self.r.get_data(),
-                                       4, 6, self.r.sample_rate)[0, 0]
-                amp['s'] = '%3.3f' % a
-                fre['s'] = '%1.2fHz' % f
-                print(amp['s'], fre['s'])
-                self._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
-                self._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
-                
-            # first delete last point
-            for i in range(n_channel):
-                self._c.send('point', x=x, y=data[x][i], c=0)
-            # update channel data list
-            data[x] = (self.r.ch_data[:n_channel]*self.scale).astype(np.int) + bias
-            # then draw current point
-            for i in range(n_channel):
-                self._c.send('point', x=x, y=data[x][i], c=self.color[i])
-            # update x axis index
-            x = x + 1 if (x + 1) < self.area[2] else 0
-        # recover old widget
-        self.widget = self.tmp.copy()
-        del self.tmp, self.color, self.scale, self.area
-        self.render()
-
 
 if __name__ == '__main__':
 #    plt.ion()

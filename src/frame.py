@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
+'''
 Created on Tue Feb 27 14:36:27 2018
 
 @author: hank
-"""
+'''
 # built-in
 from __future__ import print_function
 import os
@@ -22,7 +22,7 @@ from common import time_stamp, check_input, first_use, record_animate
 from IO import load_data, save_action
 from signal_info import Signal_Info
 from preprocessing import Processer
-
+from visualization import Screen_GUI
 
 # TODO: put this in __init__.py
 # =============================================================================
@@ -126,7 +126,6 @@ def sEMG_Recognition(username, reader, model, commander):
             action_dict[int(i)] = action_dict[i]
             action_dict.pop(i)
         print('done')
-        time.sleep(reader.sample_time)
         model_name = model_flag = f = i = None
     
     # vars:
@@ -164,23 +163,7 @@ def sEMG_Recognition(username, reader, model, commander):
         commander.close()
     
     
-def Display_Signal_Info(reader, commander):
-# =============================================================================
-#     display_ch = 'channel0'
-#     def draw_point(pause_flag, stop_flag, lock):
-#         while not stop_flag.isSet():
-#             pause_flag.wait()
-#             d = np.array(reader.buffer[display_ch][-10:]) * 48 + 16
-#             lock.acquire()
-#             commander.send('points', len(d), bytearray(d.astype(np.uint8)))
-#             lock.release()
-#     pause_flag = threading.Event(); pause_flag.set()
-#     stop_flag = threading.Event(); stop_flag.clear()
-#     lock = threading.Lock()
-#     t = threading.Thread(target=draw_point, args=(pause_flag, stop_flag, lock))
-#     t.setDaemon(True)
-#     t.start()
-# =============================================================================
+def Matplotlib_Plot_Info(reader, commander):
     si = Signal_Info()
     p = Processer(reader.sample_rate, reader.sample_time)
     display_ch = 'channel0'

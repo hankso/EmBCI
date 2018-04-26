@@ -26,7 +26,6 @@ from common import record_animate, get_self_ip_addr
 from common import find_ports, find_outlets
 from gyms import TorcsEnv
 from gyms import PlaneClient
-from gpio4 import SysfsGPIO
 from ads1299_api import ADS1299_API
 
 
@@ -265,15 +264,18 @@ class Files_reader(_basic_reader):
                     self._data = sio.loadmat(self.filename)[actionname][0]
                     self._data = self._data.reshape(self.n_channel,
                                 self.sample_rate * self.sample_time).T
-                    self._generator = self._get_data_generator()
+                    self._data_gen = self._get_data_generator()
                     break
                 elif self.filename.endswith('.fif'):
+                    raise NotImplemented
+                else:
                     raise NotImplemented
             except IOError:
                 self.filename = check_input(('No such file! Please check and '
                                              'input file name: '), {})
             except ValueError:
-                print(self._name + 'Bad data shape {}!'.format(self._data.shape))
+                print(self._name + 'Bad data shape {}!'.format(
+                        self._data.shape))
                 print(self._name + 'Abort...')
                 return
                 
@@ -284,18 +286,18 @@ class Files_reader(_basic_reader):
         self._flag_pause.set()
         self.streaming = True
         self._started = True
+        time.sleep(self.sample_time)
         
     def _get_data_generator(self):
         for i in self._data:
-            yield i
+            time.sleep(1.0/self.sample_rate)
+            yield list(i)
         
     def _read_data(self):
         try:
             while not self._flag_close.isSet():
                 self._flag_pause.wait()
-                time.sleep(1.0/self.sample_rate)
-                d, t = self._generator.next(), time.time()
-                d = [t - self._start_time] + list(d)
+                d = [time.time() - self._start_time] + self._data_gen.next()
                 for i, ch in enumerate(self.ch_list):
                     self.buffer[ch].append(d[i])
                     if len(self.buffer[ch]) > self.window_size:
@@ -303,7 +305,7 @@ class Files_reader(_basic_reader):
         except Exception as e:
             print(self._name + str(e))
         finally:
-            print(self._name + 'stop fetching data...')
+            print(self._name + 'stop reading data...')
             print(self._name + 'shut down.')
     
     
@@ -358,6 +360,7 @@ class Pylsl_reader(_basic_reader):
         self._flag_pause.set()
         self.streaming = True
         self._started = True
+        time.sleep(self.sample_time)
     
     def _read_data(self):
         try:
@@ -434,6 +437,7 @@ class Serial_reader(_basic_reader):
         self._flag_pause.set()
         self.streaming = True
         self._started = True
+        time.sleep(self.sample_time)
 
     def _read_data(self):
         try:
@@ -527,6 +531,7 @@ class ADS1299_reader(_basic_reader):
         self._flag_pause.set()
         self.streaming = True
         self._started = True
+        time.sleep(self.sample_time)
     
     def _read_data(self):
         try:
@@ -613,6 +618,7 @@ class Socket_reader(_basic_reader):
         self._flag_pause.set()
         self.streaming = True
         self._started = True
+        time.sleep(self.sample_time)
     
     def _read_data(self):
         try:
