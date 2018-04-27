@@ -19,141 +19,195 @@ from IO import Fake_data_generator as Reader
 
 from IO import Screen_commander as Commander
 
-
 menu = {
     'line': [], 'rectf': [], 'circle': [], 'img': [], 'point': [], 'rect': [], 'circlef': [],
     'text': [
-        {'s': '\u5317\u4eac\u68cb\u5f08\u79d1\u6280\u6709\u9650\u516c\u53f8', 'y': 0, 'id': 0, 'x': 30, 'c': 3},
-        {'s': '\u5317\u4eac\u68cb\u5f08\u79d1\u6280\u6709\u9650\u516c\u53f8', 'y': 0, 'id': 1, 'x': 31, 'c': 3},
-        {'s': 'DBS\u53ef\u89c6\u5316\u8c03\u53c2\u4eea', 'y': 40, 'id': 2, 'x': 45, 'c': 15},
-        {'s': '\u91c7 \u6837 \u7387', 'y': 68, 'id': 3, 'x': 10, 'c': 15},
-        {'s': '\u91c7\u6837\u65f6\u957f', 'y': 88, 'id': 4, 'x': 10, 'c': 15},
-        {'s': '\u9009\u62e9\u4efb\u52a1', 'y': 108, 'id': 5, 'x': 10, 'c': 15},
-        {'s': '\u6ce2\u5f62\u663e\u793a', 'y': 108, 'id': 6, 'x': 130, 'c': 15},
-        {'s': ' 250 Hz ', 'y': 65, 'id': 7, 'x': 130, 'c': 15},
-        {'s': ' 3.00 s ', 'y': 85, 'id': 8, 'x': 130, 'c': 15}]
+        {'s': '\xb1\xb1\xbe\xa9\xc6\xe5\xde\xc4\xbf\xc6\xbc\xbc\xd3\xd0\xcf\xde\xb9\xab\xcb\xbe', 'y': 0, 'id': 0, 'x': 30, 'x1': 30, 'x2': 190, 'y1': 0, 'y2': 16, 'c': 3, },
+        {'s': '\xb1\xb1\xbe\xa9\xc6\xe5\xde\xc4\xbf\xc6\xbc\xbc\xd3\xd0\xcf\xde\xb9\xab\xcb\xbe', 'y': 0, 'id': 1, 'x': 31, 'x1': 31, 'x2': 191, 'y1': 0, 'y2': 16, 'c': 3},
+        {'s': 'DBS\xbf\xc9\xca\xd3\xbb\xaf\xb5\xf7\xb2\xce\xd2\xc7', 'y': 40, 'id': 2, 'x': 45,   'x1': 45, 'x2': 165, 'y1': 40, 'y2': 56, 'c': 15},
+        {'s': '\xb2\xc9 \xd1\xf9 \xc2\xca', 'y': 68, 'id': 3, 'x': 10,   'x1': 10, 'x2': 74, 'y1': 68, 'y2': 84, 'c': 15},
+        {'s': '\xb2\xc9\xd1\xf9\xca\xb1\xb3\xa4', 'y': 88, 'id': 4, 'x': 10, 'x1': 10, 'x2': 74, 'y1': 88, 'y2': 104, 'c': 15},
+        {'s': '\xd1\xa1\xd4\xf1\xc8\xce\xce\xf1', 'y': 108, 'id': 5, 'x': 10, 'x1': 10, 'x2': 74, 'y1': 108, 'y2': 124, 'c': 15},
+        {'s': '\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe', 'y': 108, 'id': 6, 'x': 130, 'x1': 130, 'x2': 194, 'y1': 108, 'y2': 124, 'c': 15},
+        {'s': ' 250 Hz ', 'y': 65, 'id': 7, 'x': 130, 'x1': 130, 'x2': 194, 'y1': 65, 'y2': 81, 'c': 15},
+        {'s': ' 3.00 s ', 'y': 85, 'id': 8, 'x': 130, 'x1': 130, 'x2': 194, 'y1': 85, 'y2': 101, 'c': 15}]
 }
 
-def minus_sample_rate(bt):
-    sample_rate_range['i'] -= 1
-    sample_rate_range['i'] %= len(sample_rate_range['a'])
+
+def minus_sample_rate(x, y, bt):
+    rate_range['i'] -= 1
+    rate_range['i'] %= len(rate_range['a'])
     for text in s.widget['text']:
         if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % sample_rate_range['a']['i']
-    
-def plus_sample_rate(bt):
-    sample_rate_range['i'] += 1
-    sample_rate_range['i'] %= len(sample_rate_range['a'])
+            text['s'] = ' %3d Hz ' % rate_range['a'][rate_range['i']]
+            s.render(name='text', num=7)
+
+
+def plus_sample_rate(*args, **kwargs):
+    rate_range['i'] += 1
+    rate_range['i'] %= len(rate_range['a'])
     for text in s.widget['text']:
         if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % sample_rate_range['a']['i']
+            text['s'] = ' %3d Hz ' % rate_range['a'][rate_range['i']]
+            s.render(name='text', num=7)
 
-def minus_sample_time(bt):
-    sample_time_range['n'] -= sample_time_range['step']
-    if sample_time_range['n'] < sample_time_range['r'][0]:
-        sample_time_range['n'] = sample_time_range['r'][1]
+
+def minus_sample_time(*args, **kwargs):
+    time_range['n'] -= time_range['step']
+    if time_range['n'] < time_range['r'][0]:
+        time_range['n'] = time_range['r'][1]
     for text in s.widget['text']:
         if text['id'] == 8:
-            text['s'] = ' %1.2f s ' % sample_time_range['n']
+            text['s'] = ' %1.2f s ' % time_range['n']
+            s.render(name='text', num=8)
 
-def plus_sample_time(bt):
-    sample_time_range['n'] += sample_time_range['step']
-    if sample_time_range['n'] > sample_time_range['r'][1]:
-        sample_time_range['n'] = sample_time_range['r'][0]
+
+def plus_sample_time(*args, **kwargs):
+    time_range['n'] += time_range['step']
+    if time_range['n'] > time_range['r'][1]:
+        time_range['n'] = time_range['r'][0]
     for text in s.widget['text']:
         if text['id'] == 8:
-            text['s'] = ' %1.2f s ' % sample_time_range['n']
-        
-def prev_jobs(bt):
+            text['s'] = ' %1.2f s ' % time_range['n']
+            s.render(name='text', num=8)
+
+
+def prev_jobs(*args, **kwargs):
     jobs_list['i'] -= 1
     jobs_list['i'] %= len(jobs_list['a'])
     for text in s.widget['text']:
         if text['id'] == 6:
-            text['s'] = jobs_list['a']['i']
+            text['s'] = jobs_list['a'][jobs_list['i']]
+            s.render(name='text', num=6)
     for bt in s.widget['button']:
         if bt['id'] == 6:
-            bt['callback'] = jobs_list['job_callback']['i']
+            bt['callback'] = jobs_list['job_callback'][jobs_list['i']]
+#            s.render(name='button', num=6)
 
-def next_jobs(bt):
+
+def next_jobs(*args, **kwargs):
     jobs_list['i'] += 1
     jobs_list['i'] %= len(jobs_list['a'])
     for text in s.widget['text']:
         if text['id'] == 6:
-            text['s'] = jobs_list['a']['i']
+            text['s'] = jobs_list['a'][jobs_list['i']]
+            s.render(name='text', num=6)
     for bt in s.widget['button']:
         if bt['id'] == 6:
-            bt['callback'] = jobs_list['job_callback']['i']
-        
-def display_waveform(bt):
-    # store old widget
-    tmp = s.widget.copy()
+            bt['callback'] = jobs_list['job_callback'][jobs_list['i']]
+#            s.render(name='button', num=6)
+
+
+def display_waveform(*args, **kwargs):
+    # construct reader
+    sample_rate = rate_range['a'][rate_range['i']]
+    sample_time = time_range['a'][time_range['i']]
     n_channel = 2
+    if not hasattr(s, 'reader'):
+        s.reader = Reader(sample_rate, sample_time, n_channel)
+
     color = np.arange(1, 1 + n_channel)
     scale = np.repeat(100, n_channel)
     area = [0, 40, 220, 144]
+
+    # store old widget
+    tmp = s.widget.copy()
     for element in s.widget:
         s.widget[element] = []
+
     # start and stop flag
     flag_close = threading.Event()
+
     # plot page widgets
     s.draw_text(32, 20, '波形显示', c=2) # 0
-    s.draw_button(156, 20, '返回', callback=lambda x, y: flag_close.set())
-    s.draw_text(4, 145, '4-6Hz最大峰值') # 1
-    s.draw_text(156, 145, '@') # 2
-    s.draw_text(108, 145, '      ', c=1) # 3
-    s.draw_text(164, 145, '      ', c=1) # 4
+    s.draw_button(156, 20, '返回', callback=lambda *a, **k: flag_close.set())
     s.render()
     data = np.zeros((area[2], n_channel))
     ch_height = (area[3] - area[1] - 1)/n_channel
     bias = [area[1] + ch_height/2 + ch_height*ch \
             for ch in range(n_channel)]
-    x = 0
-    while not flag_close.isSet():
-        # first clear current line
-        s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
-        # update channel data list
-        data[x] = (s.r.ch_data[:n_channel]*scale).astype(np.int) + bias
-        # then draw current point
-        for i in range(n_channel):
-            s._c.send('point', x=x, y=data[x][i], c=color[i])
-        # update x axis index
-        x = x + 1 if (x + 1) < area[2] else 0
-    # recover old widget
-    s.widget = tmp.copy()
-    s.render()
-    
-def display_info():
+
+    # start plotting!
+    try:
+        x = 0
+        while not flag_close.isSet():
+            # first clear current line
+            s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
+            # update channel data list
+            data[x] = (s.reader.ch_data[:n_channel]*scale).astype(np.int) + bias
+            # then draw current point
+            for i in range(n_channel):
+                s._c.send('point', x=x, y=data[x][i], c=color[i])
+            # update x axis index
+            x = x + 1 if (x + 1) < area[2] else 0
+    except Exception as e:
+        print(e)
+    finally:
+        # recover old widget
+        s.widget = tmp.copy()
+        s.reader.pause()
+        s.render()
+
+
+def display_info(x, y, bt):
+    # construct reader
+    sample_rate = rate_range['a'][rate_range['i']]
+    sample_time = time_range['a'][time_range['i']]
+    n_channel = 2
+    if not hasattr(s, 'reader'):
+        s.reader = Reader(sample_rate, sample_time, n_channel)
+
     # store old widget
     tmp = s.widget.copy()
+    for element in s.widget:
+        s.widget[element] = []
+
+    # start and stop flag
+    flag_close = threading.Event()
+
+    # plot page widgets
+    s.draw_text(4, 145, '4-6Hz最大峰值') # 1
+    s.draw_text(156, 145, '@') # 2
+    s.draw_text(108, 145, '      ', c=1) # 3
+    s.draw_text(164, 145, '      ', c=1) # 4
+
+    # start display!
     last_time = time.time()
     si = Signal_Info()
-    if (time.time() - last_time) > 1:
-        last_time = time.time()
-        amp, fre = s.widget['text'][3:5]
-        s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
-        s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
-        f, a = si.peek_extract(s.r.get_data(),
-                               4, 6, s.r.sample_rate)[0, 0]
-        amp['s'] = '%3.3f' % a
-        fre['s'] = '%1.2fHz' % f
-        print(amp['s'], fre['s'])
-        s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
-        s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
-    # recover old widget
-    s.widget = tmp.copy()
-    s.render()
+    try:
+        while not flag_close.isSet():
+            if (time.time() - last_time) > 1:
+                last_time = time.time()
+                amp, fre = s.widget['text'][3:5]
+                s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
+                s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
+                f, a = si.peek_extract(s.r.get_data(),
+                                       4, 6, s.r.sample_rate)[0, 0]
+                amp['s'] = '%3.3f' % a
+                fre['s'] = '%1.2fHz' % f
+#                print(amp['s'], fre['s'])
+                s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
+                s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
+    except Exception as e:
+        print(e)
+    finally:
+        # recover old widget
+        s.widget = tmp.copy()
+        s.reader.pause()
+        s.render()
+
 
 menu.update({
     'button': [
-        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 81, 'y1': 63, 'y': 65, 'ct': 13, 'callback': minus_sample_rate, 's': '\uff0d', 'id': 0, 'ca': 1},
-        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 101, 'y1': 83, 'y': 85, 'ct': 13, 'callback': minus_sample_time, 's': '\uff0d', 'id': 1, 'ca': 1},
-        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 81, 'y1': 63, 'y': 65, 'ct': 13, 'callback': plus_sample_rate, 's': '\uff0b', 'id': 2, 'ca': 1},
-        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 101, 'y1': 83, 'y': 85, 'ct': 13, 'callback': plus_sample_time, 's': '\uff0b', 'id': 3, 'ca': 1},
-        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 121, 'y1': 103, 'y': 105, 'ct': 13, 'callback': prev_jobs, 's': '\u2190', 'id': 4, 'ca': 1},
-        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 121, 'y1': 103, 'y': 105, 'ct': 13, 'callback': next_jobs, 's': '\u2192', 'id': 5, 'ca': 1},
-        {'x1': 52, 'x2': 86, 'x': 54, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': display_waveform, 's': '\u5f00\u59cb', 'id': 6, 'ca': 1},
-        {'x1': 92, 'x2': 126, 'x': 94, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': None, 's': '\u5173\u673a', 'id': 7, 'ca': 1},
-        {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': None, 's': '\u91cd\u542f', 'id': 8, 'ca': 1}]
+        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 81, 'y1': 63, 'y': 65, 'ct': 13, 'callback': minus_sample_rate, 's': '\xa3\xad', 'id': 0, 'ca': 1},
+        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 101, 'y1': 83, 'y': 85, 'ct': 13, 'callback': minus_sample_time, 's': '\xa3\xad', 'id': 1, 'ca': 1},
+        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 81, 'y1': 63, 'y': 65, 'ct': 13, 'callback': plus_sample_rate, 's': '\xa3\xab', 'id': 2, 'ca': 1},
+        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 101, 'y1': 83, 'y': 85, 'ct': 13, 'callback': plus_sample_time, 's': '\xa3\xab', 'id': 3, 'ca': 1},
+        {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 121, 'y1': 103, 'y': 105, 'ct': 13, 'callback': prev_jobs, 's': '\xa1\xfb', 'id': 4, 'ca': 1},
+        {'x1': 196, 'x2': 214, 'x': 198, 'cr': 2, 'y2': 121, 'y1': 103, 'y': 105, 'ct': 13, 'callback': next_jobs, 's': '\xa1\xfa', 'id': 5, 'ca': 1},
+        {'x1': 52, 'x2': 86, 'x': 54, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': display_waveform, 's': '\xbf\xaa\xca\xbc', 'id': 6, 'ca': 1},
+        {'x1': 92, 'x2': 126, 'x': 94, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': None, 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
+        {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148, 'ct': 15, 'callback': None, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
 })
 
 
@@ -163,11 +217,14 @@ if __name__ == '__main__':
         print('username: ' + username)
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
-        
-    sample_rate_range = {'a': [100, 250, 500], 'i': 1}
-    sample_time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
-    jobs_list = {'a': ['波形显示', '显示信息'], 'i': 0,
-                 'job_callback': [display_waveform,
-                                  display_info]}
-    
-    s = Screen_GUI()
+
+    rate_range = {'a': [100, 250, 500], 'i': 1}
+    time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
+    jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
+                       '\xcf\xd4\xca\xbe\xd0\xc5\xcf\xa2'],
+                 'i': 0,
+                 'job_callback': [display_waveform, display_info]}
+
+    s = Screen_GUI(screen_port='/dev/ttyS1')
+    s.widget = menu
+    s.render()

@@ -11,10 +11,14 @@ import sys, os; sys.path += ['../src']
 import threading
 import json
 import glob
+if sys.version_info.major == 2:
+    _py_2_ = True
+else:
+    _py_2_ = False
 
 # pip install matplotlib, numpy, scipy, pyserial, PIL
-#import matplotlib
-#import matplotlib.pyplot as plt
+#  import matplotlib
+#  import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as sio
 import serial
@@ -22,8 +26,7 @@ from PIL import Image
 
 # from ../src
 from preprocessing import Processer
-from common import mapping, time_stamp, check_input
-from signal_info import Signal_Info
+from common import mapping, time_stamp, check_input, Signal_Info
 from IO import Screen_commander, command_dict_uart_screen_v1
 
 class Plotter():
@@ -43,7 +46,7 @@ class Plotter():
                                       1, 1.0/n_channel),
                                      facecolor='black')
             self.axes = self.figure.axes
-            
+
         elif type(where_to_plot) == matplotlib.figure.Figure:
             if not len(where_to_plot.axes):
                 for i in range(n_channel):
@@ -51,17 +54,17 @@ class Plotter():
                                             1, 1.0/n_channel),
                                            facecolor='black')
             self.figure, self.axes = where_to_plot, where_to_plot.axes
-            
+
         elif type(where_to_plot) in [matplotlib.axes.Axes,
                                      matplotlib.axes.Subplot]:
             self.figure, self.axes = where_to_plot.figure, [where_to_plot]
-            
+
         elif type(where_to_plot) == list and len(where_to_plot):
             if type(where_to_plot[0]) in [matplotlib.axes.Axes,
                                           matplotlib.axes.Subplot]:
                 self.figure = where_to_plot[0].figure
                 self.axes = where_to_plot
-                
+
         else:
             raise RuntimeError(('Unknown type param where_to_plot: {}\n'
                                 'matplotlib.figure.Figure or list of axes'
@@ -70,24 +73,24 @@ class Plotter():
         for a in self.axes:
             a.cla()
             a.plot(np.zeros(window_size))
-    
+
     def plot(self, data):
         '''
         Axes are initialized in constructor.
         This function only update line data, which is faster than plt.plot()
         '''
         shape = data.shape
-        
+
         # n_sample x n_channel x window_size
         if len(shape) == 3:
             for i, ch in enumerate(data[0]):
                 self.axes[i].lines[0].set_ydata(ch)
-                    
+
         # n_sample x n_channel x freq x time
         elif len(shape) == 4:
             for i, img in enumerate(data[0]):
                     self.axes[i].images[0].set_data(img)
-                    
+
         # Return data in case of using Plotter.plot as callback function
         return data
 
@@ -100,19 +103,19 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
     p = Processer(sample_rate, sample_time)
     for ch, d in enumerate(data):
         plt.figure('%s_%d' % (actionname, ch))
-        
+
         plt.subplot(321)
         plt.title('raw data')
         plt.plot(d, linewidth=0.5)
-        
+
         plt.subplot(323)
         plt.title('remove_DC and notch')
         plt.plot(p.notch(d)[0], linewidth=0.5)
-        
+
         plt.subplot(325)
         plt.title('after fft')
         plt.plot(p.fft(p.notch(p.remove_DC(data)))[0], linewidth=0.5)
-        
+
         plt.subplot(343)
         plt.title('after stft')
         amp = p.stft(p.remove_DC(p.notch(d)))[0]
@@ -121,18 +124,18 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.pcolormesh(t, f, np.log10(amp))
         highest_col = [col[1] for col in sorted(zip(np.sum(amp, axis=0),
                                                     range(len(t))))[-3:]]
-        
+
         plt.plot((t[highest_col], t[highest_col]),
                  (0, f[-1]), 'r')
         plt.ylabel('Freq / Hz')
         plt.xlabel('Time / s')
-        
+
         plt.subplot(344)
         plt.title('Three Max Amptitude'.format(t[highest_col]))
         for i in highest_col:
             plt.plot(amp[:, i], label='time: {:.2f}s'.format(t[i]), linewidth=0.5)
             plt.legend()
-        
+
         plt.subplot(324)
         t = time.time()
         plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filter', linewidth=0.5)
@@ -157,54 +160,56 @@ class Screen_GUI(object):
         self._c = Screen_commander(screen_baud, command_dict)
         self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
-        
+
         # this function only used to display `Cheitech co.` LOGO.
         #self.display_logo()
-        
-    def init_touch_screen(self, port='/dev/ttyS2', baud=115200):
+
+    def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
-    
+
     def draw_img(self, x, y, img):
         num = 0 if not len(self.widget['img']) \
                 else (self.widget['img'][-1]['id'] + 1)
         img = np.array(img, np.uint8)
-        self.widget['img'].append({'x1': x, 'y1': y, 'x2': x + img.shape[1],
-                   'y2': y + img.shape[0], 'data': img, 'id': num,
-                   'shape': img.shape})
-        
+        self.widget['img'].append({'data': img, 'id': num, 'shape': img.shape,
+            'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+
     def draw_button(self, x, y, s, callback=None, ct=None, cr=None, ca=None):
         num = 0 if not len(self.widget['button']) \
                 else (self.widget['button'][-1]['id'] + 1)
-        text = map(lambda c: ord(c) > 255, unicode(s))
+        # Although there is already `# -*- coding: utf-8 -*-` at file start
+        # we'd better explicitly use utf-8 to decode every string in Py2.
+        # Py3 default use utf-8 coding, which is really really nice.
+        s = s.decode('utf8')
         # English use 8 pixels and Chinese use 16 pixels(GBK encoding)
-        w = text.count(False)*8 + text.count(True)*16
+        en_zh = [ord(char) > 255 for char in s]
+        w = en_zh.count(False)*8 + en_zh.count(True)*16
         h = 16
-        ct = self._e['text'] if ct == None else ct
-        cr = self._e['rect'] if cr == None else cr
+        ct = self._e['text']  if ct == None else ct
+        cr = self._e['rect']  if cr == None else cr
         ca = self._e['press'] if ca == None else ca
-        f = self._default_button_callback if callback == None else callback
-        self.widget['button'].append({
+        cb = self._default_button_callback if callback == None else callback
+        self.widget['button'].append({'id': num, 'ct': ct, 'cr': cr, 'ca': ca,
                 'x1': max(x-2, 0), 'y1': max(y-2, 0), 'x2': x + w, 'y2': y + h,
-                'x': x, 'y': y, 's': s.encode('gbk'), 'callback': f,
-                'id': num, 'ct': ct, 'cr': cr, 'ca': ca})
-    
+                'x': x, 'y': y, 's': s.encode('gbk'), 'callback': cb})
+
     def draw_point(self, x, y, c=None):
         num = 0 if not len(self.widget['point']) \
                 else (self.widget['point'][-1]['id'] + 1)
         c = self._e['point'] if c == None else c
         self.widget['point'].append({'x': x, 'y': y, 'id': num, 'c': c})
-        
+
     def draw_line(self, x1, y1, x2, y2, c=None):
         num = 0 if not len(self.widget['line']) \
                 else (self.widget['line'][-1]['id'] + 1)
         c = self._e['line'] if c == None else c
         self.widget['line'].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
                    'id': num, 'c': c})
-        
+
     def draw_rectangle(self, x1, y1, x2, y2, c=None, fill=False):
         name = 'rectf' if fill else 'rect'
         num = 0 if not len(self.widget[name]) \
@@ -212,21 +217,27 @@ class Screen_GUI(object):
         c = self._e[name] if c == None else c
         self.widget[name].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
                  'id': num, 'c': c})
-            
+
     def draw_circle(self, x, y, r, c=None, fill=False):
         name = 'circlef' if fill else 'circle'
         num = 0 if not len(self.widget[name]) \
                 else (self.widget[name][-1]['id'] + 1)
         c = self._e[name] if c == None else c
-        self.widget[name].append({'x': x, 'y': y, 'r': r, 'id': num, 'c': c})
-        
+        self.widget[name].append({'x': x, 'y': y, 'r': r, 'id': num, 'c': c,
+                   'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r})
+
     def draw_text(self, x, y, s, c=None):
         num = 0 if not len(self.widget['text']) \
                 else (self.widget['text'][-1]['id'] + 1)
+        s = s.decode('utf8')
+        en_zh = [ord(char) > 255 for char in s]
+        w = en_zh.count(False)*8 + en_zh.count(True)*16
+        h = 16
         c = self._e['text'] if c == None else c
-        self.widget['text'].append({'x': x, 'y': y,
-                   's': unicode(s).encode('gbk'), 'id': num, 'c': c})
-    
+        self.widget['text'].append({'x': x, 'y': y, 'id': num, 'c': c,
+                   'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
+                   's': s.decode('utf8').encode('gbk')})
+
     def remove_element(self, name=None, num=None):
         if not sum([len(i) for i in self.widget.values()]):
             print('No elements now!')
@@ -247,7 +258,7 @@ class Screen_GUI(object):
             return
         self.widget[name].pop(ids.index(str(num)))
         self.render()
-    
+
     def move_element(self, name, num, x, y):
         ids = [i['id'] for i in self.widget[name]]
         e = self.widget[name][ids.index(num)]
@@ -257,18 +268,21 @@ class Screen_GUI(object):
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
         finally:
             self.render()
-    
+
     def save_layout(self):
-        for i in self.widget['button']:
+        # text string is storaged with gbk in self.widget
+        # convert it to utf8 to jsonify
+        tmp = self.widget.copy()
+        for i in tmp['button']:
             i['callback'] = None
             i['s'] = i['s'].decode('gbk')
-        for i in self.widget['text']:
+        for i in tmp['text']:
             i['s'] = i['s'].decode('gbk')
-        for i in self.widget['img']:
+        for i in tmp['img']:
             i['data'] = i['data'].tobytes()
         with open('../files/layout-%s.json' % time_stamp(), 'w') as f:
-            json.dump(self.widget, f)
-        
+            json.dump(tmp, f)
+
     def load_layout(self):
         while 1:
             prompt = 'choose one from ' + ' | '.join([os.path.basename(i) \
@@ -281,6 +295,7 @@ class Screen_GUI(object):
                 return
             except:
                 print('error!')
+        # json.load returns unicode
         for i in tmp['button']:
             i['s'] = i['s'].encode('gbk')
             i['callback'] = self._default_button_callback \
@@ -291,11 +306,14 @@ class Screen_GUI(object):
             i['data'] = np.frombuffer(i['data'], np.uint8).reshape(i['shape'])
         self.widget.update(tmp)
         self.render()
-        
-    def _default_button_callback(self, bt):
-        print('[Touch Screen] touch point at %d, %d at %.3f' \
-              % (bt['x'], bt['y'], time.time()))
-        
+
+    def touch_screen_calibration(self):
+        pass
+
+    def _default_button_callback(self, x, y, bt):
+        print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
+                  % (bt['id'], bt['s'], x, y, time.time()))
+
     def render(self, *args, **kwargs):
         '''
         clear sequence:
@@ -308,35 +326,59 @@ class Screen_GUI(object):
         |22222222211111|
         |22222222211111|
         +--------------+
+
+        render params:
+        name: element name, one of ['circle', 'circlef', 'img', 'point',
+                                    'button', 'text', 'line', 'rectf', 'rect']
+        num: element id
         '''
-        if len(self.widget['img']):
-            img = self.widget['img'][0]
-            self.clear(img['x2'], 0, 219, 175) # clear 1
-            self.clear(0, img['y2'], max(img['x2']-1, 0), 175) # clear 2
-            self.clear(0, 0, max(img['x1']-1, 0), max(img['y2']-1, 0)) # clear 3
-            self.clear(img['x1'], 0, max(img['x2']-1, 0), max(img['y1']-1, 0)) # clear 4
-        else:
-            self.clear(*args, **kwargs) # clear all
-            
-        for element_name in self.widget.keys():
-            if element_name == 'button':
-                for bt in self.widget[element_name]:
-                    self._c.send('text', x=bt['x'], y=bt['y'],
-                                 s=bt['s'], c=bt['ct'])
-                    self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                 x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
-            elif element_name == 'img':
-                for img in self.widget['img']:
-                    for x in range(img['x2'] - img['x1']):
-                        for y in range(img['y2'] - img['y1']):
-                            if img['data'][y, x]:
-                                self._c.send('point',
-                                             x=img['x1'] + x, y=img['y1'] + y,
-                                             c=img['data'][y, x])
-            else:
-                for element in self.widget[element_name]:
-                    self._c.send(element_name, **element)
-        
+        try:
+            if 'name' and 'num' in kwargs: # render an element
+                ids = [i['id'] for i in self.widget[kwargs['name']]]
+                e = self.widget[kwargs['name']][ids.index(kwargs['num'])]
+                self.clear(**e)
+                if kwargs['name'] == 'button':
+                    self._c.send('text', x=e['x'], y=e['y'],
+                                 s=e['s'], c=e['ct'])
+                    self._c.send('rect', x1=e['x1'], y1=e['y1'],
+                                 x2=e['x2'], y2=e['y2'], c=e['cr'])
+                elif kwargs['name'] == 'img':
+                    self._plot_img(e)
+                else:
+                    self._c.send(kwargs['name'], **e)
+            else: # render all
+                if len(self.widget['img']):
+                    img = self.widget['img'][0]
+                    self.clear(img['x2'], 0, 219, 175) # clear 1
+                    self.clear(0, img['y2'], max(img['x2']-1, 0), 175) # clear 2
+                    self.clear(0, 0, max(img['x1']-1, 0), max(img['y2']-1, 0)) # clear 3
+                    self.clear(img['x1'], 0, max(img['x2']-1, 0), max(img['y1']-1, 0)) # clear 4
+                else:
+                    self.clear(*args, **kwargs) # clear all
+                for element_name in self.widget.keys():
+                    if element_name == 'button':
+                        for bt in self.widget[element_name]:
+                            self._c.send('text', x=bt['x'], y=bt['y'],
+                                         s=bt['s'], c=bt['ct'])
+                            self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
+                                         x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
+                    elif element_name == 'img':
+                        for img in self.widget['img']:
+                            self._plot_img(img)
+                    else:
+                        for element in self.widget[element_name]:
+                            self._c.send(element_name, **element)
+        except Exception as e:
+            print(e)
+
+    def _plot_img(self, img):
+        for x in range(img['x2'] - img['x1']):
+            for y in range(img['y2'] - img['y1']):
+                if img['data'][y, x]:
+                    self._c.send('point', x=img['x1'] + x, y=img['y1'] + y,
+                                 c=img['data'][y, x])
+
+
     def _handle_touch_screen(self):
         while not self._flag_close.isSet():
             index = self._t.read_until().strip().split(',')
@@ -345,6 +387,7 @@ class Screen_GUI(object):
                 for bt in self.widget['button']:
                     if x > bt['x1'] and x < bt['x2'] \
                     and y > bt['y1'] and y < bt['y2']:
+                        print(x, y, bt['id'])
                         self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
                                      x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
                         time.sleep(0.3)
@@ -352,11 +395,11 @@ class Screen_GUI(object):
                                      x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
                         time.sleep(0.2)
                         if bt['callback'] is None:
-                            self._default_button_callback(bt)
+                            self._default_button_callback(x, y, bt)
                         else:
-                            bt['callback'](bt)
+                            bt['callback'](x, y, bt)
         print('[Touch Screen] exiting...')
-    
+
     def _display_logo(self):
         img = np.array(Image.open('../files/LOGO.bmp').resize((219, 85)))
         self.draw_img(0, 45, 15*(img[:,:,3] != 0))
@@ -367,20 +410,20 @@ class Screen_GUI(object):
         self._t.read_until()
         self.remove_element('img', 0)
         self.remove_element('text', 0)
-        
-    def clear(self, x1=None, y1=None, x2=None, y2=None):
+
+    def clear(self, x1=None, y1=None, x2=None, y2=None, *args, **kwargs):
         if None in [x1, y1, x2, y2]:
             self._c.send('clear')
         else:
             self._c.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2, c=0)
-            
+
     def close(self):
         self._c.close()
         self._flag_close.set()
-        self._t.write('\xff\xff\xff\xff') # send close signal
+        self._t.write('\xaa\xaa\xaa\xaa') # send close signal
         time.sleep(1)
         self._t.close()
-        
+
     def update_element_color(self, element, color):
         if element not in self._e:
             print('no candidates for this element `{}`'.format(element))
@@ -391,10 +434,10 @@ class Screen_GUI(object):
             print('choose one from ' + ' | '.join(self.list_colors()))
             return
         self._e[element] = self._color_map[color]
-        
+
     def list_colors(self):
         return self._color_map.keys()
-    
+
     def list_elements(self):
         return self._e.keys()
 
@@ -405,7 +448,7 @@ if __name__ == '__main__':
 #    p = Plotter(window_size = 1000, n_channel=8)
 #    p.plot(fake_data)
 # =============================================================================
-# 
+#
 # =============================================================================
 #    filename = '../data/test/grab-2.mat'
 #    actionname = os.path.basename(filename)
@@ -413,13 +456,13 @@ if __name__ == '__main__':
 #    sample_rate=500; sample_time=6
 #    view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
 # =============================================================================
-#     
+#
 # =============================================================================
 #    c = Screen_commander(command_dict=command_dict_uart_screen_v1)
 #    c.start()
 #    time.sleep(1)
 #    print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
-#    
+#
 #    data = np.sin(np.linspace(0, 6*np.pi, 600))
 #    data = np.repeat(data.reshape(1, 600), 8, axis=0)
 #    try:
@@ -430,6 +473,6 @@ if __name__ == '__main__':
 #    except KeyboardInterrupt:
 #        c.close()
 # =============================================================================
-#         
+#
 # =============================================================================
     pass

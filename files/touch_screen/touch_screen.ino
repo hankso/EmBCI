@@ -30,11 +30,11 @@ void loop()
     }
     if (Serial.available() >= 3)
     {
-        if (Serial.read() == 255 &&
-            Serial.read() == 255 &&
-            Serial.read() == 255)
+        if (Serial.read() == 170 &&
+            Serial.read() == 170 &&
+            Serial.read() == 170)
         {
-            Serial.println("0,0\r");
+            Serial.println("0,0,0");
         }
     }
 }

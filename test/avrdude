@@ -1,0 +1,5 @@
+#!/bin/bash
+# avrdude -C ./avrdude.conf -v -p atmega328p -c arduino -P /dev/ttyACM0 -b 115200 -D -Uflash:w:./target.hex.leonardo:i
+avrdude -C ./avrdude.conf -v -p atmega32u4 -c avr109 -P /dev/ttyACM0 -b 57600 -D -Uflash:w:./target.hex.leonardo:i
+# avrdude -C ./avrdude.conf -v -p atmega328p -c arduino -P /dev/ttyACM0 -b 115200 -D -Uflash:w:./target.hex.leonardo:i
+# avrdude -C ./avrdude.conf -v -p atmega328p -c arduino -P /dev/ttyACM0 -b 115200 -D -Uflash:w:./target.hex.leonardo:i
