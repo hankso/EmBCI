@@ -22,7 +22,7 @@ import mne
 
 # from ./
 from common import check_dir, check_input, get_label_list, Timer
-from common import record_animate, get_self_ip_addr
+from common import record_animate
 from common import find_ports, find_outlets
 from gyms import TorcsEnv
 from gyms import PlaneClient

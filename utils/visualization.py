@@ -161,24 +161,28 @@ class Screen_GUI(object):
         self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
 
-        # this function only used to display `Cheitech co.` LOGO.
-        #self.display_logo()
-
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
+        self._flag_pause = threading.Event()
+        self._flag_pause.set()
+        self._last_touch_time = time.time()
+        self._cali_matrix = np.array([[1, 1], [0, 0]])
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
 
-    def draw_img(self, x, y, img):
+    def draw_img(self, x, y, img, render=True):
         num = 0 if not len(self.widget['img']) \
                 else (self.widget['img'][-1]['id'] + 1)
         img = np.array(img, np.uint8)
         self.widget['img'].append({'data': img, 'id': num, 'shape': img.shape,
             'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+        if render:
+            self.render(name='img', num=num)
 
-    def draw_button(self, x, y, s, callback=None, ct=None, cr=None, ca=None):
+    def draw_button(self, x, y, s, callback=None,
+                    ct=None, cr=None, ca=None, render=True):
         num = 0 if not len(self.widget['button']) \
                 else (self.widget['button'][-1]['id'] + 1)
         # Although there is already `# -*- coding: utf-8 -*-` at file start
@@ -196,37 +200,47 @@ class Screen_GUI(object):
         self.widget['button'].append({'id': num, 'ct': ct, 'cr': cr, 'ca': ca,
                 'x1': max(x-2, 0), 'y1': max(y-2, 0), 'x2': x + w, 'y2': y + h,
                 'x': x, 'y': y, 's': s.encode('gbk'), 'callback': cb})
+        if render:
+            self.render(name='button', num=num)
 
-    def draw_point(self, x, y, c=None):
+    def draw_point(self, x, y, c=None, render=True):
         num = 0 if not len(self.widget['point']) \
                 else (self.widget['point'][-1]['id'] + 1)
         c = self._e['point'] if c == None else c
         self.widget['point'].append({'x': x, 'y': y, 'id': num, 'c': c})
+        if render:
+            self.render(name='point', num=num)
 
-    def draw_line(self, x1, y1, x2, y2, c=None):
+    def draw_line(self, x1, y1, x2, y2, c=None, render=True):
         num = 0 if not len(self.widget['line']) \
                 else (self.widget['line'][-1]['id'] + 1)
         c = self._e['line'] if c == None else c
         self.widget['line'].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
                    'id': num, 'c': c})
+        if render:
+            self.render(name='line', num=num)
 
-    def draw_rectangle(self, x1, y1, x2, y2, c=None, fill=False):
+    def draw_rectangle(self, x1, y1, x2, y2, c=None, fill=False, render=True):
         name = 'rectf' if fill else 'rect'
         num = 0 if not len(self.widget[name]) \
                 else (self.widget[name][-1]['id'] + 1)
         c = self._e[name] if c == None else c
         self.widget[name].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
                  'id': num, 'c': c})
+        if render:
+            self.render(name=name, num=num)
 
-    def draw_circle(self, x, y, r, c=None, fill=False):
+    def draw_circle(self, x, y, r, c=None, fill=False, render=True):
         name = 'circlef' if fill else 'circle'
         num = 0 if not len(self.widget[name]) \
                 else (self.widget[name][-1]['id'] + 1)
         c = self._e[name] if c == None else c
         self.widget[name].append({'x': x, 'y': y, 'r': r, 'id': num, 'c': c,
                    'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r})
+        if render:
+            self.render(name=name, num=num)
 
-    def draw_text(self, x, y, s, c=None):
+    def draw_text(self, x, y, s, c=None, render=True):
         num = 0 if not len(self.widget['text']) \
                 else (self.widget['text'][-1]['id'] + 1)
         s = s.decode('utf8')
@@ -237,6 +251,8 @@ class Screen_GUI(object):
         self.widget['text'].append({'x': x, 'y': y, 'id': num, 'c': c,
                    'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
                    's': s.decode('utf8').encode('gbk')})
+        if render:
+            self.render(name='text', num=num)
 
     def remove_element(self, name=None, num=None):
         if not sum([len(i) for i in self.widget.values()]):
@@ -306,10 +322,7 @@ class Screen_GUI(object):
             i['data'] = np.frombuffer(i['data'], np.uint8).reshape(i['shape'])
         self.widget.update(tmp)
         self.render()
-
-    def touch_screen_calibration(self):
-        pass
-
+    
     def _default_button_callback(self, x, y, bt):
         print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
                   % (bt['id'], bt['s'], x, y, time.time()))
@@ -372,36 +385,85 @@ class Screen_GUI(object):
             print(e)
 
     def _plot_img(self, img):
+        '''
+        plot img by plot each point
+        (I know this is super slow but let we just use it)
+        #TODO 10: speed up img display
+        '''
         for x in range(img['x2'] - img['x1']):
             for y in range(img['y2'] - img['y1']):
                 if img['data'][y, x]:
                     self._c.send('point', x=img['x1'] + x, y=img['y1'] + y,
                                  c=img['data'][y, x])
 
+    def calibration_touch_screen(self):
+        self._flag_pause.clear() # pause _handle_touch_screen thread
+        tmp = self.widget.copy()
+        for element in self.widget:
+            self.widget[element] = []
+        self.draw_text(78, 80, '屏幕校准', c=self._color_map['green'])
+        self.draw_text(79, 80, '屏幕校准', c=self._color_map['green'])
+        self.render()
+        # points where to be touched
+        pts = np.array([[10, 10], [210, 10], [10, 165], [210, 165]])
+        # points where user touched
+        ptt = np.zeros((4, 2))
+        try:
+            for i in range(4):
+                self.draw_circle(pts[i][0], pts[i][1], 4,
+                                 c=self._color_map['blue'])
+                self.render(name='circle', num=2*i)
+                ptt[i] = self._get_touch_point()
+                self.draw_circle(pts[i][0], pts[i][1], 2,
+                                 c=self._color_map['blue'], fill=True)
+                self.render(ame='circle', num=2*i+1)
+                self._cali_matrix = np.array([
+                        np.polyfit(ptt[:, 0], pts[:, 0], 1),
+                        np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
+        except Exception as e:
+            print(e)
+        finally:
+            self.widget = tmp.copy()
+            self.render()
+            self._flag_pause.set() # resume _handle_touch_screen thread
+
+    def _get_touch_point(self):
+        '''
+        parse touch screen data to get point index(with calibration)
+        '''
+        while 1:
+            x_y_p = self._t.read_until().strip().split(',')
+            if len(x_y_p) == 3:
+                try:
+                    pt = np.array([ int(x_y_p[0]), int(x_y_p[1]) ])
+                    if (time.time() - self._last_touch_time) > 1.0/20:
+                        self._last_touch_time = time.time()
+                        return pt * self._cali_matrix[0] + self._cali_matrix[1]
+                except:
+                    pass
 
     def _handle_touch_screen(self):
         while not self._flag_close.isSet():
-            index = self._t.read_until().strip().split(',')
-            if index:
-                x, y = int(index[0]), int(index[1])
-                for bt in self.widget['button']:
-                    if x > bt['x1'] and x < bt['x2'] \
-                    and y > bt['y1'] and y < bt['y2']:
-                        print(x, y, bt['id'])
-                        self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                     x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
-                        time.sleep(0.3)
-                        self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                     x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
-                        time.sleep(0.2)
-                        if bt['callback'] is None:
-                            self._default_button_callback(x, y, bt)
-                        else:
-                            bt['callback'](x, y, bt)
+            self._flag_pause.wait()
+            x, y = self._get_touch_point()
+            for bt in self.widget['button']:
+                if x > bt['x1'] and x < bt['x2'] \
+                and y > bt['y1'] and y < bt['y2']:
+                    print(x, y, bt['id'])
+                    self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
+                                 x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
+                    time.sleep(0.3)
+                    self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
+                                 x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
+                    time.sleep(0.2)
+                    if bt['callback'] is None:
+                        self._default_button_callback(x, y, bt)
+                    else:
+                        bt['callback'](x, y, bt)
         print('[Touch Screen] exiting...')
 
-    def _display_logo(self):
-        img = np.array(Image.open('../files/LOGO.bmp').resize((219, 85)))
+    def display_logo(self, filename):
+        img = np.array(Image.open(filename).resize((219, 85)))
         self.draw_img(0, 45, 15*(img[:,:,3] != 0))
         self.draw_text(62, 148, '任意点击开始')
         self.clear()
@@ -415,7 +477,8 @@ class Screen_GUI(object):
         if None in [x1, y1, x2, y2]:
             self._c.send('clear')
         else:
-            self._c.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2, c=0)
+            self._c.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2,
+                         c=self._color_map['black'])
 
     def close(self):
         self._c.close()

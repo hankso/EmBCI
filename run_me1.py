@@ -226,5 +226,6 @@ if __name__ == '__main__':
                  'job_callback': [display_waveform, display_info]}
 
     s = Screen_GUI(screen_port='/dev/ttyS1')
+    s.display_logo('../files/LOGO.bmp')
     s.widget = menu
     s.render()
