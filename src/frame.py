@@ -19,10 +19,9 @@ import matplotlib.pyplot as plt
 
 # from ../utils
 from common import time_stamp, check_input, first_use, record_animate
+from common import Signal_Info
 from IO import load_data, save_action
-from signal_info import Signal_Info
 from preprocessing import Processer
-from visualization import Screen_GUI
 
 # TODO: put this in __init__.py
 # =============================================================================

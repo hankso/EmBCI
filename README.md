@@ -47,18 +47,20 @@ data = client.read(32)
 data = typecast(data, 'single')
 
 % here data is 1x8 vector
+data
 ```
 
 
 # Project structure
 |    folder    |    description    |
 | :----------- | :---------------- |
-|     data     | save biosignal data with label in each subfoler named by username |
+|     data     | save biosignal data with label in each subfolder named by username |
 |    models    | save trained models with weight for each user |
 |     src      | preprocessing algorithms, classifiers and frameworks |
 |    test      | testing new ideas |
 |    utils     | common functions, gym clients, data IO, etc. |
-|   run_me.py  | bootloader script of program |
+|   run_me.py  | bootloader script of recognition program |
+|   run_me1.py | bootloader script of Screen GUI |
 
 
 # Supported gyms
