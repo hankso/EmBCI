@@ -160,17 +160,22 @@ class Screen_GUI(object):
         self._c = Screen_commander(screen_baud, command_dict)
         self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
+        self._touch_started = False
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
+        self.touch_sensibility = 20
         self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
         self._flag_pause = threading.Event()
         self._flag_pause.set()
+        self._read_lock = threading.Lock()
         self._last_touch_time = time.time()
         self._cali_matrix = np.array([[1, 1], [0, 0]])
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
+        self._touch_started = True
+        self._callback_threads = []
 
     def draw_img(self, x, y, img, render=True):
         num = 0 if not len(self.widget['img']) \
@@ -250,11 +255,11 @@ class Screen_GUI(object):
         c = self._e['text'] if c == None else c
         self.widget['text'].append({'x': x, 'y': y, 'id': num, 'c': c,
                    'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
-                   's': s.decode('utf8').encode('gbk')})
+                   's': s.encode('gbk')})
         if render:
             self.render(name='text', num=num)
 
-    def remove_element(self, name=None, num=None):
+    def remove_element(self, name=None, num=None, render=True):
         if not sum([len(i) for i in self.widget.values()]):
             print('No elements now!')
             return
@@ -273,7 +278,8 @@ class Screen_GUI(object):
             print('choose one from ' + ' | '.join(ids))
             return
         self.widget[name].pop(ids.index(str(num)))
-        self.render()
+        if render:
+            self.render()
 
     def move_element(self, name, num, x, y):
         ids = [i['id'] for i in self.widget[name]]
@@ -286,7 +292,7 @@ class Screen_GUI(object):
             self.render()
 
     def save_layout(self):
-        # text string is storaged with gbk in self.widget
+        # text string is storaged as gbk in self.widget
         # convert it to utf8 to jsonify
         tmp = self.widget.copy()
         for i in tmp['button']:
@@ -386,8 +392,8 @@ class Screen_GUI(object):
 
     def _plot_img(self, img):
         '''
-        plot img by plot each point
-        (I know this is super slow but let we just use it)
+        render img by plotting each point
+        (I know this is super slow but let us use it now)
         #TODO 10: speed up img display
         '''
         for x in range(img['x2'] - img['x1']):
@@ -397,33 +403,37 @@ class Screen_GUI(object):
                                  c=img['data'][y, x])
 
     def calibration_touch_screen(self):
+        if not self._touch_started:
+            print('[Screen GUI] touch screen not initialized yet!')
+            return
         self._flag_pause.clear() # pause _handle_touch_screen thread
-        tmp = self.widget.copy()
+        tmp = (self.widget.copy(), self.touch_sensibility)
         for element in self.widget:
             self.widget[element] = []
+        self.touch_sensibility = 1
+        self._cali_matrix = np.array([[1, 1], [0, 0]])
+        self.clear()
         self.draw_text(78, 80, '屏幕校准', c=self._color_map['green'])
         self.draw_text(79, 80, '屏幕校准', c=self._color_map['green'])
-        self.render()
         # points where to be touched
         pts = np.array([[10, 10], [210, 10], [10, 165], [210, 165]])
         # points where user touched
         ptt = np.zeros((4, 2))
         try:
             for i in range(4):
-                self.draw_circle(pts[i][0], pts[i][1], 4,
+                self.draw_circle(pts[i][0], pts[i][1], 4, render=True,
                                  c=self._color_map['blue'])
-                self.render(name='circle', num=2*i)
                 ptt[i] = self._get_touch_point()
-                self.draw_circle(pts[i][0], pts[i][1], 2,
+                self.draw_circle(pts[i][0], pts[i][1], 2, render=True,
                                  c=self._color_map['blue'], fill=True)
-                self.render(ame='circle', num=2*i+1)
-                self._cali_matrix = np.array([
-                        np.polyfit(ptt[:, 0], pts[:, 0], 1),
-                        np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
+            print(ptt, pts)
+            self._cali_matrix = np.array([
+                    np.polyfit(ptt[:, 0], pts[:, 0], 1),
+                    np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
         except Exception as e:
             print(e)
         finally:
-            self.widget = tmp.copy()
+            self.widget, self.touch_sensibility = tmp
             self.render()
             self._flag_pause.set() # resume _handle_touch_screen thread
 
@@ -432,15 +442,22 @@ class Screen_GUI(object):
         parse touch screen data to get point index(with calibration)
         '''
         while 1:
-            x_y_p = self._t.read_until().strip().split(',')
+            self._read_lock.acquire()
+            raw = self._t.read_until().strip()
+            x_y_p = raw.split(',')
+            self._read_lock.release()
+            print(raw)
             if len(x_y_p) == 3:
                 try:
                     pt = np.array([ int(x_y_p[0]), int(x_y_p[1]) ])
-                    if (time.time() - self._last_touch_time) > 1.0/20:
+                    if (time.time() - self._last_touch_time) > \
+                    1.0/self.touch_sensibility:
                         self._last_touch_time = time.time()
                         return pt * self._cali_matrix[0] + self._cali_matrix[1]
                 except:
-                    pass
+                    continue
+            else:
+                print('[Touch Screen] Invalid input %s' % raw)
 
     def _handle_touch_screen(self):
         while not self._flag_close.isSet():
@@ -459,19 +476,29 @@ class Screen_GUI(object):
                     if bt['callback'] is None:
                         self._default_button_callback(x, y, bt)
                     else:
-                        bt['callback'](x, y, bt)
+                        self._callback_threads.append(threading.Thread(
+                                target=bt['callback'], args=(x, y, bt, )))
+                        self._callback_threads[-1].start()
         print('[Touch Screen] exiting...')
 
     def display_logo(self, filename):
+        tmp = self.widget.copy()
+        for element in self.widget:
+            self.widget[element] = []
+        self.clear()
         img = np.array(Image.open(filename).resize((219, 85)))
         self.draw_img(0, 45, 15*(img[:,:,3] != 0))
-        self.draw_text(62, 148, '任意点击开始')
-        self.clear()
+        self.draw_text(62, 143, '任意点击开始')
+        self.draw_text(54, 159, 'click to start')
+        if self._touch_started:
+            self._flag_pause.clear()
+            self._t.flushInput()
+            self._t.read_until()
+            self._flag_pause.set()
+        else:
+            time.sleep(1)
+        self.widget = tmp
         self.render()
-        self._t.flushInput()
-        self._t.read_until()
-        self.remove_element('img', 0)
-        self.remove_element('text', 0)
 
     def clear(self, x1=None, y1=None, x2=None, y2=None, *args, **kwargs):
         if None in [x1, y1, x2, y2]:
@@ -482,10 +509,11 @@ class Screen_GUI(object):
 
     def close(self):
         self._c.close()
-        self._flag_close.set()
-        self._t.write('\xaa\xaa\xaa\xaa') # send close signal
-        time.sleep(1)
-        self._t.close()
+        if self._touch_started:
+            self._flag_close.set()
+            self._t.write('\xaa\xaa\xaa\xaa') # send close signal
+            time.sleep(1)
+            self._t.close()
 
     def update_element_color(self, element, color):
         if element not in self._e:

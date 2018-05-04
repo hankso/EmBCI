@@ -151,7 +151,7 @@ def save_action(username, reader, action_list=['relax', 'grab']):
 
                 #==========================================================
                 save_data(username,
-                          reader.get_data(),
+                          reader.frame_data,
                           action_name,
                           reader.sample_rate,
                           print_summary=True)
@@ -196,6 +196,8 @@ class _basic_reader(object):
         # info pipe
         self.info = [0] * 10
         self._started = False
+        self._ch_last_time = time.time()
+        self._fr_last_time = time.time()
 
     def start(self):
         '''
@@ -224,13 +226,18 @@ class _basic_reader(object):
             return 0
     
     @property
-    def ch_data(self):
-        return [self.buffer[ch][-1] for ch in self.ch_list[1:]]
+    def channel_data(self):
+        while (time.time() - self._ch_last_time) < 1.0/self.sample_rate:
+            pass
+        self._ch_last_time = time.time()
+        return np.array([self.buffer[ch][-1] for ch in self.ch_list[1:]])
     
-    def get_data(self, size=None):
-        if size is None:
-            size = self.window_size
-        return np.array([self.buffer[ch][-size:] \
+    @property
+    def frame_data(self):
+        while (time.time() - self._fr_last_time) < 1.0/self.sample_rate:
+            pass
+        self._fr_last_time = time.time()
+        return np.array([self.buffer[ch][-self.window_size:] \
                          for ch in self.ch_list[1:]])\
                 .reshape(1, self.n_channel, self.window_size)
     

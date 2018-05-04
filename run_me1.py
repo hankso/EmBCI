@@ -98,17 +98,52 @@ def next_jobs(*args, **kwargs):
 #            s.render(name='button', num=6)
 
 
+def minus_scale(*args, **kwargs):
+    scale_range['i'] -= 1
+    scale_range['i'] %= len(scale_range['a'])
+    for text in s.widget['text']:
+        if text['id'] == 3:
+            text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
+    s.render()
+
+
+def plus_scale(*args, **kwargs):
+    scale_range['i'] += 1
+    scale_range['i'] %= len(scale_range['a'])
+    for text in s.widget['text']:
+        if text['id'] == 3:
+            text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
+    s.render()
+
+
+def minus_n_channel(*args, **kwargs):
+    channel_range['i'] -= 1
+    channel_range['i'] %= len(channel_range['a'])
+    for text in s.widget['text']:
+        if text['id'] == 5:
+            text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
+    s.render()
+
+
+def plus_n_channel(*args, **kwargs):
+    channel_range['i'] += 1
+    channel_range['i'] %= len(channel_range['a'])
+    for text in s.widget['text']:
+        if text['id'] == 5:
+            text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
+    s.render()
+
+
 def display_waveform(*args, **kwargs):
     # construct reader
     sample_rate = rate_range['a'][rate_range['i']]
-    sample_time = time_range['a'][time_range['i']]
-    n_channel = 2
+    sample_time = time_range['n']
+    n_channel = channel_range['a'][channel_range['i']]
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel)
-
+    s.reader.start()
     color = np.arange(1, 1 + n_channel)
-    scale = np.repeat(100, n_channel)
-    area = [0, 40, 220, 144]
+    area = [0, 40, 220, 176]
 
     # store old widget
     tmp = s.widget.copy()
@@ -119,10 +154,19 @@ def display_waveform(*args, **kwargs):
     flag_close = threading.Event()
 
     # plot page widgets
-    s.draw_text(32, 20, '波形显示', c=2) # 0
-    s.draw_button(156, 20, '返回', callback=lambda *a, **k: flag_close.set())
-    s.render()
-    data = np.zeros((area[2], n_channel))
+    s.draw_text(5, 1, '波形显示', c=2) # 0
+    s.draw_text(4, 1, '波形显示', c=2) # 1
+    s.draw_button(5, 18, '返回上层', callback=lambda *a, **k: flag_close.set())
+    s.draw_rectangle(72, 0, 219, 35, c=5)
+    s.draw_text(74, 1, '幅度') # 2
+    s.draw_button(112, 1, '－', callback=minus_scale)
+    s.draw_text(134, 1, '%7d ' % scale_range['a'][scale_range['i']]) # 3
+    s.draw_button(202, 1, '＋', callback=plus_scale)
+    s.draw_text(74, 18, '通道') # 4
+    s.draw_button(112, 18, '－', callback=minus_n_channel)
+    s.draw_text(134, 18, '   %2d   ' % channel_range['a'][channel_range['i']]) # 5
+    s.draw_button(202, 18, '＋', callback=plus_n_channel)
+    data = np.zeros((area[2] - area[0], n_channel))
     ch_height = (area[3] - area[1] - 1)/n_channel
     bias = [area[1] + ch_height/2 + ch_height*ch \
             for ch in range(n_channel)]
@@ -134,17 +178,20 @@ def display_waveform(*args, **kwargs):
             # first clear current line
             s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
             # update channel data list
-            data[x] = (s.reader.ch_data[:n_channel]*scale).astype(np.int) + bias
+            data[x] = s.reader.channel_data[:n_channel].astype(np.int) \
+                      * scale_range['a'][scale_range['i']] + bias
             # then draw current point
             for i in range(n_channel):
-                s._c.send('point', x=x, y=data[x][i], c=color[i])
+                if data[x][i] < area[3] and data[x][i] > area[1]:
+                    s._c.send('point', x=x, y=data[x][i], c=color[i])
             # update x axis index
             x = x + 1 if (x + 1) < area[2] else 0
+        print('[Display Waveform] terminating...')
     except Exception as e:
         print(e)
     finally:
         # recover old widget
-        s.widget = tmp.copy()
+        s.widget = tmp
         s.reader.pause()
         s.render()
 
@@ -152,7 +199,7 @@ def display_waveform(*args, **kwargs):
 def display_info(x, y, bt):
     # construct reader
     sample_rate = rate_range['a'][rate_range['i']]
-    sample_time = time_range['a'][time_range['i']]
+    sample_time = time_range['n']
     n_channel = 2
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel)
@@ -181,8 +228,8 @@ def display_info(x, y, bt):
                 amp, fre = s.widget['text'][3:5]
                 s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
                 s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
-                f, a = si.peek_extract(s.r.get_data(),
-                                       4, 6, s.r.sample_rate)[0, 0]
+                f, a = si.peek_extract(s.r.frame_data, 4, 6,
+                                       s.r.sample_rate)[0, 0]
                 amp['s'] = '%3.3f' % a
                 fre['s'] = '%1.2fHz' % f
 #                print(amp['s'], fre['s'])
@@ -224,8 +271,12 @@ if __name__ == '__main__':
                        '\xcf\xd4\xca\xbe\xd0\xc5\xcf\xa2'],
                  'i': 0,
                  'job_callback': [display_waveform, display_info]}
+    scale_range = {'a': [1, 10, 100, 1000, 5000, 10000, 50000, 1000000], 'i': 4}
+    channel_range = {'a': range(9), 'i': 2}
 
-    s = Screen_GUI(screen_port='/dev/ttyS1')
-    s.display_logo('../files/LOGO.bmp')
+    s = Screen_GUI(screen_port='/dev/ttyUSB0')
+# =============================================================================
+#     s.display_logo('./files/LOGO.bmp')
+# =============================================================================
     s.widget = menu
     s.render()

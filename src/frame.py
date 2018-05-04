@@ -142,7 +142,7 @@ def sEMG_Recognition(username, reader, model, commander):
             print('start recording in 2s')
             time.sleep(2)
             record_animate(reader.sample_time)
-            class_num, class_prob = model.predict(reader.get_data())
+            class_num, class_prob = model.predict(reader.frame_data)
             action_name = action_dict[class_num]
             print('[Predict action name] ' + action_name, end='')
             print(class_prob)
