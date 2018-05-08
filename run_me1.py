@@ -137,7 +137,7 @@ def display_waveform(*args, **kwargs):
     n_channel = channel_range['a'][channel_range['i']]
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-    s.reader.start()
+    s.reader.start(); s.reader.resume()
     color = np.arange(1, 1 + n_channel)
     area = [0, 40, 220, 176]
 
@@ -199,10 +199,10 @@ def display_info(x, y, bt):
     # construct reader
     sample_rate = rate_range['a'][rate_range['i']]
     sample_time = time_range['n']
-    n_channel = 0
+    n_channel = 2
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-    s.reader.start()
+    s.reader.start(); s.reader.resume()
 
     # store old widget
     tmp = s.widget.copy()

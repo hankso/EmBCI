@@ -182,7 +182,7 @@ class _basic_reader(object):
         self.sample_rate = sample_rate
         self.sample_time = sample_time
         self.n_channel = n_channel
-        self.window_size = sample_rate * sample_time
+        self.window_size = int(sample_rate * sample_time)
         
         # channels are defined here
         self.ch_list = ['time'] + ['channel%d' % i for i in range(n_channel)]
@@ -262,6 +262,7 @@ class Files_reader(_basic_reader):
     
     def start(self):
         if self._started:
+            self.resume()
             return
         print(self._name + 'reading data file...')
         while 1:
@@ -345,6 +346,7 @@ class Pylsl_reader(_basic_reader):
                   perform their next calculation. (default 360)
         '''
         if self._started:
+            self.resume()
             return
         # 1. find available streaming info and build an inlet 
         print(self._name + 'finding availabel outlets...')
@@ -417,6 +419,7 @@ class Serial_reader(_basic_reader):
         
     def start(self):
         if self._started:
+            self.resume()
             return
         # 1. find serial port and connect to it
         print(self._name + 'finding availabel ports...')
@@ -512,6 +515,7 @@ class ADS1299_reader(_basic_reader):
         
     def start(self):
         if self._started:
+            self.resume()
             return
         # 1. find avalable spi devices
         print(self._name + 'finding available spi devices... ', end='')
@@ -600,6 +604,7 @@ class Socket_reader(_basic_reader):
         
     def start(self):
         if self._started:
+            self.resume()
             return
         # 1. IP addr and port are offered by user, connect to that host:port
         print(self._name + 'configuring addr... input "quit" to abort')
@@ -726,6 +731,7 @@ class Fake_data_generator(_basic_reader):
         
     def start(self):
         if self._started:
+            self.resume()
             return
         print(self._name + 'establishing pylsl outlet...')
         self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo(
