@@ -136,7 +136,7 @@ def display_waveform(*args, **kwargs):
     sample_time = time_range['n']
     n_channel = channel_range['a'][channel_range['i']]
     if not hasattr(s, 'reader'):
-        s.reader = Reader(sample_rate, sample_time, n_channel)
+        s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
     color = np.arange(1, 1 + n_channel)
     area = [0, 40, 220, 176]
@@ -181,7 +181,8 @@ def display_waveform(*args, **kwargs):
             # then draw current point
             for i in range(n_channel):
                 if data[x][i] < area[3] and data[x][i] > area[1]:
-                    s._c.send('point', x=x, y=data[x][i], c=color[i])
+                    s._c.send('line', x1=x, x2=x, c=color[i],
+                              y1=data[(x-1)%area[2]][i], y2=data[x][i])
             # update x axis index
             x = x + 1 if (x + 1) < area[2] else 0
         print('[Display Waveform] terminating...')
@@ -200,7 +201,7 @@ def display_info(x, y, bt):
     sample_time = time_range['n']
     n_channel = 0
     if not hasattr(s, 'reader'):
-        s.reader = Reader(sample_rate, sample_time, n_channel)
+        s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
 
     # store old widget
@@ -227,17 +228,13 @@ def display_info(x, y, bt):
         while not flag_close.isSet():
             if (time.time() - last_time) > 1:
                 last_time = time.time()
-                # first clear last text
-                s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
-                s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
                 # get signal info
                 f, a = si.peek_extract(s.reader.frame_data, 4, 6,
                                        s.reader.sample_rate)[0, 0]
                 amp['s'] = '%3.3f' % a
                 fre['s'] = '%1.2fHz' % f
-                # only update text
-                s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
-                s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
+                s.render(name='text', num=2)
+                s.render(name='text', num=3)
     except Exception as e:
         print(e)
     finally:
@@ -277,7 +274,7 @@ if __name__ == '__main__':
     scale_range = {'a': [1, 10, 100, 1000, 5000, 10000, 50000, 1000000], 'i': 3}
     channel_range = {'a': range(9), 'i': 2}
 
-    s = Screen_GUI(screen_port='/dev/ttyUSB0')
+    s = Screen_GUI(screen_port='/dev/ttyS1')
 # =============================================================================
 #     s.display_logo('./files/LOGO.bmp')
 # =============================================================================

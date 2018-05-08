@@ -497,14 +497,16 @@ class ADS1299_reader(_basic_reader):
                  sample_time=2,
                  n_channel=8,
                  send_to_pylsl=True,
-                 device=(1, 0)):
+                 device=(1, 0),
+                 bias_enabled=False,
+                 test_mode=False):
         super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[ADS1299 reader %d] ' % ADS1299_reader._num
         ADS1299_reader._num += 1
         
         self._send_to_pylsl = send_to_pylsl
         
-        self._ads = ADS1299_API(sample_rate)
+        self._ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
         
         self.device = device
         
