@@ -57,7 +57,7 @@ def fft(X, sample_rate, *args, **kwargs):
     amp:  amptitude of each frequence bin, you can plot
           with plt.plot(freq, amp[0, 0]) to get Amp-Freq img.
     '''
-    amp = 2 * abs(np.fft.rfft(X, axis=-1)) / float(len(X))
+    amp = 2 * abs(np.fft.rfft(X, axis=-1)) / float(X.shape[1])
     amp[:, 0] /= 2
     if amp.shape[-1] % 2:
         amp[:, -1] /= 2
@@ -76,9 +76,9 @@ def PSD(X, sample_rate, *args, **kwargs):
     Magnitude: np.absolute(amp)
     Angle, Phase: np.angle(amp)
     '''
-    tmp = np.fft.fft(X)
-    tmp *= np.conjugate(tmp)
-    return tmp
+    amp = 2 * abs(np.fft.rfft(X, axis=-1)) / float(X.shape[1])
+    amp[:, 0] /= 2
+    return amp*amp
 
 
 class Processer(object):

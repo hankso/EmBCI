@@ -14,10 +14,11 @@ import socket
 import threading
 import select
 
-# pip install pyserial, pylsl, numpy
+# pip install pyserial, pylsl, numpy, scipy
 import pylsl
 from serial.tools.list_ports import comports
 import numpy as np
+import scipy
 
 # In python3 reduce need to be imported while python2 not
 if sys.version_info.major == 3:
@@ -681,6 +682,12 @@ class Signal_Info(object):
         duration = float(x.shape[0] - 1) / (sample_rate / 2)
         return [sum(ch) * duration \
                 for ch in y[:, int(low*duration):int(high*duration)]**2]
+        
+    @check_shape
+    def envelop(self, X):
+        return np.array([np.sqrt(ch**2 + scipy.fftpack.hilbert(ch)**2) \
+                         for ch in X])
+        
 
 
 if __name__ == '__main__':

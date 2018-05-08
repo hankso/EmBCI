@@ -101,6 +101,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
     if len(data.shape) != 2:
         raise
     p = Processer(sample_rate, sample_time)
+    si = Signal_Info()
     for ch, d in enumerate(data):
         plt.figure('%s_%d' % (actionname, ch))
 
@@ -124,7 +125,6 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.pcolormesh(t, f, np.log10(amp))
         highest_col = [col[1] for col in sorted(zip(np.sum(amp, axis=0),
                                                     range(len(t))))[-3:]]
-
         plt.plot((t[highest_col], t[highest_col]),
                  (0, f[-1]), 'r')
         plt.ylabel('Freq / Hz')
@@ -134,13 +134,25 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.title('Three Max Amptitude'.format(t[highest_col]))
         for i in highest_col:
             plt.plot(amp[:, i], label='time: {:.2f}s'.format(t[i]), linewidth=0.5)
-            plt.legend()
+        plt.legend()
 
         plt.subplot(324)
         t = time.time()
-        plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filter', linewidth=0.5)
+        plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filtered', linewidth=0.5)
         plt.legend()
+        plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+        
+        d = p.remove_DC(p.notch(d))[0]
+        plt.subplot(326)
+        t = time.time()
+        amp = 2 * abs(np.fft.rfft(d)) / float(len(d))
+#        amp[0] *= 1e13
+        plt.plot(10*np.log10(amp*amp)[::12], linewidth=0.5, label='unfiltered')
         plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+        plt.legend()
+        plt.grid()
+        plt.xlabel('Frequency')
+        plt.ylabel('dB/Hz')
 
 class Screen_GUI(object):
     '''
@@ -541,11 +553,11 @@ if __name__ == '__main__':
 # =============================================================================
 #
 # =============================================================================
-#    filename = '../data/test/grab-2.mat'
-#    actionname = os.path.basename(filename)
-#    data = sio.loadmat(filename)[actionname.split('-')[0]][0]
-#    sample_rate=500; sample_time=6
-#    view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
+    filename = '../data/test/grab-2.mat'
+    actionname = os.path.basename(filename)
+    data = sio.loadmat(filename)[actionname.split('-')[0]][0]
+    sample_rate=500; sample_time=6
+    view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
 # =============================================================================
 #
 # =============================================================================

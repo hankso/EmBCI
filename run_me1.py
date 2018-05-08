@@ -14,10 +14,8 @@ sys.path += ['./src', './utils']
 from common import check_input, Signal_Info
 from visualization import Screen_GUI
 
-#from IO import ADS1299_reader as Reader
-from IO import Fake_data_generator as Reader
-
-from IO import Screen_commander as Commander
+from IO import ADS1299_reader as Reader
+#from IO import Fake_data_generator as Reader
 
 menu = {
     'line': [], 'rectf': [], 'circle': [], 'img': [], 'point': [], 'rect': [], 'circlef': [],
@@ -82,7 +80,6 @@ def prev_jobs(*args, **kwargs):
     for bt in s.widget['button']:
         if bt['id'] == 6:
             bt['callback'] = jobs_list['job_callback'][jobs_list['i']]
-#            s.render(name='button', num=6)
 
 
 def next_jobs(*args, **kwargs):
@@ -95,7 +92,6 @@ def next_jobs(*args, **kwargs):
     for bt in s.widget['button']:
         if bt['id'] == 6:
             bt['callback'] = jobs_list['job_callback'][jobs_list['i']]
-#            s.render(name='button', num=6)
 
 
 def minus_scale(*args, **kwargs):
@@ -104,7 +100,7 @@ def minus_scale(*args, **kwargs):
     for text in s.widget['text']:
         if text['id'] == 3:
             text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
-    s.render()
+            s.render(name='text', num=3)
 
 
 def plus_scale(*args, **kwargs):
@@ -113,7 +109,7 @@ def plus_scale(*args, **kwargs):
     for text in s.widget['text']:
         if text['id'] == 3:
             text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
-    s.render()
+            s.render(name='text', num=3)
 
 
 def minus_n_channel(*args, **kwargs):
@@ -122,7 +118,7 @@ def minus_n_channel(*args, **kwargs):
     for text in s.widget['text']:
         if text['id'] == 5:
             text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
-    s.render()
+            s.render(name='text', num=5)
 
 
 def plus_n_channel(*args, **kwargs):
@@ -131,7 +127,7 @@ def plus_n_channel(*args, **kwargs):
     for text in s.widget['text']:
         if text['id'] == 5:
             text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
-    s.render()
+            s.render(name='text', num=5)
 
 
 def display_waveform(*args, **kwargs):
@@ -152,6 +148,7 @@ def display_waveform(*args, **kwargs):
 
     # start and stop flag
     flag_close = threading.Event()
+    s.clear()
 
     # plot page widgets
     s.draw_text(5, 1, '波形显示', c=2) # 0
@@ -178,8 +175,9 @@ def display_waveform(*args, **kwargs):
             # first clear current line
             s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
             # update channel data list
-            data[x] = s.reader.channel_data[:n_channel].astype(np.int) \
-                      * scale_range['a'][scale_range['i']] + bias
+            d = s.reader.channel_data[:n_channel]
+            d *= scale_range['a'][scale_range['i']]
+            data[x] = d.astype(np.int) + bias
             # then draw current point
             for i in range(n_channel):
                 if data[x][i] < area[3] and data[x][i] > area[1]:
@@ -200,9 +198,10 @@ def display_info(x, y, bt):
     # construct reader
     sample_rate = rate_range['a'][rate_range['i']]
     sample_time = time_range['n']
-    n_channel = 2
+    n_channel = 0
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel)
+    s.reader.start()
 
     # store old widget
     tmp = s.widget.copy()
@@ -211,12 +210,15 @@ def display_info(x, y, bt):
 
     # start and stop flag
     flag_close = threading.Event()
+    s.clear()
 
     # plot page widgets
-    s.draw_text(4, 145, '4-6Hz最大峰值') # 1
-    s.draw_text(156, 145, '@') # 2
-    s.draw_text(108, 145, '      ', c=1) # 3
-    s.draw_text(164, 145, '      ', c=1) # 4
+    s.draw_text(4, 145, '4-6Hz最大峰值') # 0
+    s.draw_text(156, 145, '@') # 1
+    s.draw_text(108, 145, '      ', c=1) # 2
+    s.draw_text(164, 145, '      ', c=1) # 3
+    amp = s.widget['text'][2]
+    fre = s.widget['text'][3]
 
     # start display!
     last_time = time.time()
@@ -225,14 +227,15 @@ def display_info(x, y, bt):
         while not flag_close.isSet():
             if (time.time() - last_time) > 1:
                 last_time = time.time()
-                amp, fre = s.widget['text'][3:5]
+                # first clear last text
                 s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=0)
                 s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=0)
-                f, a = si.peek_extract(s.r.frame_data, 4, 6,
-                                       s.r.sample_rate)[0, 0]
+                # get signal info
+                f, a = si.peek_extract(s.reader.frame_data, 4, 6,
+                                       s.reader.sample_rate)[0, 0]
                 amp['s'] = '%3.3f' % a
                 fre['s'] = '%1.2fHz' % f
-#                print(amp['s'], fre['s'])
+                # only update text
                 s._c.send('text', x=amp['x'], y=amp['y'], s=amp['s'], c=amp['c'])
                 s._c.send('text', x=fre['x'], y=fre['y'], s=fre['s'], c=fre['c'])
     except Exception as e:
@@ -271,7 +274,7 @@ if __name__ == '__main__':
                        '\xcf\xd4\xca\xbe\xd0\xc5\xcf\xa2'],
                  'i': 0,
                  'job_callback': [display_waveform, display_info]}
-    scale_range = {'a': [1, 10, 100, 1000, 5000, 10000, 50000, 1000000], 'i': 4}
+    scale_range = {'a': [1, 10, 100, 1000, 5000, 10000, 50000, 1000000], 'i': 3}
     channel_range = {'a': range(9), 'i': 2}
 
     s = Screen_GUI(screen_port='/dev/ttyUSB0')
