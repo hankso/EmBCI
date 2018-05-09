@@ -470,9 +470,11 @@ class Signal_Info(object):
     
     def check_shape(func):
         def param_wrapper(self, X, *args, **kwargs):
+            if type(X) is tuple:
+                return func(self, X, *args, **kwargs)
+            
             if type(X) is not np.ndarray:
                 X = np.array(X)
-                
             # simple 1D time series.
             # Input: windowsize
             if len(X.shape) == 1:

@@ -490,7 +490,7 @@ class Screen_GUI(object):
                     else:
                         self._callback_threads.append(threading.Thread(
                                 target=bt['callback'],
-                                kwargs={'x': x, 'y': y, 'button':bt}))
+                                kwargs={'x': x, 'y': y, 'bt':bt}))
                         self._callback_threads[-1].start()
         print('[Touch Screen] exiting...')
 

@@ -166,7 +166,7 @@ def display_waveform(*args, **kwargs):
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
-    n_channel = channel_range['a'][channel_range['i']]
+    n_channel = channel_range['n']
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
@@ -193,7 +193,7 @@ def display_waveform(*args, **kwargs):
     s.draw_button(202, 1, '＋', callback=plus_scale)
     s.draw_text(74, 18, '通道') # 4
     s.draw_button(112, 18, '－', callback=minus_n_channel)
-    s.draw_text(134, 18, '   %2d   ' % channel_range['a'][channel_range['i']]) # 5
+    s.draw_text(134, 18, '   %2d   ' % channel_range['n']) # 5
     s.draw_button(202, 18, '＋', callback=plus_n_channel)
     data = np.zeros((area[2] - area[0], n_channel))
     ch_height = (area[3] - area[1] - 1)/n_channel
@@ -208,8 +208,9 @@ def display_waveform(*args, **kwargs):
             s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
             # update channel data list
             d = s.reader.channel_data[:n_channel]
-            d *= scale_list['a'][scale_list['i']]
-            data[x] = d.astype(np.int) + bias
+            d = (d * scale_list['a'][scale_list['i']]).astype(np.int) + bias
+            d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
+            data[x] = d
             # then draw current point
             for i in range(n_channel):
                 if data[x][i] < area[3] and data[x][i] > area[1]:
@@ -344,7 +345,7 @@ if __name__ == '__main__':
                  'job_callback': [display_waveform, display_info]}
     scale_list = {'a': [10, 100, 200, 500, 1000, 2000, 5000, 10000], 'i': 4}
     channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
-    current_ch_list = {'a': ['channel_%d' % i for i in range(8)], 'i': 0}
+    current_ch_list = {'a': ['channel%d' % i for i in range(8)], 'i': 0}
     f1_range = {'r': (1, 30), 'n': 4, 'step': 1}
     f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
