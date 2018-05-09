@@ -9,13 +9,15 @@ Created on Thu Apr 26 19:27:13 2018
 from __future__ import print_function
 import sys, time, threading, numpy as np
 sys.path += ['./src', './utils']
+from functools import partial
 
 # from ./utils
-from common import check_input, Signal_Info
+from common import check_input, Signal_Info, mapping
 from visualization import Screen_GUI
 
 from IO import ADS1299_reader as Reader
 #from IO import Fake_data_generator as Reader
+from IO import Socket_server
 
 menu = {
     'line': [], 'rectf': [], 'circle': [], 'img': [], 'point': [], 'rect': [], 'circlef': [],
@@ -33,20 +35,20 @@ menu = {
 
 
 def minus_sample_rate(x, y, bt):
-    rate_range['i'] -= 1
-    rate_range['i'] %= len(rate_range['a'])
+    rate_list['i'] -= 1
+    rate_list['i'] %= len(rate_list['a'])
     for text in s.widget['text']:
         if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % rate_range['a'][rate_range['i']]
+            text['s'] = ' %3d Hz ' % rate_list['a'][rate_list['i']]
             s.render(name='text', num=7)
 
 
 def plus_sample_rate(*args, **kwargs):
-    rate_range['i'] += 1
-    rate_range['i'] %= len(rate_range['a'])
+    rate_list['i'] += 1
+    rate_list['i'] %= len(rate_list['a'])
     for text in s.widget['text']:
         if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % rate_range['a'][rate_range['i']]
+            text['s'] = ' %3d Hz ' % rate_list['a'][rate_list['i']]
             s.render(name='text', num=7)
 
 
@@ -95,49 +97,79 @@ def next_jobs(*args, **kwargs):
 
 
 def minus_scale(*args, **kwargs):
-    scale_range['i'] -= 1
-    scale_range['i'] %= len(scale_range['a'])
+    scale_list['i'] -= 1
+    scale_list['i'] %= len(scale_list['a'])
     for text in s.widget['text']:
         if text['id'] == 3:
-            text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
+            text['s'] = '%7d ' % scale_list['a'][scale_list['i']]
             s.render(name='text', num=3)
 
 
 def plus_scale(*args, **kwargs):
-    scale_range['i'] += 1
-    scale_range['i'] %= len(scale_range['a'])
+    scale_list['i'] += 1
+    scale_list['i'] %= len(scale_list['a'])
     for text in s.widget['text']:
         if text['id'] == 3:
-            text['s'] = '%7d ' % scale_range['a'][scale_range['i']]
+            text['s'] = '%7d ' % scale_list['a'][scale_list['i']]
             s.render(name='text', num=3)
 
 
 def minus_n_channel(*args, **kwargs):
-    channel_range['i'] -= 1
-    channel_range['i'] %= len(channel_range['a'])
+    channel_range['n'] -= channel_range['step']
+    if channel_range['n'] < channel_range['r'][0]:
+        channel_range['n'] = channel_range['r'][1]
     for text in s.widget['text']:
         if text['id'] == 5:
-            text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
+            text['s'] = '   %2d   ' % channel_range['n']
             s.render(name='text', num=5)
 
 
 def plus_n_channel(*args, **kwargs):
-    channel_range['i'] += 1
-    channel_range['i'] %= len(channel_range['a'])
+    channel_range['n'] += channel_range['step']
+    if channel_range['n'] > channel_range['r'][1]:
+        channel_range['n'] = channel_range['r'][0]
     for text in s.widget['text']:
         if text['id'] == 5:
-            text['s'] = '   %2d   ' % channel_range['a'][channel_range['i']]
+            text['s'] = '   %2d   ' % channel_range['n']
             s.render(name='text', num=5)
+
+
+def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **kwargs):
+    if operate == 'plus':
+        e['n'] += e['step']
+        if e['n'] > e['r'][1]:
+            e['n'] = e['r'][0]
+    elif operate == 'minus':
+        e['n'] -= e['step']
+        if e['n'] < e['r'][0]:
+            e['n'] = e['r'][1]
+    if name and num:
+        for i in s.widget[name]:
+            if i['id'] == num:
+                i['s'] = fm.format(e['n']) if fm else str(e['n'])
+                s.render(name=name, num=num)
+                
+def list_callback(e, operate='next', name='text', fm=None, num=None, *args, **kwargs):
+    if operate == 'next':
+        e['i'] += 1
+    elif operate == 'prev':
+        e['i'] -= 1
+    e['i'] %= len(e['a'])
+    if name and num:
+        for i in s.widget[name]:
+            if i['id'] == num:
+                i['s'] = fm.format(e['a'][e['i']]) if fm else str(e['a'][e['i']])
+                s.render(name=name, num=num)
 
 
 def display_waveform(*args, **kwargs):
     # construct reader
-    sample_rate = rate_range['a'][rate_range['i']]
+    sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
     n_channel = channel_range['a'][channel_range['i']]
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-    s.reader.start(); s.reader.resume()
+    s.reader.start()
     color = np.arange(1, 1 + n_channel)
     area = [0, 40, 220, 176]
 
@@ -157,7 +189,7 @@ def display_waveform(*args, **kwargs):
     s.draw_rectangle(72, 0, 219, 35, c=5)
     s.draw_text(74, 1, '幅度') # 2
     s.draw_button(112, 1, '－', callback=minus_scale)
-    s.draw_text(134, 1, '%7d ' % scale_range['a'][scale_range['i']]) # 3
+    s.draw_text(134, 1, '%7d ' % scale_list['a'][scale_list['i']]) # 3
     s.draw_button(202, 1, '＋', callback=plus_scale)
     s.draw_text(74, 18, '通道') # 4
     s.draw_button(112, 18, '－', callback=minus_n_channel)
@@ -176,7 +208,7 @@ def display_waveform(*args, **kwargs):
             s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
             # update channel data list
             d = s.reader.channel_data[:n_channel]
-            d *= scale_range['a'][scale_range['i']]
+            d *= scale_list['a'][scale_list['i']]
             data[x] = d.astype(np.int) + bias
             # then draw current point
             for i in range(n_channel):
@@ -197,12 +229,13 @@ def display_waveform(*args, **kwargs):
 
 def display_info(x, y, bt):
     # construct reader
-    sample_rate = rate_range['a'][rate_range['i']]
+    sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
     n_channel = 2
+    si = Signal_Info()
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-    s.reader.start(); s.reader.resume()
+    s.reader.start()
 
     # store old widget
     tmp = s.widget.copy()
@@ -214,32 +247,70 @@ def display_info(x, y, bt):
     s.clear()
 
     # plot page widgets
-    s.draw_text(4, 145, '4-6Hz最大峰值') # 0
-    s.draw_text(156, 145, '@') # 1
-    s.draw_text(108, 145, '      ', c=1) # 2
-    s.draw_text(164, 145, '      ', c=1) # 3
-    amp = s.widget['text'][2]
-    fre = s.widget['text'][3]
+    s.draw_button(145, 0, '返回上层', callback=lambda *a, **k: flag_close.set())
+    s.draw_button(2, 0, '↑', callback=partial(range_callback, f1_range, 'plus', fm='{:2d}', num=0))
+    s.draw_text(2, 16, ' 4', c=3) # 0
+    s.draw_button(2, 32, '↓', callback=partial(range_callback, f1_range, 'minus', fm='{:2d}', num=0))
+    s.draw_text(18, 16, '-') # 1
+    s.draw_button(26, 0, '↑', callback=partial(range_callback, f2_range, 'plus', fm='{:2d}', num=0))
+    s.draw_text(26, 16, ' 6', c=3) # 2
+    s.draw_button(26, 32, '↓', callback=partial(range_callback, f2_range, 'minus', fm='{:2d}', num=0))
+    s.draw_text(42, 16, '最大峰值:') # 3
+    s.draw_text(114, 16, '     ', c=1) # 4
+    s.draw_text(154, 16, '@') # 5
+    s.draw_text(162, 16, '     ', c=1) # 6
+    s.draw_text(202, 16, 'Hz') # 7
+    s.draw_text(42, 32, '1-30Hz频段能量和:') # 8
+    s.draw_text(178, 32, '     ', c=1) # 9
+    s.draw_text(2, 48, '1-125最大峰值:') # 10
+    s.draw_text(114, 48, '     ', c=1) # 11
+    s.draw_text(154, 48, '@') # 12
+    s.draw_text(162, 48, '     ', c=1) # 13
+    s.draw_text(202, 48, 'Hz') # 14
+    r_amp = s.widget['text'][4]
+    r_fre = s.widget['text'][6]
+    energy30 = s.widget['text'][9]
+    a_amp = s.widget['text'][11]
+    a_fre = s.widget['text'][13]
+    area = [0, 50, 220, 176]
 
     # start display!
     last_time = time.time()
-    si = Signal_Info()
     try:
         while not flag_close.isSet():
-            if (time.time() - last_time) > 1:
+            if (time.time() - last_time) > 0.5:
                 last_time = time.time()
-                # get signal info
-                f, a = si.peek_extract(s.reader.frame_data, 4, 6,
-                                       s.reader.sample_rate)[0, 0]
-                amp['s'] = '%3.3f' % a
-                fre['s'] = '%1.2fHz' % f
-                s.render(name='text', num=2)
-                s.render(name='text', num=3)
+                data = s.reader.buffer[current_ch_list['a'][current_ch_list['i']]]
+                x, y = si.fft(data, sample_rate)
+                # get peek of specific duration of signal
+                f, a = si.peek_extract((x, y), f1_range['n'], f2_range['n'], sample_rate)[0]
+                r_amp['s'] = '%5.3f' % a
+                r_fre['s'] = '%5.2f' % f
+                s.render(name='text', num=4)
+                s.render(name='text', num=6)
+                # get peek of all
+                f, a = si.peek_extract((x, y), 1, sample_rate/2, sample_rate)[0]
+                a_amp['s'] = '%5.3f' % a
+                a_fre['s'] = '%5.2f' % f
+                s.render(name='text', num=11)
+                s.render(name='text', num=13)
+                # get energy info
+                e = si.energy((x ,y), 1, 30, sample_rate)[0]
+                energy30['s'] = '%5.3f' % e
+                s.render(name='text', num=9)
+                # draw amp-freq graph
+                s.clear(*area)
+                y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
+                for x in range(1, len(y)):
+                    if y[x] != y[x-1]:
+                        s._c.send('line', x1=x, x2=x, y1=int(y[x]), y2=int(y[x-1]))
+                    else:
+                        s._c.send('point', x=x, y=int(y[x]))
     except Exception as e:
         print(e)
     finally:
         # recover old widget
-        s.widget = tmp.copy()
+        s.widget = tmp
         s.reader.pause()
         s.render()
 
@@ -265,15 +336,19 @@ if __name__ == '__main__':
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
 
-    rate_range = {'a': [100, 250, 500], 'i': 1}
+    rate_list = {'a': [100, 250, 500], 'i': 1}
     time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
     jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
                        '\xcf\xd4\xca\xbe\xd0\xc5\xcf\xa2'],
                  'i': 0,
                  'job_callback': [display_waveform, display_info]}
-    scale_range = {'a': [1, 10, 100, 1000, 5000, 10000, 50000, 1000000], 'i': 3}
-    channel_range = {'a': range(9), 'i': 2}
+    scale_list = {'a': [10, 100, 200, 500, 1000, 2000, 5000, 10000], 'i': 4}
+    channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
+    current_ch_list = {'a': ['channel_%d' % i for i in range(8)], 'i': 0}
+    f1_range = {'r': (1, 30), 'n': 4, 'step': 1}
+    f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
+    server = Socket_server()
     s = Screen_GUI(screen_port='/dev/ttyS1')
 # =============================================================================
 #     s.display_logo('./files/LOGO.bmp')

@@ -254,7 +254,8 @@ class Files_reader(_basic_reader):
                  filename,
                  sample_rate=256,
                  sample_time=2,
-                 n_channel=1):
+                 n_channel=1,
+                 *args, **kwargs):
         super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
         self.filename = filename
         self._name = '[Files reader %d] ' % Files_reader._num
@@ -328,7 +329,8 @@ class Pylsl_reader(_basic_reader):
                  sample_rate=256,
                  sample_time=2,
                  n_channel=1,
-                 servername=None):
+                 servername=None,
+                 *args, **kwargs):
         super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._servername = servername
         self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
@@ -410,7 +412,8 @@ class Serial_reader(_basic_reader):
                  sample_time=2,
                  n_channel=1,
                  baudrate=115200,
-                 send_to_pylsl=False):
+                 send_to_pylsl=False,
+                 *args, **kwargs):
         super(Serial_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._serial = serial.Serial(baudrate=baudrate)
         self._name = '[Serial reader %d] ' % Serial_reader._num
@@ -499,10 +502,11 @@ class ADS1299_reader(_basic_reader):
                  sample_rate=500,
                  sample_time=2,
                  n_channel=8,
-                 send_to_pylsl=True,
+                 send_to_pylsl=False,
                  device=(1, 0),
                  bias_enabled=False,
-                 test_mode=False):
+                 test_mode=False,
+                 *args, **kwargs):
         super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[ADS1299 reader %d] ' % ADS1299_reader._num
         ADS1299_reader._num += 1
@@ -594,7 +598,8 @@ class Socket_reader(_basic_reader):
     def __init__(self,
                  sample_rate=250,
                  sample_time=2,
-                 n_channel=8):
+                 n_channel=8,
+                 *args, **kwargs):
         super(Socket_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         Socket_reader._num += 1
@@ -697,7 +702,7 @@ class Socket_server(object):
                 pass
             
             # clear closed connections, each one cost 1 second
-            for i, con in zip(range(len(self.connections)), self.connections):
+            for i, con in enumerate(self.connections):
                 try:
                     con.settimeout(1)
                     if con.recv(1024) == '':
@@ -725,9 +730,11 @@ class Socket_server(object):
 
 
 class Fake_data_generator(_basic_reader):
+    _num = 1
     def __init__(self, sample_rate=250, sample_time=3, n_channel=8):
         super(Fake_data_generator, self).__init__(sample_rate, sample_time, n_channel)
-        self._name = '[Fake data generator] '
+        self._name = '[Fake data generator %d] ' % Fake_data_generator._num
+        Fake_data_generator._num += 1
         
     def start(self):
         if self._started:

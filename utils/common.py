@@ -63,8 +63,6 @@ def mapping(a, low=0, high=255):
     a = np.array(a, np.float32)
     if not len(a) or a.min() == a.max():
         return a
-    if high < low:
-        raise RuntimeError('low should be small than high')
     return (a - a.min()) * (high - low) / (a.max() - a.min()) + low
 
 def check_dir(func):
@@ -667,7 +665,10 @@ class Signal_Info(object):
         Extract peek between frequency duration (n_min, n_max)
         4-6Hz 最大幅值对应的频率以及幅值
         '''
-        x, y = self.fft(X, sample_rate)
+        if isinstance(X, tuple) and len(X) == 2:
+            x, y = X
+        else:
+            x, y = self.fft(X, sample_rate)
         duration = float(x.shape[0] - 1) / (sample_rate / 2)
         return [(ch.argmax()/duration + low, ch.max()) \
                 for ch in y[:, int(low*duration):int(high*duration)]**2]
@@ -678,7 +679,10 @@ class Signal_Info(object):
         一段频段内的能量和
         energy sum of duration (low, high)
         '''
-        x, y = self.fft(X, sample_rate)
+        if isinstance(X, tuple) and len(X) == 2:
+            x, y = X
+        else:
+            x, y = self.fft(X, sample_rate)
         duration = float(x.shape[0] - 1) / (sample_rate / 2)
         return [sum(ch) * duration \
                 for ch in y[:, int(low*duration):int(high*duration)]**2]
