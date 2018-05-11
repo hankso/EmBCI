@@ -524,9 +524,10 @@ class ADS1299_reader(_basic_reader):
         # 1. find avalable spi devices
         print(self._name + 'finding available spi devices... ', end='')
         dev = self._ads.open(self.device, max_speed_hz=1000000)
-        print('spi%d-%d' % dev)
+        print('spi%d-%d, opening... ' % dev, end='')
         self._ads.start()
         self._start_time = time.time()
+        print('done')
         
         # 2. start main thread
         # here we only need to check one time whether send_to_pylsl is set

@@ -10,9 +10,10 @@ from __future__ import print_function
 import sys, time, threading, numpy as np
 sys.path += ['./src', './utils']
 from functools import partial
+import serial
 
 # from ./utils
-from common import check_input, Signal_Info, mapping
+from common import check_input, Signal_Info, mapping, virtual_serial
 from visualization import Screen_GUI
 
 from IO import ADS1299_reader as Reader
@@ -135,6 +136,7 @@ def plus_n_channel(*args, **kwargs):
 
 
 def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **kwargs):
+    print(e)
     if operate == 'plus':
         e['n'] += e['step']
         if e['n'] > e['r'][1]:
@@ -143,8 +145,10 @@ def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **k
         e['n'] -= e['step']
         if e['n'] < e['r'][0]:
             e['n'] = e['r'][1]
+    print(e['n'], name, num)
     if name and num:
         for i in s.widget[name]:
+            print(i['id'])
             if i['id'] == num:
                 i['s'] = fm.format(e['n']) if fm else str(e['n'])
                 s.render(name=name, num=num)
@@ -171,7 +175,7 @@ def display_waveform(*args, **kwargs):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
     color = np.arange(1, 1 + n_channel)
-    area = [0, 40, 220, 176]
+    area = [0, 40, 219, 175]
 
     # store old widget
     tmp = s.widget.copy()
@@ -248,32 +252,36 @@ def display_info(x, y, bt):
     s.clear()
 
     # plot page widgets
-    s.draw_button(145, 0, '返回上层', callback=lambda *a, **k: flag_close.set())
-    s.draw_button(2, 0, '↑', callback=partial(range_callback, f1_range, 'plus', fm='{:2d}', num=0))
-    s.draw_text(2, 16, ' 4', c=3) # 0
-    s.draw_button(2, 32, '↓', callback=partial(range_callback, f1_range, 'minus', fm='{:2d}', num=0))
-    s.draw_text(18, 16, '-') # 1
-    s.draw_button(26, 0, '↑', callback=partial(range_callback, f2_range, 'plus', fm='{:2d}', num=0))
-    s.draw_text(26, 16, ' 6', c=3) # 2
-    s.draw_button(26, 32, '↓', callback=partial(range_callback, f2_range, 'minus', fm='{:2d}', num=0))
-    s.draw_text(42, 16, '最大峰值:') # 3
-    s.draw_text(114, 16, '     ', c=1) # 4
-    s.draw_text(154, 16, '@') # 5
-    s.draw_text(162, 16, '     ', c=1) # 6
-    s.draw_text(202, 16, 'Hz') # 7
-    s.draw_text(42, 32, '1-30Hz频段能量和:') # 8
-    s.draw_text(178, 32, '     ', c=1) # 9
-    s.draw_text(2, 48, '1-125最大峰值:') # 10
-    s.draw_text(114, 48, '     ', c=1) # 11
-    s.draw_text(154, 48, '@') # 12
-    s.draw_text(162, 48, '     ', c=1) # 13
-    s.draw_text(202, 48, 'Hz') # 14
+    s.draw_button(155, 0, '返回上层', callback=lambda *a, **k: flag_close.set())
+    s.draw_button(2, 0, '↑', callback=partial(range_callback, e=f1_range,
+                                              operate='plus', fm='{:2d}', num=0))
+    s.draw_text(2, 17, ' 4', c=3) # 0
+    s.draw_button(2, 33, '↓', callback=partial(range_callback, e=f1_range,
+                                               operate='minus', fm='{:2d}', num=0))
+    s.draw_text(18, 17, '-') # 1
+    s.draw_button(26, 0, '↑', callback=partial(range_callback, e=f2_range,
+                                               operate='plus', fm='{:2d}', num=2))
+    s.draw_text(26, 17, ' 6', c=3) # 2
+    s.draw_button(26, 33, '↓', callback=partial(range_callback, e=f2_range,
+                                                operate='minus', fm='{:2d}', num=2))
+    s.draw_text(42, 17, '最大峰值:') # 3
+    s.draw_text(114, 17, '     ', c=1) # 4
+    s.draw_text(154, 17, '@') # 5
+    s.draw_text(162, 17, '     ', c=1) # 6
+    s.draw_text(202, 17, 'Hz') # 7
+    s.draw_text(43, 33, '1-30Hz能量和:') # 8
+    s.draw_text(147, 33, '         ', c=1) # 9
+    s.draw_text(2, 50, '1-125最大峰值:') # 10
+    s.draw_text(114, 50, '     ', c=1) # 11
+    s.draw_text(154, 50, '@') # 12
+    s.draw_text(162, 50, '     ', c=1) # 13
+    s.draw_text(202, 50, 'Hz') # 14
     r_amp = s.widget['text'][4]
     r_fre = s.widget['text'][6]
     energy30 = s.widget['text'][9]
     a_amp = s.widget['text'][11]
     a_fre = s.widget['text'][13]
-    area = [0, 50, 220, 176]
+    area = [0, 68, 219, 175]
 
     # start display!
     last_time = time.time()
@@ -283,30 +291,33 @@ def display_info(x, y, bt):
                 last_time = time.time()
                 data = s.reader.buffer[current_ch_list['a'][current_ch_list['i']]]
                 x, y = si.fft(data, sample_rate)
+                y[y!=0] /= y[y!=0].min()
                 # get peek of specific duration of signal
                 f, a = si.peek_extract((x, y), f1_range['n'], f2_range['n'], sample_rate)[0]
-                r_amp['s'] = '%5.3f' % a
+                r_amp['s'] = '%d' % a
                 r_fre['s'] = '%5.2f' % f
                 s.render(name='text', num=4)
                 s.render(name='text', num=6)
                 # get peek of all
                 f, a = si.peek_extract((x, y), 1, sample_rate/2, sample_rate)[0]
-                a_amp['s'] = '%5.3f' % a
-                a_fre['s'] = '%5.2f' % f
-                s.render(name='text', num=11)
+                a_amp['s'] = '%d' % a
+                a_fre['s'] = '%5.1f' % f
+                s.render(namareae='text', num=11)
                 s.render(name='text', num=13)
                 # get energy info
                 e = si.energy((x ,y), 1, 30, sample_rate)[0]
-                energy30['s'] = '%5.3f' % e
+                energy30['s'] = '%d' % e
                 s.render(name='text', num=9)
                 # draw amp-freq graph
                 s.clear(*area)
                 y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
                 for x in range(1, len(y)):
                     if y[x] != y[x-1]:
-                        s._c.send('line', x1=x, x2=x, y1=int(y[x]), y2=int(y[x-1]))
+                        s._c.send('line', x1=x, x2=x, y1=int(y[x]), y2=int(y[x-1]),
+                                  c=3)
                     else:
-                        s._c.send('point', x=x, y=int(y[x]))
+                        s._c.send('point', x=x, y=int(y[x]), c=3)
+                s._c.send('line', x1=int(f), y1=area[1], x2=int(f), y2=area[3], c=1)
     except Exception as e:
         print(e)
     finally:
@@ -349,10 +360,12 @@ if __name__ == '__main__':
     f1_range = {'r': (1, 30), 'n': 4, 'step': 1}
     f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
-    server = Socket_server()
+    stop = virtual_serial()
     s = Screen_GUI(screen_port='/dev/ttyS1')
 # =============================================================================
 #     s.display_logo('./files/LOGO.bmp')
 # =============================================================================
+    s.start_touch_screen('/dev/pts/0')
+    s1 = serial.Serial('/dev/pts/1', 115200)
     s.widget = menu
     s.render()
