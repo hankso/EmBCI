@@ -175,7 +175,7 @@ class Screen_GUI(object):
         self._touch_started = False
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
-        self.touch_sensibility = 20
+        self.touch_sensibility = 4
         self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
         self._flag_pause = threading.Event()
@@ -433,15 +433,17 @@ class Screen_GUI(object):
         ptt = np.zeros((4, 2))
         try:
             for i in range(4):
+                print('[Calibration] this will be %d/4 points' % (i+1))
                 self.draw_circle(pts[i][0], pts[i][1], 4, render=True,
                                  c=self._color_map['blue'])
                 ptt[i] = self._get_touch_point()
+                print('[Calibration] touch at {}, {}'.format(*ptt[i]))
                 self.draw_circle(pts[i][0], pts[i][1], 2, render=True,
                                  c=self._color_map['blue'], fill=True)
-            print(ptt, pts)
             self._cali_matrix = np.array([
                     np.polyfit(ptt[:, 0], pts[:, 0], 1),
                     np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
+            print(ptt, pts, self._cali_matrix)
         except Exception as e:
             print(e)
         finally:
@@ -456,20 +458,20 @@ class Screen_GUI(object):
         while 1:
             self._read_lock.acquire()
             raw = self._t.read_until().strip()
-            x_y_p = raw.split(',')
             self._read_lock.release()
-            print(raw)
-            if len(x_y_p) == 3:
+            if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
+                self._last_touch_time = time.time()
                 try:
-                    pt = np.array([ int(x_y_p[0]), int(x_y_p[1]) ])
-                    if (time.time() - self._last_touch_time) > \
-                    1.0/self.touch_sensibility:
-                        self._last_touch_time = time.time()
-                        return pt * self._cali_matrix[0] + self._cali_matrix[1]
+                    xyp = raw.split(',')
+                    if len(xyp) == 3:
+                        pt = self._cali_matrix[1] + \
+                             [int(xyp[0]), int(xyp[1])] * self._cali_matrix[0]
+                        print('[Touch Screen] touch at {}, {}'.format(*pt))
+                        return pt
+                    else:
+                        print('[Touch Screen] Invalid input %s' % raw)
                 except:
                     continue
-            else:
-                print('[Touch Screen] Invalid input %s' % raw)
 
     def _handle_touch_screen(self):
         while not self._flag_close.isSet():
@@ -505,8 +507,11 @@ class Screen_GUI(object):
         self.draw_text(54, 159, 'click to start')
         if self._touch_started:
             self._flag_pause.clear()
+            self._read_lock.acquire()
             self._t.flushInput()
             self._t.read_until()
+            self._t.flushInput()
+            self._read_lock.release()
             self._flag_pause.set()
         else:
             time.sleep(1)

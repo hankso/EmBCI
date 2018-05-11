@@ -403,6 +403,7 @@ if __name__ == '__main__':
     reset_avr.value = 0
     time.sleep(1)
     reset_avr.value = 1
+    time.sleep(1)
     
     try:
         s = Screen_GUI(screen_port='/dev/ttyS1')
