@@ -24,105 +24,17 @@ from IO import ADS1299_reader as Reader
 from IO import Socket_server
 
 
-def minus_sample_rate(x, y, bt):
-    rate_list['i'] -= 1
-    rate_list['i'] %= len(rate_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % rate_list['a'][rate_list['i']]
-            s.render(name='text', num=7)
-
-
-def plus_sample_rate(*args, **kwargs):
-    rate_list['i'] += 1
-    rate_list['i'] %= len(rate_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 7:
-            text['s'] = ' %3d Hz ' % rate_list['a'][rate_list['i']]
-            s.render(name='text', num=7)
-
-
-def minus_sample_time(*args, **kwargs):
-    time_range['n'] -= time_range['step']
-    if time_range['n'] < time_range['r'][0]:
-        time_range['n'] = time_range['r'][1]
-    for text in s.widget['text']:
-        if text['id'] == 8:
-            text['s'] = ' %1.2f s ' % time_range['n']
-            s.render(name='text', num=8)
-
-
-def plus_sample_time(*args, **kwargs):
-    time_range['n'] += time_range['step']
-    if time_range['n'] > time_range['r'][1]:
-        time_range['n'] = time_range['r'][0]
-    for text in s.widget['text']:
-        if text['id'] == 8:
-            text['s'] = ' %1.2f s ' % time_range['n']
-            s.render(name='text', num=8)
-
-
-def prev_jobs(*args, **kwargs):
-    jobs_list['i'] -= 1
-    jobs_list['i'] %= len(jobs_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 6:
-            text['s'] = jobs_list['a'][jobs_list['i']]
-            s.render(name='text', num=6)
-    for bt in s.widget['button']:
-        if bt['id'] == 6:
-            bt['callback'] = jobs_list['job_callback'][jobs_list['i']]
-
-
-def next_jobs(*args, **kwargs):
-    jobs_list['i'] += 1
-    jobs_list['i'] %= len(jobs_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 6:
-            text['s'] = jobs_list['a'][jobs_list['i']]
-            s.render(name='text', num=6)
-    for bt in s.widget['button']:
-        if bt['id'] == 6:
-            bt['callback'] = jobs_list['callback'][jobs_list['i']]
-
-
-def plus_scale(*args, **kwargs):
-    scale_list['i'] += 1
-    scale_list['i'] %= len(scale_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 3:
-            text['s'] = '%7d ' % scale_list['a'][scale_list['i']]
-            s.render(name='text', num=3)
+def shutdown(*args, **kwargs):
+    s.close()
+    server.close()
+    os.system('shutdown now')
     
 
-def minus_scale(*args, **kwargs):
-    scale_list['i'] -= 1
-    scale_list['i'] %= len(scale_list['a'])
-    for text in s.widget['text']:
-        if text['id'] == 3:
-            text['s'] = '%7d ' % scale_list['a'][scale_list['i']]
-            s.render(name='text', num=3)
-
-
-def minus_n_channel(*args, **kwargs):
-    channel_range['n'] -= channel_range['step']
-    if channel_range['n'] < channel_range['r'][0]:
-        channel_range['n'] = channel_range['r'][1]
-    for text in s.widget['text']:
-        if text['id'] == 5:
-            text['s'] = '   %2d   ' % channel_range['n']
-            s.render(name='text', num=5)
-
-
-def plus_n_channel(*args, **kwargs):
-    channel_range['n'] += channel_range['step']
-    if channel_range['n'] > channel_range['r'][1]:
-        channel_range['n'] = channel_range['r'][0]
-    for text in s.widget['text']:
-        if text['id'] == 5:
-            text['s'] = '   %2d   ' % channel_range['n']
-            s.render(name='text', num=5)
-
+def reboot(*args, **kwrags):
+    s.close()
+    server.close()
+    os.system('reboot')
+    
 
 def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **kwargs):
     if operate == 'plus':
@@ -384,9 +296,9 @@ menu = {
          'ct': 15, 's': '\xbf\xaa\xca\xbc', 'id': 6, 'ca': 1,
          'callback': display_waveform},
         {'x1': 92, 'x2': 126, 'x': 94, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': lambda *args, **kwargs: os.system('shutdown now'), 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
+         'ct': 15, 'callback': shutdown, 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
         {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': lambda *args, **kwargs: os.system('reboot'), 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
+         'ct': 15, 'callback': reboot, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
 }
 
 

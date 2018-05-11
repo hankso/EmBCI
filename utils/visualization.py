@@ -457,6 +457,7 @@ class Screen_GUI(object):
         '''
         while 1:
             self._read_lock.acquire()
+            self._t.flushInput()
             raw = self._t.read_until().strip()
             self._read_lock.release()
             if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
@@ -480,7 +481,6 @@ class Screen_GUI(object):
             for bt in self.widget['button']:
                 if x > bt['x1'] and x < bt['x2'] \
                 and y > bt['y1'] and y < bt['y2']:
-                    print(x, y, bt['id'])
                     self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
                                  x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
                     time.sleep(0.3)
@@ -510,7 +510,6 @@ class Screen_GUI(object):
             self._read_lock.acquire()
             self._t.flushInput()
             self._t.read_until()
-            self._t.flushInput()
             self._read_lock.release()
             self._flag_pause.set()
         else:
