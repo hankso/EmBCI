@@ -182,7 +182,7 @@ class Screen_GUI(object):
         self._flag_pause.set()
         self._read_lock = threading.Lock()
         self._last_touch_time = time.time()
-        self._cali_matrix = np.array([[1, 1], [0, 0]])
+        self._cali_matrix = np.array([[0.29688, 0.22382], [-53.21047, -22.89965]])
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
@@ -463,10 +463,10 @@ class Screen_GUI(object):
             if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
                 self._last_touch_time = time.time()
                 try:
-                    xyp = raw.split(',')
-                    if len(xyp) == 3:
+                    yxp = raw.split(',')
+                    if len(yxp) == 3:
                         pt = self._cali_matrix[1] + \
-                             [int(xyp[0]), int(xyp[1])] * self._cali_matrix[0]
+                             [int(yxp[1]), int(yxp[0])] * self._cali_matrix[0]
                         print('[Touch Screen] touch at {}, {}'.format(*pt))
                         return pt
                     else:
@@ -528,9 +528,13 @@ class Screen_GUI(object):
         self._c.close()
         if self._touch_started:
             self._flag_close.set()
-            self._t.write('\xaa\xaa\xaa\xaa') # send close signal
-            time.sleep(1)
-            self._t.close()
+            try:
+                self._t.write('\xaa\xaa\xaa\xaa') # send close signal
+                time.sleep(1)
+            except:
+                pass
+            finally:
+                self._t.close()
 
     def update_element_color(self, element, color):
         if element not in self._e:
