@@ -407,7 +407,7 @@ if __name__ == '__main__':
     try:
         s = Screen_GUI(screen_port='/dev/ttyS1')
         server = Socket_server()
-        s.starrt_touch_screen('/dev/ttyS2')
+        s.start_touch_screen('/dev/ttyS2')
 #        stop = virtual_serial()
 #        s.start_touch_screen('/dev/pts/0')
 #        s1 = serial.Serial('/dev/pts/1', 115200)
