@@ -7,21 +7,20 @@ Created on Thu Apr 26 19:27:13 2018
 """
 # built-in
 from __future__ import print_function
-import sys, time, threading, numpy as np
+import os, sys, time, threading
 sys.path += ['./src', './utils']
 from functools import partial
-import serial
 
-# pip install ipython
+# pip install ipython, numpy
 import IPython
+import numpy as np
 
 # from ./utils
-from common import check_input, Signal_Info, mapping, virtual_serial
+from common import check_input, Signal_Info, mapping
+from gpio4 import SysfsGPIO
 from preprocessing import Processer
 from visualization import Screen_GUI
-
 from IO import ADS1299_reader as Reader
-#from IO import Fake_data_generator as Reader
 from IO import Socket_server
 
 
@@ -385,9 +384,9 @@ menu = {
          'ct': 15, 's': '\xbf\xaa\xca\xbc', 'id': 6, 'ca': 1,
          'callback': display_waveform},
         {'x1': 92, 'x2': 126, 'x': 94, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': lambda *args, **kwargs: sys.exit(), 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
+         'ct': 15, 'callback': lambda *args, **kwargs: os.system('shutdown now'), 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
         {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': None, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
+         'ct': 15, 'callback': lambda *args, **kwargs: os.system('reboot'), 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
 }
 
 
@@ -397,15 +396,22 @@ if __name__ == '__main__':
         print('username: ' + username)
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
-
+        
+    reset_avr = SysfsGPIO(10) # PA10
+    reset_avr.export = True
+    reset_avr.direction = 'out'
+    reset_avr.value = 0
+    time.sleep(1)
+    reset_avr.value = 1
+    
     try:
         s = Screen_GUI(screen_port='/dev/ttyS1')
-        stop = virtual_serial()
         server = Socket_server()
-        s.start_touch_screen('/dev/pts/0')
-        s1 = serial.Serial('/dev/pts/1', 115200)
-        
-#        s.display_logo('./files/LOGO.bmp')
+        s.starrt_touch_screen('/dev/ttyS2')
+#        stop = virtual_serial()
+#        s.start_touch_screen('/dev/pts/0')
+#        s1 = serial.Serial('/dev/pts/1', 115200)
+        s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
         IPython.embed()
@@ -419,6 +425,6 @@ if __name__ == '__main__':
         IPython.embed()
     finally:
         s.close()
-        s1.close()
-        stop.set()
+#        s1.close()
+#        stop.set()
         server.close()
