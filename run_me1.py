@@ -92,19 +92,19 @@ def display_waveform(*args, **kwargs):
     # plot page widgets
     s.draw_text(5, 1, '波形显示', c=2) # 0
     s.draw_text(4, 1, '波形显示', c=2) # 1
-    s.draw_button(5, 18, '返回上层', callback=lambda *a, **k: flag_close.set())
+    s.draw_button(5, 19, '返回上层', callback=lambda *a, **k: flag_close.set())
     s.draw_rectangle(72, 0, 219, 35, c=5)
     s.draw_text(74, 1, '幅度') # 2
-    s.draw_button(112, 1, '－', partial(list_callback, e=scale_list,
+    s.draw_button(112, 2, '－', partial(list_callback, e=scale_list,
                                        operate='prev', fm='{:7d} ', num=3))
     s.draw_text(134, 1, '%7d ' % scale_list['a'][scale_list['i']]) # 3
-    s.draw_button(202, 1, '＋', partial(list_callback, e=scale_list,
+    s.draw_button(202, 2, '＋', partial(list_callback, e=scale_list,
                                        operate='next', fm='{:7d} ', num=3))
     s.draw_text(74, 18, '通道') # 4
-    s.draw_button(112, 18, '－', partial(range_callback, e=channel_range,
+    s.draw_button(112, 19, '－', partial(range_callback, e=channel_range,
                                         operate='minus', fm='   {:2d}   ', num=5))
     s.draw_text(134, 18, '   %2d   ' % channel_range['n']) # 5
-    s.draw_button(202, 18, '＋', partial(range_callback, e=channel_range,
+    s.draw_button(202, 19, '＋', partial(range_callback, e=channel_range,
                                         operate='plus', fm='   {:2d}   ', num=5))
     data = np.zeros((area[2] - area[0], n_channel))
     data[:, :] = area[1]
@@ -165,32 +165,33 @@ def display_info(x, y, bt):
     s.draw_button(155, 0, '返回上层', callback=lambda *a, **k: flag_close.set())
     s.draw_button(2, 0, '↑', callback=partial(range_callback, e=f1_range,
                                               operate='plus', fm='{:2d}', num=0))
-    s.draw_text(2, 16, ' 4', c=3) # 0
+    s.draw_text(0, 17, ' 4', c=3) # 0
     s.draw_button(2, 35, '↓', callback=partial(range_callback, e=f1_range,
                                                operate='minus', fm='{:2d}', num=0))
-    s.draw_text(18, 17, '-') # 1
+    s.draw_text(16, 17, '-') # 1
     s.draw_button(26, 0, '↑', callback=partial(range_callback, e=f2_range,
                                                operate='plus', fm='{:2d}', num=2))
-    s.draw_text(26, 17, ' 6', c=3) # 2
+    s.draw_text(24, 17, ' 6', c=3) # 2
     s.draw_button(26, 35, '↓', callback=partial(range_callback, e=f2_range,
                                                 operate='minus', fm='{:2d}', num=2))
-    s.draw_text(42, 17, '最大峰值') # 3
-    s.draw_text(106, 17, '      ', c=1) # 4
-    s.draw_text(154, 17, '@') # 5
-    s.draw_text(162, 17, '     ', c=1) # 6
-    s.draw_text(202, 17, 'Hz') # 7
-    s.draw_text(43, 34, '1-30Hz能量和') # 8
-    s.draw_text(139, 34, '          ', c=1) # 9
-    s.draw_text(2, 52, '1-125最大峰值') # 10
-    s.draw_text(106, 52, '      ', c=1) # 11
-    s.draw_text(154, 52, '@') # 12
-    s.draw_text(162, 52, '     ', c=1) # 13
-    s.draw_text(202, 52, 'Hz') # 14
+    s.draw_text(40, 17, '最大峰值') # 3
+    s.draw_text(104, 17, '       ', c=1) # 4 7*8=56
+    s.draw_text(164, 17, '     ', c=1) # 5 5*8=40
+    s.draw_text(204, 17, 'Hz') # 6
+    
+    s.draw_text(44, 34, '1-30Hz能量和') # 7
+    s.draw_text(140, 34, '          ', c=1) # 8 10*8=80
+    
+    s.draw_text(0, 52, '1-125最大峰值') # 9
+    s.draw_text(104, 52, '       ', c=1) # 10 7*8=56
+    s.draw_text(164, 52, '     ', c=1) # 11 5*8=40
+    s.draw_text(204, 52, 'Hz') # 12
+    
     r_amp = s.widget['text'][4]
-    r_fre = s.widget['text'][6]
-    energy30 = s.widget['text'][9]
-    a_amp = s.widget['text'][11]
-    a_fre = s.widget['text'][13]
+    r_fre = s.widget['text'][5]
+    egy30 = s.widget['text'][8]
+    a_amp = s.widget['text'][10]
+    a_fre = s.widget['text'][11]
     area = [0, 70, 219, 175]
 
     # start display!
@@ -205,15 +206,15 @@ def display_info(x, y, bt):
                 y[y!=0] /= y[y!=0].min()
                 # get peek of specific duration of signal
                 f, a = si.peek_extract((x, y), f1_range['n'], f2_range['n'], sample_rate)[0]
-                r_amp['s'] = '%d' % a
+                r_amp['s'] = '%.1e' % a
                 r_fre['s'] = '%5.2f' % f
                 # get peek of all
                 f, a = si.peek_extract((x, y), 1, sample_rate/2, sample_rate)[0]
-                a_amp['s'] = '%d' % a
+                a_amp['s'] = '%.1e' % a
                 a_fre['s'] = '%5.1f' % f
                 # get energy info
                 e = si.energy((x ,y), 1, 30, sample_rate)[0]
-                energy30['s'] = '%d' % e
+                egy30['s'] = '%.4e' % e
                 # draw amp-freq graph
                 s.clear(*area)
                 y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
@@ -227,10 +228,10 @@ def display_info(x, y, bt):
                 s._c.send('line', x1=int(f), y1=area[1], x2=int(f), y2=area[3], c=1)
                 # render elements
                 s.render(name='text', num=4)
-                s.render(name='text', num=6)
-                s.render(name='text', num=9)
+                s.render(name='text', num=5)
+                s.render(name='text', num=8)
+                s.render(name='text', num=10)
                 s.render(name='text', num=11)
-                s.render(name='text', num=13)
     except Exception as e:
         print('[Display Info] error: ', end='')
         print(e)
