@@ -986,7 +986,7 @@ command_dict_arduino_screen_v2 = {
 }
 
 command_dict_uart_screen_v1 = {
-        'point':  ['PS({x},{y},{c});\r\n', 0.35/220],
+        'point':  ['PS({x},{y},{c});\r\n', 0.4/220],
         'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
         'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
         'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],

@@ -96,10 +96,10 @@ def display_waveform(*args, **kwargs):
     s.draw_rectangle(72, 0, 219, 35, c=5)
     s.draw_text(74, 1, '幅度') # 2
     s.draw_button(112, 2, '－', partial(list_callback, e=scale_list,
-                                       operate='prev', fm='{:7d} ', num=3))
-    s.draw_text(134, 1, '%7d ' % scale_list['a'][scale_list['i']]) # 3
+                                       operate='prev', fm='{:8d} ', num=3))
+    s.draw_text(134, 1, '%8d' % scale_list['a'][scale_list['i']]) # 3
     s.draw_button(202, 2, '＋', partial(list_callback, e=scale_list,
-                                       operate='next', fm='{:7d} ', num=3))
+                                       operate='next', fm='{:8d} ', num=3))
     s.draw_text(74, 18, '通道') # 4
     s.draw_button(112, 19, '－', partial(range_callback, e=channel_range,
                                         operate='minus', fm='   {:2d}   ', num=5))
@@ -119,10 +119,10 @@ def display_waveform(*args, **kwargs):
                 assert not flag_close.isSet()
                 # update channel data list
                 d = p.remove_DC(s.reader.frame_data)[0, :n_channel, -1] # AC data
-                d = bias - (d * scale_list['a'][scale_list['i']]).astype(int)
+                d = bias - d * scale_list['a'][scale_list['i']]
                 server.send(d)
                 d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
-                data[x] = d
+                data[x] = d.astype(np.int)
                 # first clear current line
                 s._write_lock.acquire()
                 s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
@@ -181,11 +181,11 @@ def display_info(x, y, bt):
     s.draw_button(26, 36, '↓', partial(range_callback, e=f2_range,
                                         operate='minus', fm='{:2d}', num=2))
     s.draw_text(44, 0, '幅度') # 3
-    s.draw_button(78, 0, '－', partial(list_callback, e=scale_list,
-                                       operate='prev', fm='{:7d}', num=3))
+    s.draw_button(78, 1, '－', partial(list_callback, e=scale_list,
+                                       operate='prev', fm='{:8d}', num=4))
     s.draw_text(96, 0, '%8d ' % scale_list['a'][scale_list['i']]) # 4
-    s.draw_button(168, 0, '＋', partial(list_callback, e=scale_list,
-                                        operate='next', fm='{:7d}', num=3))
+    s.draw_button(168, 1, '＋', partial(list_callback, e=scale_list,
+                                        operate='next', fm='{:8d}', num=4))
     s.draw_text(40, 18, '最大峰值') # 5
     s.draw_text(104, 18, '       ', c=1) # 6 7*8=56
     s.draw_text(163, 18, '     ', c=1) # 7 5*8=40
@@ -211,9 +211,7 @@ def display_info(x, y, bt):
             if (time.time() - last_time) > 0.5:
                 last_time = time.time()
                 data = s.reader.buffer[current_ch_list['a'][current_ch_list['i']]]
-                data = p.notch(p.remove_DC(data))
-                x, y = si.fft(data, sample_rate)
-                y[y!=0] /= y[y!=0].min()
+                x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
                 # get peek of specific duration of signal
                 f, a = si.peek_extract((x, y), f1_range['n'], f2_range['n'], sample_rate)[0]
                 r_amp['s'] = '%.1e' % a
@@ -222,14 +220,15 @@ def display_info(x, y, bt):
                 f, a = si.peek_extract((x, y), 1, sample_rate/2, sample_rate)[0]
                 a_amp['s'] = '%.1e' % a
                 a_fre['s'] = '%5.1f' % f
+                a_f_m = f
                 # get energy info
                 e = si.energy((x ,y), 1, 30, sample_rate)[0]
                 egy30['s'] = '%.4e' % e
                 # draw amp-freq graph
                 s.clear(*area)
-                y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
+                y = area[3] - y * scale_list['z'][scale_list['i']]
                 server.send(y)
-                for x in range(1, len(y)):
+                for x in range( 1, min(area[2], len(y)) ):
                     s._write_lock.acquire()
                     if y[x] != y[x-1]:
                         s._c.send('line', x1=x, x2=x, y1=int(y[x-1]),
@@ -237,7 +236,7 @@ def display_info(x, y, bt):
                     else:
                         s._c.send('point', x=x, y=int(y[x]), c=3)
                     s._write_lock.release()
-                s._c.send('line', x1=int(f), y1=area[1], x2=int(f), y2=area[3], c=1)
+                s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
                 # render elements
                 s.render(name='text', num=6)
                 s.render(name='text', num=7)
@@ -264,7 +263,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
              'i': 0,
              'callback': [display_waveform, display_info]}
 
-scale_list = {'a': [10, 100, 500, 1000, 2000, 5000, 10000, 50000, 100000], 'i': 6}
+scale_list = {'a': [10, 100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 6}
 
 channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
 
