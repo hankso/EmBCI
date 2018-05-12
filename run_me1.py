@@ -117,7 +117,7 @@ def display_waveform(*args, **kwargs):
             for x in range(1, area[2]):
                 assert not flag_close.isSet()
                 # update channel data list
-                d = bias - s.reader.channal_data * scale_list['a'][scale_list['i']]
+                d = bias - s.reader.channel_data * scale_list['a'][scale_list['i']]
                 server.send(d)
                 d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
                 data[x] = d.astype(np.int)
@@ -157,7 +157,6 @@ def display_info(x, y, bt):
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
-    scale_list['i'] = 0
     n_channel = 2
     si = Signal_Info()
     p = Processer(sample_rate, sample_time)
@@ -181,7 +180,7 @@ def display_info(x, y, bt):
     s.draw_text(44, 0, '幅度') # 3
     s.draw_button(78, 1, '－', partial(list_callback, e=scale_list,
                                        operate='prev', fm='{:8d}', num=4))
-    s.draw_text(95, 0, '%8d ' % scale_list['a'][scale_list['i']]) # 4
+    s.draw_text(95, 0, '%8d' % scale_list['a'][scale_list['i']]) # 4
     s.draw_button(169, 1, '＋', partial(list_callback, e=scale_list,
                                         operate='next', fm='{:8d}', num=4))
     s.draw_text(40, 18, '最大峰值') # 5
@@ -205,9 +204,11 @@ def display_info(x, y, bt):
     # start display!
     last_time = time.time()
     try:
-        while not flag_close.isSet():
+        while 1:
             if (time.time() - last_time) > 0.5:
                 last_time = time.time()
+                
+                assert not flag_close.isSet()
                 data = s.reader.buffer[current_ch_list['a'][current_ch_list['i']]]
                 x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
                 # get peek of specific duration of signal
@@ -224,7 +225,7 @@ def display_info(x, y, bt):
                 egy30['s'] = '%.4e' % e
                 # draw amp-freq graph
                 s.clear(*area)
-                y = area[3] - y * scale_list['a'][scale_list['i']]
+                y = area[3] - y[0] * scale_list['a'][scale_list['i']]
                 server.send(y)
                 y[y>area[3]] = area[3]; y[y<area[1]] = area[1]
                 for x in range( 1, min(area[2], len(y)) ):
@@ -235,17 +236,20 @@ def display_info(x, y, bt):
                     else:
                         s._c.send('point', x=x, y=int(y[x]), c=3)
                     s._write_lock.release()
-                s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
                 # render elements
                 s.render(name='text', num=6)
                 s.render(name='text', num=7)
                 s.render(name='text', num=10)
                 s.render(name='text', num=12)
                 s.render(name='text', num=13)
+                s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
+    except AssertionError:
+        pass
     except Exception as e:
         print('[Display Info] error: ', end='')
         print(e)
     finally:
+        print('[Display Info] terminating...')
         # recover old widget
         s.widget = tmp
         s.reader.pause()
@@ -262,7 +266,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
              'i': 0,
              'callback': [display_waveform, display_info]}
 
-scale_list = {'a': [1, 5, 10, 100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 8}
+scale_list = {'a': [100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 8}
 
 channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
 
@@ -335,7 +339,7 @@ if __name__ == '__main__':
 #        stop = virtual_serial()
 #        s.start_touch_screen('/dev/pts/0')
 #        s1 = serial.Serial('/dev/pts/1', 115200)
-#        s.display_logo('./files/LOGO.bmp')
+        s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
 #        IPython.embed()
