@@ -986,15 +986,15 @@ command_dict_arduino_screen_v2 = {
 }
 
 command_dict_uart_screen_v1 = {
-        'point':  ['PS({x},{y},{c});\r\n', 0.4/220],
-        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 4.0/220],
+        'point':  ['PS({x},{y},{c});\r\n', 0.35/220],
+        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
         'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
         'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
         'rect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
         'rectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
         'text':   ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
         'dir':    ['DIR({:d});\r\n', 3.0/220],
-        'clear':  ['CLR(0);\r\n', 12.0/220],
+        'clear':  ['CLR(0);\r\n', 10.0/220],
         '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
                   "Commands | Args\n"
                   "point    | x, y, c\n"

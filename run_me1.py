@@ -114,15 +114,15 @@ def display_waveform(*args, **kwargs):
 
     # start plotting!
     try:
-        while not flag_close.isSet():
+        while 1:
             for x in range(1, area[2]):
+                assert not flag_close.isSet()
                 # update channel data list
                 d = p.remove_DC(s.reader.frame_data)[0, :n_channel, -1] # AC data
                 d = bias - (d * scale_list['a'][scale_list['i']]).astype(int)
+                server.send(d)
                 d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
                 data[x] = d
-                server.send(d)
-                
                 # first clear current line
                 s._write_lock.acquire()
                 s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
@@ -134,11 +134,13 @@ def display_waveform(*args, **kwargs):
                     else:
                         s._c.send('point', x=x, y=data[x][i], c=color[i])
                 s._write_lock.release()
-        print('[Display Waveform] terminating...')
+    except AssertionError:
+        pass
     except Exception as e:
         print('[Display Waveform] error: ', end='')
         print(e)
     finally:
+        print('[Display Waveform] terminating...')
         # recover old widget
         s.widget = tmp
         s.reader.pause()
@@ -166,36 +168,40 @@ def display_info(x, y, bt):
     s.clear()
 
     # plot page widgets
-    s.draw_button(155, 0, '返回上层', callback=lambda *a, **k: flag_close.set())
-    s.draw_button(2, 0, '↑', callback=partial(range_callback, e=f1_range,
-                                              operate='plus', fm='{:2d}', num=0))
+    s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
+    s.draw_button(2, 0, '↑', partial(range_callback, e=f1_range,
+                                      operate='plus', fm='{:2d}', num=0))
     s.draw_text(0, 17, ' 4', c=3) # 0
-    s.draw_button(2, 35, '↓', callback=partial(range_callback, e=f1_range,
-                                               operate='minus', fm='{:2d}', num=0))
+    s.draw_button(2, 36, '↓', partial(range_callback, e=f1_range,
+                                       operate='minus', fm='{:2d}', num=0))
     s.draw_text(16, 17, '-') # 1
-    s.draw_button(26, 0, '↑', callback=partial(range_callback, e=f2_range,
-                                               operate='plus', fm='{:2d}', num=2))
+    s.draw_button(26, 0, '↑', partial(range_callback, e=f2_range,
+                                       operate='plus', fm='{:2d}', num=2))
     s.draw_text(24, 17, ' 6', c=3) # 2
-    s.draw_button(26, 35, '↓', callback=partial(range_callback, e=f2_range,
-                                                operate='minus', fm='{:2d}', num=2))
-    s.draw_text(40, 17, '最大峰值       |') # 3
-    s.draw_text(104, 17, '       ', c=1) # 4 7*8=56
-    s.draw_text(163, 17, '     ', c=1) # 5 5*8=40
-    s.draw_text(203, 17, 'Hz') # 6
+    s.draw_button(26, 36, '↓', partial(range_callback, e=f2_range,
+                                        operate='minus', fm='{:2d}', num=2))
+    s.draw_text(44, 0, '幅度') # 3
+    s.draw_button(78, 0, '－', partial(list_callback, e=scale_list,
+                                       operate='prev', fm='{:7d}', num=3))
+    s.draw_text(96, 0, '%8d ' % scale_list['a'][scale_list['i']]) # 4
+    s.draw_button(168, 0, '＋', partial(list_callback, e=scale_list,
+                                        operate='next', fm='{:7d}', num=3))
+    s.draw_text(40, 18, '最大峰值') # 5
+    s.draw_text(104, 18, '       ', c=1) # 6 7*8=56
+    s.draw_text(163, 18, '     ', c=1) # 7 5*8=40
+    s.draw_text(203, 18, 'Hz') # 8
+    s.draw_text(43, 34, '1-30Hz能量和') # 9
+    s.draw_text(139, 34, '          ', c=1) # 10 10*8=80
+    s.draw_text(0, 53, '1-125最大峰值') # 11
+    s.draw_text(104, 53, '       ', c=1) # 12 7*8=56
+    s.draw_text(163, 53, '     ', c=1) # 13 5*8=40
+    s.draw_text(203, 53, 'Hz') # 14
     
-    s.draw_text(43, 34, '1-30Hz能量和') # 7
-    s.draw_text(139, 34, '          ', c=1) # 8 10*8=80
-    
-    s.draw_text(0, 52, '1-125最大峰值       |') # 9
-    s.draw_text(104, 52, '       ', c=1) # 10 7*8=56
-    s.draw_text(163, 52, '     ', c=1) # 11 5*8=40
-    s.draw_text(203, 52, 'Hz') # 12
-    
-    r_amp = s.widget['text'][4]
-    r_fre = s.widget['text'][5]
-    egy30 = s.widget['text'][8]
-    a_amp = s.widget['text'][10]
-    a_fre = s.widget['text'][11]
+    r_amp = s.widget['text'][6]
+    r_fre = s.widget['text'][7]
+    egy30 = s.widget['text'][10]
+    a_amp = s.widget['text'][12]
+    a_fre = s.widget['text'][13]
     area = [0, 70, 219, 175]
 
     # start display!
@@ -223,21 +229,21 @@ def display_info(x, y, bt):
                 s.clear(*area)
                 y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
                 server.send(y)
-                s._write_lock.acquire()
                 for x in range(1, len(y)):
+                    s._write_lock.acquire()
                     if y[x] != y[x-1]:
                         s._c.send('line', x1=x, x2=x, y1=int(y[x-1]),
                                   y2=int(y[x]), c=3)
                     else:
                         s._c.send('point', x=x, y=int(y[x]), c=3)
+                    s._write_lock.release()
                 s._c.send('line', x1=int(f), y1=area[1], x2=int(f), y2=area[3], c=1)
-                s._write_lock.release()
                 # render elements
-                s.render(name='text', num=4)
-                s.render(name='text', num=5)
-                s.render(name='text', num=8)
+                s.render(name='text', num=6)
+                s.render(name='text', num=7)
                 s.render(name='text', num=10)
-                s.render(name='text', num=11)
+                s.render(name='text', num=12)
+                s.render(name='text', num=13)
     except Exception as e:
         print('[Display Info] error: ', end='')
         print(e)
