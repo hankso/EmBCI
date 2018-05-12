@@ -172,6 +172,7 @@ class Screen_GUI(object):
         self._c = Screen_commander(screen_baud, command_dict)
         self._c.start(screen_port)
         self._c.send('dir', 1) # set screen vertical
+        self._write_lock = threading.Lock()
         self._touch_started = False
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
@@ -364,6 +365,7 @@ class Screen_GUI(object):
         num: element id
         '''
         try:
+            self._write_lock.acquire()
             if 'name' and 'num' in kwargs: # render an element
                 ids = [i['id'] for i in self.widget[kwargs['name']]]
                 e = self.widget[kwargs['name']][ids.index(kwargs['num'])]
@@ -399,6 +401,7 @@ class Screen_GUI(object):
                     else:
                         for element in self.widget[element_name]:
                             self._c.send(element_name, **element)
+            self._write_lock.release()
         except Exception as e:
             print(e)
 
@@ -525,7 +528,9 @@ class Screen_GUI(object):
                          c=self._color_map['black'])
 
     def close(self):
+        self._write_lock.acquire()
         self._c.close()
+        self._write_lock.release()
         if self._touch_started:
             self._flag_close.set()
             try:

@@ -114,22 +114,26 @@ def display_waveform(*args, **kwargs):
 
     # start plotting!
     try:
-        x = 0
         while not flag_close.isSet():
-            # first clear current line
-            s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
-            # update channel data list
-            d = p.remove_DC(s.reader.frame_data)[0, :n_channel, -1] # AC data
-            d = bias - (d * scale_list['a'][scale_list['i']]).astype(int)
-            d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
-            data[x] = d
-            server.send(d)
-            # then draw current point
-            for i in range(n_channel):
-                s._c.send('line', x1=x, x2=x, y1=data[(x-1)%area[2]][i],
-                          y2=data[x][i], c=color[i])
-            # update x axis index
-            x = x + 1 if (x + 1) < area[2] else 0
+            for x in range(1, area[2]):
+                # update channel data list
+                d = p.remove_DC(s.reader.frame_data)[0, :n_channel, -1] # AC data
+                d = bias - (d * scale_list['a'][scale_list['i']]).astype(int)
+                d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
+                data[x] = d
+                server.send(d)
+                
+                # first clear current line
+                s._write_lock.acquire()
+                s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
+                # then draw current point
+                for i in range(n_channel):
+                    if data[x][i] != data[x-1][i]:
+                        s._c.send('line', x1=x, x2=x, y1=data[x-1][i],
+                                  y2=data[x][i], c=color[i])
+                    else:
+                        s._c.send('point', x=x, y=data[x][i], c=color[i])
+                s._write_lock.release()
         print('[Display Waveform] terminating...')
     except Exception as e:
         print('[Display Waveform] error: ', end='')
@@ -174,18 +178,18 @@ def display_info(x, y, bt):
     s.draw_text(24, 17, ' 6', c=3) # 2
     s.draw_button(26, 35, '↓', callback=partial(range_callback, e=f2_range,
                                                 operate='minus', fm='{:2d}', num=2))
-    s.draw_text(40, 17, '最大峰值') # 3
+    s.draw_text(40, 17, '最大峰值       |') # 3
     s.draw_text(104, 17, '       ', c=1) # 4 7*8=56
-    s.draw_text(164, 17, '     ', c=1) # 5 5*8=40
-    s.draw_text(204, 17, 'Hz') # 6
+    s.draw_text(163, 17, '     ', c=1) # 5 5*8=40
+    s.draw_text(203, 17, 'Hz') # 6
     
-    s.draw_text(44, 34, '1-30Hz能量和') # 7
-    s.draw_text(140, 34, '          ', c=1) # 8 10*8=80
+    s.draw_text(43, 34, '1-30Hz能量和') # 7
+    s.draw_text(139, 34, '          ', c=1) # 8 10*8=80
     
-    s.draw_text(0, 52, '1-125最大峰值') # 9
+    s.draw_text(0, 52, '1-125最大峰值       |') # 9
     s.draw_text(104, 52, '       ', c=1) # 10 7*8=56
-    s.draw_text(164, 52, '     ', c=1) # 11 5*8=40
-    s.draw_text(204, 52, 'Hz') # 12
+    s.draw_text(163, 52, '     ', c=1) # 11 5*8=40
+    s.draw_text(203, 52, 'Hz') # 12
     
     r_amp = s.widget['text'][4]
     r_fre = s.widget['text'][5]
@@ -219,13 +223,15 @@ def display_info(x, y, bt):
                 s.clear(*area)
                 y = mapping(y[0][:area[2]-area[0]], low=area[3], high=area[1])
                 server.send(y)
+                s._write_lock.acquire()
                 for x in range(1, len(y)):
                     if y[x] != y[x-1]:
-                        s._c.send('line', x1=x, x2=x, y1=int(y[x]), y2=int(y[x-1]),
-                                  c=3)
+                        s._c.send('line', x1=x, x2=x, y1=int(y[x-1]),
+                                  y2=int(y[x]), c=3)
                     else:
                         s._c.send('point', x=x, y=int(y[x]), c=3)
                 s._c.send('line', x1=int(f), y1=area[1], x2=int(f), y2=area[3], c=1)
+                s._write_lock.release()
                 # render elements
                 s.render(name='text', num=4)
                 s.render(name='text', num=5)
@@ -328,9 +334,9 @@ if __name__ == '__main__':
         s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
-        IPython.embed()
-#        while 1:
-#            time.sleep(100)
+#        IPython.embed()
+        while 1:
+            time.sleep(100)
     except KeyboardInterrupt:
         print('keyboard interrupt shutdown')
     except SystemExit:
