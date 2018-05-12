@@ -69,6 +69,14 @@ def list_callback(e, operate='next', name='text', fm=None, num=None, cb=False, *
 
 
 def display_waveform(*args, **kwargs):
+    # store old widget
+    tmp = s.widget.copy()
+    for element in s.widget:
+        s.widget[element] = []
+    # start and stop flag
+    flag_close = threading.Event()
+    s.clear()
+    
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
@@ -79,15 +87,6 @@ def display_waveform(*args, **kwargs):
     s.reader.start()
     color = np.arange(1, 1 + n_channel)
     area = [0, 40, 219, 175]
-
-    # store old widget
-    tmp = s.widget.copy()
-    for element in s.widget:
-        s.widget[element] = []
-
-    # start and stop flag
-    flag_close = threading.Event()
-    s.clear()
 
     # plot page widgets
     s.draw_text(5, 1, '波形显示', c=2) # 0
@@ -118,8 +117,7 @@ def display_waveform(*args, **kwargs):
             for x in range(1, area[2]):
                 assert not flag_close.isSet()
                 # update channel data list
-                d = p.remove_DC(s.reader.frame_data)[0, :n_channel, -1] # AC data
-                d = bias - d * scale_list['a'][scale_list['i']]
+                d = bias - s.reader.channal_data * scale_list['a'][scale_list['i']]
                 server.send(d)
                 d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
                 data[x] = d.astype(np.int)
@@ -148,24 +146,24 @@ def display_waveform(*args, **kwargs):
 
 
 def display_info(x, y, bt):
+    # store old widget
+    tmp = s.widget.copy()
+    for element in s.widget:
+        s.widget[element] = []
+    # start and stop flag
+    flag_close = threading.Event()
+    s.clear()
+    
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
+    scale_list['i'] = 0
     n_channel = 2
     si = Signal_Info()
     p = Processer(sample_rate, sample_time)
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
-
-    # store old widget
-    tmp = s.widget.copy()
-    for element in s.widget:
-        s.widget[element] = []
-
-    # start and stop flag
-    flag_close = threading.Event()
-    s.clear()
 
     # plot page widgets
     s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
@@ -183,8 +181,8 @@ def display_info(x, y, bt):
     s.draw_text(44, 0, '幅度') # 3
     s.draw_button(78, 1, '－', partial(list_callback, e=scale_list,
                                        operate='prev', fm='{:8d}', num=4))
-    s.draw_text(96, 0, '%8d ' % scale_list['a'][scale_list['i']]) # 4
-    s.draw_button(168, 1, '＋', partial(list_callback, e=scale_list,
+    s.draw_text(95, 0, '%8d ' % scale_list['a'][scale_list['i']]) # 4
+    s.draw_button(169, 1, '＋', partial(list_callback, e=scale_list,
                                         operate='next', fm='{:8d}', num=4))
     s.draw_text(40, 18, '最大峰值') # 5
     s.draw_text(104, 18, '       ', c=1) # 6 7*8=56
@@ -226,8 +224,9 @@ def display_info(x, y, bt):
                 egy30['s'] = '%.4e' % e
                 # draw amp-freq graph
                 s.clear(*area)
-                y = area[3] - y * scale_list['z'][scale_list['i']]
+                y = area[3] - y * scale_list['a'][scale_list['i']]
                 server.send(y)
+                y[y>area[3]] = area[3]; y[y<area[1]] = area[1]
                 for x in range( 1, min(area[2], len(y)) ):
                     s._write_lock.acquire()
                     if y[x] != y[x-1]:
@@ -263,7 +262,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
              'i': 0,
              'callback': [display_waveform, display_info]}
 
-scale_list = {'a': [10, 100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 6}
+scale_list = {'a': [1, 5, 10, 100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 8}
 
 channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
 
@@ -336,7 +335,7 @@ if __name__ == '__main__':
 #        stop = virtual_serial()
 #        s.start_touch_screen('/dev/pts/0')
 #        s1 = serial.Serial('/dev/pts/1', 115200)
-        s.display_logo('./files/LOGO.bmp')
+#        s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
 #        IPython.embed()
