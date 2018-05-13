@@ -149,7 +149,7 @@ class ADS1299_API(object):
             self.write_register(REG_CONFIG3, 0b11100000)
         
         if self._test_mode:
-            self.write_registers(REG_CHnSET_BASE, [0x01100101] * 8)
+            self.write_registers(REG_CHnSET_BASE, [0b01100101] * 8)
         else:
             self.write_registers(REG_CHnSET_BASE, [0b01100000] * 8)
         
