@@ -313,7 +313,9 @@ menu = {
         {'x1': 92, 'x2': 126, 'x': 94, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
          'ct': 15, 'callback': shutdown, 's': '\xb9\xd8\xbb\xfa', 'id': 7, 'ca': 1},
         {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': reboot, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1}]
+         'ct': 15, 'callback': reboot, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1},
+        {'x1': 172, 'x2': 206, 'x': 174, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
+         'ct': 15, 'callback': lambda *args, **kwargs: sys.exit(), 's': '\xcd\xcb\xb3\xf6', 'id': 9, 'ca': 1}]
 }
 
 

@@ -26,9 +26,9 @@ REG_CONFIG1     = 0x01
 REG_CONFIG2     = 0x02
 REG_CONFIG3     = 0x03
 REG_CHnSET_BASE = 0x05
-REG_MISC        = 0x15
 REG_BIAS_SENSP  = 0x0D
 REG_BIAS_SENSN  = 0x0E
+REG_MISC        = 0x15
 # ADS1299 Commands
 WAKEUP          = 0x02
 STANDBY         = 0x04
@@ -40,12 +40,15 @@ SDATAC          = 0x11
 RDATA           = 0x12
 WREG            = 0x40
 RREG            = 0x20
-# ADS1299 Sample rate value dict
-SR_DICT = {
-    250:          0x96,
-    500:          0x95,
-    1000:         0x94,
-    2000:         0x93,
+# ADS1299 Sample data rate dict, set REG_CONFIG1 to this value
+DR_DICT = {
+    250:          0b10010110,
+    500:          0x10010101,
+    1000:         0x10010100,
+    2000:         0x10010011,
+    4000:         0x10010010,
+    8000:         0x10010001,
+    16000:        0x10010000,
 }
 
 
@@ -54,7 +57,7 @@ class ADS1299_API(object):
     There is a module named RaspberryPiADS1299 to communicate will ADS1299 
     within Python through spidev. But it is not well written. Actually it's
     un-pythonic at all. Hard to understand, hard to use.
-    So I rewrite it with spidev and SysfsGPIO(instead of RPi.GPIO, SysfsGPIO
+    So I rewrite it with spidev and SysfsGPIO(Unlike RPi.GPIO, SysfsGPIO
     works on both RaspberryPI, BananaPi, OrangePi and any hardware running 
     Linux, theoretically).
     
@@ -74,15 +77,19 @@ class ADS1299_API(object):
                  bias_enabled=False,
                  test_mode=False,
                  scale=5.0/24/2**24):
-#        self.spi = spi.SPI_SysfsGPIO(13, 14, 15, 16)
         self.spi = spidev.SpiDev()
         
-        self.scale = scale
+        self.scale = float(scale)
         self.sample_rate = sample_rate
         self._bias_enabled = bias_enabled
         self._test_mode = test_mode
+#        self.last_time = time.time()
+        self._DRDY = gpio4.SysfsGPIO(PIN_DRDY)
+#        self._PWRDN = gpio4.SysfsGPIO(PIN_PWRDN)
+#        self._RESET = gpio4.SysfsGPIO(PIN_RESET)
+#        self._START = gpio4.SysfsGPIO(PIN_START)
         self._opened = False
-        self.last_time = time.time()
+        self._started = False
         
     def open(self, dev, max_speed_hz=1000000):
         '''
@@ -91,14 +98,13 @@ class ADS1299_API(object):
         '''
         self.spi.open(dev[0], dev[1])
         self.spi.max_speed_hz = max_speed_hz
+        self.spi.mode = 2
+#        self._START.export = True
+#        self._START.direction = 'out'
+#        self._START.value = 0
+        self._DRDY.export = True
+        self._DRDY.direction = 'in'
         self._opened = True
-#        self._DRDY = gpio4.SysfsGPIO(PIN_DRDY)
-#        self._PWRDN = gpio4.SysfsGPIO(PIN_PWRDN)
-#        self._RESET = gpio4.SysfsGPIO(PIN_RESET)
-        self._START = gpio4.SysfsGPIO(PIN_START)
-        self._START.export = True
-        self._START.direction = 'out'
-        self._START.value = 0
         return dev
         
     def start(self):
@@ -108,11 +114,12 @@ class ADS1299_API(object):
         power supplies have stabilized.
         '''
         assert self._opened
+        if self._started:
+            return
         #======================================================================
         # power up
         #======================================================================
-        #self._PWRDN.value=1
-        # we tie it high
+        # self._PWRDN.value=1 # we pull it up to high
         
         #self._RESET.value=1
         self.write(RESET)
@@ -127,29 +134,27 @@ class ADS1299_API(object):
         #======================================================================
         # configure_registers_before_streaming
         #======================================================================
-        
         # common setting
-        self.write_register(REG_CONFIG1, SR_DICT[self.sample_rate])
-        self.write_register(REG_CONFIG3, 0xE0)
-        self.write_register(REG_BIAS_SENSP, 0x00)
-        self.write_register(REG_BIAS_SENSN, 0x00)
+        self.write_register(REG_CONFIG1, DR_DICT[self.sample_rate])
+        self.write_register(REG_CONFIG2, 0b11010000)
+        self.write_register(REG_MISC, 0b00100000)
         
-        # test mode setting
-        if self._test_mode:
-            self.write_register(REG_CONFIG2, 0xD0)
-            self.write_registers(REG_CHnSET_BASE, [0x65] * 8)
-        
-        # normal mode setting
+        if self._bias_enabled:
+            self.write_register(REG_BIAS_SENSP, 0b11111111)
+            self.write_register(REG_BIAS_SENSN, 0b11111111)
+            self.write_register(REG_CONFIG3, 0b11101100)
         else:
-            self.write_register(REG_CONFIG2, 0xC0)
-            self.write_register(REG_MISC, 0x20)
-            self.write_registers(REG_CHnSET_BASE, [0x60] * 8)
-            if self._bias_enabled:
-                self.write_register(REG_BIAS_SENSP, 0b11111111)
-                self.write_register(REG_BIAS_SENSN, 0b11111111)
-                self.write_register(REG_CONFIG3, 0xEC)
+            self.write_register(REG_BIAS_SENSP, 0b00000000)
+            self.write_register(REG_BIAS_SENSN, 0b00000000)
+            self.write_register(REG_CONFIG3, 0b11100000)
         
-        self._START.value = 1
+        if self._test_mode:
+            self.write_registers(REG_CHnSET_BASE, [0x01100101] * 8)
+        else:
+            self.write_registers(REG_CHnSET_BASE, [0b01100000] * 8)
+        
+        # self._START.value = 1
+        self.write(START)
         time.sleep(1)
         
         #======================================================================
@@ -157,26 +162,33 @@ class ADS1299_API(object):
         #======================================================================
         self.write(RDATAC)
         
+        self._started = True
+        
     def close(self):
         if self._opened:
             self.write(SDATAC)
+            self.write(STOP)
             self.spi.close()
-            self._START.value = 0
-            self._START.export = False
-#            self._DRDY.export = False
+#            self._START.value = 0
+#            self._START.export = False
+            self._DRDY.export = False
 #            self._PWRDN.export = False
 #            self._RESET.export = False
     
     def read(self):
-        while (time.time() - self.last_time) < 1.0/self.sample_rate:
+#        while (time.time() - self.last_time) < 1.0/self.sample_rate:
+#            pass
+#        self.last_time = time.time()
+        assert self._started
+        while self._DRDY.value:
             pass
-        self.last_time = time.time()
-        num = self.spi.xfer2([0x00] * (27))[3:]
+        num = self.spi.xfer2( [0x00]*27 )[3:]
         byte = ''
         for i in range(8):
-            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i])
+#            tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i]) # 4.3us
+            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i]) # 1.3us
             byte += tmp + ('\xff' if num[3*i] > 127 else '\x00')
-        return np.frombuffer(byte, np.int32).astype(np.float32) * self.scale
+        return np.frombuffer(byte, np.int32) * self.scale
     
     def write(self, byte):
         self.spi.xfer2([byte])
@@ -188,8 +200,14 @@ class ADS1299_API(object):
         self.spi.xfer2([start_reg|WREG, len(byte_array) - 1] + byte_array)
 
     def read_register(self, reg):
-        return self.spi.xfer2([reg|RREG, 0x00, 0x00])[3]
+        self.write(SDATAC)
+        value = self.spi.xfer2([RREG|reg, 0x00, 0x00])[2]
+        self.write(RDATAC)
+        return value
     
     def read_registers(self, start_reg, num):
-        return self.spi.xfer2([start_reg|RREG, num - 1] + [0] * num)[2:]
+        self.write(SDATAC)
+        value = self.spi.xfer2([RREG|start_reg, num - 1] + [0] * num)[2:]
+        self.write(RDATAC)
+        return value
     
