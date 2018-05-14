@@ -81,11 +81,13 @@ def display_waveform(*args, **kwargs):
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
     n_channel = channel_range['n']
-    p = Processer(sample_rate, sample_time)
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
-    color = np.arange(1, 1 + n_channel)
+    n_channel = min(n_channel, s.reader.n_channel)
+    color = np.arange(1, 9)
+    current_ch_list['a'] = ['channel%d' % i for i in range(n_channel)]
+    p = Processer(sample_rate, sample_time)
     area = [0, 40, 219, 175]
 
     # plot page widgets
@@ -100,16 +102,13 @@ def display_waveform(*args, **kwargs):
     s.draw_button(202, 2, '＋', partial(list_callback, e=scale_list,
                                        operate='next', fm='{:8d} ', num=3))
     s.draw_text(74, 18, '通道') # 4
-    s.draw_button(112, 19, '－', partial(range_callback, e=channel_range,
-                                        operate='minus', fm='   {:2d}   ', num=5))
-    s.draw_text(134, 18, '   %2d   ' % channel_range['n']) # 5
-    s.draw_button(202, 19, '＋', partial(range_callback, e=channel_range,
-                                        operate='plus', fm='   {:2d}   ', num=5))
-    data = np.zeros((area[2] - area[0], n_channel))
-    data[:, :] = area[1]
-    ch_height = (area[3] - area[1] - 1)/n_channel
-    bias = [area[1] + ch_height/2 + ch_height*ch \
-            for ch in range(n_channel)]
+    s.draw_button(112, 19, '－', partial(list_callback, e=current_ch_list,
+                                        operate='minus', fm='channel{:d}', num=5))
+    s.draw_text(134, 18, 'channel%d' % current_ch_list['a'][current_ch_list['i']]) # 5
+    s.draw_button(202, 19, '＋', partial(list_callback, e=current_ch_list,
+                                        operate='plus', fm='channel{:d}', num=5))
+    data = np.repeat(area[1], area[2] - area[0])
+    center = area[1] + (area[3] - area[1])/2
 
     # start plotting!
     try:
@@ -117,20 +116,24 @@ def display_waveform(*args, **kwargs):
             for x in range(1, area[2]):
                 assert not flag_close.isSet()
                 # update channel data list
-                d = bias - s.reader.channel_data * scale_list['a'][scale_list['i']]
+                ch = current_ch_list['a'][current_ch_list['i']]
+                sc = scale_list['a'][scale_list['i']]
+                d = center - s.reader.channel_data * sc
                 server.send(d)
-                d[d>area[3]] = area[3]; d[d<area[1]] = area[1]
-                data[x] = d.astype(np.int)
+                d = int(d[ch])
+                if d > area[3]:
+                    d = area[3]
+                if d < area[1]:
+                    d = area[1]
+                data[x] = d
                 # first clear current line
                 s._write_lock.acquire()
                 s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
                 # then draw current point
-                for i in range(n_channel):
-                    if data[x][i] != data[x-1][i]:
-                        s._c.send('line', x1=x, x2=x, y1=data[x-1][i],
-                                  y2=data[x][i], c=color[i])
-                    else:
-                        s._c.send('point', x=x, y=data[x][i], c=color[i])
+                if data[x] != data[x-1]:
+                    s._c.send('line', x1=x, x2=x, y1=data[x-1], y2=data[x], c=color[ch])
+                else:
+                    s._c.send('point', x=x, y=data[x], c=color[ch])
                 s._write_lock.release()
     except AssertionError:
         pass
