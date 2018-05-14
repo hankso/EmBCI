@@ -42,13 +42,13 @@ WREG            = 0x40
 RREG            = 0x20
 # ADS1299 Sample data rate dict, set REG_CONFIG1 to this value
 DR_DICT = {
-    250:          0b10010110,
-    500:          0b10010101,
-    1000:         0b10010100,
-    2000:         0b10010011,
-    4000:         0b10010010,
-    8000:         0b10010001,
-    16000:        0b10010000,
+    250:        0b10010110,
+    500:        0b10010101,
+    1000:       0b10010100,
+    2000:       0b10010011,
+    4000:       0b10010010,
+    8000:       0b10010001,
+    16000:      0b10010000,
 }
 
 
@@ -71,6 +71,14 @@ class ADS1299_API(object):
         write: transfer one byte to ads1299
         write_register: write one register with index and value
         write_registers: write series registers with start index and values
+        
+    Attention
+    ---------
+    In spidev, SpiDev().mode indicate mode of device that it connect to(avr/ads1299),
+    NOT the mode of device where python code run(PC/Raspi/esp32/etc.)
+    
+    So, ads1299 accept data from DIN at raising edge and transfer data out from DOUT
+    to OrangePi as falling edge. set mode to 0b10 (CPOL=1 & CPHA=0)
     '''
     def __init__(self,
                  sample_rate=500,

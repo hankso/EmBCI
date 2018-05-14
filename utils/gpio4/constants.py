@@ -6,7 +6,7 @@ BOTH = 'both'
 
 # value
 HIGH = 1
-LOW = 1
+LOW = 0
 
 # direction
 INPUT = 'in'
