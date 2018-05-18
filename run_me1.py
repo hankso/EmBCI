@@ -164,16 +164,19 @@ def display_info(x, y, bt):
     current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
     si = Signal_Info()
     p = Processer(sample_rate, sample_time)
+    global cx, draw_fft
     draw_fft = True
-    area = [0, 70, 183, 175]
+    area = [0, 70, 182, 175]
     f_max = 1
     f_min = 0
-    x = 0
+    cx = 0
     def change_plot(*a, **k):
-        global x, draw_fft
-        x = 0
-        s.clear(*area)
+        global cx, draw_fft
+        cx = 0
         draw_fft = not draw_fft
+        s._write_lock.acquire()
+        s.clear(*area)
+        s._write_lock.release()
         s.widget['button'][-1]['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
 
     # plot page widgets
@@ -205,13 +208,13 @@ def display_info(x, y, bt):
     s.draw_text(104, 53, '       ', c=1) # 12 7*8=56
     s.draw_text(163, 53, '     ', c=1) # 13 5*8=40
     s.draw_text(203, 53, 'Hz') # 14
-    s.draw_text(185, 62, '通道') # 15
-    s.draw_button(185, 72, '－', partial(range_callback, e=current_ch_range,
+    s.draw_text(185, 70, '通道') # 15
+    s.draw_button(185, 88, '－', partial(range_callback, e=current_ch_range,
                                         operate='minus', fm='ch{:2d}', num=16))
-    s.draw_text(185, 82, 'ch%2d' % current_ch_range['n']) # 16
-    s.draw_button(202, 72, '＋', partial(range_callback, e=current_ch_range,
+    s.draw_text(185, 106, 'ch%2d' % current_ch_range['n']) # 16
+    s.draw_button(203, 88, '＋', partial(range_callback, e=current_ch_range,
                                         operate='plus', fm='ch{:2d}', num=16))
-    s.draw_button(185, 92, '画图' if draw_fft else '画线', change_plot)
+    s.draw_button(185, 125, '画图' if draw_fft else '画线', change_plot)
     
     r_amp = s.widget['text'][6]
     r_fre = s.widget['text'][7]
@@ -274,11 +277,13 @@ def display_info(x, y, bt):
                     y = np.round(mapping(y,
                                          f_min, f_max,
                                          0, len(s.rainbow))).astype(np.int)
+                    s._write_lock.acquire()
                     for i, v in enumerate(y):
-                        s._c.send('point', x=x, y=area[1] + i, c=s.rainbow[v])
-                    x += 1
-                    if x > area[2]:
-                        x = area[0]
+                        s._c.send('point', x=cx, y=area[1] + i, c=s.rainbow[v])
+                    s._write_lock.release()
+                    cx += 1
+                    if cx > area[2]:
+                        cx = area[0]
                         s.clear(*area)
                     s.render(name='text', num=6)
                     s.render(name='text', num=7)
