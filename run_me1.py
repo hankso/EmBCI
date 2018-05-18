@@ -108,6 +108,7 @@ def display_waveform(*args, **kwargs):
     s.draw_button(202, 19, '＋', partial(list_callback, e=current_ch_list,
                                         operate='plus', fm='channel{:d}', num=5))
     data = np.repeat(area[1], area[2] - area[0])
+    DC = np.repeat(area[1], area[2] - area[0])
     center = area[1] + (area[3] - area[1])/2
 
     # start plotting!
@@ -125,7 +126,8 @@ def display_waveform(*args, **kwargs):
                     d = area[3]
                 if d < area[1]:
                     d = area[1]
-                data[x] = d
+                DC[x] = d * 0.001 + DC[x-1] * 0.999
+                data[x] = d - DC[x]
                 # first clear current line
                 s._write_lock.acquire()
                 s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
@@ -269,7 +271,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
              'i': 0,
              'callback': [display_waveform, display_info]}
 
-scale_list = {'a': [100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 8}
+scale_list = {'a': [100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 6}
 
 channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
 

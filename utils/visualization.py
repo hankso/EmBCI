@@ -471,7 +471,7 @@ class Screen_GUI(object):
                         pt = self._cali_matrix[1] + \
                              [int(yxp[1]), int(yxp[0])] * self._cali_matrix[0]
                         print('[Touch Screen] touch at {}, {}'.format(*pt))
-                        return pt
+                        return abs(pt)
                     else:
                         print('[Touch Screen] Invalid input %s' % raw)
                 except:
