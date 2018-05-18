@@ -109,7 +109,7 @@ def display_waveform(*args, **kwargs):
     center = area[1] + (area[3] - area[1])/2
     data = np.repeat(center, area[2] - area[0])
     DC = 0
-    step = 2
+    step = 1
     # start plotting!
     try:
         while 1:
@@ -201,6 +201,8 @@ def display_info(x, y, bt):
     a_amp = s.widget['text'][12]
     a_fre = s.widget['text'][13]
     area = [0, 70, 219, 175]
+    f_max = 1
+    x = 0
 
     # start display!
     draw_fft = True
@@ -251,7 +253,19 @@ def display_info(x, y, bt):
                     s.render(name='text', num=12)
                     s.render(name='text', num=13)
                     s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
-                    time.sleep(0.2)
+                    time.sleep(0.5)
+                else:
+                    y = np.log10(y[0][:int(60.0*(x.shape[0] - 1)/sample_rate)])
+                    f_max = max(f_max, int(y.max()))
+                    y = np.round(mapping(y,
+                                         0, f_max,
+                                         0, len(s.rainbow))).astype(np.int)
+                    for i, v in enumerate(y):
+                        s._c.send('point', x=x, y=area[1] + i, c=s.rainbow[v])
+                    x += 1
+                    if x > area[2]:
+                        x = area[0]
+                        s.clear(*area)
     except AssertionError:
         pass
     except Exception as e:
@@ -322,7 +336,7 @@ menu = {
         {'x1': 132, 'x2': 166, 'x': 134, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
          'ct': 15, 'callback': reboot, 's': '\xd6\xd8\xc6\xf4', 'id': 8, 'ca': 1},
         {'x1': 172, 'x2': 206, 'x': 174, 'cr': 6, 'y2': 164, 'y1': 146, 'y': 148,
-         'ct': 15, 'callback': lambda *args, **kwargs: sys.exit(), 's': '\xcd\xcb\xb3\xf6', 'id': 9, 'ca': 1}]
+         'ct': 15, 'callback': lambda *args, **kwargs: program_exit.set(), 's': '\xcd\xcb\xb3\xf6', 'id': 9, 'ca': 1}]
 }
 
 
@@ -341,6 +355,8 @@ if __name__ == '__main__':
     reset_avr.value = 1
     time.sleep(1)
     
+    program_exit = threading.Event()
+    
     try:
         s = Screen_GUI(screen_port='/dev/ttyS1')
         server = Socket_server()
@@ -352,8 +368,8 @@ if __name__ == '__main__':
         s.widget = menu
         s.render()
 #        IPython.embed()
-        while 1:
-            time.sleep(100)
+        while not program_exit.isSet():
+            time.sleep(2)
     except KeyboardInterrupt:
         print('keyboard interrupt shutdown')
     except SystemExit:

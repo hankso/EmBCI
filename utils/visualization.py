@@ -26,7 +26,7 @@ from PIL import Image
 
 # from ../src
 from preprocessing import Processer
-from common import mapping, time_stamp, check_input, Signal_Info
+from common import time_stamp, check_input, Signal_Info
 from IO import Screen_commander, command_dict_uart_screen_v1
 
 class Plotter():
@@ -101,7 +101,6 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
     if len(data.shape) != 2:
         raise
     p = Processer(sample_rate, sample_time)
-    si = Signal_Info()
     for ch, d in enumerate(data):
         plt.figure('%s_%d' % (actionname, ch))
 
@@ -161,7 +160,7 @@ class Screen_GUI(object):
     _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
                   'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
                   'orange': 13, 'pink': 14, 'white': 15}
-    _rainbow = [1, 13, 4, 2, 5, 3, 6, 0][::-1]
+    rainbow = [1, 13, 4, 2, 5, 3, 6, 0][::-1]
     _e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,
           'rect': 6, 'rectf': 0, 'text': 15, 'press': 1}
     widget = {'point':[], 'line':[], 'circle':[], 'circlef':[],
@@ -570,7 +569,7 @@ if __name__ == '__main__':
 # =============================================================================
 #
 # =============================================================================
-    filename = '../data/test/grab-2.mat'
+    filename = '../data/test/left-1.mat'
     actionname = os.path.basename(filename)
     data = sio.loadmat(filename)[actionname.split('-')[0]][0]
     sample_rate=500; sample_time=6

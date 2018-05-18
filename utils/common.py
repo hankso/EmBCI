@@ -43,7 +43,7 @@ def energy_time_duration(reader, low, high, duration):
     threading.Thread(target=_run, args=(stop_flag, )).start()
     return stop_flag
 
-def mapping(a, low=0, high=255):
+def mapping(a, low=None, high=None, t_low=0, t_high=255):
     '''
     Mapping data to new array values all in duartion [low, high]
     
@@ -54,16 +54,20 @@ def mapping(a, low=0, high=255):
     Example
     =======
     >>> a = [0, 1, 2.5, 4.9, 5]
-    >>> b = mapping(a, low=0, high=1024)
+    >>> b = mapping(a, 0, 5, 0, 1024)
     >>> a
     [0, 1, 2.5, 4.9, 5]
     >>> b
     array([   0.  ,  204.8 ,  512.  , 1003.52, 1024.  ], dtype=float32)
     '''
     a = np.array(a, np.float32)
-    if not len(a) or a.min() == a.max():
-        return a
-    return (a - a.min()) * (high - low) / (a.max() - a.min()) + low
+    if low is None:
+        low = a.min()
+    if high is None:
+        high = a.max()
+    if low == high:
+        return t_low
+    return (a - low) / (high - low) * (t_high - t_low) + t_low
 
 def check_dir(func):
     '''
