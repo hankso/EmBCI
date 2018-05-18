@@ -161,6 +161,7 @@ class Screen_GUI(object):
     _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
                   'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
                   'orange': 13, 'pink': 14, 'white': 15}
+    _rainbow = [1, 13, 4, 2, 5, 3, 6, 0][::-1]
     _e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,
           'rect': 6, 'rectf': 0, 'text': 15, 'press': 1}
     widget = {'point':[], 'line':[], 'circle':[], 'circlef':[],
@@ -484,11 +485,13 @@ class Screen_GUI(object):
             for bt in self.widget['button']:
                 if x > bt['x1'] and x < bt['x2'] \
                 and y > bt['y1'] and y < bt['y2']:
+                    self._write_lock.acquire()
                     self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
                                  x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
                     time.sleep(0.3)
                     self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
                                  x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
+                    self._write_lock.release()
                     time.sleep(0.2)
                     if bt['callback'] is None:
                         self._default_button_callback(x, y, bt)

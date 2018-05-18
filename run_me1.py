@@ -73,9 +73,9 @@ def display_waveform(*args, **kwargs):
     tmp = s.widget.copy()
     for element in s.widget:
         s.widget[element] = []
+    s.clear()
     # start and stop flag
     flag_close = threading.Event()
-    s.clear()
     
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
@@ -85,9 +85,8 @@ def display_waveform(*args, **kwargs):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
     n_channel = min(n_channel, s.reader.n_channel)
+    current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
     color = np.arange(1, 9)
-    current_ch_list['a'] = ['channel%d' % i for i in range(n_channel)]
-    p = Processer(sample_rate, sample_time)
     area = [0, 40, 219, 175]
 
     # plot page widgets
@@ -97,46 +96,39 @@ def display_waveform(*args, **kwargs):
     s.draw_rectangle(72, 0, 219, 35, c=5)
     s.draw_text(74, 1, '幅度') # 2
     s.draw_button(112, 2, '－', partial(list_callback, e=scale_list,
-                                       operate='prev', fm='{:8d} ', num=3))
+                                       operate='prev', fm='{:8d}', num=3))
     s.draw_text(134, 1, '%8d' % scale_list['a'][scale_list['i']]) # 3
     s.draw_button(202, 2, '＋', partial(list_callback, e=scale_list,
-                                       operate='next', fm='{:8d} ', num=3))
+                                       operate='next', fm='{:8d}', num=3))
     s.draw_text(74, 18, '通道') # 4
-    s.draw_button(112, 19, '－', partial(list_callback, e=current_ch_list,
-                                        operate='minus', fm='channel{:d}', num=5))
-    s.draw_text(134, 18, 'channel%d' % current_ch_list['a'][current_ch_list['i']]) # 5
-    s.draw_button(202, 19, '＋', partial(list_callback, e=current_ch_list,
-                                        operate='plus', fm='channel{:d}', num=5))
-    data = np.repeat(area[1], area[2] - area[0])
-    DC = np.repeat(area[1], area[2] - area[0])
+    s.draw_button(112, 19, '－', partial(range_callback, e=current_ch_range,
+                                        operate='minus', fm='  ch_{:2d} ', num=5))
+    s.draw_text(134, 18, '  ch_%d ' % current_ch_range['n']) # 5
+    s.draw_button(202, 19, '＋', partial(range_callback, e=current_ch_range,
+                                        operate='plus', fm='  ch_{:2d} ', num=5))
     center = area[1] + (area[3] - area[1])/2
-
+    data = np.repeat(center, area[2] - area[0])
+    DC = 0
+    step = 2
     # start plotting!
     try:
         while 1:
-            for x in range(1, area[2]):
+            for x in range(step, area[2] - area[0], step):
                 assert not flag_close.isSet()
-                # update channel data list
-                ch = current_ch_list['a'][current_ch_list['i']]
-                sc = scale_list['a'][scale_list['i']]
-                d = center - s.reader.channel_data * sc
+                d = s.reader.channel_data  # raw data
                 server.send(d)
-                d = int(d[ch])
-                if d > area[3]:
-                    d = area[3]
-                if d < area[1]:
-                    d = area[1]
-                DC[x] = d * 0.001 + DC[x-1] * 0.999
-                data[x] = d - DC[x]
-                # first clear current line
+                ch = current_ch_range['n']
+                d = d[ch] * scale_list['a'][scale_list['i']]  # pick one channel and re-scale this data
+                DC = d * 0.1 + DC * 0.9  # real-time remove DC
+                data[x] = np.clip(center - (d - DC), area[1], area[3]).astype(np.int)  # get screen position
                 s._write_lock.acquire()
-                s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)
-                # then draw current point
-                if data[x] != data[x-1]:
-                    s._c.send('line', x1=x, x2=x, y1=data[x-1], y2=data[x], c=color[ch])
+                s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)  # first clear current line
+                if data[x] != data[x-step]:  # then draw current point
+                    s._c.send('line', x1=x, x2=x, y1=data[x-step], y2=data[x], c=color[ch])
                 else:
                     s._c.send('point', x=x, y=data[x], c=color[ch])
                 s._write_lock.release()
+            data[0] = data[x]
     except AssertionError:
         pass
     except Exception as e:
@@ -155,19 +147,22 @@ def display_info(x, y, bt):
     tmp = s.widget.copy()
     for element in s.widget:
         s.widget[element] = []
+    s.clear()
     # start and stop flag
     flag_close = threading.Event()
-    s.clear()
     
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
-    n_channel = 2
-    si = Signal_Info()
-    p = Processer(sample_rate, sample_time)
+    n_channel = channel_range['n']
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
+    n_channel = min(n_channel, s.reader.n_channel)
+    sample_rate, sample_time = s.reader.sample_rate, s.reader.sample_time
+    current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
+    si = Signal_Info()
+    p = Processer(sample_rate, sample_time)
 
     # plot page widgets
     s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
@@ -207,6 +202,7 @@ def display_info(x, y, bt):
     area = [0, 70, 219, 175]
 
     # start display!
+    draw_fft = True
     last_time = time.time()
     try:
         while 1:
@@ -214,10 +210,13 @@ def display_info(x, y, bt):
                 last_time = time.time()
                 
                 assert not flag_close.isSet()
-                data = s.reader.buffer[current_ch_list['a'][current_ch_list['i']]]
-                x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
+                data = s.reader.buffer['channel%d' % current_ch_range['n']]
+                x, y = si.fft(p.remove_DC(data), sample_rate)
                 # get peek of specific duration of signal
-                f, a = si.peek_extract((x, y), f1_range['n'], f2_range['n'], sample_rate)[0]
+                f, a = si.peek_extract((x, y),
+                                       min(f1_range['n'], f2_range['n']),
+                                       max(f1_range['n'], f2_range['n']),
+                                       sample_rate)[0]
                 r_amp['s'] = '%.1e' % a
                 r_fre['s'] = '%5.2f' % f
                 # get peek of all
@@ -228,30 +227,34 @@ def display_info(x, y, bt):
                 # get energy info
                 e = si.energy((x ,y), 1, 30, sample_rate)[0]
                 egy30['s'] = '%.4e' % e
-                # draw amp-freq graph
-                s.clear(*area)
-                y = area[3] - y[0] * scale_list['a'][scale_list['i']]
-                server.send(y)
-                y[y>area[3]] = area[3]; y[y<area[1]] = area[1]
-                for x in range( 1, min(area[2], len(y)) ):
-                    s._write_lock.acquire()
-                    if y[x] != y[x-1]:
-                        s._c.send('line', x1=x, x2=x, y1=int(y[x-1]),
-                                  y2=int(y[x]), c=3)
-                    else:
-                        s._c.send('point', x=x, y=int(y[x]), c=3)
-                    s._write_lock.release()
-                # render elements
-                s.render(name='text', num=6)
-                s.render(name='text', num=7)
-                s.render(name='text', num=10)
-                s.render(name='text', num=12)
-                s.render(name='text', num=13)
-                s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
+                
+                if draw_fft:  # draw amp-freq graph
+                    step = 1
+                    s.clear(*area)
+                    y = y[0][::int(2.0*(x.shape[0] - 1)/sample_rate)]
+                    server.send(y)  # raw data
+                    y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
+                                area[1], area[3]).astype(np.int)
+                    for x in range(step, min(area[2]-area[0], len(y)), step):
+                        s._write_lock.acquire()
+                        if y[x] != y[x-step]:
+                            s._c.send('line', x1=x, x2=x, y1=int(y[x-step]),
+                                      y2=int(y[x]), c=3)
+                        else:
+                            s._c.send('point', x=x, y=int(y[x]), c=3)
+                        s._write_lock.release()
+                    # render elements
+                    s.render(name='text', num=6)
+                    s.render(name='text', num=7)
+                    s.render(name='text', num=10)
+                    s.render(name='text', num=12)
+                    s.render(name='text', num=13)
+                    s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
+                    time.sleep(0.2)
     except AssertionError:
         pass
     except Exception as e:
-        print('[Display Info] error: ', end='')
+        print('[Display Info] {}: '.format(type(e)), end='')
         print(e)
     finally:
         print('[Display Info] terminating...')
@@ -262,7 +265,7 @@ def display_info(x, y, bt):
 
 
 
-rate_list = {'a': [100, 250, 500], 'i': 1}
+rate_list = {'a': [250, 500, 1000], 'i': 0}
 
 time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
 
@@ -273,9 +276,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
 
 scale_list = {'a': [100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 6}
 
-channel_range = {'r': (1, 8), 'n': 1, 'step': 1}
-
-current_ch_list = {'a': ['channel%d' % i for i in range(8)], 'i': 0}
+channel_range = {'r': (1, 8), 'n': 2, 'step': 1}
 
 f1_range = {'r': (1, 30), 'n': 4, 'step': 1}
 
@@ -346,10 +347,10 @@ if __name__ == '__main__':
 #        stop = virtual_serial()
 #        s.start_touch_screen('/dev/pts/0')
 #        s1 = serial.Serial('/dev/pts/1', 115200)
-        s.display_logo('./files/LOGO.bmp')
+#        s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
-#        IPython.embed()
+        IPython.embed()
         while 1:
             time.sleep(100)
     except KeyboardInterrupt:
