@@ -102,10 +102,10 @@ def display_waveform(*args, **kwargs):
                                        operate='next', fm='{:8d}', num=3))
     s.draw_text(74, 18, '通道') # 4
     s.draw_button(112, 19, '－', partial(range_callback, e=current_ch_range,
-                                        operate='minus', fm='  ch_{:2d} ', num=5))
-    s.draw_text(134, 18, '  ch_%d ' % current_ch_range['n']) # 5
+                                        operate='minus', fm='  ch{:2d}  ', num=5))
+    s.draw_text(134, 18, '  ch%2d  ' % current_ch_range['n']) # 5
     s.draw_button(202, 19, '＋', partial(range_callback, e=current_ch_range,
-                                        operate='plus', fm='  ch_{:2d} ', num=5))
+                                        operate='plus', fm='  ch{:2d}  ', num=5))
     center = area[1] + (area[3] - area[1])/2
     data = np.repeat(center, area[2] - area[0])
     DC = 0
@@ -132,7 +132,7 @@ def display_waveform(*args, **kwargs):
     except AssertionError:
         pass
     except Exception as e:
-        print('[Display Waveform] error: ', end='')
+        print('[Display Waveform] {}: '.format(type(e)), end='')
         print(e)
     finally:
         print('[Display Waveform] terminating...')
@@ -164,6 +164,17 @@ def display_info(x, y, bt):
     current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
     si = Signal_Info()
     p = Processer(sample_rate, sample_time)
+    draw_fft = True
+    area = [0, 70, 183, 175]
+    f_max = 1
+    f_min = 0
+    x = 0
+    def change_plot(*a, **k):
+        global x, draw_fft
+        x = 0
+        s.clear(*area)
+        draw_fft = not draw_fft
+        s.widget['button'][-1]['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
 
     # plot page widgets
     s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
@@ -194,18 +205,21 @@ def display_info(x, y, bt):
     s.draw_text(104, 53, '       ', c=1) # 12 7*8=56
     s.draw_text(163, 53, '     ', c=1) # 13 5*8=40
     s.draw_text(203, 53, 'Hz') # 14
+    s.draw_text(185, 62, '通道') # 15
+    s.draw_button(185, 72, '－', partial(range_callback, e=current_ch_range,
+                                        operate='minus', fm='ch{:2d}', num=16))
+    s.draw_text(185, 82, 'ch%2d' % current_ch_range['n']) # 16
+    s.draw_button(202, 72, '＋', partial(range_callback, e=current_ch_range,
+                                        operate='plus', fm='ch{:2d}', num=16))
+    s.draw_button(185, 92, '画图' if draw_fft else '画线', change_plot)
     
     r_amp = s.widget['text'][6]
     r_fre = s.widget['text'][7]
     egy30 = s.widget['text'][10]
     a_amp = s.widget['text'][12]
     a_fre = s.widget['text'][13]
-    area = [0, 70, 219, 175]
-    f_max = 1
-    x = 0
 
     # start display!
-    draw_fft = True
     last_time = time.time()
     try:
         while 1:
@@ -226,7 +240,7 @@ def display_info(x, y, bt):
                 f, a = si.peek_extract((x, y), 2, sample_rate/2, sample_rate)[0]
                 a_amp['s'] = '%.1e' % a
                 a_fre['s'] = '%5.1f' % f
-                a_f_m = f
+                a_f_m = int(f*2.0*(x.shape[0] - 1)/sample_rate)
                 # get energy info
                 e = si.energy((x ,y), 3, 30, sample_rate)[0]
                 egy30['s'] = '%.4e' % e
@@ -234,17 +248,16 @@ def display_info(x, y, bt):
                 if draw_fft:  # draw amp-freq graph
                     step = 1
                     s.clear(*area)
-                    y = y[0][::int(2.0*(x.shape[0] - 1)/sample_rate)]
+                    y = y[0][:area[2] - area[0]]
                     server.send(y)  # raw data
                     y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
                                 area[1], area[3]).astype(np.int)
-                    for x in range(step, min(area[2]-area[0], len(y)), step):
+                    for x in range(step, len(y), step):
                         s._write_lock.acquire()
                         if y[x] != y[x-step]:
-                            s._c.send('line', x1=x, x2=x, y1=int(y[x-step]),
-                                      y2=int(y[x]), c=3)
+                            s._c.send('line', x1=x, x2=x, y1=y[x-step], y2=y[x], c=3)
                         else:
-                            s._c.send('point', x=x, y=int(y[x]), c=3)
+                            s._c.send('point', x=x, y=y[x], c=3)
                         s._write_lock.release()
                     # render elements
                     s.render(name='text', num=6)
@@ -252,13 +265,14 @@ def display_info(x, y, bt):
                     s.render(name='text', num=10)
                     s.render(name='text', num=12)
                     s.render(name='text', num=13)
-                    s._c.send('line', x1=int(f), y1=area[1], x2=int(a_f_m), y2=area[3], c=1)
+                    s._c.send('line', x1=a_f_m, y1=area[1], x2=a_f_m, y2=area[3], c=1)
                     time.sleep(0.5)
                 else:
                     y = np.log10(y[0][:int(60.0*(x.shape[0] - 1)/sample_rate)])
                     f_max = max(f_max, int(y.max()))
+                    f_min = min(f_min, int(y.min()))
                     y = np.round(mapping(y,
-                                         0, f_max,
+                                         f_min, f_max,
                                          0, len(s.rainbow))).astype(np.int)
                     for i, v in enumerate(y):
                         s._c.send('point', x=x, y=area[1] + i, c=s.rainbow[v])
@@ -266,6 +280,11 @@ def display_info(x, y, bt):
                     if x > area[2]:
                         x = area[0]
                         s.clear(*area)
+                    s.render(name='text', num=6)
+                    s.render(name='text', num=7)
+                    s.render(name='text', num=10)
+                    s.render(name='text', num=12)
+                    s.render(name='text', num=13)
     except AssertionError:
         pass
     except Exception as e:
