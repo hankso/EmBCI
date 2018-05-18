@@ -155,6 +155,7 @@ def display_info(x, y, bt):
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
     n_channel = channel_range['n']
+    scale_list['i'] = 6
     if not hasattr(s, 'reader'):
         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
     s.reader.start()
@@ -187,9 +188,9 @@ def display_info(x, y, bt):
     s.draw_text(104, 18, '       ', c=1) # 6 7*8=56
     s.draw_text(163, 18, '     ', c=1) # 7 5*8=40
     s.draw_text(203, 18, 'Hz') # 8
-    s.draw_text(43, 34, '1-30Hz能量和') # 9
+    s.draw_text(43, 34, '2-30Hz能量和') # 9
     s.draw_text(139, 34, '          ', c=1) # 10 10*8=80
-    s.draw_text(0, 53, '1-125最大峰值') # 11
+    s.draw_text(0, 53, '2-125最大峰值') # 11
     s.draw_text(104, 53, '       ', c=1) # 12 7*8=56
     s.draw_text(163, 53, '     ', c=1) # 13 5*8=40
     s.draw_text(203, 53, 'Hz') # 14
@@ -211,7 +212,7 @@ def display_info(x, y, bt):
                 
                 assert not flag_close.isSet()
                 data = s.reader.buffer['channel%d' % current_ch_range['n']]
-                x, y = si.fft(p.remove_DC(data), sample_rate)
+                x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
                 # get peek of specific duration of signal
                 f, a = si.peek_extract((x, y),
                                        min(f1_range['n'], f2_range['n']),
@@ -220,12 +221,12 @@ def display_info(x, y, bt):
                 r_amp['s'] = '%.1e' % a
                 r_fre['s'] = '%5.2f' % f
                 # get peek of all
-                f, a = si.peek_extract((x, y), 1, sample_rate/2, sample_rate)[0]
+                f, a = si.peek_extract((x, y), 2, sample_rate/2, sample_rate)[0]
                 a_amp['s'] = '%.1e' % a
                 a_fre['s'] = '%5.1f' % f
                 a_f_m = f
                 # get energy info
-                e = si.energy((x ,y), 1, 30, sample_rate)[0]
+                e = si.energy((x ,y), 3, 30, sample_rate)[0]
                 egy30['s'] = '%.4e' % e
                 
                 if draw_fft:  # draw amp-freq graph
@@ -274,7 +275,7 @@ jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
              'i': 0,
              'callback': [display_waveform, display_info]}
 
-scale_list = {'a': [100, 500, 1000, 2000, 5000, 10000, 50000, 100000, 1000000], 'i': 6}
+scale_list = {'a': [1000, 2000, 5000, 10000, 50000, 100000, 1000000, 5000000], 'i': 4}
 
 channel_range = {'r': (1, 8), 'n': 2, 'step': 1}
 
@@ -347,10 +348,10 @@ if __name__ == '__main__':
 #        stop = virtual_serial()
 #        s.start_touch_screen('/dev/pts/0')
 #        s1 = serial.Serial('/dev/pts/1', 115200)
-#        s.display_logo('./files/LOGO.bmp')
+        s.display_logo('./files/LOGO.bmp')
         s.widget = menu
         s.render()
-        IPython.embed()
+#        IPython.embed()
         while 1:
             time.sleep(100)
     except KeyboardInterrupt:
