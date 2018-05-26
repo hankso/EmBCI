@@ -27,7 +27,8 @@ from PIL import Image
 # from ../src
 from preprocessing import Processer
 from common import time_stamp, check_input, Signal_Info
-from IO import Screen_commander, command_dict_uart_screen_v1
+from IO import Serial_Screen_commander, command_dict_uart_screen_v1
+from IO import SPI_Screen_commander
 
 class Plotter():
     def __init__(self, window_size, where_to_plot=None, n_channel=1):
@@ -140,7 +141,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filtered', linewidth=0.5)
         plt.legend()
         plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
-        
+
         d = p.remove_DC(p.notch(d))[0]
         plt.subplot(326)
         t = time.time()
@@ -153,126 +154,181 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.xlabel('Frequency')
         plt.ylabel('dB/Hz')
 
-class Screen_GUI(object):
+class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
     '''
-    _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
-                  'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
-                  'orange': 13, 'pink': 14, 'white': 15}
-    rainbow = [1, 13, 4, 2, 5, 3, 6, 0][::-1]
-    _e = {'point': 3, 'line': 1, 'circle': 1, 'circlef': 1,
-          'rect': 6, 'rectf': 0, 'text': 15, 'press': 1}
-    widget = {'point':[], 'line':[], 'circle':[], 'circlef':[],
-              'rect':[], 'rectf':[], 'text':[], 'button':[], 'img':[]}
-    def __init__(self, screen_port='/dev/ttyS1', screen_baud=115200,
-                 command_dict=None):
-        if command_dict is None:
-            command_dict = command_dict_uart_screen_v1
-        self._c = Screen_commander(screen_baud, command_dict)
-        self._c.start(screen_port)
-        self._c.send('dir', 1) # set screen vertical
+    _element_color = {
+        'point': 'blue', 'line': 'red', 'circle': 'red', 'circlef': 'red',
+        'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
+        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'white',
+        'press': 'red'}
+    widget = {
+        'point': [], 'line': [], 'circle': [], 'circlef': [],
+        'round':[], 'roundf':[], 'rect':[], 'rectf':[],
+        'round_rect': [], 'round_rectf': [], 'text':[], 'button':[], 'img':[]}
+    def __init__(self, port='/dev/ttyS2', baud=115200, width=220, height=176,
+                 command_dict=command_dict_uart_screen_v1):
+        super(Serial_Screen_GUI, self).__init__(baud, command_dict)
+        self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
+        self.start(port)  # set serial screen port
+        self.send('dir', 1)  # set screen vertical
+        self.width, self.height = width, height
         self._write_lock = threading.Lock()
         self._touch_started = False
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
-        self.touch_sensibility = 4
         self._t = serial.Serial(port, baud)
         self._flag_close = threading.Event()
         self._flag_pause = threading.Event()
         self._flag_pause.set()
         self._read_lock = threading.Lock()
         self._last_touch_time = time.time()
-        self._cali_matrix = np.array([[0.29688, 0.22382], [-53.21047, -22.89965]])
+        self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
         self._touch_started = True
         self._callback_threads = []
+        self.touch_sensibility = 4
 
-    def draw_img(self, x, y, img, render=True):
-        num = 0 if not len(self.widget['img']) \
-                else (self.widget['img'][-1]['id'] + 1)
-        img = np.array(img, np.uint8)
-        self.widget['img'].append({'data': img, 'id': num, 'shape': img.shape,
-            'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
-        if render:
-            self.render(name='img', num=num)
+    def pre_draw_check(name):
+        def func_collector(func):
+            def param_collector(self, *a, **k):  # this get params from user
+                if name in ['point', 'text', 'img', 'button']:
+                    a[0] = max(min(a[0], self.width - 1), 0)
+                    a[1] = max(min(a[1], self.height - 1), 0)
+                elif name in ['circle', 'round']:
+                    a[0] = max(min(a[0], self.width - 2), 1)
+                    a[1] = max(min(a[1], self.height - 2), 1)
+                    r, d = self.width - 1 - a[0], self.height - 1 - a[1]
+                    a[2] = max(min(a[0], a[1], r, d), 1)
+                elif name in ['line', 'rect', 'rrect']:
+                    a[0], a[1] = min(a[0], a[1]), max(a[0], a[1])
+                    a[2], a[3] = min(a[2], a[3]), max(a[2], a[3])
+                    a[1] = max(min(a[1], self.width - 1), 0)
+                    a[0] = max(min(a[0], a[1]), 0)
+                    a[3] = max(min(a[3], self.height - 1), 0)
+                    a[2] = max(min(a[2], a[3]), 0)
+                # pre-processing
+                if 'fill' in k and k['fill'] is True:
+                    name += 'f'
+                num = 0 if not len(self.widget[name]) \
+                        else (self.widget[name][-1]['id'] + 1)
+                k['name'] = name; k['num'] = num
+                # transfer params from user and name & num
+                # it will overload name=None and num=None(default)
+                # in conclusion:
+                #     user provide param *a and **k
+                #     wrapper modify them and generate new *a, **k
+                #     real function finally recieve *a, **k, and defaults
+                func(self, *a, **k)
+                if 'render' not in k or ('render' in k and k['render'] is True):
+                    self.render(**k)
+            return param_collector
+        return func_collector
 
-    def draw_button(self, x, y, s, callback=None,
-                    ct=None, cr=None, ca=None, render=True):
-        num = 0 if not len(self.widget['button']) \
-                else (self.widget['button'][-1]['id'] + 1)
+    @pre_draw_check('img')
+    def draw_img(self, x, y, img, **kwargs):
+        if not isinstance(img, np.ndarray):
+            img = np.array(img, np.uint8)
+        self.widget['img'].append({
+            'data': img, 'id': kwargs['num'], 'x1': x, 'y1': y,
+            'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+
+    @pre_draw_check('button')
+    def draw_button(self, x, y, s, size=16, cb=None,
+                    ct=None, cr=None, ca=None, **kwargs):
+        '''
+        draw button on current frame
+        params:
+            x, y: left upper point of button text
+            s: button text string
+            cb: callback function, default None
+            ct: color of text
+            cr: color of outside rect
+            ca: color of outside rect when button is pressed
+        '''
         # Although there is already `# -*- coding: utf-8 -*-` at file start
         # we'd better explicitly use utf-8 to decode every string in Py2.
         # Py3 default use utf-8 coding, which is really really nice.
         s = s.decode('utf8')
         # English use 8 pixels and Chinese use 16 pixels(GBK encoding)
         en_zh = [ord(char) > 255 for char in s]
-        w = en_zh.count(False)*8 + en_zh.count(True)*16
-        h = 16
-        ct = self._e['text']  if ct == None else ct
-        cr = self._e['rect']  if cr == None else cr
-        ca = self._e['press'] if ca == None else ca
-        cb = self._default_button_callback if callback == None else callback
-        self.widget['button'].append({'id': num, 'ct': ct, 'cr': cr, 'ca': ca,
-                'x1': max(x-2, 0), 'y1': max(y-2, 0), 'x2': x + w, 'y2': y + h,
-                'x': x, 'y': y, 's': s.encode('gbk'), 'callback': cb})
-        if render:
-            self.render(name='button', num=num)
+        if 'Serial' in self._name:
+            s = s.encode('gbk')
+            w = en_zh.count(False)*8 + en_zh.count(True)*16
+            h = 16
+        elif 'SPI' in self._name:
+            w, h = self.getsize(s)
+        self.widget['button'].append({
+            'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
+            'x2': min(x + w + 1, self.width - 1),
+            'y2': min(y + h + 1, self.height - 1),
+            'x': x, 'y': y, 's': s, 'id': kwargs['num'], 'size': size,
+            'ct': self._element_color['text']  if ct is None else ct,
+            'cr': self._element_color['rect']  if cr is None else cr,
+            'ca': self._element_color['press'] if ca is None else ca,
+            'callback': self._default_callback if cb is None else cb})
 
-    def draw_point(self, x, y, c=None, render=True):
+    @pre_draw_check('point')
+    def draw_point(self, x, y, c=None, **kwargs):
         num = 0 if not len(self.widget['point']) \
                 else (self.widget['point'][-1]['id'] + 1)
-        c = self._e['point'] if c == None else c
-        self.widget['point'].append({'x': x, 'y': y, 'id': num, 'c': c})
-        if render:
-            self.render(name='point', num=num)
+        self.widget['point'].append({
+            'x': x, 'y': y, 'id': num,
+            'c': self._element_color['point'] if c is None else c})
 
-    def draw_line(self, x1, y1, x2, y2, c=None, render=True):
-        num = 0 if not len(self.widget['line']) \
-                else (self.widget['line'][-1]['id'] + 1)
-        c = self._e['line'] if c == None else c
-        self.widget['line'].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                   'id': num, 'c': c})
-        if render:
-            self.render(name='line', num=num)
+    @pre_draw_check('line')
+    def draw_line(self, x1, y1, x2, y2, c=None, **kwargs):
+        self.widget['line'].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
+            'c': self._element_color['line'] if c is None else c})
 
-    def draw_rectangle(self, x1, y1, x2, y2, c=None, fill=False, render=True):
-        name = 'rectf' if fill else 'rect'
-        num = 0 if not len(self.widget[name]) \
-                else (self.widget[name][-1]['id'] + 1)
-        c = self._e[name] if c == None else c
-        self.widget[name].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                 'id': num, 'c': c})
-        if render:
-            self.render(name=name, num=num)
+    @pre_draw_check('rect')
+    def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **kwargs):
+        self.widget[kwargs['name']].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
+            'c': self._element_color[kwargs['name']] if c is None else c})
 
-    def draw_circle(self, x, y, r, c=None, fill=False, render=True):
-        name = 'circlef' if fill else 'circle'
-        num = 0 if not len(self.widget[name]) \
-                else (self.widget[name][-1]['id'] + 1)
-        c = self._e[name] if c == None else c
-        self.widget[name].append({'x': x, 'y': y, 'r': r, 'id': num, 'c': c,
-                   'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r})
-        if render:
-            self.render(name=name, num=num)
+    @pre_draw_check('round')
+    def draw_round(self, x, y, r, m, c=None, fill=False, **kwargs):
+        self.widget[kwargs['name']].append({
+            'x': x, 'y': y, 'r': r, 'm': m, 'id': kwargs['num'],
+            'c': self._element_color[kwargs['name']] if c is None else c})
 
-    def draw_text(self, x, y, s, c=None, render=True):
-        num = 0 if not len(self.widget['text']) \
-                else (self.widget['text'][-1]['id'] + 1)
+    @pre_draw_check('round_rect')
+    def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **kwargs):
+        self.widget[kwargs['name']].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y': y2, 'r': r, 'id': kwargs['num'],
+            'c': self._element_color[kwargs['name']] if c is None else c})
+
+    @pre_draw_check('circle')
+    def draw_circle(self, x, y, r, c=None, fill=False, **kwargs):
+        self.widget[kwargs['name']].append({
+            'x': x, 'y': y, 'r': r, 'x1': x - r, 'y1': y - r,
+            'x2': x + r, 'y2': y + r, 'id': kwargs['num'],
+            'c': self._element_color[kwargs['name']] if c is None else c})
+
+    @pre_draw_check('text')
+    def draw_text(self, x, y, s, c=None, size=16, **kwargs):
         s = s.decode('utf8')
-        en_zh = [ord(char) > 255 for char in s]
-        w = en_zh.count(False)*8 + en_zh.count(True)*16
-        h = 16
-        c = self._e['text'] if c == None else c
-        self.widget['text'].append({'x': x, 'y': y, 'id': num, 'c': c,
-                   'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
-                   's': s.encode('gbk')})
+        # en_zh = [ord(char) > 255 for char in s]
+        # if 'Serial' in self._name:
+        #     s = s.encode('gbk')
+        #     w = en_zh.count(False)*8 + en_zh.count(True)*16
+        #     h = 16
+        # elif 'SPI' in self._name:
+        #     self.setsize(size)
+        #     w, h = self.getsize(s)
+        self.widget['text'].append({
+            # 'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
+            'x': x, 'y': y, 's': s, 'id': kwargs['num'], 'size': size,
+            'c': self._element_color['text'] if c is None else c})
         if render:
             self.render(name='text', num=num)
 
-    def remove_element(self, name=None, num=None, render=True):
+    def remove_element(self, name=None, num=None, ):
         if not sum([len(i) for i in self.widget.values()]):
             print('No elements now!')
             return
@@ -304,24 +360,30 @@ class Screen_GUI(object):
         finally:
             self.render()
 
-    def save_layout(self):
+    def save_layout(self, directory):
+        '''
+        save current layout(texts, buttons, any elements) in a json file
+        '''
         # text string is storaged as gbk in self.widget
         # convert it to utf8 to jsonify
         tmp = self.widget.copy()
         for i in tmp['button']:
             i['callback'] = None
-            i['s'] = i['s'].decode('gbk')
+            if 'Serial' in self._name:
+                i['s'] = i['s'].decode('gbk')
         for i in tmp['text']:
-            i['s'] = i['s'].decode('gbk')
+            if 'Serial' in self._name:
+                i['s'] = i['s'].decode('gbk')
         for i in tmp['img']:
             i['data'] = i['data'].tobytes()
-        with open('../files/layout-%s.json' % time_stamp(), 'w') as f:
+        with open(directory + 'layout-%s.json' % time_stamp(), 'w') as f:
             json.dump(tmp, f)
 
-    def load_layout(self):
+    def load_layout(self, directory):
+        '''read in a layout from file'''
         while 1:
             prompt = 'choose one from ' + ' | '.join([os.path.basename(i) \
-                    for i in glob.glob('../files/layout*.json')])
+                    for i in glob.glob(directory + 'layout*.json')])
             try:
                 with open(check_input(prompt, {}), 'r') as f:
                     tmp = json.load(f)
@@ -332,104 +394,85 @@ class Screen_GUI(object):
                 print('error!')
         # json.load returns unicode
         for i in tmp['button']:
-            i['s'] = i['s'].encode('gbk')
-            i['callback'] = self._default_button_callback \
+            if 'Serial' in self._name:
+                i['s'] = i['s'].encode('gbk')
+            i['callback'] = self._default_callback \
                             if i['callback'] == None else i['callback']
         for i in tmp['text']:
-            i['s'] = i['s'].encode('gbk')
+            if 'Serial' in self._name:
+                i['s'] = i['s'].encode('gbk')
         for i in self.widget['img']:
-            i['data'] = np.frombuffer(i['data'], np.uint8).reshape(i['shape'])
+            w, h = i['x2'] - i['x1'], i['y2'] - i['y1']
+            i['data'] = np.frombuffer(i['data'], np.uint8).reshape(h, w)
         self.widget.update(tmp)
         self.render()
-    
-    def _default_button_callback(self, x, y, bt):
+
+    def save_frame(self):
+        '''save current frame buffer in background'''
+        self._tmp = (self.widget.copy(), self.touch_sensibility)
+        for e in self.widget:
+            self.widget[e] = []
+        self.clear()
+
+    def recover_frame(self):
+        '''recover lastest frame buffer from background'''
+        if self._tmp:
+            self.widget, self.touch_sensibility = self._tmp
+            self.render()
+
+    def _default_callback(self, x, y, bt):
+        '''default button callback'''
         print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
                   % (bt['id'], bt['s'], x, y, time.time()))
 
-    def render(self, *args, **kwargs):
-        '''
-        clear sequence:
-        +--------------+
-        |33334444411111|
-        |33334444411111|
-        |3333+---+11111|
-        |3333|img|11111|
-        |3333+---+11111|
-        |22222222211111|
-        |22222222211111|
-        +--------------+
-
-        render params:
-        name: element name, one of ['circle', 'circlef', 'img', 'point',
-                                    'button', 'text', 'line', 'rectf', 'rect']
-        num: element id
-        '''
+    def render(self, name=None, num=None):
         try:
             self._write_lock.acquire()
-            if 'name' and 'num' in kwargs: # render an element
-                ids = [i['id'] for i in self.widget[kwargs['name']]]
-                e = self.widget[kwargs['name']][ids.index(kwargs['num'])]
+            if None not in [name, num]: # render an element
+                ids = [i['id'] for i in self.widget[name]]
+                e = self.widget[name][ids.index(num)]
                 self.clear(**e)
-                if kwargs['name'] == 'button':
-                    self._c.send('text', x=e['x'], y=e['y'],
-                                 s=e['s'], c=e['ct'])
-                    self._c.send('rect', x1=e['x1'], y1=e['y1'],
-                                 x2=e['x2'], y2=e['y2'], c=e['cr'])
-                elif kwargs['name'] == 'img':
-                    self._plot_img(e)
+                if name == 'button':
+                    e['c'] = e['ct']; self.send('text', **e)
+                    e['c'] = e['cr']; self.send('rect', **e)
+                elif name == 'img' and 'Serial' in self._name:
+                    self._plot_point_by_point(e)
                 else:
-                    self._c.send(kwargs['name'], **e)
+                    self.send(name, **e)
             else: # render all
-                if len(self.widget['img']):
-                    img = self.widget['img'][0]
-                    self.clear(img['x2'], 0, 219, 175) # clear 1
-                    self.clear(0, img['y2'], max(img['x2']-1, 0), 175) # clear 2
-                    self.clear(0, 0, max(img['x1']-1, 0), max(img['y2']-1, 0)) # clear 3
-                    self.clear(img['x1'], 0, max(img['x2']-1, 0), max(img['y1']-1, 0)) # clear 4
-                else:
-                    self.clear(*args, **kwargs) # clear all
-                for element_name in self.widget.keys():
-                    if element_name == 'button':
-                        for bt in self.widget[element_name]:
-                            self._c.send('text', x=bt['x'], y=bt['y'],
-                                         s=bt['s'], c=bt['ct'])
-                            self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                         x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
-                    elif element_name == 'img':
-                        for img in self.widget['img']:
-                            self._plot_img(img)
+                self.clear() # clear all
+                for name in self.widget.keys():
+                    if name == 'button':
+                        for bt in self.widget[name]:
+                            bt['c'] = bt['ct']; self.send('text', **bt)
+                            bt['c'] = bt['cr']; self.send('rect', **bt)
+                    elif name == 'img' and 'Serial' in self._name:
+                        for e in self.widget['img']:
+                            self._plot_point_by_point(e)
                     else:
-                        for element in self.widget[element_name]:
-                            self._c.send(element_name, **element)
+                        for e in self.widget[name]:
+                            self.send(name, **e)
             self._write_lock.release()
         except Exception as e:
             print(e)
 
-    def _plot_img(self, img):
-        '''
-        render img by plotting each point
-        (I know this is super slow but let us use it now)
-        #TODO 10: speed up img display
-        '''
-        for x in range(img['x2'] - img['x1']):
-            for y in range(img['y2'] - img['y1']):
-                if img['data'][y, x]:
-                    self._c.send('point', x=img['x1'] + x, y=img['y1'] + y,
-                                 c=img['data'][y, x])
+    def _plot_point_by_point(self, e):
+        for x in range(e['x2'] - e['x1']):
+            for y in range(e['y2'] - e['y1']):
+                if e['data'][y, x]:
+                    self.send('point', c=e['data'][y, x],
+                              x=e['x1'] + x, y=e['y1'] + y)
 
     def calibration_touch_screen(self):
         if not self._touch_started:
             print('[Screen GUI] touch screen not initialized yet!')
             return
         self._flag_pause.clear() # pause _handle_touch_screen thread
-        tmp = (self.widget.copy(), self.touch_sensibility)
-        for element in self.widget:
-            self.widget[element] = []
+        self.save_frame()
         self.touch_sensibility = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
-        self.clear()
-        self.draw_text(78, 80, '屏幕校准', c=self._color_map['green'])
-        self.draw_text(79, 80, '屏幕校准', c=self._color_map['green'])
+        self.draw_text(78, 80, '屏幕校准', c='green')
+        self.draw_text(79, 80, '屏幕校准', c='green')
         # points where to be touched
         pts = np.array([[10, 10], [210, 10], [10, 165], [210, 165]])
         # points where user touched
@@ -437,22 +480,38 @@ class Screen_GUI(object):
         try:
             for i in range(4):
                 print('[Calibration] this will be %d/4 points' % (i+1))
-                self.draw_circle(pts[i][0], pts[i][1], 4, render=True,
-                                 c=self._color_map['blue'])
+                self.draw_circle(pts[i][0], pts[i][1], 4, 'blue')
                 ptt[i] = self._get_touch_point()
                 print('[Calibration] touch at {}, {}'.format(*ptt[i]))
-                self.draw_circle(pts[i][0], pts[i][1], 2, render=True,
-                                 c=self._color_map['blue'], fill=True)
+                self.draw_circle(pts[i][0], pts[i][1], 2, 'blue', fill=True)
             self._cali_matrix = np.array([
                     np.polyfit(ptt[:, 0], pts[:, 0], 1),
                     np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
-            print(ptt, pts, self._cali_matrix)
+            print(('[Screen GUI] calibration done!\nTarget point:\n{}\n'
+                   'Touched point:\n{}\ncalibration result matrix:\n{}\n'
+                   '').format(ptt, pts, self._cali_matrix))
         except Exception as e:
             print(e)
         finally:
-            self.widget, self.touch_sensibility = tmp
-            self.render()
+            self.recover_frame()
             self._flag_pause.set() # resume _handle_touch_screen thread
+
+    def display_logo(self, filename):
+        self.save_frame()
+        img = Image.open(filename).resize((219, 85))
+        self.draw_img(0, 45, np.array(img, dtype=np.uint8))
+        self.draw_text(62, 143, '任意点击开始')
+        self.draw_text(54, 159, 'click to start')
+        if self._touch_started:
+            self._flag_pause.clear()
+            self._read_lock.acquire()
+            self._t.flushInput()
+            self._t.read_until()
+            self._read_lock.release()
+            self._flag_pause.set()
+        else:
+            time.sleep(1)
+            self.recover_frame()
 
     def _get_touch_point(self):
         '''
@@ -485,53 +544,24 @@ class Screen_GUI(object):
                 if x > bt['x1'] and x < bt['x2'] \
                 and y > bt['y1'] and y < bt['y2']:
                     self._write_lock.acquire()
-                    self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                 x2=bt['x2'], y2=bt['y2'], c=bt['ca'])
-                    time.sleep(0.3)
-                    self._c.send('rect', x1=bt['x1'], y1=bt['y1'],
-                                 x2=bt['x2'], y2=bt['y2'], c=bt['cr'])
+                    bt['c'] = bt['ca']; self.send('rect', **bt); time.sleep(0.3)
+                    bt['c'] = bt['cr']; self.send('rect', **bt); time.sleep(0.2)
                     self._write_lock.release()
-                    time.sleep(0.2)
-                    if bt['callback'] is None:
-                        self._default_button_callback(x, y, bt)
-                    else:
-                        self._callback_threads.append(threading.Thread(
-                                target=bt['callback'],
-                                kwargs={'x': x, 'y': y, 'bt':bt}))
-                        self._callback_threads[-1].start()
+                    self._callback_threads.append(threading.Thread(
+                            target=bt['callback'],
+                            kwargs={'x': x, 'y': y, 'bt':bt}))
+                    self._callback_threads[-1].start()
         print('[Touch Screen] exiting...')
-
-    def display_logo(self, filename):
-        tmp = self.widget.copy()
-        for element in self.widget:
-            self.widget[element] = []
-        self.clear()
-        img = np.array(Image.open(filename).resize((219, 85)))
-        self.draw_img(0, 45, 15*(img[:,:,3] != 0))
-        self.draw_text(62, 143, '任意点击开始')
-        self.draw_text(54, 159, 'click to start')
-        if self._touch_started:
-            self._flag_pause.clear()
-            self._read_lock.acquire()
-            self._t.flushInput()
-            self._t.read_until()
-            self._read_lock.release()
-            self._flag_pause.set()
-        else:
-            time.sleep(1)
-        self.widget = tmp
-        self.render()
 
     def clear(self, x1=None, y1=None, x2=None, y2=None, *args, **kwargs):
         if None in [x1, y1, x2, y2]:
-            self._c.send('clear')
+            self.send('clear')
         else:
-            self._c.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2,
-                         c=self._color_map['black'])
+            self.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2, c='black')
 
     def close(self):
         self._write_lock.acquire()
-        self._c.close()
+        super(Serial_Screen_GUI, self).close()
         self._write_lock.release()
         if self._touch_started:
             self._flag_close.set()
@@ -543,22 +573,27 @@ class Screen_GUI(object):
             finally:
                 self._t.close()
 
-    def update_element_color(self, element, color):
-        if element not in self._e:
-            print('no candidates for this element `{}`'.format(element))
-            print('choose one from ' + ' | '.join(self.list_elements()))
-            return
-        if color not in self._color_map:
-            print('Invalid color name `{}`'.format(color))
-            print('choose one from ' + ' | '.join(self.list_colors()))
-            return
-        self._e[element] = self._color_map[color]
 
-    def list_colors(self):
-        return self._color_map.keys()
+class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
+    '''
+    `SPI_Screen_GUI` inherits `SPI_Screen_commander` and `Serial_Screen_GUI`.
+    It will construct spi connection by initing `SPI_Screen_commander`.
+    Although we don't initialize `Serial_Screen_GUI`(i.e. no serial connection
+    will be built) when instantiating an object of `SPI_Screen_GUI`, it can get
+    access to GUI control functions offered by `Serial_Screen_GUI`.
 
-    def list_elements(self):
-        return self._e.keys()
+    Because I don't want to write additional samilliar functions for spi screen.
+    '''
+    def __init__(self, spi_device):
+        super(SPI_Screen_GUI, self).__init__(spi_device)
+        self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
+        self.start()
+        self.setfont('./files/spi_screen/yahei_mono.ttf')
+        self._write_lock = threading.Lock()
+        self._touch_started = False
+
+    def close(self):
+        super(SPI_Screen_GUI, self).close()
 
 if __name__ == '__main__':
 #    plt.ion()

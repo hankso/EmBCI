@@ -28,13 +28,13 @@ def shutdown(*args, **kwargs):
     s.close()
     server.close()
     os.system('shutdown now')
-    
+
 
 def reboot(*args, **kwrags):
     s.close()
     server.close()
     os.system('reboot')
-    
+
 
 def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **kwargs):
     if operate == 'plus':
@@ -50,7 +50,7 @@ def range_callback(e, operate='plus', name='text', fm=None, num=None, *args, **k
             if i['id'] == num:
                 i['s'] = fm.format(e['n']) if fm else str(e['n'])
                 s.render(name=name, num=num)
-                
+
 def list_callback(e, operate='next', name='text', fm=None, num=None, cb=False, *args, **kwargs):
     if operate == 'next':
         e['i'] += 1
@@ -76,7 +76,7 @@ def display_waveform(*args, **kwargs):
     s.clear()
     # start and stop flag
     flag_close = threading.Event()
-    
+
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
@@ -93,7 +93,7 @@ def display_waveform(*args, **kwargs):
     s.draw_text(5, 1, '波形显示', c=2) # 0
     s.draw_text(4, 1, '波形显示', c=2) # 1
     s.draw_button(5, 19, '返回上层', callback=lambda *a, **k: flag_close.set())
-    s.draw_rectangle(72, 0, 219, 35, c=5)
+    s.draw_rect(72, 0, 219, 35, c=5)
     s.draw_text(74, 1, '幅度') # 2
     s.draw_button(112, 2, '－', partial(list_callback, e=scale_list,
                                        operate='prev', fm='{:8d}', num=3))
@@ -150,7 +150,7 @@ def display_info(x, y, bt):
     s.clear()
     # start and stop flag
     flag_close = threading.Event()
-    
+
     # construct reader
     sample_rate = rate_list['a'][rate_list['i']]
     sample_time = time_range['n']
@@ -172,12 +172,15 @@ def display_info(x, y, bt):
     cx = 0
     def change_plot(*a, **k):
         global cx, draw_fft
+        s._write_lock.acquire()
         cx = 0
         draw_fft = not draw_fft
-        s._write_lock.acquire()
         s.clear(*area)
         s._write_lock.release()
-        s.widget['button'][-1]['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
+        for bt in s.widget['button']:
+            if bt['id'] == 9:
+                bt['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
+        s.render(name='button', num=9)
 
     # plot page widgets
     s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
@@ -215,7 +218,7 @@ def display_info(x, y, bt):
     s.draw_button(203, 88, '＋', partial(range_callback, e=current_ch_range,
                                         operate='plus', fm='ch{:2d}', num=16))
     s.draw_button(185, 125, '画图' if draw_fft else '画线', change_plot)
-    
+
     r_amp = s.widget['text'][6]
     r_fre = s.widget['text'][7]
     egy30 = s.widget['text'][10]
@@ -228,7 +231,7 @@ def display_info(x, y, bt):
         while 1:
             if (time.time() - last_time) > 0.5:
                 last_time = time.time()
-                
+
                 assert not flag_close.isSet()
                 data = s.reader.buffer['channel%d' % current_ch_range['n']]
                 x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
@@ -247,7 +250,7 @@ def display_info(x, y, bt):
                 # get energy info
                 e = si.energy((x ,y), 3, 30, sample_rate)[0]
                 egy30['s'] = '%.4e' % e
-                
+
                 if draw_fft:  # draw amp-freq graph
                     step = 1
                     s.clear(*area)
@@ -256,6 +259,8 @@ def display_info(x, y, bt):
                     y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
                                 area[1], area[3]).astype(np.int)
                     for x in range(step, len(y), step):
+                        if not draw_fft:
+                            break
                         s._write_lock.acquire()
                         if y[x] != y[x-step]:
                             s._c.send('line', x1=x, x2=x, y1=y[x-step], y2=y[x], c=3)
@@ -335,7 +340,7 @@ menu = {
         {'s': ' 3.00 s ', 'y': 85, 'id': 8, 'x': 130, 'x1': 130, 'x2': 194, 'y1': 85, 'y2': 101, 'c': 15}],
     'button': [
         {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 81, 'y1': 63, 'y': 65,
-         'ct': 13, 's': '\xa3\xad', 'id': 0, 'ca': 1, 
+         'ct': 13, 's': '\xa3\xad', 'id': 0, 'ca': 1,
          'callback': partial(list_callback, e=rate_list, operate='prev', fm=' {:3d} Hz ', num=7)},
         {'x1': 108, 'x2': 126, 'x': 110, 'cr': 2, 'y2': 101, 'y1': 83, 'y': 85,
          'ct': 13, 's': '\xa3\xad', 'id': 1, 'ca': 1,
@@ -370,7 +375,7 @@ if __name__ == '__main__':
         print('username: ' + username)
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
-        
+
     reset_avr = SysfsGPIO(10) # PA10
     reset_avr.export = True
     reset_avr.direction = 'out'
@@ -378,11 +383,11 @@ if __name__ == '__main__':
     time.sleep(1)
     reset_avr.value = 1
     time.sleep(1)
-    
+
     program_exit = threading.Event()
-    
+
     try:
-        s = Screen_GUI(screen_port='/dev/ttyS1')
+        s = Screen_GUI(screen_port='/dev/ttyS1', screen_baud=115200)
         server = Socket_server()
         s.start_touch_screen('/dev/ttyS2')
 #        stop = virtual_serial()
