@@ -622,7 +622,7 @@ class Socket_reader(_basic_reader):
                 raise SystemExit(self._name + 'mannually exit')
             try:
                 host, port = r.split(':')
-                assert int(port) > 0
+                assert int(port) > 0, 'port must be positive num'
                 socket.inet_aton(host)
                 break
             except:

@@ -69,11 +69,7 @@ def list_callback(e, operate='next', name='text', fm=None, num=None, cb=False, *
 
 
 def display_waveform(*args, **kwargs):
-    # store old widget
-    tmp = s.widget.copy()
-    for element in s.widget:
-        s.widget[element] = []
-    s.clear()
+    s.freeze_frame()
     # start and stop flag
     flag_close = threading.Event()
 
@@ -121,13 +117,12 @@ def display_waveform(*args, **kwargs):
                 d = d[ch] * scale_list['a'][scale_list['i']]  # pick one channel and re-scale this data
                 DC = d * 0.1 + DC * 0.9  # real-time remove DC
                 data[x] = np.clip(center - (d - DC), area[1], area[3]).astype(np.int)  # get screen position
-                s._write_lock.acquire()
-                s._c.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)  # first clear current line
-                if data[x] != data[x-step]:  # then draw current point
-                    s._c.send('line', x1=x, x2=x, y1=data[x-step], y2=data[x], c=color[ch])
-                else:
-                    s._c.send('point', x=x, y=data[x], c=color[ch])
-                s._write_lock.release()
+                with s.write_lock:
+                    s.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)  # first clear current line
+                    if data[x] != data[x-step]:  # then draw current point
+                        s.send('line', x1=x, x2=x, y1=data[x-step], y2=data[x], c=color[ch])
+                    else:
+                        s.send('point', x=x, y=data[x], c=color[ch])
             data[0] = data[x]
     except AssertionError:
         pass
@@ -136,18 +131,12 @@ def display_waveform(*args, **kwargs):
         print(e)
     finally:
         print('[Display Waveform] terminating...')
-        # recover old widget
-        s.widget = tmp
+        s.recover_frame()
         s.reader.pause()
-        s.render()
 
 
 def display_info(x, y, bt):
-    # store old widget
-    tmp = s.widget.copy()
-    for element in s.widget:
-        s.widget[element] = []
-    s.clear()
+    s.freeze_frame()
     # start and stop flag
     flag_close = threading.Event()
 
@@ -172,11 +161,10 @@ def display_info(x, y, bt):
     cx = 0
     def change_plot(*a, **k):
         global cx, draw_fft
-        s._write_lock.acquire()
-        cx = 0
-        draw_fft = not draw_fft
-        s.clear(*area)
-        s._write_lock.release()
+        with s.write_lock:
+            cx = 0
+            draw_fft = not draw_fft
+            s.clear(*area)
         for bt in s.widget['button']:
             if bt['id'] == 9:
                 bt['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
@@ -229,72 +217,70 @@ def display_info(x, y, bt):
     last_time = time.time()
     try:
         while 1:
-            if (time.time() - last_time) > 0.5:
-                last_time = time.time()
+            while (time.time() - last_time) < 0.5:
+                pass
+            last_time = time.time()
 
-                assert not flag_close.isSet()
-                data = s.reader.buffer['channel%d' % current_ch_range['n']]
-                x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
-                # get peek of specific duration of signal
-                f, a = si.peek_extract((x, y),
-                                       min(f1_range['n'], f2_range['n']),
-                                       max(f1_range['n'], f2_range['n']),
-                                       sample_rate)[0]
-                r_amp['s'] = '%.1e' % a
-                r_fre['s'] = '%5.2f' % f
-                # get peek of all
-                f, a = si.peek_extract((x, y), 2, sample_rate/2, sample_rate)[0]
-                a_amp['s'] = '%.1e' % a
-                a_fre['s'] = '%5.1f' % f
-                a_f_m = int(f*2.0*(x.shape[0] - 1)/sample_rate)
-                # get energy info
-                e = si.energy((x ,y), 3, 30, sample_rate)[0]
-                egy30['s'] = '%.4e' % e
+            assert not flag_close.isSet()
+            data = s.reader.buffer['channel%d' % current_ch_range['n']]
+            x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
+            # get peek of specific duration of signal
+            f, a = si.peek_extract((x, y),
+                                   min(f1_range['n'], f2_range['n']),
+                                   max(f1_range['n'], f2_range['n']),
+                                   sample_rate)[0]
+            r_amp['s'] = '%.1e' % a
+            r_fre['s'] = '%5.2f' % f
+            # get peek of all
+            f, a = si.peek_extract((x, y), 2, sample_rate/2, sample_rate)[0]
+            a_amp['s'] = '%.1e' % a
+            a_fre['s'] = '%5.1f' % f
+            a_f_m = int(f*2.0*(x.shape[0] - 1)/sample_rate)
+            # get energy info
+            e = si.energy((x ,y), 3, 30, sample_rate)[0]
+            egy30['s'] = '%.4e' % e
 
-                if draw_fft:  # draw amp-freq graph
-                    step = 1
-                    s.clear(*area)
-                    y = y[0][:area[2] - area[0]]
-                    server.send(y)  # raw data
-                    y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
-                                area[1], area[3]).astype(np.int)
-                    for x in range(step, len(y), step):
-                        if not draw_fft:
-                            break
-                        s._write_lock.acquire()
+            if draw_fft:  # draw amp-freq graph
+                step = 1
+                s.clear(*area)
+                y = y[0][:area[2] - area[0]]
+                server.send(y)  # raw data
+                y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
+                            area[1], area[3]).astype(np.int)
+                for x in range(step, len(y), step):
+                    if not draw_fft:
+                        break
+                    with s.write_lock:
                         if y[x] != y[x-step]:
-                            s._c.send('line', x1=x, x2=x, y1=y[x-step], y2=y[x], c=3)
+                            s.send('line', x1=x, x2=x, y1=y[x-step], y2=y[x], c=3)
                         else:
-                            s._c.send('point', x=x, y=y[x], c=3)
-                        s._write_lock.release()
-                    # render elements
-                    s.render(name='text', num=6)
-                    s.render(name='text', num=7)
-                    s.render(name='text', num=10)
-                    s.render(name='text', num=12)
-                    s.render(name='text', num=13)
-                    s._c.send('line', x1=a_f_m, y1=area[1], x2=a_f_m, y2=area[3], c=1)
-                    time.sleep(0.5)
-                else:
-                    y = np.log10(y[0][:int(60.0*(x.shape[0] - 1)/sample_rate)])
-                    f_max = max(f_max, int(y.max()))
-                    f_min = min(f_min, int(y.min()))
-                    y = np.round(mapping(y,
-                                         f_min, f_max,
-                                         0, len(s.rainbow))).astype(np.int)
-                    s._write_lock.acquire()
+                            s.send('point', x=x, y=y[x], c=3)
+                # render elements
+                s.render(name='text', num=6)
+                s.render(name='text', num=7)
+                s.render(name='text', num=10)
+                s.render(name='text', num=12)
+                s.render(name='text', num=13)
+                s.send('line', x1=a_f_m, y1=area[1], x2=a_f_m, y2=area[3], c=1)
+                time.sleep(0.5)
+            else:
+                y = np.log10(y[0][:int(60.0*(x.shape[0] - 1)/sample_rate)])
+                f_max = max(f_max, int(y.max()))
+                f_min = min(f_min, int(y.min()))
+                y = np.round(mapping(y, f_min, f_max,
+                                     0, len(s.rainbow))).astype(np.int)
+                with s.write_lock:
                     for i, v in enumerate(y):
-                        s._c.send('point', x=cx, y=area[1] + i, c=s.rainbow[v])
-                    s._write_lock.release()
-                    cx += 1
-                    if cx > area[2]:
-                        cx = area[0]
-                        s.clear(*area)
-                    s.render(name='text', num=6)
-                    s.render(name='text', num=7)
-                    s.render(name='text', num=10)
-                    s.render(name='text', num=12)
-                    s.render(name='text', num=13)
+                        s.send('point', x=cx, y=area[1] + i, c=s.rainbow[v])
+                cx += 1
+                if cx > area[2]:
+                    cx = area[0]
+                    s.clear(*area)
+                s.render(name='text', num=6)
+                s.render(name='text', num=7)
+                s.render(name='text', num=10)
+                s.render(name='text', num=12)
+                s.render(name='text', num=13)
     except AssertionError:
         pass
     except Exception as e:
@@ -303,9 +289,8 @@ def display_info(x, y, bt):
     finally:
         print('[Display Info] terminating...')
         # recover old widget
-        s.widget = tmp
+        s.recover_frame()
         s.reader.pause()
-        s.render()
 
 
 

@@ -58,11 +58,11 @@ def sEMG_Recognition(username, reader, model, commander):
     else:
         # no model, then collect data and train a new one!
         model_flag = True
-    
+
     # we must clear workspace frequently on orangepi, which only has 512MB RAM
     # variables existing:
     #     'model_flag', 'username', 'reader', 'model', 'commander'
-    
+
     #==========================================================================
     # record data and train classifier
     #==========================================================================
@@ -72,32 +72,32 @@ def sEMG_Recognition(username, reader, model, commander):
             sys.exit('terminated')
         while not check_input('start record data?[Y/n] '):
             pass
-        
+
         #===============================================
         save_action(username, reader, ['left', 'right'])
         #===============================================
 
         if not os.path.exists('./data/'+username):
             sys.exit('No data saved for training.')
-        
+
         try:
             # prepare training data. n_sample x n_channel x window_size
             print('Loading data... ', end='')
             data, label, action_dict = load_data(username)
             print('done\n')
-            
+
             print('Building model... ', end='')
             model.build(nb_classes = len(action_dict),
                         input_shape = data.shape)
             model.train(data, label)
             print('done\n')
-            
+
             if check_input(('Now that model is well trained, saved data is of '
                             'no use.\nIf you want to add more actions to '
                             'current model next time, please keep these data.'
                             '(not recommended)\ndelete data? [Y/n] ')):
                 os.system('rm ./data/%s/*.mat' % username)
-                
+
             model_name = './models/%s/%s.h5' % (username, time_stamp())
             model.save(model_name)
             with open(model_name[:-3] + '-action-dict.json', 'w') as f:
@@ -108,10 +108,10 @@ def sEMG_Recognition(username, reader, model, commander):
             sys.exit(0)
         finally:
             model_name = model_flag = data = label = f = None
-        
+
         # vars:
         #     'action_dict', 'username', 'reader', 'model', 'commander'
-            
+
     #==========================================================================
     # load saved classifier
     #==========================================================================
@@ -126,7 +126,7 @@ def sEMG_Recognition(username, reader, model, commander):
             action_dict.pop(i)
         print('done')
         model_name = model_flag = f = i = None
-    
+
     # vars:
     #     'action_dict', 'username', 'reader', 'model', 'commander'
 
@@ -145,23 +145,20 @@ def sEMG_Recognition(username, reader, model, commander):
             action_name = action_dict[class_num]
             print('[Predict action name] ' + action_name, end='')
             print(class_prob)
-            
+
             if class_prob > 0.5:
-#                lock.acquire()
-#                time.sleep(1.0/25.0)
                 action_cmd = commander.send('text',
                                             len(action_name),
                                             action_name)
-#                lock.release()
                 if action_cmd is not None:
                     print('send control command %s for action %s' % (
                             action_cmd, action_name))
-                    
+
     except KeyboardInterrupt:
         reader.close()
         commander.close()
-    
-    
+
+
 def Matplotlib_Plot_Info(reader, commander):
     si = Signal_Info()
     p = Processer(reader.sample_rate, reader.sample_time)
@@ -199,7 +196,7 @@ def Matplotlib_Plot_Info(reader, commander):
         axes[2, 1].set_axis_off()
         text_p = axes[2, 1].texts[0]
         text_s = axes[2, 1].texts[1]
-        
+
         while 1:
             data = reader.buffer[display_ch]
             line_raw.set_ydata(data)
@@ -216,19 +213,19 @@ def Matplotlib_Plot_Info(reader, commander):
                             si.energy(data, 4, 10, reader.sample_rate)[0])
             plt.show()
             plt.pause(0.1)
-            
+
     except KeyboardInterrupt:
         reader.close()
         commander.close()
 
 def P300(username, reader, model, commander):
     raise NotImplemented
-    
+
 def SSVEP():
     raise NotImplemented
-    
+
 def TGAM_relax(username, reader, model, commander):
     raise NotImplemented
-    
+
 def MotorImaginary(username, reader, model, commander):
     raise NotImplemented

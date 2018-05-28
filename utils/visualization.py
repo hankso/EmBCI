@@ -174,7 +174,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.start(port)  # set serial screen port
         self.send('dir', 1)  # set screen vertical
         self.width, self.height = width, height
-        self._write_lock = threading.Lock()
+        self.write_lock = threading.Lock()
         self._touch_started = False
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
@@ -407,7 +407,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.widget.update(tmp)
         self.render()
 
-    def save_frame(self):
+    def freeze_frame(self):
         '''save current frame buffer in background'''
         self._tmp = (self.widget.copy(), self.touch_sensibility)
         for e in self.widget:
@@ -426,35 +426,34 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                   % (bt['id'], bt['s'], x, y, time.time()))
 
     def render(self, name=None, num=None):
-        try:
-            self._write_lock.acquire()
-            if None not in [name, num]: # render an element
-                ids = [i['id'] for i in self.widget[name]]
-                e = self.widget[name][ids.index(num)]
-                self.clear(**e)
-                if name == 'button':
-                    e['c'] = e['ct']; self.send('text', **e)
-                    e['c'] = e['cr']; self.send('rect', **e)
-                elif name == 'img' and 'Serial' in self._name:
-                    self._plot_point_by_point(e)
-                else:
-                    self.send(name, **e)
-            else: # render all
-                self.clear() # clear all
-                for name in self.widget.keys():
+        with self.write_lock:
+            try:
+                if None not in [name, num]: # render an element
+                    ids = [i['id'] for i in self.widget[name]]
+                    e = self.widget[name][ids.index(num)]
+                    self.clear(**e)
                     if name == 'button':
-                        for bt in self.widget[name]:
-                            bt['c'] = bt['ct']; self.send('text', **bt)
-                            bt['c'] = bt['cr']; self.send('rect', **bt)
+                        e['c'] = e['ct']; self.send('text', **e)
+                        e['c'] = e['cr']; self.send('rect', **e)
                     elif name == 'img' and 'Serial' in self._name:
-                        for e in self.widget['img']:
-                            self._plot_point_by_point(e)
+                        self._plot_point_by_point(e)
                     else:
-                        for e in self.widget[name]:
-                            self.send(name, **e)
-            self._write_lock.release()
-        except Exception as e:
-            print(e)
+                        self.send(name, **e)
+                else: # render all
+                    self.clear() # clear all
+                    for name in self.widget.keys():
+                        if name == 'button':
+                            for bt in self.widget[name]:
+                                bt['c'] = bt['ct']; self.send('text', **bt)
+                                bt['c'] = bt['cr']; self.send('rect', **bt)
+                        elif name == 'img' and 'Serial' in self._name:
+                            for e in self.widget['img']:
+                                self._plot_point_by_point(e)
+                        else:
+                            for e in self.widget[name]:
+                                self.send(name, **e)
+            except Exception as e:
+                print(e)
 
     def _plot_point_by_point(self, e):
         for x in range(e['x2'] - e['x1']):
@@ -468,7 +467,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print('[Screen GUI] touch screen not initialized yet!')
             return
         self._flag_pause.clear() # pause _handle_touch_screen thread
-        self.save_frame()
+        self.freeze_frame()
         self.touch_sensibility = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
         self.draw_text(78, 80, '屏幕校准', c='green')
@@ -497,17 +496,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self._flag_pause.set() # resume _handle_touch_screen thread
 
     def display_logo(self, filename):
-        self.save_frame()
+        self.freeze_frame()
         img = Image.open(filename).resize((219, 85))
         self.draw_img(0, 45, np.array(img, dtype=np.uint8))
         self.draw_text(62, 143, '任意点击开始')
         self.draw_text(54, 159, 'click to start')
         if self._touch_started:
             self._flag_pause.clear()
-            self._read_lock.acquire()
-            self._t.flushInput()
-            self._t.read_until()
-            self._read_lock.release()
+            with self._read_lock
+                self._t.flushInput()
+                self._t.read_until()
             self._flag_pause.set()
         else:
             time.sleep(1)
@@ -518,10 +516,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         parse touch screen data to get point index(with calibration)
         '''
         while 1:
-            self._read_lock.acquire()
-            self._t.flushInput()
-            raw = self._t.read_until().strip()
-            self._read_lock.release()
+            with self._read_lock
+                self._t.flushInput()
+                raw = self._t.read_until().strip()
             if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
                 self._last_touch_time = time.time()
                 try:
@@ -543,10 +540,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             for bt in self.widget['button']:
                 if x > bt['x1'] and x < bt['x2'] \
                 and y > bt['y1'] and y < bt['y2']:
-                    self._write_lock.acquire()
-                    bt['c'] = bt['ca']; self.send('rect', **bt); time.sleep(0.3)
-                    bt['c'] = bt['cr']; self.send('rect', **bt); time.sleep(0.2)
-                    self._write_lock.release()
+                    with self.write_lock:
+                        bt['c'] = bt['ca']
+                        self.send('rect', **bt)
+                        time.sleep(0.3)
+                        bt['c'] = bt['cr']
+                        self.send('rect', **bt)
+                        time.sleep(0.2)
                     self._callback_threads.append(threading.Thread(
                             target=bt['callback'],
                             kwargs={'x': x, 'y': y, 'bt':bt}))
@@ -560,9 +560,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2, c='black')
 
     def close(self):
-        self._write_lock.acquire()
-        super(Serial_Screen_GUI, self).close()
-        self._write_lock.release()
+        with self.write_lock:
+            super(Serial_Screen_GUI, self).close()
         if self._touch_started:
             self._flag_close.set()
             try:
@@ -589,7 +588,7 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
         self.start()
         self.setfont('./files/spi_screen/yahei_mono.ttf')
-        self._write_lock = threading.Lock()
+        self.write_lock = threading.Lock()
         self._touch_started = False
 
     def close(self):
