@@ -218,7 +218,7 @@ def display_info(x, y, bt):
     try:
         while 1:
             while (time.time() - last_time) < 0.5:
-                pass
+                time.sleep(0)
             last_time = time.time()
 
             assert not flag_close.isSet()

@@ -12,6 +12,7 @@ import sys
 import time
 import threading
 import socket
+import select
 
 # pip install numpy, scipy, serial, mne
 import scipy.io as sio
@@ -228,15 +229,15 @@ class _basic_reader(object):
 
     @property
     def channel_data(self):
-        while (time.time() - self._ch_last_time) < 1.0/self.sample_rate:
-            pass
+        while (time.time() - self._ch_last_time) < 1.0 / self.sample_rate:
+            time.sleep(0)
         self._ch_last_time = time.time()
         return np.array([self.buffer[ch][-1] for ch in self.ch_list[1:]])
 
     @property
     def frame_data(self):
-        while (time.time() - self._fr_last_time) < 1.0/self.sample_rate:
-            pass
+        while (time.time() - self._fr_last_time) < 1.0 / self.sample_rate:
+            time.sleep(0)
         self._fr_last_time = time.time()
         return np.array([self.buffer[ch][-self.window_size:] \
                          for ch in self.ch_list[1:]])\
@@ -496,7 +497,7 @@ class Serial_reader(_basic_reader):
 class ADS1299_reader(_basic_reader):
     '''
     Read data from SPI connection with ADS1299.
-    This class is only used on ARM. It depends on module `spidev` and `gpio3`
+    This class is only used on ARM. It depends on class ADS1299_API
     '''
     _num = 1
     def __init__(self,
@@ -504,7 +505,7 @@ class ADS1299_reader(_basic_reader):
                  sample_time=2,
                  n_channel=8,
                  send_to_pylsl=False,
-                 device=(1, 0),
+                 device=(0, 0),
                  bias_enabled=False,
                  test_mode=False,
                  *args, **kwargs):
@@ -674,7 +675,6 @@ class Socket_server(object):
 #         if host is None:
 #             host = get_self_ip_addr()
 # =============================================================================
-
         self._name = '[Socket server %d] ' % Socket_server._num
         self.connections = []
         Socket_server._num += 1
@@ -683,37 +683,43 @@ class Socket_server(object):
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind((host, port))
         self._server.listen(5)
-        self._server.settimeout(1)
+        self._server.settimeout(0.5)
+        self._flag_close = threading.Event()
         print(self._name + 'binding socket server at %s:%d' % (host, port))
 
-        # handle connection in a seperate thread
-        self._flag_close = threading.Event()
-        self._thread = threading.Thread(target=self._manage_connections)
-        self._thread.setDaemon(True)
-        self._thread.start()
+    def start(self):
+        if not hasattr(self, '_thread'):
+            # handle connection in a seperate thread
+            self._thread = threading.Thread(target=self._manage_connections)
+            self._thread.setDaemon(True)
+            self._thread.start()
 
     def _manage_connections(self):
         while not self._flag_close.isSet():
-            # accept connection, wait for 1 second
-            try:
+            # manage all connections and wait for new client
+            rdable = select.select([self._server] + self.connections, [], [], 1)
+            if not rdable[0]:
+                continue
+            s = rdable[0][0]
+            # new connection
+            if s is self._server:
                 con, addr = self._server.accept()
-                print(self._name + 'accept client from {}:{}'.format(
-                        *con.getpeername()))
-                self.connections += [con]
-            except:
-                pass
-
-            # clear closed connections, each one cost 1 second
-            for i, con in enumerate(self.connections):
-                try:
-                    con.settimeout(1)
-                    if con.recv(1024) == '':
-                        print(self._name + 'lost client from {}:{}'.format(
-                                *con.getpeername()))
-                        con.close()
-                        self.connections.pop(i)
-                except:
-                    pass
+                con.settimeout(0.5)
+                print('{}accept client from {}:{}'.format(self._name, *addr))
+                self.connections.append(con)
+            # some client maybe closed
+            elif s in self.connections:
+                addr = s.getpeername()
+                t = s.recv(1024)
+                # client shutdown and we should clear correspond server
+                if t == '':
+                    s.close()
+                    print('{}lost client from {}:{}'.format(self._name, *addr))
+                    self.connections.remove(s)
+                # client sent some data
+                else:
+                    print('{}recv `{}` from {}:{}'.format(self._name, t, *addr))
+        print(self._name + 'socket manager say goodbye to you ;-)')
 
     def send(self, data):
         for con in self.connections:
@@ -725,6 +731,7 @@ class Socket_server(object):
         for con in self.connections:
             con.close()
         self._server.close()
+        time.sleep(1)
         print(self._name + 'Socket server shut down.')
 
     def has_listener(self):
@@ -1067,11 +1074,10 @@ class SPI_Screen_commander(object):
 
 
 def ADS1299_to_Socket(ads, server):
-    last_time = time.time()
+    '''
+    accept ADS1299_API instance and Socket_server instance
+    '''
     while 1:
-        while (time.time() - last_time) < 1.0/ads.sample_rate:
-            pass
-        last_time = time.time()
         server.send(ads.read())
 
 

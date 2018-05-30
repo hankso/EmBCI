@@ -195,12 +195,12 @@ class ADS1299_API(object):
 #            self._RESET.export = False
 
     def read(self):
-#        while (time.time() - self.last_time) < 1.0/self.sample_rate:
-#            pass
+#        while (time.time() - self.last_time) < 1.0 / self.sample_rate:
+#            time.sleep(0)
 #        self.last_time = time.time()
         assert self._started
         while self._DRDY.value:
-            pass
+            time.sleep(0)
         num = self.spi.xfer2( [0x00]*27 )[3:]
         byte = ''
         for i in range(8):

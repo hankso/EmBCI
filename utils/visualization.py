@@ -503,7 +503,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.draw_text(54, 159, 'click to start')
         if self._touch_started:
             self._flag_pause.clear()
-            with self._read_lock
+            with self._read_lock:
                 self._t.flushInput()
                 self._t.read_until()
             self._flag_pause.set()
@@ -516,7 +516,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         parse touch screen data to get point index(with calibration)
         '''
         while 1:
-            with self._read_lock
+            with self._read_lock:
                 self._t.flushInput()
                 raw = self._t.read_until().strip()
             if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
