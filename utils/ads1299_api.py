@@ -8,6 +8,7 @@ Created on Wed Apr  4 01:37:15 2018
 # built-in
 import time
 import struct
+import select
 
 # pip install numpy, spidev
 import spidev
@@ -123,6 +124,10 @@ class ADS1299_API(object):
 #        self._START.value = 0
         self._DRDY.export = True
         self._DRDY.direction = 'in'
+        self._DRDY.edge = 'falling'
+        self._epoll = select.epoll()
+        self._epoll.register(self._DRDY.fileno('value'),
+                             select.EPOLLET | select.EPOLLPRI)
         self._opened = True
         return dev
 
@@ -199,8 +204,7 @@ class ADS1299_API(object):
 #            time.sleep(0)
 #        self.last_time = time.time()
         assert self._started
-        while self._DRDY.value:
-            time.sleep(0)
+        self._epoll.poll()  # this will block until interrupt on DRDY detected
         num = self.spi.xfer2( [0x00]*27 )[3:]
         byte = ''
         for i in range(8):

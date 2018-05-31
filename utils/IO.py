@@ -535,12 +535,10 @@ class ADS1299_reader(_basic_reader):
         # here we only need to check one time whether send_to_pylsl is set
         # if put this work in thread, it will be checked thousands times.
         if self._send_to_pylsl:
-            self.outlet = pylsl.StreamOutlet(pylsl.StreamInfo('SPI_reader',
-                                                              'unknown',
-                                                              self.n_channel,
-                                                              self.sample_rate,
-                                                              'float32',
-                                                              'spi%d-%d '%dev))
+            self.outlet = pylsl.StreamOutlet(
+                pylsl.StreamInfo(
+                    'SPI_reader', 'unknown', self.n_channel,
+                    self.sample_rate, 'float32', 'spi%d-%d '%dev))
             self._thread = threading.Thread(target=self._read_data_send_pylsl)
         else:
             self._thread = threading.Thread(target=self._read_data)
@@ -654,9 +652,10 @@ class Socket_reader(_basic_reader):
                     self.buffer[ch].append(d[i])
                     if len(self.buffer[ch]) > self.window_size:
                         self.buffer[ch].pop(0)
-        except IndexError:
-            print('Maybe server send out data too fast, and '
-                  'this client cannot keep up to it.')
+        # TODO: bug fix
+        # except IndexError:
+        #     print('Maybe server send out data too fast, and '
+        #           'this client cannot keep up to it.')
         except Exception as e:
             print(self._name + str(e))
         finally:
