@@ -121,6 +121,8 @@ class ADS1299_API(object):
         self._spi_lock = threading.Lock()
         self._opened = False
         self._started = False
+        self._enable_bias = False
+        self._measure_inpedance = False
 
     def open(self, dev, max_speed_hz=2e6):
         '''
@@ -228,6 +230,10 @@ class ADS1299_API(object):
         self.write_registers(REG_CHnSET_BASE, vs)
         self.write(RDATAC)
 
+    @property
+    def do_enable_bias(self):
+        return self._enable_bias
+
     @do_enable_bias.setter
     def do_enable_bias(self, boolean):
         assert self._started
@@ -240,7 +246,12 @@ class ADS1299_API(object):
             self.write_register(REG_BIAS_SENSP, 0b00000000)
             self.write_register(REG_BIAS_SENSN, 0b00000000)
             self.write_register(REG_CONFIG3, 0b11100000)
+        self._enable_bias = boolean
         self.write(RDATAC)
+
+    @property
+    def do_measure_inpedance(self):
+        return self._measure_inpedance
 
     @do_measure_inpedance.setter
     def do_measure_inpedance(self, boolean):
@@ -254,6 +265,7 @@ class ADS1299_API(object):
         elif boolean is False:
             self.write_register(REG_LOFF_SENSP, 0b00000000)
             self.write_registers(REG_CHnSET_BASE, [v | 0b110 << 4 for v in vs])
+        self._measure_inpedance = boolean
         self.write(RDATAC)
 
     def read(self):
@@ -333,6 +345,8 @@ class ESP32_API(ADS1299_API):
         self._serial_lock = threading.Lock()
         self._opened = False
         self._started = False
+        self._enable_bias = False
+        self._measure_inpedance = False
 
     def start(self, sample_rate=250):
         '''
