@@ -9,6 +9,7 @@ Created on Wed Apr  4 01:37:15 2018
 import time
 import struct
 import select
+import threading
 
 # pip install numpy, spidev
 import spidev
@@ -18,10 +19,10 @@ import numpy as np
 from gpio4 import SysfsGPIO
 
 # ADS1299 Pin mapping
+# PIN_PWRDN       = 2 # pin PA02
+# PIN_START       = 3 # pin PA03
 PIN_DRDY        = 6 # pin PA06
-PIN_PWRDN       = 2 # pin PA02
-PIN_START       = 3 # pin PA03
-PIN_RESET       = 7 # pin PA07
+# PIN_RESET       = 7 # pin PA07
 # ADS1299 Registers
 REG_CONFIG1     = 0x01
 REG_CONFIG2     = 0x02
@@ -29,6 +30,7 @@ REG_CONFIG3     = 0x03
 REG_CHnSET_BASE = 0x05
 REG_BIAS_SENSP  = 0x0D
 REG_BIAS_SENSN  = 0x0E
+REG_LOFF_SENSP  = 0x0F
 REG_MISC        = 0x15
 # ADS1299 Commands
 WAKEUP          = 0x02
@@ -42,22 +44,29 @@ RDATA           = 0x12
 WREG            = 0x40
 RREG            = 0x20
 # ADS1299 Sample data rate dict, set REG_CONFIG1 to this value
-DR_DICT = {
-    250:        0b10010110,
-    500:        0b10010101,
-    1000:       0b10010100,
-    2000:       0b10010011,
-    4000:       0b10010010,
-    8000:       0b10010001,
-    16000:      0b10010000,
+SAMPLE_RATE = {
+    250:        0b110,
+    500:        0b101,
+    1000:       0b100,
+    2000:       0b011,
+    4000:       0b010,
+    8000:       0b001,
+    16000:      0b000,
+}
+# ADS1299 channel data input sources
+INPUT_SOURCE = {
+    'normal':   0b000,
+    'shorted':  0b001,
+    'MVDD':     0b011,
+    'temper':   0b100,
+    'test':     0b101,
 }
 # OrangePi supported spidev max_speed_hz: 100MHz divided by 1, 2, 3, ... n
-MAX_SPEED_HZ = np.array([1e6*float('%.2f' % (100.0/i))
-                         for i in range(1, 101)], np.int)
 SUGGESTED_MSH = np.array([
-        100e6, 50e6, 33.33e6, 25e6, 20e6, 12.5e6, 11.11e6, 10e6,
-        5e6, 4e6, 3.33e6, 3.03e6, 2.5e6, 2e6, 1e6,
-        8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5], np.int)
+    100e6, 50e6, 33.33e6, 25e6, 20e6, 12.5e6, 11.11e6, 10e6,
+    5e6, 4e6, 3.33e6, 3.03e6, 2.5e6, 2e6, 1e6,
+    8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5], np.int)
+
 
 
 class ADS1299_API(object):
@@ -79,6 +88,17 @@ class ADS1299_API(object):
         write: transfer one byte to ads1299
         write_register: write one register with index and value
         write_registers: write series registers with start index and values
+        set_input_source: choose one source from available:
+            normal: normal electrode input
+            shorted: input shorted, to measure noise
+            MVDD: supply measurement
+            temper: temperature sensor
+            test: test signal(internal or external generated test square wave)
+        do_measure_inpedance: property, set it to True or False:
+            >>> ads = ADS1299_API()
+            >>> ads.open((0, 0))
+            >>> ads.do_measure_inpedance = True
+            >>> ads.read() # this will return inpedance value of each channel
 
     Attention
     ---------
@@ -88,22 +108,17 @@ class ADS1299_API(object):
     So, ads1299 accept data from DIN at raising edge and transfer data out from DOUT
     to OrangePi as falling edge. set mode to 0b10 (CPOL=1 & CPHA=0)
     '''
-    def __init__(self,
-                 sample_rate=500,
-                 bias_enabled=False,
-                 test_mode=False,
-                 scale=5.0/24/2**24):
+    def __init__(self, scale=5.0/24/2**24):
         self.spi = spidev.SpiDev()
-
         self.scale = float(scale)
-        self.sample_rate = sample_rate
-        self._bias_enabled = bias_enabled
-        self._test_mode = test_mode
-#        self.last_time = time.time()
+        # self.last_time = time.time()
+
         self._DRDY = SysfsGPIO(PIN_DRDY)
-#        self._PWRDN = SysfsGPIO(PIN_PWRDN)
-#        self._RESET = SysfsGPIO(PIN_RESET)
-#        self._START = SysfsGPIO(PIN_START)
+        # self._PWRDN = SysfsGPIO(PIN_PWRDN)
+        # self._RESET = SysfsGPIO(PIN_RESET)
+        # self._START = SysfsGPIO(PIN_START)
+
+        self._spi_lock = threading.Lock()
         self._opened = False
         self._started = False
 
@@ -112,6 +127,7 @@ class ADS1299_API(object):
         connect to user space SPI interface `/dev/spidev*.*`
         param `dev` must be tuple/list, e.g. (1, 0) means `/dev/spidev1.0`
         '''
+        assert not self._opened, 'already used spidev{}.{}'.format(*self._dev)
         self.spi.open(dev[0], dev[1])
         msh = int(max_speed_hz)
         if msh not in SUGGESTED_MSH:
@@ -119,6 +135,7 @@ class ADS1299_API(object):
             print('[ADS1299 API] max speed of spidev set to %dHz' % msh)
         self.spi.max_speed_hz = msh
         self.spi.mode = 2
+        self._dev = dev
 #        self._START.export = True
 #        self._START.direction = 'out'
 #        self._START.value = 0
@@ -127,16 +144,16 @@ class ADS1299_API(object):
         self._DRDY.edge = 'falling'
         self._epoll = select.epoll()
         self._epoll.register(self._DRDY.fileno('value'),
-                             select.EPOLLET | select.EPOLLPRI)
+                             select.EPOLLET|select.EPOLLPRI)
         self._opened = True
 
-    def start(self):
+    def start(self, sample_rate=250):
         '''
         Before device power up, all digital and analog inputs must be low.
         At the time of power up, keep all of these signals low until the
         power supplies have stabilized.
         '''
-        assert self._opened
+        assert self._opened, 'you need to open a spi device first'
         if self._started:
             return
         #======================================================================
@@ -158,23 +175,11 @@ class ADS1299_API(object):
         # configure_registers_before_streaming
         #======================================================================
         # common setting
-        self.write_register(REG_CONFIG1, DR_DICT[self.sample_rate])
+        self.write_register(REG_CONFIG1, 0b10010000 | SAMPLE_RATE[sample_rate])
         self.write_register(REG_CONFIG2, 0b11010000)
+        self.write_register(REG_CONFIG3, 0b11100000)
         self.write_register(REG_MISC, 0b00100000)
-
-        if self._bias_enabled:
-            self.write_register(REG_BIAS_SENSP, 0b11111111)
-            self.write_register(REG_BIAS_SENSN, 0b11111111)
-            self.write_register(REG_CONFIG3, 0b11101100)
-        else:
-            self.write_register(REG_BIAS_SENSP, 0b00000000)
-            self.write_register(REG_BIAS_SENSN, 0b00000000)
-            self.write_register(REG_CONFIG3, 0b11100000)
-
-        if self._test_mode:
-            self.write_registers(REG_CHnSET_BASE, [0b01100101] * 8)
-        else:
-            self.write_registers(REG_CHnSET_BASE, [0b01100000] * 8)
+        self.write_registers(REG_CHnSET_BASE, [0b01100000] * 8)
 
         # self._START.value = 1
         self.write(START)
@@ -192,43 +197,187 @@ class ADS1299_API(object):
             self.write(SDATAC)
             self.write(STOP)
             self.spi.close()
-#            self._START.value = 0
-#            self._START.export = False
+            self._epoll.unregister(self._DRDY.fileno('value'))
             self._DRDY.export = False
-#            self._PWRDN.export = False
-#            self._RESET.export = False
+            # self._START.export = False
+            # self._PWRDN.export = False
+            # self._RESET.export = False
+
+    def set_sample_rate(self, rate):
+        assert self._started
+        if rate not in SAMPLE_RATE:
+            print('[ADS1299 API] choose one from supported rate!')
+            print(' | '.join(SAMPLE_RATE.keys()))
+            return
+        rate = SAMPLE_RATE[rate]
+        self.write(SDATAC)
+        v = self.read_register(REG_CONFIG1)
+        self.write_register(REG_CONFIG1, v & ~0b111 | rate)
+        self.write(RDATAC)
+
+    def set_input_source(self, src):
+        assert self._started
+        if src not in INPUT_SOURCE:
+            print('[ADS1299 API] choose one from supported source!')
+            print(' | '.join(INPUT_SOURCE.keys()))
+            return
+        src = INPUT_SOURCE[src]
+        self.write(SDATAC)
+        vs = self.read_registers(REG_CHnSET_BASE, 8)
+        vs = [(v & ~0b111 | src) for v in vs]
+        self.write_registers(REG_CHnSET_BASE, vs)
+        self.write(RDATAC)
+
+    @do_enable_bias.setter
+    def do_enable_bias(self, boolean):
+        assert self._started
+        self.write(SDATAC)
+        if boolean is True:
+            self.write_register(REG_BIAS_SENSP, 0b11111111)
+            self.write_register(REG_BIAS_SENSN, 0b11111111)
+            self.write_register(REG_CONFIG3, 0b11101100)
+        elif boolean is False:
+            self.write_register(REG_BIAS_SENSP, 0b00000000)
+            self.write_register(REG_BIAS_SENSN, 0b00000000)
+            self.write_register(REG_CONFIG3, 0b11100000)
+        self.write(RDATAC)
+
+    @do_measure_inpedance.setter
+    def do_measure_inpedance(self, boolean):
+        assert self._started
+        self.write(SDATAC)
+        vs = self.read_registers(REG_CHnSET_BASE, 8)
+        vs = [v & ~(0b111 << 4) for v in vs]
+        if boolean is True:
+            self.write_register(REG_LOFF_SENSP, 0b11111111)
+            self.write_registers(REG_CHnSET_BASE, vs)
+        elif boolean is False:
+            self.write_register(REG_LOFF_SENSP, 0b00000000)
+            self.write_registers(REG_CHnSET_BASE, [v | 0b110 << 4 for v in vs])
+        self.write(RDATAC)
 
     def read(self):
-#        while (time.time() - self.last_time) < 1.0 / self.sample_rate:
-#            time.sleep(0)
-#        self.last_time = time.time()
+        '''
+        Read chunk bytes from ADS1299 and decode them into `float32` number
+        '''
         assert self._started
+        # ======================================================================
+        # method No.1
+        # ======================================================================
+        # while (time.time() - self.last_time) < 1.0 / self.sample_rate:
+        #     pass
+        # self.last_time = time.time()
+
+        # ======================================================================
+        # method No.2
+        # ======================================================================
+        # while self._DRDY.value == 1:
+        #     pass
+
+        # ======================================================================
+        # mwthod No.3
+        # ======================================================================
         self._epoll.poll()  # this will block until interrupt on DRDY detected
-        num = self.spi.xfer2( [0x00]*27 )[3:]
+
+        num = self.write([0x00] * 27)[3:]
         byte = ''
         for i in range(8):
-#            tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i]) # 4.3us
-            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i]) # 1.3us
+            # tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i]) # use time: 4.3us
+            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i]) # use time: 1.3us
             byte += tmp + ('\xff' if num[3*i] > 127 else '\x00')
         return np.frombuffer(byte, np.int32) * self.scale
 
     def write(self, byte):
-        self.spi.xfer2([byte])
+        '''
+        Write byte list to ADS1299 through SPI and return value list
+        '''
+        with self._spi_lock:
+            value = self.spi.xfer2(list(byte))
+        return value
 
     def write_register(self, reg, byte):
-        self.spi.xfer2([reg|WREG, 0x00, byte])
+        '''Write register `reg` with value `byte`'''
+        self.write([reg | WREG, 0x00, byte])
 
-    def write_registers(self, start_reg, byte_array):
-        self.spi.xfer2([start_reg|WREG, len(byte_array) - 1] + byte_array)
+    def write_registers(self, reg, byte_array):
+        '''Write registers start from `reg` with values `byte_array`'''
+        self.write([reg | WREG, len(byte_array) - 1] + byte_array)
 
     def read_register(self, reg):
+        '''Read single register at `reg`'''
         self.write(SDATAC)
-        value = self.spi.xfer2([RREG|reg, 0x00, 0x00])[2]
+        value = self.write([RREG | reg, 0x00, 0x00])[2]
         self.write(RDATAC)
         return value
 
-    def read_registers(self, start_reg, num):
+    def read_registers(self, reg, num):
+        '''Read `num` registers start from `reg`'''
         self.write(SDATAC)
-        value = self.spi.xfer2([RREG|start_reg, num - 1] + [0] * num)[2:]
+        value = self.write([RREG | reg, num - 1] + [0] * num)[2:]
         self.write(RDATAC)
         return value
+
+
+
+class ESP32_API(ADS1299_API):
+    '''
+    Because we only use ESP32 as SPI buffer, its SPI interface is
+    implemented similar with ADS1299. So define this API class in this
+    submodule.
+    '''
+    def __init__(self, commander, scale=5.0/24/2**24):
+        self.spi = spidev.SpiDev()
+        self.scale = float(scale)
+        self.commander = commander
+        self._DRDY = SysfsGPIO(PIN_DRDY)
+        self._serial_lock = threading.Lock()
+        self._opened = False
+        self._started = False
+
+    def start(self, sample_rate=250):
+        '''
+        Before device power up, all digital and analog inputs must be low.
+        At the time of power up, keep all of these signals low until the
+        power supplies have stabilized.
+        '''
+        assert self._opened, 'you need to open a spi device first'
+        if self._started:
+            return
+        self.commander.send('start')
+        self._started = True
+
+    def close(self):
+        if self._opened:
+            self.write(SDATAC)
+            self.write(STOP)
+            self.spi.close()
+            self._epoll.unregister(self._DRDY.fileno('value'))
+            self._DRDY.export = False
+
+    def read(self):
+        assert self._started
+        self._epoll.poll()
+        data = sruct.pack('1600B', self.spi.xfer2([0x00] * 4 * 8 * 50))
+        return np.frombuffer(data, np.flost32)
+
+    def write(self, byte):
+        '''
+        Write byte list to ADS1299 through SPI and return value list
+        '''
+        self.commander.send('write', byte)
+
+    def write_register(self, reg, byte):
+        '''Write register `reg` with value `byte`'''
+        self.commander.send('writereg', reg, byte)
+
+    def write_registers(self, reg, byte_array):
+        '''Write registers start from `reg` with values `byte_array`'''
+        self.commander.send('writeregs', [reg] + byte_array)
+
+    def read_register(self, reg):
+        '''Read single register at `reg`'''
+        return self.commander.send('readreg', reg)
+
+    def read_registers(self, reg, num):
+        '''Read `num` registers start from `reg`'''
+        return self.commander.send('readregs', reg, num)
