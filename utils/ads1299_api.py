@@ -129,7 +129,6 @@ class ADS1299_API(object):
         self._epoll.register(self._DRDY.fileno('value'),
                              select.EPOLLET | select.EPOLLPRI)
         self._opened = True
-        return dev
 
     def start(self):
         '''
