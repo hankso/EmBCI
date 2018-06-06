@@ -10,9 +10,10 @@ from __future__ import print_function
 import time
 import os
 import sys
+import glob
+import select
 import socket
 import threading
-import select
 
 # pip install pyserial, pylsl, numpy, scipy
 import pylsl
@@ -23,6 +24,7 @@ import scipy
 # In python3 reduce need to be imported while python2 not
 if sys.version_info.major == 3:
     from functools import reduce
+
 
 def energy_time_duration(reader, low, high, duration):
     '''
@@ -43,14 +45,15 @@ def energy_time_duration(reader, low, high, duration):
     threading.Thread(target=_run, args=(stop_flag, )).start()
     return stop_flag
 
+
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
     '''
     Mapping data to new array values all in duartion [low, high]
-    
+
     Return
     ======
     np.array
-    
+
     Example
     =======
     >>> a = [0, 1, 2.5, 4.9, 5]
@@ -69,19 +72,18 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
         return t_low
     return (a - low) / (high - low) * (t_high - t_low) + t_low
 
+
 def check_dir(func):
     '''
     check if user folder exist before saving data etc.
     '''
-    def wrapper(*args, **kwargs):
-        if not args:
+    def wrapper(*a, **k):
+        if a and isinstance(a[0], str) and not os.path.exists('./data/' + a[0]):
+            os.mkdir('./data/' + a[0])
+            os.mkdir('./models/' + a[0])
+        else:
             print('This wrapper may be used in wrong place.')
-        elif not isinstance(args[0], str):
-            print('This wrapper may be used in wrong place.')
-        elif not os.path.exists('./data/' + args[0]): # args[0] is username
-            os.mkdir('./data/' + args[0])
-            os.mkdir('./models/' + args[0])
-        return func(*args, **kwargs)
+        return func(*a, **k)
     return wrapper
 
 
@@ -96,19 +98,17 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
         >>> check_input('This will call pip and try install pycnbi. [Y/n] ',
                         {'y': True, 'n': False})
         This will call pip and try install pycnbi. [Y/n] 123
-        Invalid argument! Choose from [y|n]
-
+        Invalid argument! Choose from [ y | n ]
         This will call pip and try install pycnbi. [Y/n] y
         (return True)
     '''
-    # In python2 raw_input return str and input retrun eval(str)
+    # In python2 raw_input return `str` and input retrun `eval(str)`
     if sys.version_info.major == 2:
         input = raw_input
     k = list(answer.keys())
     while times:
         times -= 1
         rst = input(prompt)
-        
         # answer == {}, maybe user want raw_input str returned
         if not k:
             if not rst:
@@ -116,7 +116,6 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
                     times += 1
                     continue
             return rst
-        
         # answer != {}, check keys
         if rst in k:
             return answer[rst]
@@ -143,7 +142,7 @@ def first_use():
 def find_outlets(name=None, **kwargs):
     '''
     寻找已经存在的pylsl注册的stream
-    
+
     '''
     if name is None:
         stream_list = pylsl.resolve_stream()
@@ -162,22 +161,22 @@ def find_outlets(name=None, **kwargs):
         prompt = ('Please choose one from all available streams:\n    ' +
                   '\n    '.join(['%d %s - %s' % (i, j, k) \
                                  for i, (j, k) in enumerate(zip(dv, ds))]) +
-                  '\nstream name(default 0): ')
-        answer={str(i):stream for i, stream in enumerate(stream_list)}
+                  '\nstream num(default 0): ')
+        answer = {str(i):stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
         stream = check_input(prompt, answer)
     if stream:
         print(('Select stream {name} -- {chs} channel {type_num} {fmt} data '
                'from {source} on server {host}').format(
-                       name = stream.name(),
-                       chs = stream.channel_count(),
-                       type_num = stream.type(),
-                       fmt = stream.channel_format(),
-                       source = stream.source_id(),
-                       host = stream.hostname()))
+                    name = stream.name(),
+                    chs = stream.channel_count(),
+                    type_num = stream.type(),
+                    fmt = stream.channel_format(),
+                    source = stream.source_id(),
+                    host = stream.hostname()))
         return stream
     sys.exit('No stream available! Abort.')
-    
+
 
 def find_ports(timeout=3):
     '''
@@ -202,7 +201,7 @@ def find_ports(timeout=3):
             prompt = ('Please choose one from all available ports:\n    ' +
                       '\n    '.join(['%d %s - %s' % (i, j, k) \
                                      for i, (j, k) in enumerate(zip(dv, ds))]) +
-                      '\nport name(default 0): ')
+                      '\nport num(default 0): ')
             answer = {str(i):port for i, port in enumerate(port_list)}
             answer[''] = port_list[0]
             port = check_input(prompt, answer)
@@ -215,10 +214,30 @@ def find_ports(timeout=3):
     sys.exit('No port available! Abort.')
 
 
+def find_spi_devices():
+    dev_list = glob.glob('/dev/spidev*')
+    if len(dev_list) == 0:
+        device = None
+    elif len(dev_list) == 1:
+        device = dev_list[0]
+    else:
+        prompt = ('Please choose one from all available devices:\n    ' +
+                  '\n    '.join(['%d %s' % (i, dev) \
+                                 for i, dev in enumerate(dev_list)]) +
+                  '\ndevice num(default 0): ')
+        answer = {str(i):dev for i, dev in enumerate(dev_list)}
+        answer[''] = dev_list[0]
+        device = check_input(prompt, answer)
+    if device:
+        print('Select device {}'.format(device))
+        return device
+    sys.exit('No divice available! Abort.')
+
+
 def virtual_serial():
     '''
     generate a pair of virtual serial port at /dev/pts/*
-    really useful when debugging without a real UART device
+    super useful when debugging without a real UART device
     e.g.:
         /dev/pts/0 <--> /dev/pts/1
         s = serial.Serial('/dev/pts/1',115200)
@@ -228,24 +247,26 @@ def virtual_serial():
     '''
     master1, slave1 = os.openpty()
     master2, slave2 = os.openpty()
+    port1, port2 = os.ttyname(slave1), os.ttyname(slave2)
     #  RX1 TX1 RX2 TX2
     c = [0,  0,  0,  0]
-    print('Pty opened!\nPort1: %s\nPort2: %s' \
-          % (os.ttyname(slave1),os.ttyname(slave2)))
+    print('Pty opened!\nPort1: %s\nPort2: %s' % (port1, port2))
     def echo(flag_close):
         while not flag_close.isSet():
-            readable = select.select([master1,master2],[],[],1)
-#            if readable:
-#                if max(c) < 1024:
-#                    print('\rRX1: %dB TX1: %dB' % tuple(c[:2]), end='')
-#                else:
-#                    print('\rRX1: %dKB TX1: %dKB' % (c[0]/1024.0, c[1]/1024.0), end='')
-            for port in readable[0]:
-                msg = os.read(port, 128)
-                if port == master1:
+            readable = select.select([master1, master2], [], [], 1)
+            # if readable:
+            #     if max(c) < 1024:
+            #         print('\rRX1: %dB TX1: %dB' % tuple(c[:2]), end='')
+            #     else:
+            #         print('\rRX1: %dKB TX1: %dKB' % (c[0]/1024.0, c[1]/1024.0), end='')
+            for master in readable[0]:
+                msg = os.read(master, 1024)
+                if master == master1:
+                    print('[{} --> {}] {}'.format(port1, port2, msg))
                     c[0] += len(msg)
                     c[3] += os.write(master2, msg)
-                else:
+                elif master == master2:
+                    print('[{} --> {}] {}'.format(port2, port1, msg))
                     c[2] += len(msg)
                     c[1] += os.write(master1, msg)
         print('[Virtual Serial] shutdown...')
@@ -260,21 +281,21 @@ class Timer(object):
     '''
     Want to looply execute some function every specific time duration?
     You may use this class.
-    
+
     There is only one method(static) in this class:
-        
+
         duration(name, time_in_sec, warning='.')
-        
+
     name is a str id of the function, you can name it whatever you want but
     just make it distinguishable, and the second param is time duration in
     second.
-    
+
     Example
     =======
     >>> @Timer.duration('testing', 3, warning='cant call me so frequently!')
     ... def testing(foo):
     ...     print(foo)
-    
+
     >>> while 1:
     ...     time.sleep(1)
     ...     testing('now you are executing testing function')
@@ -306,7 +327,7 @@ class Timer(object):
 def get_self_ip_addr(self):
     '''
     Create a UDP socket which can broadcast data packages even there is no
-    listeners. So this socket can actually connect to any hosts you offer 
+    listeners. So this socket can actually connect to any hosts you offer
     even they are unreachable. Here use '8.8.8.8' google public DNS addr.
     '''
     try:
@@ -318,7 +339,7 @@ def get_self_ip_addr(self):
     finally:
         tmp_s.close()
         return host
-        
+
 
 def _combine_action(d1, d2):
     ''' only used in get_label_list '''
@@ -375,17 +396,17 @@ def record_animate(times):
         t += 0.1*times
         time.sleep(times/100.0)
     print('\r[{}] finished'.format('='*10*times))
-        
+
 
 
 # TODO 11: interesting function copied from package `mne`, modify it for our usage
 # =============================================================================
 # def sys_info(fid=None, show_paths=False):
 #     """Print the system information for debugging.
-# 
+#
 #     This function is useful for printing system information
 #     to help triage bugs.
-# 
+#
 #     Parameters
 #     ----------
 #     fid : file-like | None
@@ -393,30 +414,30 @@ def record_animate(times):
 #         Can be None to use :data:`sys.stdout`.
 #     show_paths : bool
 #         If True, print paths for each module.
-# 
+#
 #     Examples
 #     --------
 #     Running this function with no arguments prints an output that is
 #     useful when submitting bug reports::
-# 
+#
 # import mne
 # mne.sys_info() # doctest: +SKIP
 #         Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
 #         Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
 #         Executable:    /usr/bin/python
-# 
+#
 #         mne:           0.12.dev0
 #         numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
 #         scipy:         0.18.0.dev0+3deede3
 #         matplotlib:    1.5.1+1107.g1fa2697
-# 
+#
 #         sklearn:       0.18.dev0
 #         nibabel:       2.1.0dev
 #         mayavi:        4.3.1
 #         pycuda:        2015.1.3
 #         skcuda:        0.5.2
 #         pandas:        0.17.1+25.g547750a
-# 
+#
 #     """  # noqa: E501
 #     ljust = 15
 #     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
@@ -461,40 +482,40 @@ def record_animate(times):
 
 class Signal_Info(object):
     '''
-    I am learning how to handle EEG data, which can be collected by varieties 
+    I am learning how to handle EEG data, which can be collected by varieties
     of hardwares such as Mindset(Neurosky) and Epoc(Emotiv), etc.
-    
+
     This class is used for extracting features from input time series data.
-    
+
     Input data usually be buffered with a shape as:
-        n_channel x window_size(sample_rate * sample_time) 
+        n_channel x window_size(sample_rate * sample_time)
     '''
     def __init__(self):
         pass
-    
+
     def check_shape(func):
         def param_wrapper(self, X, *args, **kwargs):
             if type(X) is tuple:
                 return func(self, X, *args, **kwargs)
-            
+
             if type(X) is not np.ndarray:
                 X = np.array(X)
             # simple 1D time series.
             # Input: windowsize
             if len(X.shape) == 1:
                 return func(self, X.reshape(1, -1), *args, **kwargs)
-            
+
             # 2D array
             # Input: n_channel x window_size
             elif len(X.shape) == 2:
                 return func(self, X, *args, **kwargs)
-            
+
             # 3D array
             # Input: n_sample x n_channel x window_size
             elif len(X.shape) == 3:
                 return np.array([func(self, sample, *args, **kwargs) \
                                  for sample in X])
-            
+
             # 3D+
             # Input: ... x n_sample x n_channel x window_size
             else:
@@ -511,50 +532,50 @@ class Signal_Info(object):
         '''
         shape = X.shape
         return np.average(X, axis=-1).reshape(shape[:-1] + (1, ))
-    
+
     @check_shape
     def variance(self, X):
         '''
         Calculate variance along last axis
-        
+
         Returns
         -------
         average( ( X[i] - average(X[i]) )**2 )
         '''
         shape = X.shape
         return np.var(X, axis=-1).reshape(shape[:-1] + (1, ))
-    
+
     @check_shape
     def skewness(self, X):
         '''
         Skewness's definition from wiki:
-            In probability theory and statistics, skewness is a measure of the 
-            asymmetry of the probability distribution of a real-valued random 
-            variable about its mean. The skewness value can be positive or 
+            In probability theory and statistics, skewness is a measure of the
+            asymmetry of the probability distribution of a real-valued random
+            variable about its mean. The skewness value can be positive or
             negative, or undefined.
         '''
-        return (self.average((X-self.average(X))**3) / 
+        return (self.average((X-self.average(X))**3) /
                 self.variance(X)**3)
-    
+
     @check_shape
     def kurtosis(self, X):
         '''
         Kurtosis's definition from wiki:
-            In probability theory and statistics, kurtosis is a measure of the 
-            "tailedness" of the probability distribution of a real-valued 
+            In probability theory and statistics, kurtosis is a measure of the
+            "tailedness" of the probability distribution of a real-valued
             random variable.
         '''
         return (self.average((X-self.average(X))**4) /
                 self.variance(X)**2) - 3
-                
+
     @check_shape
     def covariance(self, X):
         '''
         Covariance shows the level of which two random variables vary together.
-        Here it represent how much two channel time-series EEG data have 
+        Here it represent how much two channel time-series EEG data have
         similar changing trend. This might be useful when to handle
-        Motion Imaginary EEG data where FP3 and FP4 series vary 
-        
+        Motion Imaginary EEG data where FP3 and FP4 series vary
+
         Input shape:  X n_channel x window_size
         Output shape: C n_channel x n_channel
         Meaning:      C[i, j] = similar level of i_channel and j_channel
@@ -566,8 +587,8 @@ class Signal_Info(object):
     def freq_spectrum(self, X):
         '''
         Realtime frequency spectrum is generated by FFT(FastFourierTransform)
-        And the results (freq-amp 2-D array) can be combined with time 
-        infomation to generate an image, which is freq-time-amp 3-D array of 
+        And the results (freq-amp 2-D array) can be combined with time
+        infomation to generate an image, which is freq-time-amp 3-D array of
         gray image exactly.
         '''
         pass
@@ -588,7 +609,7 @@ class Signal_Info(object):
            (power equals to energy divided by time duration),
            and 'abs(fft(X))**2' is known as energy spectrum.
            'average_energy_flow_density = 1/2 * p * (A**2) * (w**2)'
-           
+
         Parameters
         ----------
         X: array
@@ -597,19 +618,19 @@ class Signal_Info(object):
             at least one of sample_rate and time should be given
         time: int|float
             seconds of the data. There is equation: len(X)=sample_rate*time
-        
+
         Returns
         -------
         freq, power
         '''
         if method == 1:
             pass
-        
+
         elif method == 2:
             sample_time = len(X) / sample_rate
             freq, amp = self.fft(X, sample_rate)
             return freq, amp**2/sample_time
-        
+
     @check_shape
     def fft(self, X, sample_rate):
         '''
@@ -617,23 +638,23 @@ class Signal_Info(object):
         info from time domain data in mathmatic questions. But when
         processing signals, DFT(Discret Fourier Transform) is a more
         practice way for computer calculation. And FFT(Fast discret
-        Fourier Transform) is much more commonly used because it is 
+        Fourier Transform) is much more commonly used because it is
         better at handling time-varying signals(you can add windows).
-        
+
         There are four steps to get useful result of fft:
             1. raw = np.fft.fft(X), here raw is a complex ndarray
-            2. amp = np.abs(raw[:num/2]), remove latter half of raw 
-               and convert rest data into real number. 
+            2. amp = np.abs(raw[:num/2]), remove latter half of raw
+               and convert rest data into real number.
                Result of fft is symmetric in the real part.
             3. samples = len(X) and raw /= samples
-            4. Remove Nyquist point, that is: 
+            4. Remove Nyquist point, that is:
                if samples is odd number, amp*=2 except first point(freq=0)
                if samples is even number, amp*=2 except first and last points
-        
-        Attention: samples(sample_rate * time) should bigger than 
+
+        Attention: samples(sample_rate * time) should bigger than
         twice of the max frequence you insterested in, i.e. time
         should longer than 1 second.
-        
+
         Returns
         -------
         freq: np.linspace(0, sample_rate/2, length/2)
@@ -649,7 +670,7 @@ class Signal_Info(object):
     @check_shape
     def wavelet(self, X):
         pass
-    
+
     @check_shape
     def sync_like(self, X):
         '''
@@ -657,14 +678,14 @@ class Signal_Info(object):
         from a time-series data. This vector is distinguishable in state space,
         thus representing current state(raw data pattern).
         In a time interval, if state vectors of each frequency ranges (α|β|γ..)
-        of each channels are similar, we can say sync_level of this people is 
-        high at present and vice versa. It has been discovered that many kinds 
-        of nervous diseases are related to out-sync of brain activities, such 
-        as Alzheimer's Disease. By comparing state vector we can tell how 
+        of each channels are similar, we can say sync_level of this people is
+        high at present and vice versa. It has been discovered that many kinds
+        of nervous diseases are related to out-sync of brain activities, such
+        as Alzheimer's Disease. By comparing state vector we can tell how
         synchronous the subject's brain is.
         '''
         pass
-    
+
     @check_shape
     def peek_extract(self, X, low, high, sample_rate):
         '''
@@ -678,7 +699,7 @@ class Signal_Info(object):
         duration = float(x.shape[0] - 1) / (sample_rate / 2)
         return [(ch.argmax()/duration + low, ch.max()) \
                 for ch in y[:, int(low*duration):int(high*duration)]**2]
-    
+
     @check_shape
     def energy(self, X, low, high, sample_rate):
         '''
@@ -692,12 +713,12 @@ class Signal_Info(object):
         duration = float(x.shape[0] - 1) / (sample_rate / 2)
         return [sum(ch) * duration \
                 for ch in y[:, int(low*duration):int(high*duration)]**2]
-        
+
     @check_shape
     def envelop(self, X):
         return np.array([np.sqrt(ch**2 + scipy.fftpack.hilbert(ch)**2) \
                          for ch in X])
-        
+
 
 
 if __name__ == '__main__':

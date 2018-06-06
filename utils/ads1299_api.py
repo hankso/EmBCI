@@ -9,6 +9,7 @@ Created on Wed Apr  4 01:37:15 2018
 import time
 import struct
 import select
+import unittest
 import threading
 
 # pip install numpy, spidev
@@ -17,6 +18,7 @@ import numpy as np
 
 # from ./
 from gpio4 import SysfsGPIO
+from common import time_stamp
 
 # ADS1299 Pin mapping
 # PIN_PWRDN       = 2 # pin PA02
@@ -99,6 +101,7 @@ class ADS1299_API(object):
             >>> ads.open((0, 0))
             >>> ads.do_measure_inpedance = True
             >>> ads.read() # this will return inpedance value of each channel
+        do_enable_bias: property, set it to True or False
 
     Attention
     ---------
@@ -138,9 +141,9 @@ class ADS1299_API(object):
         self.spi.max_speed_hz = msh
         self.spi.mode = 2
         self._dev = dev
-#        self._START.export = True
-#        self._START.direction = 'out'
-#        self._START.value = 0
+        # self._START.export = True
+        # self._START.direction = 'out'
+        # self._START.value = 0
         self._DRDY.export = True
         self._DRDY.direction = 'in'
         self._DRDY.edge = 'falling'
@@ -268,7 +271,7 @@ class ADS1299_API(object):
         self._measure_inpedance = boolean
         self.write(RDATAC)
 
-    def read(self):
+    def read(self, *args, **kwargs):
         '''
         Read chunk bytes from ADS1299 and decode them into `float32` number
         '''
@@ -368,11 +371,11 @@ class ESP32_API(ADS1299_API):
             self._epoll.unregister(self._DRDY.fileno('value'))
             self._DRDY.export = False
 
-    def read(self):
+    def read(self, num=50, *args, **kwargs):
         assert self._started
         self._epoll.poll()
-        data = sruct.pack('1600B', self.spi.xfer2([0x00] * 4 * 8 * 50))
-        return np.frombuffer(data, np.flost32)
+        data = sruct.pack('1600B', self.spi.xfer2([0x00] * 4 * 8 * num))
+        return np.frombuffer(data, np.flost32).reshape(num, 8)
 
     def write(self, byte):
         '''
@@ -395,3 +398,78 @@ class ESP32_API(ADS1299_API):
     def read_registers(self, reg, num):
         '''Read `num` registers start from `reg`'''
         return self.commander.send('readregs', reg, num)
+
+
+
+class _testADS(unittest.TestCase):
+    def setUp(self):
+        '''Initialization before test.'''
+        self._ads = ADS1299_API()
+        self._ads.open((0, 0))  # /dev/spidev0.0
+        self._ads.start(sample_rate=250)
+
+    def tearDown(self):
+        '''Close API before exit'''
+        self._ads.close()
+
+    def test_1_read_data(self):
+        '''Read group data'''
+        print(self._ads.read(10))
+
+    def test_2_read_register(self):
+        '''Read chip ID from register 0x00'''
+        ID = self._ads.read_register(0x00)
+        print('ID: ' + bin(ID))
+        self.assertEqual(0b00011110, ID & 0x1F)
+
+    def test_3_test_signal(self):
+        '''Set input source to internal generated test signal'''
+        self._ads.set_input_source('test')
+        print('Test signal:')
+        for i in range(10):
+            print('{} {}'.format(time.time(), self._ads.read()))
+            time.sleep(0.5)
+        self._ads.set_input_source('normal')
+
+    def test_4_do_enable_bias(self):
+        '''Read signal after bias enabled'''
+        tmp = self._ads.do_enable_bias
+        self._ads.do_enable_bias = True
+        print(self._ads.read())
+        self._ads.do_enable_bias = tmp
+
+    def test_5_do_measure_inpedance(self):
+        '''Set measure source to inpedance'''
+        tmp = self._ads.do_measure_inpedance
+        self._ads.do_measure_inpedance = True
+        print(self._ads.read())
+        self._ads.do_measure_inpedance = tmp
+
+
+
+class _testESP(_testADS):
+    def setUp(self):
+        from common import Serial_ESP32_commander
+        self._c = Serial_ESP32_commander(baud=115200)
+        self._c.start('/dev/ttyS1')
+        self._esp = ESP32_API(self._c)
+        self._esp.open((0, 1))  # /dev/spidev0.1
+        self._esp.start(sample_rate=500)
+        self._ads = self._esp
+
+    def tearDown(self):
+        self._c.close()
+        self._esp.close()
+
+
+
+if __name__ == '__main__':
+    from HTMLTestRunner import HTMLTestRunner
+    suite = unittest.TestSuite()
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testADS))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testESP))
+    with open('../test/test.ads1299_api.html', 'w') as f:
+        HTMLTestRunner(stream=f,
+                       title='ADS1299_API Test Report',
+                       description='generated at ' + time_stamp(),
+                       verbosity=2).run(suite)

@@ -10,36 +10,40 @@ from __future__ import print_function
 import os
 import sys
 import time
-import threading
-import multiprocessing
+import mmap
 import socket
 import select
+import unittest
+from threading import Thread
+from multiprocessing import Process, Event
+from multiprocessing import Value
+from ctypes import c_uint16
 
-# pip install numpy, scipy, serial, mne
-import scipy.io as sio
+# pip install numpy, scipy, serial, mne, spidev, pylsl
+from scipy import io as sio
+from scipy import signal
 import numpy as np
 import serial
 import pylsl
-import mne
 import spidev
+import mne
 
 # from ./
 from common import check_dir, check_input, get_label_list, Timer
-from common import record_animate
-from common import find_ports, find_outlets
+from common import record_animate, time_stamp
+from common import find_ports, find_outlets, virtual_serial
 from gyms import TorcsEnv
 from gyms import PlaneClient
-from ads1299_api import ADS1299_API
+from ads1299_api import ADS1299_API, ESP32_API
 from ili9341_api import ILI9341_API
 
 
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+
+
 @check_dir
-def save_data(username,
-              data,
-              label,
-              sample_rate,
-              print_summary=False,
-              save_fif=False):
+def save_data(username, data, label, sample_rate,
+              print_summary=False, save_fif=False):
     '''
     保存数据的函数，传入参数为username,data,label(这一段数据的标签)
     可以用print_summary=True输出已经存储的数据的label及数量
@@ -63,8 +67,8 @@ def save_data(username,
     num = '1' if label not in label_list else str(label_list[label] + 1)
 
     fn = './data/%s/%s.mat'%(username, '-'.join([label, num]))
-    sio.savemat(fn, {label: data}, do_compression=True)
-    print('{} data save to {}'.format(data.shape, fn))
+    sio.savemat(fn, {label: data, 'sample_rate': sample_rate}, do_compression=True)
+    print('{} data saved to {}'.format(data.shape, fn))
 
     if save_fif:
         if not os.path.exists('./data/fif'):
@@ -154,11 +158,8 @@ def save_action(username, reader, action_list=['relax', 'grab']):
                 # input shape: 1 x n_channel x window_size
 
                 #==========================================================
-                save_data(username,
-                          reader.frame_data,
-                          action_name,
-                          reader.sample_rate,
-                          print_summary=True)
+                save_data(username, reader.data_frame, action_name,
+                          reader.sample_rate, print_summary=True)
                 #==========================================================
 
                 # update label_list
@@ -178,45 +179,62 @@ def save_action(username, reader, action_list=['relax', 'grab']):
     return label_list
 
 
-
 class _basic_reader(object):
-    def __init__(self, sample_rate, sample_time, n_channel):
+    def __init__(self, sample_rate, sample_time, n_channel, name=None):
         # basic stream reader information
         self.sample_rate = sample_rate
         self.sample_time = sample_time
         self.n_channel = n_channel
         self.window_size = int(sample_rate * sample_time)
+        self._name = name if name is not None else ' reader%s  ' % time_stamp()
 
         # channels are defined here
         self.ch_list = ['channel%d' % i for i in range(n_channel)] + ['time']
 
         # maintain a FIFO-loop queue to store data
-        self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
-        self._index = 0
+        # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
+        self._data = None
+        self._index_mp_value = Value(c_uint16, 0)
         self._ch_last_index = self._fr_last_index = self._index
         self._started = False
 
         # use these flags to controll the data streaming thread
-        self._flag_pause = multiprocessing.Event()
+        self._flag_pause = Event()
+        self._flag_close = Event()
         self._flag_pause.set()
 
     def start(self):
-        # start get data in seperate process
-        self._process = multiprocessing.Process(target=self._stream_data)
+        self._data_tmp_file_name = '{}/../data/mmap_tmp_for_{}.dat'.format(
+            __dir__, self._name[1:-2].replace(' ', '_'))
+        self._f = open(self._data_tmp_file_name, 'w+')
+        self._f.write('\x00' * (self.n_channel + 1) * self.window_size * 4)
+        self._f.flush()
+        self._m = mmap.mmap(self._f.fileno(), 0)
+        self._data = np.ndarray(shape=(self.n_channel + 1, self.window_size),
+                                dtype=np.float32, buffer=self._m)
+        self._start_time = time.time()
+
+        # ======================================================================
+        self._process = Process(target=self._stream_data)
         self._process.daemon = True
         self._process.start()
-        # block current main thread to fill one frame initial data
+        # ======================================================================
+        # self._thread = Thread(target=self._stream_data)
+        # self._thread.setDaemon(True)
+        # self._thread.start()
+        # ======================================================================
+
+        # block current main thread to fill as last one frame of data
         time.sleep(self.sample_time)
         self._started = True
 
     def _stream_data(self):
         try:
-            # while not self._flag_close.isSet():
-            while 1:
+            while not self._flag_close.is_set():
                 self._flag_pause.wait()
                 self._save_data_in_buffer()
         except Exception as e:
-            print(self._name + str(e))
+            print(self._name + '{}: {}'.format(type(e), e))
             self.close()
         finally:
             print(self._name + 'stop streaming data...')
@@ -227,10 +245,15 @@ class _basic_reader(object):
 
     def close(self):
         assert self._started, 'Not started yet!'
-        if hasattr(self, '_process'):
+        self._flag_close.set()
+        time.sleep(0.5)
+        if hasattr(self, '_process') and self._process.is_alive():
             self._process.terminate()
-        elif hasattr(self, '_thread') and hasattr(self, '_flag_close'):
-            self._flag_close.set()
+        self._data = self._data.copy()  # reduce reference to data buffer
+        self._m.close()
+        self._f.close()
+        os.remove(self._data_tmp_file_name)
+        self._started = False  # you can re-start this reader now, enjoy~~
 
     def pause(self):
         self._flag_pause.clear()
@@ -239,34 +262,95 @@ class _basic_reader(object):
         self._flag_pause.set()
 
     @property
+    def _index(self):
+        return self._index_mp_value.value
+
+    @_index.setter
+    def _index(self, value):
+        self._index_mp_value.value = value
+
+    @property
     def is_streaming(self):
         if hasattr(self, '_process'):
-            return self._flag_pause.isSet() and self._process.is_alive()
-        return self._started and self._flag_pause.isSet()
+            tmp = self._process.is_alive()
+        elif hasattr(self, '_thread'):
+            tmp = self._thread.is_alive()
+        return self._started and tmp and self._flag_pause.is_set()
 
     @property
     def real_sample_rate(self):
         try:
-            t1, t2 = (self._index - 11) % self.window_size, self._index
-            return 10.0/(self._data[-1, t2] - self._data[-1, t1])
+            t1, t2 = (self._index - 1) % self.window_size, self._index
+            return self.window_size / (self._data[-1, t1] - self._data[-1, t2])
         except:
             return 0
 
     @property
     def data_channel(self):
-        while self._ch_last_index == self._index:
-            time.sleep(0)
-        self._ch_last_index = self._index
-        return self._data[:-1, self._ch_last_index]
+        if self.is_streaming:
+            t = time.time()
+            while self._ch_last_index == self._index:
+                if (time.time() - t) > 1.5 / self.sample_rate:
+                    print(self._name + 'there maybe error reading data')
+                    break
+            self._ch_last_index = self._index
+        return self._data[:-1, (self._ch_last_index - 1) % self.window_size]
 
     @property
     def data_frame(self):
-        while self._fr_last_index == self._index:
-            time.sleep(0)
-        self._fr_last_index = self._index
+        if self.is_streaming:
+            t = time.time()
+            while self._fr_last_index == self._index:
+                if (time.time() - t) > 1.5 / self.sample_rate:
+                    print(self._name + 'there maybe error reading data')
+                    break
+            self._fr_last_index = self._index
         return np.concatenate((
-            self._data[:-1, (self._fr_last_index + 1):],
-            self._data[:-1, :(self._fr_last_index + 1)]), -1)
+            self._data[:-1, self._fr_last_index:],
+            self._data[:-1, :self._fr_last_index]), -1)
+
+
+class Fake_data_generator(_basic_reader):
+    '''Generate random data, same as any Reader defined in IO.py'''
+    _num = 1
+    def __init__(self,
+                 send_to_pylsl=True,
+                 sample_rate=250,
+                 sample_time=2,
+                 n_channel=1,
+                 *args, **kwargs):
+        super(Fake_data_generator, self).__init__(sample_rate, sample_time, n_channel)
+        self._name = '[Fake data generator %d] ' % Fake_data_generator._num
+        self._send_to_pylsl = send_to_pylsl
+        Fake_data_generator._num += 1
+
+    def start(self):
+        if self._started:
+            self.resume()
+            return
+        if self._send_to_pylsl:
+            print(self._name + 'establishing pylsl outlet...')
+            self._outlet = pylsl.StreamOutlet(
+                pylsl.StreamInfo(
+                    'fake_data_generator', 'unknown', self.n_channel,
+                    self.sample_rate, 'float32', 'used for debugging'))
+            self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
+        super(Fake_data_generator, self).start()
+
+    def _save_data_in_buffer(self):
+        time.sleep(1.0 / self.sample_rate)
+        d = np.random.rand(self.n_channel) / 10
+        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
+
+    def _save_data_in_buffer_send_to_pylsl(self):
+        time.sleep(1.0 / self.sample_rate)
+        d = np.random.rand(self.n_channel) / 10
+        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
+        self._outlet.push_sample(d)
 
 
 class Files_reader(_basic_reader):
@@ -293,21 +377,27 @@ class Files_reader(_basic_reader):
         print(self._name + 'reading data file...')
         while not os.path.exists(self.filename):
             self.filename = check_input(
-                'No such file! Please check and input correct file name: '), {})
+                'No such file! Please check and input correct file name: ', {})
         try:
             if self.filename.endswith('.mat'):
                 actionname = os.path.basename(self.filename).split('-')[0]
-                data = sio.loadmat(self.filename)[actionname][0]
-                print(self._name + 'load data shape {}'.format(data.shape))
+                mat = sio.loadmat(self.filename)
+                data = mat[actionname][0]
+                sample_rate = mat.get('sample_rate', None)
+                print(self._name + 'load data with shape of {} @ {}Hz'.format(
+                    data.shape, sample_rate))
                 assert len(data.shape) == 2, 'Invalid data shape!'
                 n = data.shape[0]
                 if n < self.n_channel:
-                    print(self._name + 'change n_channel to {}'.format(n))
+                    print('{}change n_channel to {}'.format(self._name, n))
                     self.n_channel = n
                     self._data = self._data[:(n + 1)]
+                if sample_rate and sample_rate != self.sample_rate:
+                    print('{}resample source data to {}Hz'.format(
+                        self._name, self.sample_rate))
+                    data = signal.resample(data, self.sample_rate)
                 self._get_data = self._get_data_g(data.T)
                 self._get_data.next()
-                break
             elif self.filename.endswith('.fif'):
                 raise NotImplemented
             elif self.filename.endswith('.csv'):
@@ -317,12 +407,11 @@ class Files_reader(_basic_reader):
             else:
                 raise NotImplemented
         except Exception as e:
-            print(self._name + 'Error: {}'.format(e))
+            print(self._name + '{}: {}'.format(type(e), e))
             print(self._name + 'Abort...')
             return
 
         # 2. get ready to stream data
-        self._start_time = time.time()
         super(Files_reader, self).start()
 
     def _get_data_g(self, data):
@@ -333,9 +422,9 @@ class Files_reader(_basic_reader):
 
     def _save_data_in_buffer(self):
         d = self._get_data.next()
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
 
 
 class Pylsl_reader(_basic_reader):
@@ -383,8 +472,8 @@ class Pylsl_reader(_basic_reader):
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
-        self._start_time = info.created_at()
         super(Pylsl_reader, self).start()
+        self._start_time = info.created_at()
 
     def close(self):
         self._inlet.close_stream()
@@ -392,9 +481,9 @@ class Pylsl_reader(_basic_reader):
 
     def _save_data_in_buffer(self):
         d, t = self._inlet.pull_sample()
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[1:(self.n_channel + 1)]
         self._data[-1, self._index] = t - self._start_time
+        self._index = (self._index + 1) % self.window_size
 
 
 class Serial_reader(_basic_reader):
@@ -442,7 +531,6 @@ class Serial_reader(_basic_reader):
                     'Serial_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
             self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
-        self._start_time = time.time()
         super(Serial_reader, self).start()
 
     def close(self):
@@ -451,15 +539,15 @@ class Serial_reader(_basic_reader):
 
     def _save_data_in_buffer(self):
         d = np.array(self._serial.read_until().strip().split(','), np.float32)
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
 
     def _save_data_in_buffer_send_to_pylsl(self):
         d = np.array(self._serial.read_until().strip().split(','), np.float32)
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
         self._outlet.push_sample(d)
 
 
@@ -502,7 +590,6 @@ class ADS1299_reader(_basic_reader):
                     'SPI_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d '%dev))
             self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
-        self._start_time = time.time()
         super(ADS1299_reader, self).start()
 
     def close(self):
@@ -510,15 +597,15 @@ class ADS1299_reader(_basic_reader):
         super(ADS1299_reader, self).close()
 
     def _save_data_in_buffer(self):
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = self._ads.read()[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
 
     def _save_data_in_buffer_send_to_pylsl(self):
         d = self._ads.read()
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
         self._outlet.push_sample(d)
 
 
@@ -588,7 +675,6 @@ class Socket_reader(_basic_reader):
                 print(self._name + 'invalid addr!')
         self._client.connect((host, int(port)))
         # 2. read data in another thread
-        self._start_time = time.time()
         super(Socket_reader, self).start()
 
     def close(self):
@@ -599,9 +685,9 @@ class Socket_reader(_basic_reader):
         # 8-channel float32 data = 8*32bits = 32bytes
         # d is np.ndarray with a shape of (8, 1)
         d = np.frombuffer(self._client.recv(32), np.float32)
-        self._index += 1; self._index %= self.window_size
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
 
 
 class Socket_server(object):
@@ -620,18 +706,18 @@ class Socket_server(object):
         self._server.bind((host, port))
         self._server.listen(5)
         self._server.settimeout(0.5)
-        self._flag_close = threading.Event()
+        self._flag_close = Event()
         print(self._name + 'binding socket server at %s:%d' % (host, port))
 
     def start(self):
         if not hasattr(self, '_thread'):
             # handle connection in a seperate thread
-            self._thread = threading.Thread(target=self._manage_connections)
+            self._thread = Thread(target=self._manage_connections)
             self._thread.setDaemon(True)
             self._thread.start()
 
     def _manage_connections(self):
-        while not self._flag_close.isSet():
+        while not self._flag_close.is_set():
             # manage all connections and wait for new client
             rdable = select.select([self._server] + self.connections, [], [], 1)
             if not rdable[0]:
@@ -674,47 +760,100 @@ class Socket_server(object):
         return len(self.connections)
 
 
-class Fake_data_generator(_basic_reader):
-    '''Generate random data, same as any Reader defined in IO.py'''
-    _num = 1
-    def __init__(self,
-                 send_to_pylsl=True,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
-        super(Fake_data_generator, self).__init__(sample_rate, sample_time, n_channel)
-        self._name = '[Fake data generator %d] ' % Fake_data_generator._num
-        self._send_to_pylsl = send_to_pylsl
-        Fake_data_generator._num += 1
+command_dict_plane = {
+        'left':       ['3', 0.5],
+        'right':      ['4', 0.5],
+        'up':         ['1', 0.5],
+        'down':       ['2', 0.5],
+        'disconnect': ['9', 0.5],
+        '_desc': ("plane war game support command : "
+                  "left, right, up, down, disconnect")}
 
-    def start(self):
-        if self._started:
-            self.resume()
-            return
-        if self._send_to_pylsl:
-            print(self._name + 'establishing pylsl outlet...')
-            self._outlet = pylsl.StreamOutlet(
-                pylsl.StreamInfo(
-                    'fake_data_generator', 'unknown', self.n_channel,
-                    self.sample_rate, 'float32', 'used for debugging'))
-            self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
-        self._start_time = time.time()
+command_dict_glove_box = {
+        'thumb':        ['1', 0.5],
+        'index':        ['2', 0.5],
+        'middle':       ['3', 0.5],
+        'ring':         ['5', 0.5],
+        'little':       ['4', 0.5],
+        'grab-all':     ['6', 0.5],
+        'relax':        ['7', 0.5],
+        'grab':         ['8', 0.5],
+        'thumb-index':  ['A', 0.5],
+        'thumb-middle': ['B', 0.5],
+        'thumb-ring':   ['C', 0.5],
+        'thumb-little': ['D', 0.5],
+        '_desc':       ("This is a dict for glove box version 1.0.\n"
+                        "Support command:\n\t"
+                        "thumb, index, middle, ring\n\t"
+                        "little, grab-all, relax, grab\n")}
 
-    def _save_data_in_buffer(self):
-        time.sleep(1.0 / self.sample_rate)
-        d = np.random.rand(self.n_channel) / 10
-        self._index += 1; self._index %= self.window_size
-        self._data[:-1, self._index] = d[:self.n_channel]
-        self._data[-1, self._index] = time.time() - self._start_time
+command_dict_arduino_screen_v1 = {
+        'point':  ['#0\r\n{x},{y}\r\n', 0.5],
+        'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+        'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
+        'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+        'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
+        'clear':  ['#5\r\n', 1.0],
+        '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
+                  "you need to pass in args as `key`=`value`(dict)\n\n"
+                  "Commands | args\n"
+                  "point    | x, y\n"
+                  "line     | x1, y1, x2, y2\n"
+                  "circle   | x, y, r\n"
+                  "rect     | x1, y1, x2, y2\n"
+                  "text     | x, y, s\n")}
 
-    def _save_data_in_buffer_send_to_pylsl(self):
-        time.sleep(1.0 / self.sample_rate)
-        d = np.random.rand(self.n_channel) / 10
-        self._index += 1; self._index %= self.window_size
-        self._data[:-1, self._index] = d[:self.n_channel]
-        self._data[-1, self._index] = time.time() - self._start_time
-        self.outlet.push_sample(d)
+command_dict_arduino_screen_v2 = {
+        'points': ['P{:c}{}', 0.1],
+        'point':  ['D{:c}{}', 0.05],
+        'text':   ['S{:c}{:s}', 0.1],
+        'clear':  ['C', 0.5],
+        '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
+                  "Commands | Args\n"
+                  "points   | len(pts), bytearray([y for x, y in pts])\n"
+                  "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
+                  "text     | len(str), str\n"
+                  "clear    | no args, clear screen\n")}
+
+command_dict_uart_screen_v1 = {
+        'point':  ['PS({x},{y},{c});\r\n', 0.38/220],
+        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
+        'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
+        'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
+        'rect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
+        'rrect':  ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
+        'rectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
+        'rrectf': ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
+        'text':   ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
+        'dir':    ['DIR({:d});\r\n', 3.0/220],
+        'clear':  ['CLR(0);\r\n', 10.0/220],
+        '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
+                  "Commands | Args\n"
+                  "point    | x, y, c\n"
+                  "line     | x1, y1, x2, y2, c\n"
+                  "circle   | x, y, r, c\n"
+                  "circlef  | x, y, r, c, filled circle\n"
+                  "rect     | x1, y1, x2, y2, c\n"
+                  "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
+                  "text     | x, y, s(string), c(color)\n"
+                  "dir      | one num, 0 means vertical, 1 means horizental\n"
+                  "clear    | clear screen will black\n")}
+
+command_dict_esp32 = {
+        'start':     ['', 0.2],
+        'write':     ['', 0.3],
+        'writereg':  ['', 0.5],
+        'writeregs': ['', 0.5],
+        'readreg':   ['', 0.5],
+        'readregs':  ['', 0.5],
+        '_desc':    ("This dict is used to commucate with onboard ESP32.\n"
+                     "Supported command:\n\t"
+                     "start: init ads1299 and start RDATAC mode\n\t"
+                     "write: nothing\n\t"
+                     "writereg: write single register\n\t"
+                     "writeregs: write a list of registers\n\t"
+                     "readreg: read single register\n\t"
+                     "readregs: read a list of registers\n\t")}
 
 
 class _basic_commander(object):
@@ -776,24 +915,12 @@ class Torcs_commander(_basic_commander):
         self.env.end()
 
 
-# action_class : command_str
-command_dict_plane = {
-        'left':       ['3', 0.5],
-        'right':      ['4', 0.5],
-        'up':         ['1', 0.5],
-        'down':       ['2', 0.5],
-        'disconnect': ['9', 0.5],
-        '_desc': ("plane war game support command : "
-                  "left, right, up, down, disconnect")
-}
-
-
 class Plane_commander(_basic_commander):
     '''
     Send command to plane war game.
     Controlling plane with `left`, `right`, `up` and `down`.
     '''
-    def __init__(self, command_dict=plane_command_dict):
+    def __init__(self, command_dict=command_dict_plane):
         super(Plane_commander, self).__init__(command_dict)
         self._name = '[Plane commander] '
 
@@ -837,26 +964,6 @@ class Pylsl_commander(_basic_commander):
 
     def close(self):
         pass
-
-
-command_dict_glove_box = {
-        'thumb':        ['1', 0.5],
-        'index':        ['2', 0.5],
-        'middle':       ['3', 0.5],
-        'ring':         ['5', 0.5],
-        'little':       ['4', 0.5],
-        'grab-all':     ['6', 0.5],
-        'relax':        ['7', 0.5],
-        'grab':         ['8', 0.5],
-        'thumb-index':  ['A', 0.5],
-        'thumb-middle': ['B', 0.5],
-        'thumb-ring':   ['C', 0.5],
-        'thumb-little': ['D', 0.5],
-        '_desc':       ("This is a dict for glove box version 1.0.\n"
-                        "Support command:\n\t"
-                        "thumb, index, middle, ring\n\t"
-                        "little, grab-all, relax, grab\n"),
-}
 
 
 class Serial_commander(_basic_commander):
@@ -903,61 +1010,6 @@ class Serial_commander(_basic_commander):
             print(self._name + 'reconnect failed.')
 
 
-command_dict_arduino_screen_v1 = {
-        'point':  ['#0\r\n{x},{y}\r\n', 0.5],
-        'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-        'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
-        'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-        'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
-        'clear':  ['#5\r\n', 1.0],
-        '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
-                  "you need to pass in args as `key`=`value`(dict)\n\n"
-                  "Commands | args\n"
-                  "point    | x, y\n"
-                  "line     | x1, y1, x2, y2\n"
-                  "circle   | x, y, r\n"
-                  "rect     | x1, y1, x2, y2\n"
-                  "text     | x, y, s\n")
-}
-
-command_dict_arduino_screen_v2 = {
-        'points': ['P{:c}{}', 0.1],
-        'point':  ['D{:c}{}', 0.05],
-        'text':   ['S{:c}{:s}', 0.1],
-        'clear':  ['C', 0.5],
-        '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
-                  "Commands | Args\n"
-                  "points   | len(pts), bytearray([y for x, y in pts])\n"
-                  "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
-                  "text     | len(str), str\n"
-                  "clear    | no args, clear screen\n"),
-}
-
-command_dict_uart_screen_v1 = {
-        'point':  ['PS({x},{y},{c});\r\n', 0.38/220],
-        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
-        'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
-        'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
-        'rect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-        'rrect':  ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-        'rectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-        'rrectf': ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-        'text':   ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
-        'dir':    ['DIR({:d});\r\n', 3.0/220],
-        'clear':  ['CLR(0);\r\n', 10.0/220],
-        '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
-                  "Commands | Args\n"
-                  "point    | x, y, c\n"
-                  "line     | x1, y1, x2, y2, c\n"
-                  "circle   | x, y, r, c\n"
-                  "circlef  | x, y, r, c, filled circle\n"
-                  "rect     | x1, y1, x2, y2, c\n"
-                  "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
-                  "text     | x, y, s(string), c(color)\n"
-                  "dir      | one num, 0 means vertical, 1 means horizental\n"
-                  "clear    | clear screen will black\n")
-}
-
 class Serial_Screen_commander(Serial_commander):
     _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
                   'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
@@ -981,7 +1033,28 @@ class Serial_Screen_commander(Serial_commander):
 
     def close(self):
         self.send('clear')
-        self._serial.close()
+        super(Serial_Screen_commander, self).close()
+
+
+class Serial_ESP32_commander(Serial_commander):
+    def __init__(self, baud=115200, command_dict=command_dict_esp32):
+        super(Serial_ESP32_commander, self).__init__(baud, command_dict)
+        self._name = self._name[:-2] + ' for ESP32' + self._name[-2:]
+
+    def send(self, key, *args, **kwargs):
+        self.check_key(key)
+        cmd, delay = self._command_dict[key]
+        time.sleep(delay)
+        if key.startswith('readreg'):
+            self._serial.write(cmd)
+            raise NotImplementedError('TODO: fix me')
+            return self._serial.read_until('\n')
+        elif key.startswith('writereg'):
+            self._serial.write(cmd)
+            raise NotImplementedError('TODO: fix me')
+        elif key == 'start':
+            self._serial.write('start')
+        return cmd
 
 
 class SPI_Screen_commander(object):
@@ -1011,31 +1084,75 @@ class SPI_Screen_commander(object):
         self.ili9341.reset()
 
 
-def ADS1299_to_Socket(ads, server):
-    '''
-    accept ADS1299_API instance and Socket_server instance
-    '''
-    while 1:
-        server.send(ads.read())
+class _testReader(unittest.TestCase):
+    def setUp(self):
+        print('=' * 80)
+        self.username = 'test'
+        self._r = Fake_data_generator(sample_rate=10, sample_time=2, n_channel=8)
+        self._r.start()
+        print('=' * 80)
+
+    def tearDown(self):
+        print('=' * 80)
+        self._r.close()
+        print('=' * 80)
+
+    def test_1_test_reader(self):
+        '''
+        test Fake_data_generator reader
+        '''
+        print('=' * 80)
+        print('Is streaming: {}'.format(self._r.is_streaming))
+        print('Real sample_rate: {}'.format(self._r.real_sample_rate))
+        for i in range(5):
+            print(self._r.data_channel)
+        self._r.pause()
+        self._r.resume()
+        print(self._r.data_frame)
+        print('=' * 80)
+
+    def test_2_load_data(self):
+        '''
+        try to load all data of user `test`
+        '''
+        print('=' * 80)
+        os.chdir('../')
+        data, label, action_dict = load_data(self.username)
+        print('load data with shape of {}'.format(data.shape))
+        print('label: {}'.format(label))
+        print('action_dict: {}'.format(action_dict))
+
+    def test_3_save_data(self):
+        '''
+        then save into one file and delete it
+        '''
+        print('=' * 80)
+        data = np.zeros((1, 8, 250))
+        save_data(self.username, data, 'aabbcc', 250, print_summary=True)
+        os.system('rm ./data/%s/aabbcc*' % self.username)
+        print('=' * 80)
+
+
+class _testCommander(unittest.TestCase):
+    def setUp(self):
+        self.stop = virtual_serial()
+        self._c = Serial_Screen_commander()
+        port = check_input
+        self._c
+
+    def tearDown(self):
+        self.stop.set()
+
+    def test_draw_circle(self):
+        self._c.send('circle', 10, 20, 5, 'black')
 
 
 if __name__ == '__main__':
-    os.chdir('../')
-    username = 'test'
-    data, label, action_dict = load_data(username)
-    save_data(username, data, 'testing', 250, print_summary=True)
-    os.system('rm ./data/%s/testing*' % username)
-# =============================================================================
-#     commander = Serial_commander(9600, command_dict=glove_box_command_dict_v1)
-#     commander.start()
-#     commander.send('thumb')
-# =============================================================================
-# =============================================================================
-#
-#     # openbci 8-channel 250Hz
-#     s = Serial_reader(250, 5, 1)
-#     s.start()
-#     p = Pylsl_reader(sample_rate=250, sample_time=2, n_channel=2)
-#     p.start(servername='OpenBCI_EEG')
-# =============================================================================
-    pass
+    from HTMLTestRunner import HTMLTestRunner
+    suite = unittest.TestSuite()
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testReader))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testCommander))
+    with open('../test/test.{}.html'.format(os.path.basename(__file__)), 'w') as f:
+        HTMLTestRunner(
+            stream=f, title='File {} Test Report'.format(__file__),
+            description='generated at ' + time_stamp(), verbosity=2).run(suite)
