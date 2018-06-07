@@ -19,8 +19,10 @@ import numpy as np
 from common import check_input, Signal_Info, mapping
 from gpio4 import SysfsGPIO
 from preprocessing import Processer
-from visualization import Screen_GUI
-from IO import ADS1299_reader as Reader
+# from visualization import Serial_Screen_GUI as Screen_GUI
+from visualization import SPI_Screen_GUI as Screen_GUI
+# from IO import ADS1299_reader as Reader
+from IO import ESP32_SPI_reader as Reader
 from IO import Socket_server
 
 
@@ -110,7 +112,7 @@ def display_waveform(*args, **kwargs):
     try:
         while 1:
             for x in range(step, area[2] - area[0], step):
-                assert not flag_close.isSet()
+                assert not flag_close.is_set()
                 d = s.reader.channel_data  # raw data
                 server.send(d)
                 ch = current_ch_range['n']
@@ -221,7 +223,7 @@ def display_info(x, y, bt):
                 time.sleep(0)
             last_time = time.time()
 
-            assert not flag_close.isSet()
+            assert not flag_close.is_set()
             data = s.reader.buffer['channel%d' % current_ch_range['n']]
             x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
             # get peek of specific duration of signal
@@ -293,7 +295,6 @@ def display_info(x, y, bt):
         s.reader.pause()
 
 
-
 rate_list = {'a': [250, 500, 1000], 'i': 0}
 
 time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
@@ -353,6 +354,32 @@ menu = {
          'ct': 15, 'callback': lambda *args, **kwargs: program_exit.set(), 's': '\xcd\xcb\xb3\xf6', 'id': 9, 'ca': 1}]
 }
 
+page0 = {
+    'text': [],
+    'img': [],
+    'button': [],
+}
+
+page1 = {
+    'text': [],
+    'img': [],
+    'button': [],
+}
+
+page2 = {
+    'text': [],
+    'img': [],
+    'button': [],
+}
+
+page3 = {
+    'text': [],
+    'img': [],
+    'button': [],
+}
+
+menu_list = {'a': [page0, page1, page2, page3], 'i': 0}
+
 
 if __name__ == '__main__':
     username = 'test'
@@ -361,29 +388,32 @@ if __name__ == '__main__':
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
 
-    reset_avr = SysfsGPIO(10) # PA10
-    reset_avr.export = True
-    reset_avr.direction = 'out'
-    reset_avr.value = 0
-    time.sleep(1)
-    reset_avr.value = 1
-    time.sleep(1)
+    # reset_avr = SysfsGPIO(10) # PA10
+    # reset_avr.export = True
+    # reset_avr.direction = 'out'
+    # reset_avr.value = 0
+    # time.sleep(1)
+    # reset_avr.value = 1
+    # time.sleep(1)
 
     program_exit = threading.Event()
 
     try:
-        s = Screen_GUI(screen_port='/dev/ttyS1', screen_baud=115200)
+        reader = Reader(); reader.start(spi_device=(0, 1))
         server = Socket_server()
+        s = Screen_GUI(spi_device=(0, 0))
+        # s = Screen_GUI(screen_port='/dev/ttyS1', screen_baud=115200)
         s.start_touch_screen('/dev/ttyS2')
-#        stop = virtual_serial()
-#        s.start_touch_screen('/dev/pts/0')
-#        s1 = serial.Serial('/dev/pts/1', 115200)
-        s.display_logo('./files/LOGO.bmp')
-        s.widget = menu
+        # stop = virtual_serial()
+        # s.start_touch_screen('/dev/pts/0')
+        # s1 = serial.Serial('/dev/pts/1', 115200)
+        # s.display_logo('./files/LOGO.bmp')
+        s.display_logo('./files/LOGO.jpg')
+        # s.widget = menu
+        s.widget = menu_list['a'][menu_list['i']]
         s.render()
-#        IPython.embed()
-        while not program_exit.isSet():
-            time.sleep(2)
+        while not program_exit.is_set():
+            time.sleep(5)
     except KeyboardInterrupt:
         print('keyboard interrupt shutdown')
     except SystemExit:
@@ -392,6 +422,6 @@ if __name__ == '__main__':
         IPython.embed()
     finally:
         s.close()
-#        s1.close()
-#        stop.set()
+        # s1.close()
+        # stop.set()
         server.close()

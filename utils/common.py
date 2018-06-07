@@ -398,7 +398,6 @@ def record_animate(times):
     print('\r[{}] finished'.format('='*10*times))
 
 
-
 # TODO 11: interesting function copied from package `mne`, modify it for our usage
 # =============================================================================
 # def sys_info(fid=None, show_paths=False):
@@ -727,7 +726,7 @@ if __name__ == '__main__':
     first_use()
     record_animate(5)
     print('time stamp: ' + time_stamp())
-#    print(find_ports())
-#    print(find_outlets('testing'))
+    # print(find_ports())
+    # print(find_outlets('testing'))
     print(get_label_list(username)[1])
     pass

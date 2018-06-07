@@ -30,8 +30,8 @@ import mne
 
 # from ./
 from common import check_dir, check_input, get_label_list, Timer
-from common import record_animate, time_stamp
-from common import find_ports, find_outlets, virtual_serial
+from common import record_animate, time_stamp, virtual_serial
+from common import find_ports, find_outlets, find_spi_devices
 from gyms import TorcsEnv
 from gyms import PlaneClient
 from ads1299_api import ADS1299_API, ESP32_API
@@ -588,7 +588,7 @@ class ADS1299_reader(_basic_reader):
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
                     'SPI_reader', 'unknown', self.n_channel,
-                    self.sample_rate, 'float32', 'spi%d-%d '%dev))
+                    self.sample_rate, 'float32', 'spi%d-%d ' % device))
             self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
         super(ADS1299_reader, self).start()
 
@@ -632,8 +632,8 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._ads = self._esp
         ESP32_SPI_reader._singleton = False
 
-    def start(self, device=(0, 1)):
-        super(ESP32_SPI_reader, self).start(device)
+    def start(self, spi_device=(0, 1)):
+        super(ESP32_SPI_reader, self).start(spi_device)
 
 
 class Socket_reader(_basic_reader):
@@ -1038,27 +1038,26 @@ class Serial_Screen_commander(Serial_commander):
 
 class Serial_ESP32_commander(Serial_commander):
     def __init__(self, baud=115200, command_dict=command_dict_esp32):
-        super(Serial_ESP32_commander, self).__init__(baud, command_dict)
-        self._name = self._name[:-2] + ' for ESP32' + self._name[-2:]
-
-    def send(self, key, *args, **kwargs):
-        self.check_key(key)
-        cmd, delay = self._command_dict[key]
-        time.sleep(delay)
-        if key.startswith('readreg'):
-            self._serial.write(cmd)
-            raise NotImplementedError('TODO: fix me')
-            return self._serial.read_until('\n')
-        elif key.startswith('writereg'):
-            self._serial.write(cmd)
-            raise NotImplementedError('TODO: fix me')
-        elif key == 'start':
-            self._serial.write('start')
-        return cmd
+        raise RuntimeError('Deprecated!!!')
+    #     super(Serial_ESP32_commander, self).__init__(baud, command_dict)
+    #     self._name = self._name[:-2] + ' for ESP32' + self._name[-2:]
+    #
+    # def send(self, key, *args, **kwargs):
+    #     self.check_key(key)
+    #     cmd, delay = self._command_dict[key]
+    #     time.sleep(delay)
+    #     if key.startswith('readreg'):
+    #         self._serial.write(cmd)
+    #         return self._serial.read_until('\n')
+    #     elif key.startswith('writereg'):
+    #         self._serial.write(cmd)
+    #     elif key == 'start':
+    #         self._serial.write('start')
+    #     return cmd
 
 
 class SPI_Screen_commander(object):
-    def __init__(self, spi_device=(0, 1)):
+    def __init__(self, spi_device):
         self.ili9341 = ILI9341_API(spi_device)
         self._name = '[SPI screen commander] '
         self.write = self.send
@@ -1077,7 +1076,7 @@ class SPI_Screen_commander(object):
 
     def send(self, key, *args, **kwargs):
         if hasattr(self.ili9341, 'draw_' + key):
-            getattr(self.ili9341, 'draw_' + key)(*args, **kwrags)
+            getattr(self.ili9341, 'draw_' + key)(*args, **kwargs)
 
     def close(self):
         self.ili9341.clear()
@@ -1137,11 +1136,11 @@ class _testCommander(unittest.TestCase):
     def setUp(self):
         self.stop = virtual_serial()
         self._c = Serial_Screen_commander()
-        port = check_input
-        self._c
+        self._c.start()
 
     def tearDown(self):
         self.stop.set()
+        self._c.close()
 
     def test_draw_circle(self):
         self._c.send('circle', 10, 20, 5, 'black')
@@ -1152,7 +1151,7 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testReader))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testCommander))
-    with open('../test/test.{}.html'.format(os.path.basename(__file__)), 'w') as f:
+    with open('../test/test.{}.html'.format(__file__), 'w') as f:
         HTMLTestRunner(
             stream=f, title='File {} Test Report'.format(__file__),
             description='generated at ' + time_stamp(), verbosity=2).run(suite)

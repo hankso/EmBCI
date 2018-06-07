@@ -95,6 +95,7 @@ class Plotter():
         # Return data in case of using Plotter.plot as callback function
         return data
 
+
 def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
     import matplotlib.pyplot as plt; plt.ion()
     if not isinstance(data, np.ndarray):
@@ -146,13 +147,14 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.subplot(326)
         t = time.time()
         amp = 2 * abs(np.fft.rfft(d)) / float(len(d))
-#        amp[0] *= 1e13
+        # amp[0] *= 1e13
         plt.plot(10*np.log10(amp*amp)[::12], linewidth=0.5, label='unfiltered')
         plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
         plt.legend()
         plt.grid()
         plt.xlabel('Frequency')
         plt.ylabel('dB/Hz')
+
 
 class Serial_Screen_GUI(Serial_Screen_commander):
     '''
@@ -168,7 +170,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         'round':[], 'roundf':[], 'rect':[], 'rectf':[],
         'round_rect': [], 'round_rectf': [], 'text':[], 'button':[], 'img':[]}
     def __init__(self, port='/dev/ttyS2', baud=115200, width=220, height=176,
-                 command_dict=command_dict_uart_screen_v1):
+                 command_dict=command_dict_uart_screen_v1, *args, **kwargs):
         super(Serial_Screen_GUI, self).__init__(baud, command_dict)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
         self.start(port)  # set serial screen port
@@ -232,6 +234,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def draw_img(self, x, y, img, **kwargs):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
+        if 'Serial' in self._name and len(img.shape) > 2:
+            img = img[:, :, 0]
+        if 'SPI' in self._name:
+            if len(img.shape) < 3:
+                img = img[:, :, np.newaxis]
+            if img.shape[-1] > 3:
+                img = img[:, :, :3]
         self.widget['img'].append({
             'data': img, 'id': kwargs['num'], 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]})
@@ -325,10 +334,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             # 'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
             'x': x, 'y': y, 's': s, 'id': kwargs['num'], 'size': size,
             'c': self._element_color['text'] if c is None else c})
-        if render:
-            self.render(name='text', num=num)
 
-    def remove_element(self, name=None, num=None, ):
+    def remove_element(self, name=None, num=None, render=True):
         if not sum([len(i) for i in self.widget.values()]):
             print('No elements now!')
             return
@@ -557,7 +564,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if None in [x1, y1, x2, y2]:
             self.send('clear')
         else:
-            self.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2, c='black')
+            self.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2,
+                      c='black' if 'c' not in kwargs else kwargs['c'])
 
     def close(self):
         with self.write_lock:
@@ -575,24 +583,35 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
 class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
     '''
-    `SPI_Screen_GUI` inherits `SPI_Screen_commander` and `Serial_Screen_GUI`.
+    Because I don't want to write additional samiliar functions with
+    `Serial_Screen_GUI` for `SPI_Screen_GUI`, `SPI_Screen_GUI` inherits
+    `SPI_Screen_commander` and `Serial_Screen_GUI`.
     It will construct spi connection by initing `SPI_Screen_commander`.
     Although we don't initialize `Serial_Screen_GUI`(i.e. no serial connection
     will be built) when instantiating an object of `SPI_Screen_GUI`, it can get
     access to GUI control functions offered by `Serial_Screen_GUI`.
 
-    Because I don't want to write additional samilliar functions for spi screen.
+    Methods Outline:
+        Serial_Screen_commander:
+            start, send, write, close, check_key
+        Serial_Screen_GUI:
+            calibration_touch_screen, clear, remove_element, move_element,
+            draw_img, draw_buttom, draw_point, draw_line, draw_rect, draw_round,
+            draw_round_rect, draw_circle, draw_text, render, display_logo,
+            save_layout, load_layout, freeze_frame, recover_frame
+        SPI_Screen_commander:
+            start, send, write, close, setfont, setsize, getsize
+            # it will overload conflict functions from Serial_Screen_commander
     '''
-    def __init__(self, spi_device):
+    def __init__(self, spi_device=(0, 1), width=320, height=240, *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
+        self.width, self.height = width, height
         self.start()
         self.setfont('./files/spi_screen/yahei_mono.ttf')
         self.write_lock = threading.Lock()
         self._touch_started = False
 
-    def close(self):
-        super(SPI_Screen_GUI, self).close()
 
 if __name__ == '__main__':
 #    plt.ion()
