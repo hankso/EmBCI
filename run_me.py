@@ -14,7 +14,8 @@ sys.path += ['./src', './utils']
 # from ./utils
 from common import check_input
 from classifier import Models
-from frame import Matplotlib_Plot_Info, sEMG_Recognition
+from frame import Matplotlib_Plot_Info
+# from frame import sEMG_Recognition
 
 #from IO import Serial_reader as Reader
 #from IO import ADS1299_reader as Reader

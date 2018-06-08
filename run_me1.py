@@ -17,7 +17,7 @@ import numpy as np
 
 # from ./utils
 from common import check_input, Signal_Info, mapping
-from gpio4 import SysfsGPIO
+# from gpio4 import SysfsGPIO
 from preprocessing import Processer
 # from visualization import Serial_Screen_GUI as Screen_GUI
 from visualization import SPI_Screen_GUI as Screen_GUI

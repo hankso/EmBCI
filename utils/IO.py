@@ -25,7 +25,6 @@ from scipy import signal
 import numpy as np
 import serial
 import pylsl
-import spidev
 import mne
 
 # from ./
@@ -920,9 +919,13 @@ class Plane_commander(_basic_commander):
     Send command to plane war game.
     Controlling plane with `left`, `right`, `up` and `down`.
     '''
+    _singleton = True
     def __init__(self, command_dict=command_dict_plane):
+        if Plane_commander._singleton == False:
+            raise RuntimeError('There is already one Plane Commander.')
         super(Plane_commander, self).__init__(command_dict)
         self._name = '[Plane commander] '
+        Plane_commander._singleton = False
 
     def start(self):
         self.client = PlaneClient()
@@ -1011,22 +1014,30 @@ class Serial_commander(_basic_commander):
 
 
 class Serial_Screen_commander(Serial_commander):
-    _color_map = {'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
-                  'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
-                  'orange': 13, 'pink': 14, 'white': 15}
+    _color_map = {
+        str: {
+            'black':0, 'red':1, 'green':2, 'blue':3, 'yellow':4, 'cyan':5,
+            'purple':6, 'gray':7, 'grey':8, 'brown':9, 'orange':13, 'pink':14,
+            'white':15},
+        int:{}}
     def __init__(self, baud=115200, command_dict=command_dict_uart_screen_v1):
         super(Serial_Screen_commander, self).__init__(baud, command_dict)
         self._name = self._name[:-2] + ' for screen' + self._name[-2:]
 
-    def send(self, key, *args, **kwargs):
+    def send(self, key, *a, **k):
         self.check_key(key)
-        kwargs['c'] = self._color_map[kwargs['c']]
         cmd, delay = self._command_dict[key]
+        if 'c' in k:
+            assert type(k['c']) in self._color_map, 'c only can be str or int'
+            try:
+                k['c'] = self._color_map[type(k['c'])][k['c']]
+            except NameError:
+                raise ValueError('Unsupported color: {}'.format(k['c']))
         try:
-            cmd = cmd.format(*args, **kwargs)
+            cmd = cmd.format(*a, **k)
         except IndexError:
-            print(self._name + 'unmatch key {} and params {}!'.format(
-                    self._command_dict[key], args))
+            print(self._name + 'unmatch key {} - {} and params {}!'.format(
+                    key, cmd, a))
         self._serial.write(cmd)
         time.sleep(delay)
         return cmd
@@ -1056,31 +1067,58 @@ class Serial_ESP32_commander(Serial_commander):
     #     return cmd
 
 
-class SPI_Screen_commander(object):
-    def __init__(self, spi_device):
-        self.ili9341 = ILI9341_API(spi_device)
+class _convert_24bit_to_565():
+    def __getitem__(self, v):
+        if isinstance(v, int) and v < 0xFFFFFF and v > 0:
+            r, g, b = v >> 16, (v >> 8) | 0xFF, v & 0xFF
+            c = ((r & 0b11111000) << 8) | ((g & 0x11111100) << 3) | (b >> 3)
+            return [c >> 8, c & 0xff]
+        raise NameError
+
+
+class SPI_Screen_commander(_basic_commander):
+    _color_map = {
+        str: {
+            'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'red': [0xF8, 0x00],
+            'green': [0x07, 0xE0], 'cyan': [0x07, 0xFF], 'pink': [0xF8, 0x1F],
+            'white': [0xFF, 0xFF], 'yellow': [0xFF, 0xE0]},
+        int: _convert_24bit_to_565()}
+    _singleton = True
+    def __init__(self, spi_device, width=None, height=None):
+        if SPI_Screen_commander._singleton == False:
+            raise RuntimeError('There is already one SPI Screen Commander.')
+        self._ili = ILI9341_API(spi_device, width, height)
         self._name = '[SPI screen commander] '
-        self.write = self.send
-
-    def setfont(self, filename):
-        self.ili9341.setfont(filename)
-
-    def getsize(self, s):
-        return self.ili9341.font.getsize(s)
-
-    def setsize(self, size):
-        self.ili9341.setsize(size)
+        self.width, self.height = width, height
+        self._command_dict = {}  # this is a fake commander so leave it empty
+        SPI_Screen_commander._singleton = False
+        self.setfont = self._ili.setfont
+        self.setsize = self._ili.setsize
+        self.getsize = self._ili.font.getsize
+        self.close = self._ili.close
 
     def start(self):
-        self.ili9341.begin()
+        self._ili.start()
+        self._ili.set_rotation(3)
+        self.width, self.height = self._ili.width, self._ili.height
 
-    def send(self, key, *args, **kwargs):
-        if hasattr(self.ili9341, 'draw_' + key):
-            getattr(self.ili9341, 'draw_' + key)(*args, **kwargs)
-
-    def close(self):
-        self.ili9341.clear()
-        self.ili9341.reset()
+    def send(self, key, *a, **k):
+        '''
+        Never inherit API class, just use it. Because funcitons with same names
+        may conflict with each other!
+        '''
+        if 'c' in k:
+            assert type(k['c']) in self._color_map, 'c only can be str or int'
+            try:
+                k['c'] = self._color_map[type(k['c'])][k['c']]
+            except NameError:
+                raise ValueError('Unsupported color: {}'.format(k['c']))
+        if hasattr(self._ili, 'draw_' + key):
+            getattr(self._ili, 'draw_' + key)(*a, **k)
+        elif hasattr(self._ili, key):
+            getattr(self._ili, key)(*a, **k)
+        else:
+            print(self._name + 'No such key `{}`!'.format(key))
 
 
 class _testReader(unittest.TestCase):

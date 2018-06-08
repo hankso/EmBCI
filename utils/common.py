@@ -21,6 +21,8 @@ from serial.tools.list_ports import comports
 import numpy as np
 import scipy
 
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+
 # In python3 reduce need to be imported while python2 not
 if sys.version_info.major == 3:
     from functools import reduce

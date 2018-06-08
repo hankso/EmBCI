@@ -3,6 +3,10 @@
 '''
 Created on Wed May 23 02:16:40 2018
 Modified ILI9341 python api based on Tony DiCola's Adafruit ILI9341 library
+
+I have to confirm that some code is indeed redundant after modification,
+but it's fast enough: calling functions and passing params consume time!
+
 @author Tony DiCola  @author: hank
 '''
 # built-ins
@@ -68,14 +72,14 @@ ILI9341_GMCTRP1     = 0xE0
 ILI9341_GMCTRN1     = 0xE1
 ILI9341_PWCTR6      = 0xFC
 # colors
-ILI9341_BLACK       = 0x0000
-ILI9341_BLUE        = 0x001F
-ILI9341_RED         = 0xF800
-ILI9341_GREEN       = 0x07E0
-ILI9341_CYAN        = 0x07FF
-ILI9341_MAGENTA     = 0xF81F
-ILI9341_YELLOW      = 0xFFE0
-ILI9341_WHITE       = 0xFFFF
+ILI9341_BLACK       = [0x00, 0x00]
+ILI9341_BLUE        = [0x00, 0x1F]
+ILI9341_RED         = [0xF8, 0x00]
+ILI9341_GREEN       = [0x07, 0xE0]
+ILI9341_CYAN        = [0x07, 0xFF]
+ILI9341_MAGENTA     = [0xF8, 0x1F]
+ILI9341_YELLOW      = [0xFF, 0xE0]
+ILI9341_WHITE       = [0xFF, 0xFF]
 # rotation definition
 ILI9341_MADCTL_MY   = 0x80
 ILI9341_MADCTL_MX   = 0x40
@@ -86,25 +90,24 @@ ILI9341_MADCTL_BGR  = 0x08
 ILI9341_MADCTL_MH   = 0x04
 
 
-def color565(r, g, b):
-    '''
-    Convert red, green, blue components to a 16-bit 565 RGB value.
-    Components should be values 0 to 255.
-    '''
-    c = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+def c_RGB_to_565(r, g, b):
+    '''input r, g, b and output [chigh, clow]'''
+    c = ((r & 0b11111000) << 8) | ((g & 0x11111100) << 3) | (b >> 3)
     return [c >> 8, c & 0xff]
 
-def color_rgb(color):
-    '''
-    Convert 565 color format to rgb - return tuple
-    '''
-    r = (color >> 8) & 0xf8
-    g = ((color >> 5) & 0x3f) << 2
-    b = (color & 0x1f) << 3
-    return (r, g, b)
+def c_24bit_to_565(v):
+    '''input v between 0x000000 - 0xffffff and output [chigh, clow]'''
+    return c_RGB_to_565(v >> 16, v >> 8 | 0xff, v & 0xff)
+
+def c_565_to_24bit(c):
+    '''input [chigh, clow] and output v between 0x000000 - 0xffffff'''
+    r = c[0] & 0b11111000
+    g = (c[0] & 0b00000111) << 5 | (c[1] & 0b11100000) >> 3
+    b = (c[1] & 0x11111) << 3
+    return r << 16 | g << 8 | b
 
 class ILI9341_API:
-    def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=WIDTH, height=HEIGHT):
+    def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
         '''
         Create an instance of the display using SPI communication.  Must
         provide the GPIO pin number for the D/C pin and the SPI driver.  Can
@@ -122,8 +125,9 @@ class ILI9341_API:
         self._spi.mode = 0
         self._spi.max_speed_hz = 25000000
 
-        self.width = width
-        self.height = height
+        self.width = width or WIDTH
+        self.height = height or HEIGHT
+        self.fb = np.zeros((height, width, 2), np.uint8)  # framebuffer
         self.font = None
         self.size = 15
 
@@ -151,12 +155,29 @@ class ILI9341_API:
         '''
         Write an array of bytes to the display as display data.
         '''
-        self._dc.value = 1
-        if len(data) < chunk:
-            self._spi.writebytes(data)
-        else:
-            for start in range(0, len(data), chunk):
-                self._spi.writebytes(data[start:min(start + chunk, len(data))])
+        l = len(data)
+        if l:
+            self._dc.value = 1
+            for s in range(0, l, chunk):
+                self._spi.xfer2(data[s:min(s + chunk, l)])
+
+    def _set_window(self, x1, y1, x2, y2):
+        '''
+        Set the pixel address window for proceeding drawing commands. x1 and
+        x2 should define the minimum and maximum x pixel bounds.  y1 and y2
+        should define the minimum and maximum y pixel bound.  If no parameters
+        are specified the default will be to update the entire display from 0,0
+        to 239, 319.
+        '''
+        self._command(0x2A); self._data([x1 >> 8, x1, x2 >> 8, x2])
+        self._command(0x2B); self._data([y1 >> 8, y1, y2 >> 8, y2])
+        self._command(0x2C)        # write to RAM
+
+    def flush(self, x1, y1, x2, y2):
+        '''write data in framebuffer to screen'''
+        self._set_window(x1, y1, x2, y2)
+        # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1))  # used time: 621ns
+        self._data(self.fb[y1:y2+1, x1:x2+1].flatten())      # used time: 407ns
 
     def reset(self):
         self._rst.value = 1
@@ -166,10 +187,7 @@ class ILI9341_API:
         self._rst.value = 1
         time.sleep(0.15)
 
-    def clear(self, *args, **kwargs):
-        self.draw_rectf(0, 0, self.width - 1, self.height - 1, ILI9341_BLACK)
-
-    def begin(self):
+    def start(self, *a, **k):
         '''
         Initialize the display.  Should be called once before other calls that
         interact with the display are called.
@@ -205,36 +223,20 @@ class ILI9341_API:
         time.sleep(0.12)
         self._command(0x29)    # Display on
         time.sleep(0.2)
-        self.set_rotation(3)
         self.clear()
 
-    def _set_window(self, x1=0, y1=0, x2=None, y2=None):
-        '''
-        Set the pixel address window for proceeding drawing commands. x1 and
-        x2 should define the minimum and maximum x pixel bounds.  y1 and y2
-        should define the minimum and maximum y pixel bound.  If no parameters
-        are specified the default will be to update the entire display from 0,0
-        to 239,319.
-        '''
-        if x2 is None:
-            x2 = self.width-1
-        if y2 is None:
-            y2 = self.height-1
-        self._command(0x2A); self._data([x1 >> 8, x1, x2 >> 8, x2])
-        self._command(0x2B); self._data([y1 >> 8, y1, y2 >> 8, y2])
-        self._command(0x2C)        # write to RAM
+    def close(self, *a, **k):
+        self.reset()
+        self._dc.export = False
+        self._rst.export = False
+        self._spi.close()
 
-    def _fill(self, c, n):
-        '''
-        fill `n` continous pixels with color `c`
-        '''
-        self._data(color565(c >> 16, (c >> 8) & 0xff, c & 0xff) * n)
-
-    def draw_point(self, x, y, c):
+    def draw_point(self, x, y, c, *a, **k):
+        self.fb[y, x] = c
         self._set_window(x, y, x, y)
-        self._fill(c, 1)
+        self._data(c)
 
-    def draw_line(self, x1, y1, x2, y2, c):
+    def draw_line(self, x1, y1, x2, y2, c, *a, **k):
         # draw vertical or horizontal line
         if (x1 == x2) or (y1 == y2):
             self.draw_rectf(x1, y1, x2, y2, c)
@@ -244,119 +246,155 @@ class ILI9341_API:
             k, b = np.polyfit([x1, x2], [y1, y2], 1)
             if abs(y2 - y1) > abs(x2 - x1):
                 # use y as index to get smoother line
-                t = np.arange(min(y1, y2), max(y1, y2))
-                t = np.round(np.stack([(t - b)/k, t], -1)).astype(np.int)
+                _y = np.arange(min(y1, y2), max(y1, y2)).astype(np.uint16)
+                _x = np.round((_y - b)/k).astype(np.uint16)
             else:
                 # use x as index to get smoother line
-                t = np.arange(min(x1, x2), max(x1, x2))
-                t = np.round(np.stack([t, k*t + b], -1)).astype(np.int)
-            for x, y in t:
-                self.draw_point(x, y, c)
+                _x = np.arange(min(x1, x2), max(x1, x2)).astype(np.uint16)
+                _y = np.round(k*_x + b).astype(np.uint16)
+            self.fb[_y, _x] = c
+            self.flush(_x.min(), _y.min(), _x.max(), _y.max())
 
-    def draw_rect(self, x1, y1, x2, y2, c):
-        # draw top line
-        self.draw_rectf(x1, y1, x2, y1, c)
-        # draw bottom line
-        self.draw_rectf(x1, y2, x2, y2, c)
-        # draw left line
-        self.draw_rectf(x1, y1, x1, y2, c)
-        # draw right line
-        self.draw_rectf(x2, y1, x2, y2, c)
+    def draw_rect(self, x1, y1, x2, y2, c, *a, **k):
+        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+        self.fb[y1, x1:x2] = self.fb[y2, x1+1:x2+1] = c
+        self.fb[y1+1:y2+1, x1] = self.fb[y1:y2, x2] = c
+        if max((x2 - x1), (y2 - y1)) > 45:  # 45*45*2 = 4050 bytes < 4096 chunk
+            self.flush(x1, y1, x2 - 1, y1)  # draw top line
+            self.flush(x1 + 1, y2, x2, y2)  # draw bottom line
+            self.flush(x1, y1 + 1, x1, y2)  # draw left line
+            self.flush(x2, y1, x2, y2 - 1)  # draw right line
+        else:
+            self.flush(x1, y1, x2, y2)
 
-    def draw_rectf(self, x1, y1, x2, y2, c):
-        x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        self._set_window(x1, y1, x2, y2)
-        self._fill(c, (x2 - x1 + 1) * (y2 - y1 + 1))
+    def draw_rectf(self, x1, y1, x2, y2, c, *a, **k):
+        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+        self.fb[y1:y2+1, x1:x2+1] = c
+        self.flush(x1, y1, x2, y2)
 
-    def _draw_arc(self, x, y, r, c, s=0, e=360, step=1, f=False):
+    def draw_circle(self, x, y, r, c, s=0, e=360, step=0.5, *a, **k):
         '''
-        x, y: center of arc
+        x, y: center of circle
         r: radius
         c: color
-        s: start degree, default 0
-        e: end degree, default 360
-        step: as step become higher, smooth level of arc grow
-        f: fill or not, default False
+        s, e: start and end degree between [0, 360], default s=0, e=360
+        step: this value smaller, the smooth level of arc higher
         '''
-        d = np.arange(s, e, step) * np.pi / 180
-        d = np.round(r * np.stack([np.sin(d), np.cos(d)], -1))
-        d = d.astype(np.int).tolist()
-        if f:
-            for i, p in enumerate(d):
-                if p not in d[:i]:
-                    self.draw_line(x, y, x + p[0], y + p[1], c)
-        else:
-            for i, p in enumerate(d):
-                if p not in d[:i]:
-                    self.draw_point(x + p[0], y + p[1], c)
+        d = np.arange(s, e, step) * np.pi / 180        # degree to rad
+        _x, _y = x + r * np.cos(d), y + r * np.sin(d)  # rad to pos(float)
+        _x, _y = np.round([_x, _y]).astype(np.uint16)  # pos to index(int)
+        d = np.unique(_x << 16 | _y)                   # remove repeat index
+        _x, _y = d >> 16, d & 0xffff                   # recover index data
+        self.fb[_y, _x] = c
+        self.flush(_x.min(), _y.min(), _x.max(), _y.max())
 
-    def draw_circle(self, x, y, r, c):
-        if r > 50:
-            self._draw_arc(x, y, r, c, f=True)
-        else:
-            self._draw_arc(x, y, r, c)
-
-    def draw_circlef(self, x, y, r, c):
+    def draw_circlef(self, x, y, r, c, *a, **k):
         '''
-        do not use self._draw_arc(f=True) to draw circlef, it's too slow
+        do not use self.draw_circle(f=True) to draw circlef, it's too slow
+        20180608: f=True has been deprecated
         '''
-        for _x in range(x - r, x + r + 1):
-            _y = int(round((r**2 - (x - _x)**2)**0.5))
-            self.draw_rectf(_x, y - _y, _x, y + _y, c)
+        _y = np.arange(y - r, y + r + 1).astype(np.uint16)
+        _x = np.round(np.sqrt(r**2 - (_y - y)**2)).astype(np.uint16)
+        for m_x, m_y in np.stack([_x, _y], -1):
+            self.fb[m_y, (x - m_x):(x + m_x)] = c
+        self.flush(x - r, y - r, x + r, y + r)
 
-    def draw_round(self, x, y, r, m, c):
+    def draw_round(self, x, y, r, c, m, *a, **k):
         '''
-        param `m` means corner num, see below graph
-            0      1
-             +----+
-             |    |
-             +----+
-            2      3
+        x, y: center of round corner
+        r: radius
+        c: color, 2-bytes list of rgb565, such as `blue`: [0x00, 0x1F]
+        m: corner num, see below graph, m = 0, 1, 2, 3
+        +--------------------------------+
+        |(0, 0)                          |
+        |                                |
+        |       m2           m3          |
+        |         +---------+            |
+        |         |I am rect|            |
+        |         +---------+            |
+        |       m1           m0          |
+        |                                |
+        |                      (319, 239)|
+        +--------------------------------+
         '''
-        self._draw_arc(x, y, r, c, s=m*90, e=(m + 1)*90)
+        self.draw_circle(x, y, r, c, s=m*90, e=(m + 1)*90)
 
-    def draw_roundf(self, x, y, r, m, c):
-        self._draw_arc(x, y, r, c, s=m*90, e=(m + 1)*90, f=True)
+    def draw_roundf(self, x, y, r, c, m, *a, **k):
+        '''
+        x, y: center of round corner
+        r: radius
+        c: color, 2-bytes list of rgb565, such as `blue`: [0x00, 0x1F]
+        m: corner num, see below graph, m = 0, 1, 2, 3
+        +--------------------------------+
+        |(0, 0)                          |
+        |                                |
+        |       m2           m3          |
+        |         +---------+            |
+        |         |I am rect|            |
+        |         +---------+            |
+        |       m1           m0          |
+        |                                |
+        |                      (319, 239)|
+        +--------------------------------+
+        '''
+        d = np.arange(m*90, (m + 1)*90, 1) * np.pi / 180
+        d = r * np.stack([np.cos(d), np.sin(d)], -1)
+        d = np.round([x, y] + d).astype(np.uint16)
+        d = np.unique(d[:, 0] << 16 | d[:, 1])
+        # d = zip(d >> 16, d & 0xffff)           # used time: 8.36us
+        d = np.stack([d >> 16, d & 0xffff], -1)  # used time: 4.12us
+        if m in [0, 3]:                          # fill from x to m_x
+            for m_x, m_y in d:
+                self.fb[m_y, x:m_x] = c
+        elif m in [1, 2]:                        # fill from m_x to x
+            for m_x, m_y in d:
+                self.fb[m_y, m_x:x] = c
+        self.flush(d[:, 0].min(), d[:, 1].min(), d[:, 0].max(), d[:, 1].max())
 
-    def draw_round_rect(self, x1, y1, x2, y2, r, c):
-        x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
-        self.draw_round(x1 + r, y1 + r, r, 2, c)  #  left - top
-        self.draw_round(x2 - r, y1 + r, r, 1, c)  # right - top
-        self.draw_round(x1 + r, y2 - r, r, 3, c)  #  left - bottom
+    def draw_round_rect(self, x1, y1, x2, y2, r, c, *a, **k):
+        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+        # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
         self.draw_round(x2 - r, y2 - r, r, 0, c)  # right - bottom
+        self.draw_round(x1 + r, y2 - r, r, 1, c)  #  left - bottom
+        self.draw_round(x1 + r, y1 + r, r, 2, c)  #  left - top
+        self.draw_round(x2 - r, y1 + r, r, 3, c)  # right - top
         self.draw_rectf(x1 + r, y1, x2 - r, y1, c)
         self.draw_rectf(x1 + r, y2, x2 - r, y2, c)
         self.draw_rectf(x1, y1 + r, x1, y2 - r, c)
         self.draw_rectf(x2, y1 + r, x2, y2 - r, c)
 
-    def draw_round_rectf(self, x1, y1, x2, y2, r, c):
-        x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
-        self.draw_roundf(x1 + r, y1 + r, r, 2, c)
-        self.draw_roundf(x2 - r, y1 + r, r, 1, c)
-        self.draw_roundf(x1 + r, y2 - r, r, 3, c)
+    def draw_round_rectf(self, x1, y1, x2, y2, r, c, *a, **k):
+        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+        # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
         self.draw_roundf(x2 - r, y2 - r, r, 0, c)
+        self.draw_roundf(x1 + r, y2 - r, r, 1, c)
+        self.draw_roundf(x1 + r, y1 + r, r, 2, c)
+        self.draw_roundf(x2 - r, y1 + r, r, 3, c)
         self.draw_rectf(x1 + r, y1, x2 - r, y2, c)
         self.draw_rectf(x1, y1 + r, x1 + r, y2 - r, c)
         self.draw_rectf(x2 - r, y1 + r, x2, y2 - r, c)
 
-    def draw_img(self, x, y, img):
-        '''
-        Draw the contents of buff on the screen
-        '''
+    def draw_img(self, x, y, img, *a, **k):
+        '''draw img with shape of (height, width, depth) at (x, y)'''
         x1, y1 = x, y
         x2 = max(min(x1 + img.shape[1], self.width - 1), x1)
         y2 = max(min(y1 + img.shape[0], self.height - 1), y1)
         # crop img to limited size and convert to two-bytes(5-6-5) color
-        data = img[:y2-y1, :x2-x1].reshape(-1, 3).astype(np.uint16)
-        data = np.stack(color565(data[:, 0], data[:, 1], data[:, 2]), axis=-1)
-        self._set_window(x1, y1, x2 - 1, y2 - 1)
-        self._data(data.reshape(-1).tolist())
+        d = img[:y2-y1+1, :x2-x1+1].copy().astype(np.uint16)
+        d = np.stack(c_RGB_to_565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
+        self.fb[y1:y2+1, x1:x+1] = d
+        self.flush(x1, y1, x2, y2)
 
-    def draw_text(self, x, y, s, c, size=None):
-        if size is not None and self.size != size:
-            self.setsize(size)
+    def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
+        try:
+            if size is not None and self.size != size:
+                self.setsize(size)
+            if font is not None and self.font.path != font:
+                self.setfont(font, self.size)
+        except:
+            print(('[ILI9341_API] error occur when setting font `{}` and size '
+                   '`{}`').format(font, self.size))
+            return
         w, h = self.font.getsize(s)
         img = Image.new('RGB', (w, h))
         ImageDraw.Draw(img).text((0, 0), s, c, self.font)
@@ -377,20 +415,26 @@ class ILI9341_API:
                         | ILI9341_MADCTL_MV \
                         | ILI9341_MADCTL_BGR])
 
+    def clear(self, c=[0, 0], *a, **k):
+        self.draw_rectf(0, 0, self.width - 1, self.height - 1, c)
+
+
+
 if __name__ == '__main__':
     ili = ILI9341_API((0, 1))
     ili.begin()
     ili.setfont('./yahei_mono.ttf')
     for i in range(240):
-        ili.draw_point(i, i, int(i/240.0*0xffaa00))
-    ili.draw_line(240, 0, 0, 240, 0xffffff)
-    ili.draw_rect(10, 20, 20, 30, 0x00ff00)
-    ili.draw_rectf(10, 35, 20, 45, 0x0000ff)
-    ili.draw_circle(30, 50, 10, 0xaa00aa)
-    ili.draw_circlef(30, 75, 14, 0x00aa00)
-    ili.draw_round(100, 100, 15, 0, 0xff0000)
-    ili.draw_round(100, 100, 15, 1, 0x00ff00)
-    ili.draw_round(100, 100, 15, 2, 0x0000ff)
-    ili.draw_round(100, 100, 15, 3, 0xaaffaa)
-    ili.draw_round_rectf(150, 120, 300, 220, 7, 0x81d8d2) # tiffany blue
-    ili.draw_text(200, 200, 'cheitech', np.random.randint(65535))
+        ili.draw_point(i, i, [int(i/240.0*0xff)]*2)
+    ili.draw_line(240, 0, 0, 240, ILI9341_WHITE)
+    ili.draw_rect(10, 20, 20, 30, ILI9341_GREEN)
+    ili.draw_rectf(10, 35, 20, 45, ILI9341_BLUE)
+    ili.draw_circle(30, 50, 10, ILI9341_CYAN)
+    ili.draw_circlef(30, 75, 14, ILI9341_YELLOW)
+    ili.draw_round(100, 100, 15, 0, ILI9341_RED)
+    ili.draw_round(100, 100, 15, 1, ILI9341_MAGENTA)
+    ili.draw_round(100, 100, 15, 2, ILI9341_GREEN)
+    ili.draw_round(100, 100, 15, 3, ILI9341_WHITE)
+    ili.draw_round_rectf(150, 120, 300, 220, 7, [0x88, 0x1a]) # tiffany blue
+    c = np.random.randint(0xffffff)
+    ili.draw_text(200, 200, 'cheitech', c_24bit_to_565(c))

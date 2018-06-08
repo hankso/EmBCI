@@ -26,9 +26,12 @@ from PIL import Image
 
 # from ../src
 from preprocessing import Processer
-from common import time_stamp, check_input, Signal_Info
+from common import time_stamp, check_input
 from IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from IO import SPI_Screen_commander
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+
 
 class Plotter():
     def __init__(self, window_size, where_to_plot=None, n_channel=1):
@@ -195,6 +198,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.touch_sensibility = 4
 
     def pre_draw_check(name):
+        '''This is a decorator, do not use it directly'''
         def func_collector(func):
             def param_collector(self, *a, **k):  # this get params from user
                 if name in ['point', 'text', 'img', 'button']:
@@ -203,15 +207,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 elif name in ['circle', 'round']:
                     a[0] = max(min(a[0], self.width - 2), 1)
                     a[1] = max(min(a[1], self.height - 2), 1)
-                    r, d = self.width - 1 - a[0], self.height - 1 - a[1]
-                    a[2] = max(min(a[0], a[1], r, d), 1)
-                elif name in ['line', 'rect', 'rrect']:
-                    a[0], a[1] = min(a[0], a[1]), max(a[0], a[1])
-                    a[2], a[3] = min(a[2], a[3]), max(a[2], a[3])
-                    a[1] = max(min(a[1], self.width - 1), 0)
-                    a[0] = max(min(a[0], a[1]), 0)
+                    right, down = self.width - 1 - a[0], self.height - 1 - a[1]
+                    a[2] = max(min(a[0], a[1], right, down), 0)
+                elif name in ['rect', 'rrect']:
+                    a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
+                    a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
+                    a[0] = max(min(a[0], self.width - 1), 0)
+                    a[1] = max(min(a[1], self.height - 1), 0)
+                    a[2] = max(min(a[2], self.width - 1), a[0])
+                    a[3] = max(min(a[3], self.height - 1), a[1])
+                elif name in ['line']:
+                    a[0] = max(min(a[0], self.width - 1), 0)
+                    a[1] = max(min(a[1], self.height - 1), 0)
+                    a[2] = max(min(a[2], self.width - 1), 0)
                     a[3] = max(min(a[3], self.height - 1), 0)
-                    a[2] = max(min(a[2], a[3]), 0)
                 # pre-processing
                 if 'fill' in k and k['fill'] is True:
                     name += 'f'
@@ -282,10 +291,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     @pre_draw_check('point')
     def draw_point(self, x, y, c=None, **kwargs):
-        num = 0 if not len(self.widget['point']) \
-                else (self.widget['point'][-1]['id'] + 1)
         self.widget['point'].append({
-            'x': x, 'y': y, 'id': num,
+            'x': x, 'y': y, 'id': kwargs['num'],
             'c': self._element_color['point'] if c is None else c})
 
     @pre_draw_check('line')
@@ -603,14 +610,27 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             start, send, write, close, setfont, setsize, getsize
             # it will overload conflict functions from Serial_Screen_commander
     '''
-    def __init__(self, spi_device=(0, 1), width=320, height=240, *a, **k):
+    def __init__(self, spi_device=(0, 1), *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
-        self.width, self.height = width, height
         self.start()
-        self.setfont('./files/spi_screen/yahei_mono.ttf')
+        self.setfont(__dir__ + '/../files/spi_screen/yahei_mono.ttf')
         self.write_lock = threading.Lock()
         self._touch_started = False
+
+    def close(self):
+        super(SPI_Screen_GUI, self).close()
+        if self._touch_started:
+            # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
+            self._flag_close.set()
+            try:
+                self._t.write('\xaa\xaa\xaa\xaa') # send close signal
+                time.sleep(1)
+            except:
+                pass
+            finally:
+                self._t.close()
+
 
 
 if __name__ == '__main__':

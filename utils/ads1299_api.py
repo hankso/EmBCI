@@ -374,7 +374,7 @@ class ESP32_API(ADS1299_API):
     def read(self, num=50, *args, **kwargs):
         assert self._started
         self._epoll.poll()
-        data = sruct.pack('1600B', self.spi.xfer2([0x00] * 4 * 8 * num))
+        data = struct.pack('1600B', self.spi.xfer2([0x00] * 4 * 8 * num))
         return np.frombuffer(data, np.flost32).reshape(num, 8)
 
     def write(self, byte):
