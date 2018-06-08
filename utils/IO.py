@@ -1073,7 +1073,7 @@ class _convert_24bit_to_565():
             r, g, b = v >> 16, (v >> 8) | 0xFF, v & 0xFF
             c = ((r & 0b11111000) << 8) | ((g & 0x11111100) << 3) | (b >> 3)
             return [c >> 8, c & 0xff]
-        raise NameError
+        raise KeyError
 
 
 class SPI_Screen_commander(_basic_commander):
@@ -1087,7 +1087,8 @@ class SPI_Screen_commander(_basic_commander):
     def __init__(self, spi_device, width=None, height=None):
         if SPI_Screen_commander._singleton == False:
             raise RuntimeError('There is already one SPI Screen Commander.')
-        self._ili = ILI9341_API(spi_device, width, height)
+        self._ili = ILI9341_API(spi_device, width=width, height=height)
+        self._ili.setfont(__dir__ + '/../files/spi_screen/yahei_mono.ttf')
         self._name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
@@ -1099,7 +1100,6 @@ class SPI_Screen_commander(_basic_commander):
 
     def start(self):
         self._ili.start()
-        self._ili.set_rotation(3)
         self.width, self.height = self._ili.width, self._ili.height
 
     def send(self, key, *a, **k):
@@ -1111,7 +1111,7 @@ class SPI_Screen_commander(_basic_commander):
             assert type(k['c']) in self._color_map, 'c only can be str or int'
             try:
                 k['c'] = self._color_map[type(k['c'])][k['c']]
-            except NameError:
+            except KeyError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
         if hasattr(self._ili, 'draw_' + key):
             getattr(self._ili, 'draw_' + key)(*a, **k)

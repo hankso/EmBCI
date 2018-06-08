@@ -7,7 +7,8 @@ Created on Thu Mar 22 08:26:16 2018
 """
 # built-in
 import time
-import sys, os; sys.path += ['../src']
+import sys; sys.path += ['../src']
+import os
 import threading
 import json
 import glob
@@ -181,6 +182,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.width, self.height = width, height
         self.write_lock = threading.Lock()
         self._touch_started = False
+        self.touch_sensibility = 4
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
@@ -195,12 +197,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._touch_thread.start()
         self._touch_started = True
         self._callback_threads = []
-        self.touch_sensibility = 4
 
-    def pre_draw_check(name):
-        '''This is a decorator, do not use it directly'''
-        def func_collector(func):
+    def _pre_draw_check(name):
+        '''This decorator can not be used directly'''
+        def func_collector(func):  # this get function to be executed
             def param_collector(self, *a, **k):  # this get params from user
+                '''
+                Attention!
+                You cannot modify variable `name` from `_pre_draw_check` inside
+                this function! It will warn that local variable `name` is not
+                defined yet. I still dont know why. So I use `static` to store
+                `name` temporarily.
+                # TODO: search this question
+                '''
+                a = list(a)
                 if name in ['point', 'text', 'img', 'button']:
                     a[0] = max(min(a[0], self.width - 1), 0)
                     a[1] = max(min(a[1], self.height - 1), 0)
@@ -222,11 +232,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     a[2] = max(min(a[2], self.width - 1), 0)
                     a[3] = max(min(a[3], self.height - 1), 0)
                 # pre-processing
-                if 'fill' in k and k['fill'] is True:
-                    name += 'f'
-                num = 0 if not len(self.widget[name]) \
-                        else (self.widget[name][-1]['id'] + 1)
-                k['name'] = name; k['num'] = num
+                static = name + 'f' if 'fill' in k and k['fill'] is True else ''
+                num = 0 if not len(self.widget[static]) \
+                        else (self.widget[static][-1]['id'] + 1)
+                k['name'] = static
+                k['num'] = num
                 # transfer params from user and name & num
                 # it will overload name=None and num=None(default)
                 # in conclusion:
@@ -239,7 +249,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             return param_collector
         return func_collector
 
-    @pre_draw_check('img')
+    @_pre_draw_check('img')
     def draw_img(self, x, y, img, **kwargs):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
@@ -254,7 +264,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'data': img, 'id': kwargs['num'], 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
-    @pre_draw_check('button')
+    @_pre_draw_check('button')
     def draw_button(self, x, y, s, size=16, cb=None,
                     ct=None, cr=None, ca=None, **kwargs):
         '''
@@ -289,44 +299,44 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'ca': self._element_color['press'] if ca is None else ca,
             'callback': self._default_callback if cb is None else cb})
 
-    @pre_draw_check('point')
+    @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **kwargs):
         self.widget['point'].append({
             'x': x, 'y': y, 'id': kwargs['num'],
             'c': self._element_color['point'] if c is None else c})
 
-    @pre_draw_check('line')
+    @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **kwargs):
         self.widget['line'].append({
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
             'c': self._element_color['line'] if c is None else c})
 
-    @pre_draw_check('rect')
+    @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **kwargs):
         self.widget[kwargs['name']].append({
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
             'c': self._element_color[kwargs['name']] if c is None else c})
 
-    @pre_draw_check('round')
+    @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **kwargs):
         self.widget[kwargs['name']].append({
             'x': x, 'y': y, 'r': r, 'm': m, 'id': kwargs['num'],
             'c': self._element_color[kwargs['name']] if c is None else c})
 
-    @pre_draw_check('round_rect')
+    @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **kwargs):
         self.widget[kwargs['name']].append({
             'x1': x1, 'y1': y1, 'x2': x2, 'y': y2, 'r': r, 'id': kwargs['num'],
             'c': self._element_color[kwargs['name']] if c is None else c})
 
-    @pre_draw_check('circle')
+    @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, fill=False, **kwargs):
         self.widget[kwargs['name']].append({
             'x': x, 'y': y, 'r': r, 'x1': x - r, 'y1': y - r,
             'x2': x + r, 'y2': y + r, 'id': kwargs['num'],
             'c': self._element_color[kwargs['name']] if c is None else c})
 
-    @pre_draw_check('text')
+    @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, **kwargs):
         s = s.decode('utf8')
         # en_zh = [ord(char) > 255 for char in s]
@@ -439,7 +449,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
                   % (bt['id'], bt['s'], x, y, time.time()))
 
-    def render(self, name=None, num=None):
+    def render(self, name=None, num=None, *a, **k):
         with self.write_lock:
             try:
                 if None not in [name, num]: # render an element
@@ -614,9 +624,9 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         super(SPI_Screen_GUI, self).__init__(spi_device)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
         self.start()
-        self.setfont(__dir__ + '/../files/spi_screen/yahei_mono.ttf')
         self.write_lock = threading.Lock()
         self._touch_started = False
+        self.touch_sensibility = 4
 
     def close(self):
         super(SPI_Screen_GUI, self).close()

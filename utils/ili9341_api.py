@@ -10,6 +10,7 @@ but it's fast enough: calling functions and passing params consume time!
 @author Tony DiCola  @author: hank
 '''
 # built-ins
+import os
 import time
 
 # pip install spidev, pillow, numpy
@@ -19,6 +20,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 # from ./
 from gpio4 import SysfsGPIO
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
 
 # ILI9341 Pin mapping
 PIN_DC              = 2
@@ -127,7 +130,7 @@ class ILI9341_API:
 
         self.width = width or WIDTH
         self.height = height or HEIGHT
-        self.fb = np.zeros((height, width, 2), np.uint8)  # framebuffer
+        self.fb = np.zeros((self.height, self.width, 2), np.uint8) # framebuffer
         self.font = None
         self.size = 15
 
@@ -155,11 +158,11 @@ class ILI9341_API:
         '''
         Write an array of bytes to the display as display data.
         '''
-        l = len(data)
-        if l:
+        data = map(int, data)
+        if len(data):
             self._dc.value = 1
-            for s in range(0, l, chunk):
-                self._spi.xfer2(data[s:min(s + chunk, l)])
+            for s in range(0, len(data), chunk):
+                self._spi.xfer2(data[s:min(s + chunk, len(data))])
 
     def _set_window(self, x1, y1, x2, y2):
         '''
@@ -176,8 +179,8 @@ class ILI9341_API:
     def flush(self, x1, y1, x2, y2):
         '''write data in framebuffer to screen'''
         self._set_window(x1, y1, x2, y2)
-        # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1))  # used time: 621ns
-        self._data(self.fb[y1:y2+1, x1:x2+1].flatten())      # used time: 407ns
+        # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())  # used time: 621ns
+        self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())      # used time: 407ns
 
     def reset(self):
         self._rst.value = 1
@@ -223,6 +226,7 @@ class ILI9341_API:
         time.sleep(0.12)
         self._command(0x29)    # Display on
         time.sleep(0.2)
+        self.set_rotation(3)
         self.clear()
 
     def close(self, *a, **k):
@@ -282,7 +286,7 @@ class ILI9341_API:
         '''
         d = np.arange(s, e, step) * np.pi / 180        # degree to rad
         _x, _y = x + r * np.cos(d), y + r * np.sin(d)  # rad to pos(float)
-        _x, _y = np.round([_x, _y]).astype(np.uint16)  # pos to index(int)
+        _x, _y = np.round([_x, _y]).astype(np.uint32)  # pos to index(int)
         d = np.unique(_x << 16 | _y)                   # remove repeat index
         _x, _y = d >> 16, d & 0xffff                   # recover index data
         self.fb[_y, _x] = c
@@ -339,7 +343,7 @@ class ILI9341_API:
         '''
         d = np.arange(m*90, (m + 1)*90, 1) * np.pi / 180
         d = r * np.stack([np.cos(d), np.sin(d)], -1)
-        d = np.round([x, y] + d).astype(np.uint16)
+        d = np.round([x, y] + d).astype(np.uint32)
         d = np.unique(d[:, 0] << 16 | d[:, 1])
         # d = zip(d >> 16, d & 0xffff)           # used time: 8.36us
         d = np.stack([d >> 16, d & 0xffff], -1)  # used time: 4.12us
@@ -354,10 +358,10 @@ class ILI9341_API:
     def draw_round_rect(self, x1, y1, x2, y2, r, c, *a, **k):
         # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
         # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
-        self.draw_round(x2 - r, y2 - r, r, 0, c)  # right - bottom
-        self.draw_round(x1 + r, y2 - r, r, 1, c)  #  left - bottom
-        self.draw_round(x1 + r, y1 + r, r, 2, c)  #  left - top
-        self.draw_round(x2 - r, y1 + r, r, 3, c)  # right - top
+        self.draw_round(x2 - r, y2 - r, r, c, 0)  # right - bottom
+        self.draw_round(x1 + r, y2 - r, r, c, 1)  #  left - bottom
+        self.draw_round(x1 + r, y1 + r, r, c, 2)  #  left - top
+        self.draw_round(x2 - r, y1 + r, r, c, 3)  # right - top
         self.draw_rectf(x1 + r, y1, x2 - r, y1, c)
         self.draw_rectf(x1 + r, y2, x2 - r, y2, c)
         self.draw_rectf(x1, y1 + r, x1, y2 - r, c)
@@ -366,10 +370,10 @@ class ILI9341_API:
     def draw_round_rectf(self, x1, y1, x2, y2, r, c, *a, **k):
         # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
         # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
-        self.draw_roundf(x2 - r, y2 - r, r, 0, c)
-        self.draw_roundf(x1 + r, y2 - r, r, 1, c)
-        self.draw_roundf(x1 + r, y1 + r, r, 2, c)
-        self.draw_roundf(x2 - r, y1 + r, r, 3, c)
+        self.draw_roundf(x2 - r, y2 - r, r, c, 0)
+        self.draw_roundf(x1 + r, y2 - r, r, c, 1)
+        self.draw_roundf(x1 + r, y1 + r, r, c, 2)
+        self.draw_roundf(x2 - r, y1 + r, r, c, 3)
         self.draw_rectf(x1 + r, y1, x2 - r, y2, c)
         self.draw_rectf(x1, y1 + r, x1 + r, y2 - r, c)
         self.draw_rectf(x2 - r, y1 + r, x2, y2 - r, c)
@@ -377,13 +381,14 @@ class ILI9341_API:
     def draw_img(self, x, y, img, *a, **k):
         '''draw img with shape of (height, width, depth) at (x, y)'''
         x1, y1 = x, y
-        x2 = max(min(x1 + img.shape[1], self.width - 1), x1)
-        y2 = max(min(y1 + img.shape[0], self.height - 1), y1)
+        x2 = max(min(x1 + img.shape[1], self.width), x1)
+        y2 = max(min(y1 + img.shape[0], self.height), y1)
         # crop img to limited size and convert to two-bytes(5-6-5) color
-        d = img[:y2-y1+1, :x2-x1+1].copy().astype(np.uint16)
+        d = img[:y2-y1, :x2-x1].copy().astype(np.uint16)
         d = np.stack(c_RGB_to_565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
-        self.fb[y1:y2+1, x1:x+1] = d
-        self.flush(x1, y1, x2, y2)
+        alpha = d != [0, 0]
+        self.fb[y1:y2, x1:x2][alpha] = d[alpha]
+        self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
         try:
@@ -397,7 +402,7 @@ class ILI9341_API:
             return
         w, h = self.font.getsize(s)
         img = Image.new('RGB', (w, h))
-        ImageDraw.Draw(img).text((0, 0), s, c, self.font)
+        ImageDraw.Draw(img).text((0, 0), s, c_565_to_24bit(c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
@@ -422,19 +427,19 @@ class ILI9341_API:
 
 if __name__ == '__main__':
     ili = ILI9341_API((0, 1))
-    ili.begin()
-    ili.setfont('./yahei_mono.ttf')
+    ili.start()
+    ili.setfont(__dir__ + '/../files/yahei_mono.ttf')
     for i in range(240):
         ili.draw_point(i, i, [int(i/240.0*0xff)]*2)
-    ili.draw_line(240, 0, 0, 240, ILI9341_WHITE)
+    ili.draw_line(239, 0, 0, 239, ILI9341_WHITE)
     ili.draw_rect(10, 20, 20, 30, ILI9341_GREEN)
     ili.draw_rectf(10, 35, 20, 45, ILI9341_BLUE)
     ili.draw_circle(30, 50, 10, ILI9341_CYAN)
     ili.draw_circlef(30, 75, 14, ILI9341_YELLOW)
-    ili.draw_round(100, 100, 15, 0, ILI9341_RED)
-    ili.draw_round(100, 100, 15, 1, ILI9341_MAGENTA)
-    ili.draw_round(100, 100, 15, 2, ILI9341_GREEN)
-    ili.draw_round(100, 100, 15, 3, ILI9341_WHITE)
+    ili.draw_round(100, 100, 15, ILI9341_RED, 0)
+    ili.draw_round(100, 100, 15, ILI9341_MAGENTA, 1)
+    ili.draw_round(100, 100, 15, ILI9341_GREEN, 2)
+    ili.draw_round(100, 100, 15, ILI9341_WHITE, 3)
     ili.draw_round_rectf(150, 120, 300, 220, 7, [0x88, 0x1a]) # tiffany blue
     c = np.random.randint(0xffffff)
     ili.draw_text(200, 200, 'cheitech', c_24bit_to_565(c))
