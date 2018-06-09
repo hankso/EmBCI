@@ -367,17 +367,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if name not in self.widget:
             if name is not None:
                 print('No candidates for this element `{}`'.format(name))
-            print('Choose one from ' + ' | '.join(self.widget.keys()))
-            return
-        if not len(self.widget[name]):
-            print('No %s elements now!' % name)
+            available = map(lambda key: str(key) if self.widget[key] else None,
+                            list(self.widget.keys()))
+            [available.remove(None) for i in range(available.count(None))]
+            if available:
+                print('Choose one from ' + ' | '.join(available))
+            else:
+                print('Empty widget bucket now. Nothing to remove!')
             return
         ids = [str(i['id']) for i in self.widget[name]]
+        if len(ids) == 0:
+            print('No %s elements now!' % name)
+            return
         if str(num) not in ids:
             if num is not None:
                 print('no candidates for this {}:`{}`'.format(name, num))
-            print('choose one from ' + ' | '.join(ids))
-            return
+            if len(ids) != 1:
+                print('choose one from ' + ' | '.join(ids))
+                return
+            num = ids[0]
         self.widget[name].pop(ids.index(str(num)))
         if render:
             self.render()
