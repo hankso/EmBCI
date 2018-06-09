@@ -218,8 +218,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     a[0] = max(min(a[0], self.width - 2), 1)
                     a[1] = max(min(a[1], self.height - 2), 1)
                     right, down = self.width - 1 - a[0], self.height - 1 - a[1]
-                    a[2] = max(min(a[0], a[1], right, down), 0)
-                elif name in ['rect', 'rrect']:
+                    a[2] = max(min(a[0], a[1], right, down, a[2]), 0)
+                elif name in ['rect', 'round_rect']:
                     a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
                     a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
                     a[0] = max(min(a[0], self.width - 1), 0)
@@ -232,7 +232,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     a[2] = max(min(a[2], self.width - 1), 0)
                     a[3] = max(min(a[3], self.height - 1), 0)
                 # pre-processing
-                static = name + 'f' if 'fill' in k and k['fill'] is True else ''
+                static = name + ('f' if ('fill' in k and k['fill']) else '')
                 num = 0 if not len(self.widget[static]) \
                         else (self.widget[static][-1]['id'] + 1)
                 k['name'] = static
@@ -250,23 +250,21 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         return func_collector
 
     @_pre_draw_check('img')
-    def draw_img(self, x, y, img, **kwargs):
+    def draw_img(self, x, y, img, **k):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
         if 'Serial' in self._name and len(img.shape) > 2:
             img = img[:, :, 0]
         if 'SPI' in self._name:
-            if len(img.shape) < 3:
+            if len(img.shape) == 2:
                 img = img[:, :, np.newaxis]
             if img.shape[-1] > 3:
                 img = img[:, :, :3]
-        self.widget['img'].append({
-            'data': img, 'id': kwargs['num'], 'x1': x, 'y1': y,
-            'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+        self.widget['img'].append({'data': img, 'id': k['num'],
+            'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
     @_pre_draw_check('button')
-    def draw_button(self, x, y, s, size=16, cb=None,
-                    ct=None, cr=None, ca=None, **kwargs):
+    def draw_button(self, x, y, s, size=16, cb=None, ct=None, cr=None, ca=None, **k):
         '''
         draw button on current frame
         params:
@@ -282,74 +280,84 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         # Py3 default use utf-8 coding, which is really really nice.
         s = s.decode('utf8')
         # English use 8 pixels and Chinese use 16 pixels(GBK encoding)
-        en_zh = [ord(char) > 255 for char in s]
         if 'Serial' in self._name:
-            s = s.encode('gbk')
+            en_zh = [ord(char) > 255 for char in s]
             w = en_zh.count(False)*8 + en_zh.count(True)*16
             h = 16
+            s = s.encode('gbk')
         elif 'SPI' in self._name:
             w, h = self.getsize(s)
         self.widget['button'].append({
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
-            'x': x, 'y': y, 's': s, 'id': kwargs['num'], 'size': size,
+            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size,
             'ct': self._element_color['text']  if ct is None else ct,
             'cr': self._element_color['rect']  if cr is None else cr,
             'ca': self._element_color['press'] if ca is None else ca,
             'callback': self._default_callback if cb is None else cb})
 
     @_pre_draw_check('point')
-    def draw_point(self, x, y, c=None, **kwargs):
+    def draw_point(self, x, y, c=None, **k):
         self.widget['point'].append({
-            'x': x, 'y': y, 'id': kwargs['num'],
+            'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y, 'id': k['num'],
             'c': self._element_color['point'] if c is None else c})
 
     @_pre_draw_check('line')
-    def draw_line(self, x1, y1, x2, y2, c=None, **kwargs):
+    def draw_line(self, x1, y1, x2, y2, c=None, **k):
         self.widget['line'].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num'],
             'c': self._element_color['line'] if c is None else c})
 
     @_pre_draw_check('rect')
-    def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **kwargs):
-        self.widget[kwargs['name']].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': kwargs['num'],
-            'c': self._element_color[kwargs['name']] if c is None else c})
+    def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
+        self.widget[k['name']].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num'],
+            'c': self._element_color[k['name']] if c is None else c})
 
     @_pre_draw_check('round')
-    def draw_round(self, x, y, r, m, c=None, fill=False, **kwargs):
-        self.widget[kwargs['name']].append({
-            'x': x, 'y': y, 'r': r, 'm': m, 'id': kwargs['num'],
-            'c': self._element_color[kwargs['name']] if c is None else c})
+    def draw_round(self, x, y, r, m, c=None, fill=False, **k):
+        if m == 0:
+            x1, y1, x2, y2 = x, y, x + r, y + r
+        elif m == 1:
+            x1, y1, x2, y2 = x - r, y, x, y + r
+        elif m == 2:
+            x1, y1, x2, y2 = x - r, y - r, x, y
+        elif m == 3:
+            x1, y1, x2, y2 = x, y - r, x + r, y
+        self.widget[k['name']].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+            'x': x, 'y': y, 'r': r, 'm': m, 'id': k['num'],
+            'c': self._element_color[k['name']] if c is None else c})
 
     @_pre_draw_check('round_rect')
-    def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **kwargs):
-        self.widget[kwargs['name']].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y': y2, 'r': r, 'id': kwargs['num'],
-            'c': self._element_color[kwargs['name']] if c is None else c})
+    def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
+        self.widget[k['name']].append({
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 'id': k['num'],
+            'c': self._element_color[k['name']] if c is None else c})
 
     @_pre_draw_check('circle')
-    def draw_circle(self, x, y, r, c=None, fill=False, **kwargs):
-        self.widget[kwargs['name']].append({
-            'x': x, 'y': y, 'r': r, 'x1': x - r, 'y1': y - r,
-            'x2': x + r, 'y2': y + r, 'id': kwargs['num'],
-            'c': self._element_color[kwargs['name']] if c is None else c})
+    def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
+        self.widget[k['name']].append({
+            'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
+            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 'id': k['num'],
+            'c': self._element_color[k['name']] if c is None else c})
 
     @_pre_draw_check('text')
-    def draw_text(self, x, y, s, c=None, size=16, **kwargs):
+    def draw_text(self, x, y, s, c=None, size=16, **k):
         s = s.decode('utf8')
-        # en_zh = [ord(char) > 255 for char in s]
-        # if 'Serial' in self._name:
-        #     s = s.encode('gbk')
-        #     w = en_zh.count(False)*8 + en_zh.count(True)*16
-        #     h = 16
-        # elif 'SPI' in self._name:
-        #     self.setsize(size)
-        #     w, h = self.getsize(s)
+        if 'Serial' in self._name:
+            en_zh = [ord(char) > 255 for char in s]
+            w = en_zh.count(False)*8 + en_zh.count(True)*16
+            h = 16
+            s = s.encode('gbk')
+        elif 'SPI' in self._name:
+            self.setsize(size)
+            w, h = self.getsize(s)
         self.widget['text'].append({
-            # 'x1': x, 'y1': y, 'x2': x + w, 'y2': y + h,
-            'x': x, 'y': y, 's': s, 'id': kwargs['num'], 'size': size,
+            'x1': x, 'y1': y,
+            'x2': min(x + w, self.width - 1), 'y2': min(y + h, self.height - 1),
+            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size,
             'c': self._element_color['text'] if c is None else c})
 
     def remove_element(self, name=None, num=None, render=True):
@@ -577,12 +585,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     self._callback_threads[-1].start()
         print('[Touch Screen] exiting...')
 
-    def clear(self, x1=None, y1=None, x2=None, y2=None, *args, **kwargs):
+    def clear(self, x1=None, y1=None, x2=None, y2=None, *a, **k):
         if None in [x1, y1, x2, y2]:
-            self.send('clear')
+            self.send('clear', *a, **k)
         else:
-            self.send('rectf', x1=x1, y1=y1, x2=x2, y2=y2,
-                      c='black' if 'c' not in kwargs else kwargs['c'])
+            self.send('rectf', x1=min(x1, x2), y1=min(y1, y2),
+                      x2=max(x1, x2), y2=max(y1, y2), c='black')
 
     def close(self):
         with self.write_lock:
