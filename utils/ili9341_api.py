@@ -93,21 +93,39 @@ ILI9341_MADCTL_BGR  = 0x08
 ILI9341_MADCTL_MH   = 0x04
 
 
-def c_RGB_to_565(r, g, b):
+def rgb888to565(r, g, b):
     '''input r, g, b and output [chigh, clow]'''
-    c = ((r & 0b11111000) << 8) | ((g & 0x11111100) << 3) | (b >> 3)
+    c = ((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | (b >> 3)
     return [c >> 8, c & 0xff]
 
-def c_24bit_to_565(v):
-    '''input v between 0x000000 - 0xffffff and output [chigh, clow]'''
-    return c_RGB_to_565(v >> 16, v >> 8 | 0xff, v & 0xff)
+def rgb888to565_pro(r, g, b):
+    '''takes about 1.5 time than normal rgb888to565, but more precise'''
+    c = (r*249+1014) & 0xf800 | ((g*253+505) >> 5) & 0xffe0 | (b*249+1014) >> 11
+    return [c >> 8, c & 0xff]
 
-def c_565_to_24bit(c):
+def rgb565to888(ch, cl):
+    '''input [chigh, clow] and output (r, g, b)'''
+    r = ch & 0b11111000 | ((ch >> 3) & 0b00111)
+    g = ch << 5 | (cl & 0b11100000) >> 3 | (cl >> 5) & 0b011
+    b = cl << 3 | cl & 0b00111
+    return (r, g, b)
+
+def rgb565to888_pro(ch, cl):
+    '''takes about 1.4 times than normal rgb565to888, but more precise'''
+    r = ((ch >> 3) * 527 + 23) >> 6
+    g = (((ch & 0b00000111) << 3 | cl >> 5) * 259 + 33) >> 6
+    b = ((cl & 0b00011111) * 527 + 23) >> 6
+    return (r, g, b)
+
+def rgb24to565(v):
+    '''input v between 0x000000 - 0xffffff and output [chigh, clow]'''
+    return rgb888to565(v >> 16, v >> 8 | 0xff, v & 0xff)
+
+def rgb565to24(ch, cl):
     '''input [chigh, clow] and output v between 0x000000 - 0xffffff'''
-    r = c[0] & 0b11111000
-    g = (c[0] & 0b00000111) << 5 | (c[1] & 0b11100000) >> 3
-    b = (c[1] & 0x11111) << 3
+    r, g, b = rgb565to888(ch, cl)
     return r << 16 | g << 8 | b
+
 
 class ILI9341_API:
     def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
@@ -116,6 +134,11 @@ class ILI9341_API:
         provide the GPIO pin number for the D/C pin and the SPI driver.  Can
         optionally provide the GPIO pin number for the reset pin as the rst
         parameter.
+
+        Basic principle of this API:
+            1. maintain a framebuffer
+            2. draw on framebuffer
+            3. render to screen (self.flush)
         '''
         self._dc = SysfsGPIO(dc)
         self._dc.export = True
@@ -135,8 +158,7 @@ class ILI9341_API:
         self.size = 15
 
     def setfont(self, filename, size=None):
-        if size is None:
-            size = self.size
+        size = size or self.size
         self.font = ImageFont.truetype(filename, size * 2)
         self.size = size
 
@@ -385,7 +407,7 @@ class ILI9341_API:
         y2 = max(min(y1 + img.shape[0], self.height), y1)
         # crop img to limited size and convert to two-bytes(5-6-5) color
         d = img[:y2-y1, :x2-x1].copy().astype(np.uint16)
-        d = np.stack(c_RGB_to_565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
+        d = np.stack(rgb888to565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
         alpha = d != [0, 0]
         self.fb[y1:y2, x1:x2][alpha] = d[alpha]
         self.flush(x1, y1, x2 - 1, y2 - 1)
@@ -402,7 +424,7 @@ class ILI9341_API:
             return
         w, h = self.font.getsize(s)
         img = Image.new('RGB', (w, h))
-        ImageDraw.Draw(img).text((0, 0), s, c_565_to_24bit(c), self.font)
+        ImageDraw.Draw(img).text((0, 0), s, rgb565to888(c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
@@ -420,7 +442,7 @@ class ILI9341_API:
                         | ILI9341_MADCTL_MV \
                         | ILI9341_MADCTL_BGR])
 
-    def clear(self, c=[0, 0], *a, **k):
+    def clear(self, c=ILI9341_BLACK, *a, **k):
         self.draw_rectf(0, 0, self.width - 1, self.height - 1, c)
 
 
@@ -440,6 +462,6 @@ if __name__ == '__main__':
     ili.draw_round(100, 100, 15, ILI9341_MAGENTA, 1)
     ili.draw_round(100, 100, 15, ILI9341_GREEN, 2)
     ili.draw_round(100, 100, 15, ILI9341_WHITE, 3)
-    ili.draw_round_rectf(150, 120, 300, 220, 7, [0x88, 0x1a]) # tiffany blue
-    c = np.random.randint(0xffffff)
-    ili.draw_text(200, 200, 'cheitech', c_24bit_to_565(c))
+    tiffany_blue = [0x0A, 0xBA, 0xB5]
+    ili.draw_round_rectf(150, 120, 300, 220, 7, rgb888to565(*tiffany_blue))
+    ili.draw_text(200, 200, 'cheitech', rgb24to565(np.random.randint(0xffffff)))

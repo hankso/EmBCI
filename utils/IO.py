@@ -1095,8 +1095,11 @@ class SPI_Screen_commander(_basic_commander):
         SPI_Screen_commander._singleton = False
         self.setfont = self._ili.setfont
         self.setsize = self._ili.setsize
-        self.getsize = self._ili.font.getsize
         self.close = self._ili.close
+
+    def getsize(self, t):
+        w, h = self._ili.font.getsize(t)
+        return w/2, h/2
 
     def start(self):
         self._ili.start()

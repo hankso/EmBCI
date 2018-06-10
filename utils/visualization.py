@@ -167,8 +167,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     _element_color = {
         'point': 'blue', 'line': 'red', 'circle': 'red', 'circlef': 'red',
         'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
-        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'white',
-        'press': 'red'}
+        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',
+        'press': 'red', 'bg': 'white'}
     widget = {
         'point': [], 'line': [], 'circle': [], 'circlef': [],
         'round':[], 'roundf':[], 'rect':[], 'rectf':[],
@@ -260,7 +260,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 img = img[:, :, np.newaxis]
             if img.shape[-1] > 3:
                 img = img[:, :, :3]
-        self.widget['img'].append({'data': img, 'id': k['num'],
+        self.widget['img'].append({
+            'x': x, 'y': y, 'img': img, 'id': k['num'],
             'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
     @_pre_draw_check('button')
@@ -292,28 +293,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
             'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size,
-            'ct': self._element_color['text']  if ct is None else ct,
-            'cr': self._element_color['rect']  if cr is None else cr,
-            'ca': self._element_color['press'] if ca is None else ca,
-            'callback': self._default_callback if cb is None else cb})
+            'ct': ct or self._element_color['text'],
+            'cr': cr or self._element_color['rect'],
+            'ca': ca or self._element_color['press'],
+            'callback': cb or self._default_callback})
 
     @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
-        self.widget['point'].append({
-            'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y, 'id': k['num'],
-            'c': self._element_color['point'] if c is None else c})
+        self.widget['point'].append({'c': c or self._element_color['point'],
+            'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y, 'id': k['num']})
 
     @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
-        self.widget['line'].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num'],
-            'c': self._element_color['line'] if c is None else c})
+        self.widget['line'].append({'c': c or self._element_color['line'],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num']})
 
     @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
-        self.widget[k['name']].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num'],
-            'c': self._element_color[k['name']] if c is None else c})
+        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num']})
 
     @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
@@ -325,23 +323,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x1, y1, x2, y2 = x - r, y - r, x, y
         elif m == 3:
             x1, y1, x2, y2 = x, y - r, x + r, y
-        self.widget[k['name']].append({
+        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'x': x, 'y': y, 'r': r, 'm': m, 'id': k['num'],
-            'c': self._element_color[k['name']] if c is None else c})
+            'x': x, 'y': y, 'r': r, 'm': m, 'id': k['num']})
 
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
-        self.widget[k['name']].append({
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 'id': k['num'],
-            'c': self._element_color[k['name']] if c is None else c})
+        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 'id': k['num']})
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
-        self.widget[k['name']].append({
+        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
-            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 'id': k['num'],
-            'c': self._element_color[k['name']] if c is None else c})
+            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 'id': k['num']})
 
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, **k):
@@ -355,37 +350,22 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.setsize(size)
             w, h = self.getsize(s)
         self.widget['text'].append({
-            'x1': x, 'y1': y,
+            'x1': x, 'y1': y, 'c': c or self._element_color['text'],
             'x2': min(x + w, self.width - 1), 'y2': min(y + h, self.height - 1),
-            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size,
-            'c': self._element_color['text'] if c is None else c})
+            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size})
 
     def remove_element(self, name=None, num=None, render=True):
-        if not sum([len(i) for i in self.widget.values()]):
-            print('No elements now!')
+        names = [str(key) for key in self.widget.keys() if self.widget[key]]
+        if len(names) == 0:
+            print('Empty widget bucket now. Nothing to remove!')
             return
-        if name not in self.widget:
-            if name is not None:
-                print('No candidates for this element `{}`'.format(name))
-            available = map(lambda key: str(key) if self.widget[key] else None,
-                            list(self.widget.keys()))
-            [available.remove(None) for i in range(available.count(None))]
-            if available:
-                print('Choose one from ' + ' | '.join(available))
-            else:
-                print('Empty widget bucket now. Nothing to remove!')
+        if name not in names:
+            print('Choose one from `%s`' % '` | `'.join(names)))
             return
-        ids = [str(i['id']) for i in self.widget[name]]
-        if len(ids) == 0:
-            print('No %s elements now!' % name)
-            return
+        ids = [str(e['id']) for e in self.widget[name]]
         if str(num) not in ids:
-            if num is not None:
-                print('no candidates for this {}:`{}`'.format(name, num))
-            if len(ids) != 1:
-                print('choose one from ' + ' | '.join(ids))
-                return
-            num = ids[0]
+            print('choose one from `%s`' % '` | `'.join(ids))
+            return
         self.widget[name].pop(ids.index(str(num)))
         if render:
             self.render()
@@ -415,7 +395,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             if 'Serial' in self._name:
                 i['s'] = i['s'].decode('gbk')
         for i in tmp['img']:
-            i['data'] = i['data'].tobytes()
+            i['img'] = i['img'].tobytes()
         with open(directory + 'layout-%s.json' % time_stamp(), 'w') as f:
             json.dump(tmp, f)
 
@@ -443,7 +423,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 i['s'] = i['s'].encode('gbk')
         for i in self.widget['img']:
             w, h = i['x2'] - i['x1'], i['y2'] - i['y1']
-            i['data'] = np.frombuffer(i['data'], np.uint8).reshape(h, w)
+            i['img'] = np.frombuffer(i['img'], np.uint8).reshape(h, w)
         self.widget.update(tmp)
         self.render()
 
@@ -498,8 +478,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def _plot_point_by_point(self, e):
         for x in range(e['x2'] - e['x1']):
             for y in range(e['y2'] - e['y1']):
-                if e['data'][y, x]:
-                    self.send('point', c=e['data'][y, x],
+                if e['img'][y, x]:
+                    self.send('point', c=e['img'][y, x],
                               x=e['x1'] + x, y=e['y1'] + y)
 
     def calibration_touch_screen(self):
@@ -537,10 +517,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def display_logo(self, filename):
         self.freeze_frame()
-        img = Image.open(filename).resize((219, 85))
-        self.draw_img(0, 45, np.array(img, dtype=np.uint8))
-        self.draw_text(62, 143, '任意点击开始')
-        self.draw_text(54, 159, 'click to start')
+        img = Image.open(filename).resize((self.width, self.heihgt - 34))
+        self.draw_img(0, 0, np.array(img, dtype=np.uint8))
+        self.draw_text(self.width/4, self.height - 33, '任意点击开始')
+        self.draw_text(self.width/4, self.height - 17, 'click to start')
         if self._touch_started:
             self._flag_pause.clear()
             with self._read_lock:
@@ -595,10 +575,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def clear(self, x1=None, y1=None, x2=None, y2=None, *a, **k):
         if None in [x1, y1, x2, y2]:
-            self.send('clear', *a, **k)
+            self.send('clear', c=self._element_color['bg'])
         else:
-            self.send('rectf', x1=min(x1, x2), y1=min(y1, y2),
-                      x2=max(x1, x2), y2=max(y1, y2), c='black')
+            self.send('rectf', c=self._element_color['bg'],
+                      x1=min(x1, x2), y1=min(y1, y2),
+                      x2=max(x1, x2), y2=max(y1, y2))
 
     def close(self):
         with self.write_lock:
