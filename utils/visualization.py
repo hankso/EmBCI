@@ -246,6 +246,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 func(self, *a, **k)
                 if 'render' not in k or ('render' in k and k['render'] is True):
                     self.render(**k)
+            param_collector.__doc__ = func.__doc__
             return param_collector
         return func_collector
 
@@ -257,7 +258,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img[:, :, 0]
         if 'SPI' in self._name:
             if len(img.shape) == 2:
-                img = img[:, :, np.newaxis]
+                # TODO: repeat?
+                img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
             if img.shape[-1] > 3:
                 img = img[:, :, :3]
         self.widget['img'].append({
@@ -339,7 +341,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x': x, 'y': y, 'r': r, 's': s, 'e': e, 'id': k['num']})
 
     @_pre_draw_check('text')
-    def draw_text(self, x, y, s, c=None, size=16, **k):
+    def draw_text(self, x, y, s, c=None, size=16, bg=None, **k):
         s = s.decode('utf8')
         if 'Serial' in self._name:
             en_zh = [ord(char) > 255 for char in s]
@@ -349,8 +351,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         elif 'SPI' in self._name:
             self.setsize(size)
             w, h = self.getsize(s)
-        self.widget['text'].append({
-            'x1': x, 'y1': y, 'c': c or self._element_color['text'],
+        self.widget['text'].append({'c': c or self._element_color['text'],
+            'x1': x, 'y1': y, 'bg': bg or self._element_color['bg'],
             'x2': min(x + w, self.width - 1), 'y2': min(y + h, self.height - 1),
             'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size})
 
@@ -360,7 +362,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print('Empty widget bucket now. Nothing to remove!')
             return
         if name not in names:
-            print('Choose one from `%s`' % '` | `'.join(names)))
+            print('Choose one from `%s`' % '` | `'.join(names))
             return
         ids = [str(e['id']) for e in self.widget[name]]
         if str(num) not in ids:
@@ -373,14 +375,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def move_element(self, name, num, x, y):
         ids = [i['id'] for i in self.widget[name]]
         e = self.widget[name][ids.index(num)]
-        try:
+        if 'x' in e:
             e['x'] += x; e['y'] += y
-        except KeyError:
+        if 'x1' in e:
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
-        finally:
-            self.render()
+        self.render()
 
-    def save_layout(self, directory):
+    def save_layout(self, dir):
         '''
         save current layout(texts, buttons, any elements) in a json file
         '''
@@ -389,21 +390,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         tmp = self.widget.copy()
         for i in tmp['button']:
             i['callback'] = None
-            if 'Serial' in self._name:
-                i['s'] = i['s'].decode('gbk')
-        for i in tmp['text']:
-            if 'Serial' in self._name:
-                i['s'] = i['s'].decode('gbk')
-        for i in tmp['img']:
-            i['img'] = i['img'].tobytes()
-        with open(directory + 'layout-%s.json' % time_stamp(), 'w') as f:
-            json.dump(tmp, f)
+        with open(os.path.join(dir, 'layout-%s.json' % time_stamp()), 'w') as f:
+            pickle.dump(tmp, f)
 
-    def load_layout(self, directory):
+    def load_layout(self, dir):
         '''read in a layout from file'''
         while 1:
-            prompt = 'choose one from ' + ' | '.join([os.path.basename(i) \
-                    for i in glob.glob(directory + 'layout*.json')])
+            prompt = 'choose one from `%s`' % '` | `'.join([os.path.basename(i) \
+                    for i in glob.glob(os.path.join(dir, 'layout*.json'))])
             try:
                 with open(check_input(prompt, {}), 'r') as f:
                     tmp = json.load(f)
@@ -454,7 +448,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     self.clear(**e)
                     if name == 'button':
                         e['c'] = e['ct']; self.send('text', **e)
-                        e['c'] = e['cr']; self.send('rect', **e)
+                        if e['cr'] is not 'None':
+                            e['c'] = e['cr']; self.send('rect', **e)
                     elif name == 'img' and 'Serial' in self._name:
                         self._plot_point_by_point(e)
                     else:
@@ -465,7 +460,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                         if name == 'button':
                             for bt in self.widget[name]:
                                 bt['c'] = bt['ct']; self.send('text', **bt)
-                                bt['c'] = bt['cr']; self.send('rect', **bt)
+                                if bt['cr'] is not 'None':
+                                    bt['c'] = bt['cr']; self.send('rect', **bt)
                         elif name == 'img' and 'Serial' in self._name:
                             for e in self.widget['img']:
                                 self._plot_point_by_point(e)
@@ -517,7 +513,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def display_logo(self, filename):
         self.freeze_frame()
-        img = Image.open(filename).resize((self.width, self.heihgt - 34))
+        img = Image.open(filename).resize((self.width, self.height - 34))
         self.draw_img(0, 0, np.array(img, dtype=np.uint8))
         self.draw_text(self.width/4, self.height - 33, '任意点击开始')
         self.draw_text(self.width/4, self.height - 17, 'click to start')
@@ -558,16 +554,17 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self._flag_pause.wait()
             x, y = self._get_touch_point()
             for bt in self.widget['button']:
-                if x > bt['x1'] and x < bt['x2'] \
-                and y > bt['y1'] and y < bt['y2']:
-                    with self.write_lock:
-                        bt['c'] = bt['ca']
-                        self.send('rect', **bt)
-                        time.sleep(0.3)
-                        bt['c'] = bt['cr']
-                        self.send('rect', **bt)
-                        time.sleep(0.2)
-                    self._callback_threads.append(threading.Thread(
+                if x>bt['x1'] and x<bt['x2'] and y>bt['y1'] and y<bt['y2']:
+                    if bt['ca'] is not 'None':
+                        with self.write_lock:
+                            bt['c'] = bt['ca']
+                            self.send('rect', **bt)
+                            time.sleep(0.3)
+                            bt['c'] = bt['cr']
+                            self.send('rect', **bt)
+                            time.sleep(0.2)
+                    self._callback_threads.append(
+                        threading.Thread(
                             target=bt['callback'],
                             kwargs={'x': x, 'y': y, 'bt':bt}))
                     self._callback_threads[-1].start()

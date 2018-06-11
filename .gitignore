@@ -4,7 +4,6 @@ model/*
 doc/*
 *.mat
 *.fif
-*.ttf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

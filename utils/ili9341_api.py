@@ -408,11 +408,14 @@ class ILI9341_API:
         # crop img to limited size and convert to two-bytes(5-6-5) color
         d = img[:y2-y1, :x2-x1].copy().astype(np.uint16)
         d = np.stack(rgb888to565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
-        alpha = d != [0, 0]
-        self.fb[y1:y2, x1:x2][alpha] = d[alpha]
+        # TODO: 'bg' is str | rgb24bit, we need rgb565 here.
+        # if 'bg' in k:
+        #     alpha = d != k['bg']
+        #     self.fb[y1:y2, x1:x2][alpha] = d[alpha]
+        self.fb[y1:y2, x1:x2] = d
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
-    def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
+    def draw_text(self, x, y, s, c, bg='white', size=None, font=None, *a, **k):
         try:
             if size is not None and self.size != size:
                 self.setsize(size)
@@ -423,8 +426,8 @@ class ILI9341_API:
                    '`{}`').format(font, self.size))
             return
         w, h = self.font.getsize(s)
-        img = Image.new('RGB', (w, h))
-        ImageDraw.Draw(img).text((0, 0), s, rgb565to888(c), self.font)
+        img = Image.new(mode='RGB', size=(w, h), color=bg)
+        ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
