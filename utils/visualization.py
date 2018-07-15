@@ -247,6 +247,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 if 'render' not in k or ('render' in k and k['render'] is True):
                     self.render(**k)
             param_collector.__doc__ = func.__doc__
+            param_collector.__name__ = func.__name__
             return param_collector
         return func_collector
 
