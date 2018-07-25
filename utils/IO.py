@@ -194,7 +194,7 @@ class _basic_reader(object):
         # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
         self._data = None
         self._index_mp_value = Value(c_uint16, 0)
-        self._ch_last_index = self._fr_last_index = self._index
+        self._ch_last_index = self._fr_last_index = self._index_mp_value.value
         self._started = False
 
         # use these flags to controll the data streaming thread
@@ -206,7 +206,7 @@ class _basic_reader(object):
         self._data_tmp_file_name = '{}/../data/mmap_tmp_for_{}.dat'.format(
             __dir__, self._name[1:-2].replace(' ', '_'))
         self._f = open(self._data_tmp_file_name, 'w+')
-        self._f.write('\x00' * (self.n_channel + 1) * self.window_size * 4)
+        self._f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
         self._f.flush()
         self._m = mmap.mmap(self._f.fileno(), 0)
         self._data = np.ndarray(shape=(self.n_channel + 1, self.window_size),
@@ -277,7 +277,7 @@ class _basic_reader(object):
         return self._started and tmp and self._flag_pause.is_set()
 
     @property
-    def real_sample_rate(self):
+    def real_time_sample_rate(self):
         try:
             t1, t2 = (self._index - 1) % self.window_size, self._index
             return self.window_size / (self._data[-1, t1] - self._data[-1, t2])
@@ -398,13 +398,13 @@ class Files_reader(_basic_reader):
                 self._get_data = self._get_data_g(data.T)
                 self._get_data.next()
             elif self.filename.endswith('.fif'):
-                raise NotImplemented
+                raise NotImplementedError
             elif self.filename.endswith('.csv'):
                 data = np.loadtxt(self.filename, np.float32, delimiter=',')
                 self._get_data = self._get_data_g(data)
                 self._get_data.next()
             else:
-                raise NotImplemented
+                raise NotImplementedError
         except Exception as e:
             print(self._name + '{}: {}'.format(type(e), e))
             print(self._name + 'Abort...')
@@ -866,10 +866,10 @@ class _basic_commander(object):
                   'key named _desc to describe itself. please add it.')
 
     def start(self):
-        raise NotImplemented('you can not directly use this class')
+        raise NotImplementedError('you can not directly use this class')
 
     def send(self, key, *args, **kwargs):
-        raise NotImplemented('you can not directly use this class')
+        raise NotImplementedError('you can not directly use this class')
 
     def check_key(self, key):
         if key not in self._command_dict:
@@ -883,7 +883,7 @@ class _basic_commander(object):
         self.send(key, *args, **kwargs)
 
     def close(self):
-        raise NotImplemented('you can not directly use this class')
+        raise NotImplementedError('you can not directly use this class')
 
 
 class Torcs_commander(_basic_commander):

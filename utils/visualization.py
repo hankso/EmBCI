@@ -12,6 +12,7 @@ import os
 import threading
 import json
 import glob
+import pickle
 if sys.version_info.major == 2:
     _py_2_ = True
 else:
@@ -159,7 +160,6 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.xlabel('Frequency')
         plt.ylabel('dB/Hz')
 
-
 class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
@@ -200,16 +200,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def _pre_draw_check(name):
         '''This decorator can not be used directly'''
-        def func_collector(func):  # this get function to be executed
-            def param_collector(self, *a, **k):  # this get params from user
-                '''
-                Attention!
-                You cannot modify variable `name` from `_pre_draw_check` inside
-                this function! It will warn that local variable `name` is not
-                defined yet. I still dont know why. So I use `static` to store
-                `name` temporarily.
-                # TODO: search this question
-                '''
+        def func_collector(func):
+            '''This will get function to be executed'''
+            def param_collector(self, *a, **k):
+                '''This will get params from user'''
                 a = list(a)
                 if name in ['point', 'text', 'img', 'button']:
                     a[0] = max(min(a[0], self.width - 1), 0)
@@ -231,7 +225,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     a[1] = max(min(a[1], self.height - 1), 0)
                     a[2] = max(min(a[2], self.width - 1), 0)
                     a[3] = max(min(a[3], self.height - 1), 0)
-                # pre-processing
+                '''
+                # TODO: fix this question
+                You cannot modify variable `name` from `_pre_draw_check` inside
+                this function! It will warn that local variable `name` is not
+                defined yet. I still dont know why. So I use `static` to store
+                `name` temporarily.
+                '''
                 static = name + ('f' if ('fill' in k and k['fill']) else '')
                 num = 0 if not len(self.widget[static]) \
                         else (self.widget[static][-1]['id'] + 1)
@@ -241,10 +241,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 # it will overload name=None and num=None(default)
                 # in conclusion:
                 #     user provide param *a and **k
-                #     wrapper modify them and generate new *a, **k
-                #     real function finally recieve *a, **k, and defaults
+                #     this wrapper modify them and generate new *a, **k
+                #     real function finally recieve new *a, **k, and defaults
                 func(self, *a, **k)
-                if 'render' not in k or ('render' in k and k['render'] is True):
+                if 'render' not in k or ('render' in k and k['render']):
                     self.render(**k)
             param_collector.__doc__ = func.__doc__
             param_collector.__name__ = func.__name__
@@ -259,16 +259,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img[:, :, 0]
         if 'SPI' in self._name:
             if len(img.shape) == 2:
-                # TODO: repeat?
                 img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
             if img.shape[-1] > 3:
                 img = img[:, :, :3]
-        self.widget['img'].append({
-            'x': x, 'y': y, 'img': img, 'id': k['num'],
-            'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+        self.widget['img'].append({'id': k['num'],
+            'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
+            'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
     @_pre_draw_check('button')
-    def draw_button(self, x, y, s, size=16, cb=None, ct=None, cr=None, ca=None, **k):
+    def draw_button(self, x, y, s, 
+                    size=16, cb=None, ct=None, cr=None, ca=None, **k):
         '''
         draw button on current frame
         params:
@@ -291,11 +291,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             s = s.encode('gbk')
         elif 'SPI' in self._name:
             w, h = self.getsize(s)
-        self.widget['button'].append({
+        self.widget['button'].append({'id': k['num'],
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
-            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size,
+            'x': x, 'y': y, 's': s, 'size': size,
             'ct': ct or self._element_color['text'],
             'cr': cr or self._element_color['rect'],
             'ca': ca or self._element_color['press'],
@@ -303,18 +303,21 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
-        self.widget['point'].append({'c': c or self._element_color['point'],
-            'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y, 'id': k['num']})
+        self.widget['point'].append({'id': k['num'],
+            'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
+            'c': c or self._element_color['point']})
 
     @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
-        self.widget['line'].append({'c': c or self._element_color['line'],
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num']})
+        self.widget['line'].append({'id': k['num'],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+            'c': c or self._element_color['line']})
 
     @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
-        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'id': k['num']})
+        self.widget[k['name']].append({'id': k['num'],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+            'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
@@ -326,20 +329,23 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x1, y1, x2, y2 = x - r, y - r, x, y
         elif m == 3:
             x1, y1, x2, y2 = x, y - r, x + r, y
-        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
+        self.widget[k['name']].append({'id': k['num'],
+            'x': x, 'y': y, 'r': r, 'm': m,
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'x': x, 'y': y, 'r': r, 'm': m, 'id': k['num']})
+            'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
-        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 'id': k['num']})
+        self.widget[k['name']].append({'id': k['num'],
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 
+            'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
-        self.widget[k['name']].append({'c': c or self._element_color[k['name']],
+        self.widget[k['name']].append({'id': k['num'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
-            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 'id': k['num']})
+            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 
+            'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, bg=None, **k):
@@ -352,10 +358,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         elif 'SPI' in self._name:
             self.setsize(size)
             w, h = self.getsize(s)
-        self.widget['text'].append({'c': c or self._element_color['text'],
-            'x1': x, 'y1': y, 'bg': bg or self._element_color['bg'],
-            'x2': min(x + w, self.width - 1), 'y2': min(y + h, self.height - 1),
-            'x': x, 'y': y, 's': s, 'id': k['num'], 'size': size})
+        self.widget['text'].append({'id': k['num'],
+            'x': x, 'y': y, 's': s, 
+            'x1': x, 'y1': y, 'size': size, 
+            'x2': min(x + w, self.width - 1),
+            'y2': min(y + h, self.height - 1),
+            'bg': bg or self._element_color['bg'],
+            'c': c or self._element_color['text']})
 
     def remove_element(self, name=None, num=None, render=True):
         names = [str(key) for key in self.widget.keys() if self.widget[key]]
