@@ -6,6 +6,7 @@ Created on Wed Apr  4 01:37:15 2018
 @author: hank
 """
 # built-in
+import os
 import time
 import struct
 import select
@@ -19,6 +20,10 @@ import numpy as np
 # from ./
 from gpio4 import SysfsGPIO
 from common import time_stamp
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
+
 
 # ADS1299 Pin mapping
 # PIN_PWRDN       = 2 # pin PA02

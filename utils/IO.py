@@ -36,8 +36,8 @@ from gyms import PlaneClient
 from ads1299_api import ADS1299_API, ESP32_API
 from ili9341_api import ILI9341_API
 
-
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
 
 
 @check_dir
@@ -307,6 +307,9 @@ class _basic_reader(object):
         return np.concatenate((
             self._data[:-1, self._fr_last_index:],
             self._data[:-1, :self._fr_last_index]), -1)
+        
+    def __getitem__(self, item):
+        return self._data[:-1][item]
 
 
 class Fake_data_generator(_basic_reader):
@@ -318,7 +321,8 @@ class Fake_data_generator(_basic_reader):
                  sample_time=2,
                  n_channel=1,
                  *args, **kwargs):
-        super(Fake_data_generator, self).__init__(sample_rate, sample_time, n_channel)
+        super(Fake_data_generator, self).__init__(sample_rate, 
+                                                  sample_time, n_channel)
         self._name = '[Fake data generator %d] ' % Fake_data_generator._num
         self._send_to_pylsl = send_to_pylsl
         Fake_data_generator._num += 1
@@ -333,7 +337,6 @@ class Fake_data_generator(_basic_reader):
                 pylsl.StreamInfo(
                     'fake_data_generator', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'used for debugging'))
-            self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
         super(Fake_data_generator, self).start()
 
     def _save_data_in_buffer(self):
@@ -342,19 +345,14 @@ class Fake_data_generator(_basic_reader):
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
-
-    def _save_data_in_buffer_send_to_pylsl(self):
-        time.sleep(1.0 / self.sample_rate)
-        d = np.random.rand(self.n_channel) / 10
-        self._data[:-1, self._index] = d[:self.n_channel]
-        self._data[-1, self._index] = time.time() - self._start_time
-        self._index = (self._index + 1) % self.window_size
-        self._outlet.push_sample(d)
+        if self._send_to_pylsl:
+            self._outlet.push_sample(d)
+            
 
 
 class Files_reader(_basic_reader):
     '''
-    Read date from mat, fif, csv... file and simulate as a common data reader
+    Read data from mat, fif, csv... file and simulate as a common data reader
     '''
     _num = 1
     def __init__(self,
@@ -529,7 +527,6 @@ class Serial_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'Serial_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
-            self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
         super(Serial_reader, self).start()
 
     def close(self):
@@ -541,14 +538,10 @@ class Serial_reader(_basic_reader):
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
-
-    def _save_data_in_buffer_send_to_pylsl(self):
-        d = np.array(self._serial.read_until().strip().split(','), np.float32)
-        self._data[:-1, self._index] = d[:self.n_channel]
-        self._data[-1, self._index] = time.time() - self._start_time
-        self._index = (self._index + 1) % self.window_size
-        self._outlet.push_sample(d)
-
+        if self._send_to_pylsl:
+            self._outlet.push_sample(d)
+            
+            
 
 class ADS1299_reader(_basic_reader):
     '''
@@ -588,7 +581,6 @@ class ADS1299_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'SPI_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
-            self._save_data_in_buffer = self._save_data_in_buffer_send_to_pylsl
         super(ADS1299_reader, self).start()
 
     def close(self):
@@ -596,16 +588,12 @@ class ADS1299_reader(_basic_reader):
         super(ADS1299_reader, self).close()
 
     def _save_data_in_buffer(self):
-        self._data[:-1, self._index] = self._ads.read()[:self.n_channel]
-        self._data[-1, self._index] = time.time() - self._start_time
-        self._index = (self._index + 1) % self.window_size
-
-    def _save_data_in_buffer_send_to_pylsl(self):
         d = self._ads.read()
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
-        self._outlet.push_sample(d)
+        if self._send_to_pylsl:
+            self._outlet.push_sample(d)
 
 
 class ESP32_SPI_reader(ADS1299_reader):
@@ -627,8 +615,7 @@ class ESP32_SPI_reader(ADS1299_reader):
         super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
-        self._esp = ESP32_API(sample_rate, bias_enabled, test_mode)
-        self._ads = self._esp
+        self._ads = self._esp = ESP32_API(sample_rate, bias_enabled, test_mode)
         ESP32_SPI_reader._singleton = False
 
     def start(self, spi_device=(0, 1)):
@@ -646,7 +633,8 @@ class Socket_reader(_basic_reader):
                  sample_time=2,
                  n_channel=1,
                  *args, **kwargs):
-        super(Socket_reader, self).__init__(sample_rate, sample_time, n_channel)
+        super(Socket_reader, self).__init__(sample_rate, 
+                                            sample_time, n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -663,11 +651,11 @@ class Socket_reader(_basic_reader):
                              '>>> 192.168.0.1:8888 (example)\n>>> '), {})
             if r == 'quit':
                 raise SystemExit(self._name + 'mannually exit')
-            if 'localhost' in r:
-                r = r.replace('localhost', '127.0.0.1')
+            host, port = r.replace('localhost', '127.0.0.1').split(':')
+            if int(port) <= 0:
+                print('port must be positive num')
+                continue
             try:
-                host, port = r.split(':')
-                assert int(port) > 0, 'port must be positive num'
                 socket.inet_aton(host)  # check if host is valid string
                 break
             except socket.error:
@@ -755,7 +743,7 @@ class Socket_server(object):
         time.sleep(1)
         print(self._name + 'Socket server shut down.')
 
-    def has_listener(self):
+    def has_listeners(self):
         return len(self.connections)
 
 
@@ -1192,7 +1180,7 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testReader))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testCommander))
-    with open('../test/test.{}.html'.format(__file__), 'w') as f:
+    with open('../test/test.{}.html'.format(__filename__), 'w') as f:
         HTMLTestRunner(
-            stream=f, title='File {} Test Report'.format(__file__),
+            stream=f, title='File {} Test Report'.format(__filename__),
             description='generated at ' + time_stamp(), verbosity=2).run(suite)

@@ -22,6 +22,8 @@ from PIL import Image, ImageDraw, ImageFont
 from gpio4 import SysfsGPIO
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
+
 
 # ILI9341 Pin mapping
 PIN_DC              = 2
