@@ -432,7 +432,7 @@ class ILI9341_API(spidev.SpiDev):
                    '`{}`').format(font, self.size))
             return
         w, h = self.font.getsize(s)
-        img = Image.new(mode='RGB', size=(w, h), color=bg)
+        img = Image.new(mode='RGB', size=(w, h), color=rgb565to888(*bg))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8), bg=bg)

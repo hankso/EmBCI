@@ -409,19 +409,26 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def load_layout(self, dir):
         '''read in a layout from file'''
+        layouts = glob.glob(os.path.join(dir, 'layout*.pcl'))
+        if len(layouts) == 0:
+            print(self._name + 'load layout: no available layout files')
+            return
         while 1:
-            prompt = 'choose one from `%s`' % '` | `'.join([os.path.basename(i) \
-                    for i in glob.glob(os.path.join(dir, 'layout*.pcl'))])
+            if len(layouts) == 1:
+                filename = layouts[0]
+            else:
+                prompt = 'Choose one from ` %s `: ' % '` | `'.join(
+                    [os.path.basename(layout) for layout in layouts])
+                filename = check_input(prompt, {})
             try:
-                with open(check_input(prompt, {}), 'r') as f:
+                with open(filename, 'r') as f:
                     tmp = pickle.load(f)
+                break
             except KeyboardInterrupt:
                 print('Abort')
                 return
             except:
                 print('error!')
-            i['callback'] = self._default_callback \
-                            if i['callback'] == None else i['callback']
         for e in tmp['button']:
             e['callback'] = self._default_callback
         if 'Serial' in self._name:
