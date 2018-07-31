@@ -253,7 +253,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         return func_collector
 
     @_pre_draw_check('img')
-    def draw_img(self, x, y, img, **k):
+    def draw_img(self, x, y, img, bg=None, **k):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
         if 'Serial' in self._name and len(img.shape) > 2:
@@ -263,7 +263,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
             if img.shape[-1] > 3:
                 img = img[:, :, :3]
-        self.widget['img'].append({'id': k['num'],
+        self.widget['img'].append({'id': k['num'], 'bg': bg,
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
@@ -349,7 +349,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('text')
-    def draw_text(self, x, y, s, c=None, size=16, bg=None, **k):
+    def draw_text(self, x, y, s, c=None, size=16, **k):
         s = s.decode('utf8')
         if 'Serial' in self._name:
             en_zh = [ord(char) > 255 for char in s]
@@ -364,7 +364,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x1': x, 'y1': y, 'size': size,
             'x2': min(x + w, self.width - 1),
             'y2': min(y + h, self.height - 1),
-            'bg': bg or self._element_color['bg'],
             'c': c or self._element_color['text']})
 
     def remove_element(self, name=None, num=None, render=True):

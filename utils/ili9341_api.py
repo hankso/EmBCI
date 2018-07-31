@@ -406,7 +406,7 @@ class ILI9341_API(spidev.SpiDev):
         self.draw_rectf(x1, y1 + r, x1 + r, y2 - r, c)
         self.draw_rectf(x2 - r, y1 + r, x2, y2 - r, c)
 
-    def draw_img(self, x, y, img, *a, **k):
+    def draw_img(self, x, y, img, bg=None, *a, **k):
         '''draw img with shape of (height, width, depth) at (x, y)'''
         x1, y1 = x, y
         x2 = max(min(x1 + img.shape[1], self.width), x1)
@@ -414,14 +414,14 @@ class ILI9341_API(spidev.SpiDev):
         # crop img to limited size and convert to two-bytes(5-6-5) color
         d = img[:y2-y1, :x2-x1].copy().astype(np.uint16)
         d = np.stack(rgb888to565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
-        # TODO: 'bg' is str | rgb24bit, we need rgb565 here.
-        # if 'bg' in k:
-        #     alpha = d != k['bg']
-        #     self.fb[y1:y2, x1:x2][alpha] = d[alpha]
-        self.fb[y1:y2, x1:x2] = d
+        if bg is None:
+            self.fb[y1:y2, x1:x2] = d
+        else:
+            alpha = (d != bg)
+            self.fb[y1:y2, x1:x2][alpha] = d[alpha]
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
-    def draw_text(self, x, y, s, c, bg='white', size=None, font=None, *a, **k):
+    def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
         try:
             if size is not None and self.size != size:
                 self.setsize(size)
@@ -432,7 +432,8 @@ class ILI9341_API(spidev.SpiDev):
                    '`{}`').format(font, self.size))
             return
         w, h = self.font.getsize(s)
-        img = Image.new(mode='RGB', size=(w, h), color=rgb565to888(*bg))
+        bg = ILI9341_BLACK if c == ILI9341_WHITE else ILI9341_WHITE
+        img = Image.new(mode='RGB', size=(w, h), color=rgb565to888(bg))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8), bg=bg)
