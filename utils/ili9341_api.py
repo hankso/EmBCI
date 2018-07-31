@@ -129,7 +129,7 @@ def rgb565to24(ch, cl):
     return r << 16 | g << 8 | b
 
 
-class ILI9341_API:
+class ILI9341_API(spidev.SpiDev):
     def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
         '''
         Create an instance of the display using SPI communication.  Must
@@ -138,8 +138,8 @@ class ILI9341_API:
         parameter.
 
         Basic principle of this API:
-            1. maintain a framebuffer
-            2. draw on framebuffer
+            1. maintain a framebuffer (self.fb)
+            2. draw on framebuffer (self.draw_*)
             3. render to screen (self.flush)
         '''
         self._dc = SysfsGPIO(dc)
@@ -149,13 +149,13 @@ class ILI9341_API:
         self._rst.export = True
         self._rst.direction = 'out'
 
-        self._spi = spidev.SpiDev(dev[0], dev[1])
-        self._spi.mode = 0
-        self._spi.max_speed_hz = 25000000
+        self.open(dev[0], dev[1])
+        self.mode = 0
+        self.max_speed_hz = 25000000
 
         self.width = width or WIDTH
         self.height = height or HEIGHT
-        self.fb = np.zeros((self.height, self.width, 2), np.uint8) # framebuffer
+        self.fb = np.zeros((self.height, self.width, 2), np.uint8)
         self.font = None
         self.size = 15
 
@@ -173,20 +173,20 @@ class ILI9341_API:
 
     def _command(self, data):
         '''
-        Write an array of bytes to the display as command data.
+        Write an array of bytes to screen as command data.
         '''
         self._dc.value = 0
-        self._spi.writebytes([data])
+        self.writebytes([data])
 
     def _data(self, data, chunk=4096):
         '''
-        Write an array of bytes to the display as display data.
+        Write an array of bytes to screen as display data.
         '''
         data = map(int, data)
         if len(data):
             self._dc.value = 1
             for s in range(0, len(data), chunk):
-                self._spi.xfer2(data[s:min(s + chunk, len(data))])
+                self.xfer2(data[s:min(s + chunk, len(data))])
 
     def _set_window(self, x1, y1, x2, y2):
         '''
@@ -198,7 +198,7 @@ class ILI9341_API:
         '''
         self._command(0x2A); self._data([x1 >> 8, x1, x2 >> 8, x2])
         self._command(0x2B); self._data([y1 >> 8, y1, y2 >> 8, y2])
-        self._command(0x2C)        # write to RAM
+        self._command(0x2C)  # write to RAM
 
     def flush(self, x1, y1, x2, y2):
         '''write data in framebuffer to screen'''
@@ -257,7 +257,7 @@ class ILI9341_API:
         self.reset()
         self._dc.export = False
         self._rst.export = False
-        self._spi.close()
+        super(ILI9341_API, self).close()
 
     def draw_point(self, x, y, c, *a, **k):
         self.fb[y, x] = c
@@ -319,7 +319,9 @@ class ILI9341_API:
     def draw_circlef(self, x, y, r, c, *a, **k):
         '''
         do not use self.draw_circle(f=True) to draw circlef, it's too slow
-        20180608: f=True has been deprecated
+        20180608:
+            self.draw_circle(f=True) has been deprecated
+            use self.draw_circlef() instead
         '''
         _y = np.arange(y - r, y + r + 1).astype(np.uint16)
         _x = np.round(np.sqrt(r**2 - (_y - y)**2)).astype(np.uint16)
@@ -431,7 +433,7 @@ class ILI9341_API:
         img = Image.new(mode='RGB', size=(w, h), color=bg)
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
-        self.draw_img(x, y, np.array(img, dtype=np.uint8))
+        self.draw_img(x, y, np.array(img, dtype=np.uint8), bg=bg)
 
     def set_rotation(self, m):
         self._command(0x36)

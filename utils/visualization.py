@@ -33,6 +33,7 @@ from IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from IO import SPI_Screen_commander
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
 
 
 class Plotter():
@@ -267,7 +268,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x2': x + img.shape[1], 'y2': y + img.shape[0]})
 
     @_pre_draw_check('button')
-    def draw_button(self, x, y, s, 
+    def draw_button(self, x, y, s,
                     size=16, cb=None, ct=None, cr=None, ca=None, **k):
         '''
         draw button on current frame
@@ -337,14 +338,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
         self.widget[k['name']].append({'id': k['num'],
-            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r, 
+            'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
             'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
         self.widget[k['name']].append({'id': k['num'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
-            'x': x, 'y': y, 'r': r, 's': s, 'e': e, 
+            'x': x, 'y': y, 'r': r, 's': s, 'e': e,
             'c': c or self._element_color[k['name']]})
 
     @_pre_draw_check('text')
@@ -359,8 +360,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.setsize(size)
             w, h = self.getsize(s)
         self.widget['text'].append({'id': k['num'],
-            'x': x, 'y': y, 's': s, 
-            'x1': x, 'y1': y, 'size': size, 
+            'x': x, 'y': y, 's': s,
+            'x1': x, 'y1': y, 'size': size,
             'x2': min(x + w, self.width - 1),
             'y2': min(y + h, self.height - 1),
             'bg': bg or self._element_color['bg'],

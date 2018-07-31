@@ -9,14 +9,21 @@ Created on Wed Feb 28 10:56:36 2018
 @author: hank
 @page:   https://github.com/hankso
 """
+import sys; sys.path += ['../utils']
+import IO
+
 
 # pip install numpy, scipy, pywavelets, pyhht
 import numpy as np
 import pywt
 import scipy
-from scipy import signal, interpolate as ip
+from scipy import signal, sparse, interpolate as ip
 import pyhht
 # import PyEMD
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
+
 
 
 class Signal_Info(object):
@@ -31,32 +38,35 @@ class Signal_Info(object):
     '''
     def __init__(self, sample_rate):
         self._fs = sample_rate
-        
+
         # alias
         self.avr = self.Average
         self.var = self.Variance
         self.std = self.Standard_Deviation
         self.cov = self.Covariance
         self.rms = self.Root_Mean_Square
-        
+
         self.remove_DC = self.Detrend
         self.bandpass = self.Bandpass_Filter
-        
+
         self.fft = self.Fast_Fourier_Transform
         self.hht = self.Hilbert_Huang_Transform
         self.dwt = self.Discret_Wavelet_Transform
         self.cwt = self.Continuous_Wavelet_Transform
         self.stft = self.Short_Time_Fourier_Transfrom
         self.wavedec = self.Wavelet_Decomposition
-        
-        
-    def check_shape(func):
-        def param_wrapper(self, X, *args, **kwargs):
-            if type(X) is tuple:
-                return func(self, X, *args, **kwargs)
 
-            if type(X) is not np.ndarray:
+
+    def _check_shape(func):
+        def param_collector(self, X, *args, **kwargs):
+            if isinstance(X, tuple):
+                return func(self, X, *args, **kwargs)
+            if isinstance(X, IO._basic_reader):
+                X._data = param_collector(self, X._data, *args, **kwargs)
+                return X
+            if not isinstance(X, np.ndarray):
                 X = np.array(X)
+
             # simple 1D time series
             # Input:  window_size
             # Resize: n_channel x window_size
@@ -85,23 +95,25 @@ class Signal_Info(object):
                                     ' data, (n_channel x window_size) 2D data '
                                     'or (n_sample x n_channel x window_size) '
                                     '3D data.').format(X.shape))
-        return param_wrapper
+        param_collector.__doc__ = func.__doc__
+        param_collector.__name__ = func.__name__
+        return param_collector
 
-    @check_shape
+    @_check_shape
     def Average(self, X):
         '''The most simple feature: average of each channel'''
         return np.average(X, axis=-1).reshape(-1, 1)
-    
-    @check_shape
+
+    @_check_shape
     def Rectification_mean(self, X):
         '''Average of rectified signal(absolute value)'''
         return np.average(abs(X), axis=-1).reshape(-1, 1)
 
-    @check_shape
+    @_check_shape
     def Variance(self, X):
         '''
-        Calculate variance along last axis. Variance measures the `variety` of 
-        the signal, 
+        Calculate variance along last axis. Variance measures the `variety` of
+        the signal,
 
         Returns
         -------
@@ -110,8 +122,8 @@ class Signal_Info(object):
             DX = E(X-EX)**2 = EX**2 - (EX)**2
         '''
         return np.var(X, axis=-1).reshape(-1, 1)
-    
-    @check_shape
+
+    @_check_shape
     def Standard_Deviation(self, X):
         '''
         Standard deviation is a measure of the spread of a distribution(signal)
@@ -119,7 +131,7 @@ class Signal_Info(object):
         '''
         return np.sqrt(self.var(X))
 
-    @check_shape
+    @_check_shape
     def Skewness(self, X):
         '''
         Skewness's definition from wiki:
@@ -127,7 +139,7 @@ class Signal_Info(object):
             asymmetry of the probability distribution of a real-valued random
             variable about its mean. The skewness value can be positive or
             negative, or undefined.
-            
+
         Returns
         -------
         average( (X-average(X)) ** 3 ) / (std(X)) ** 3
@@ -137,14 +149,14 @@ class Signal_Info(object):
         return (self.avr((X-self.avr(X))**3) /
                 self.var(X)**1.5)
 
-    @check_shape
+    @_check_shape
     def Kurtosis(self, X):
         '''
         Kurtosis's definition from wiki:
             In probability theory and statistics, kurtosis is a measure of the
             "tailedness" of the probability distribution of a real-valued
             random variable.
-            
+
         Returns
         -------
         average( (X-average(X)) ** 4 ) / (std(X)) ** 4
@@ -154,7 +166,7 @@ class Signal_Info(object):
         return (self.avr((X-self.avr(X))**4) /
                 self.var(X)**2)
 
-    @check_shape
+    @_check_shape
     def Covariance(self, X):
         '''
         Covariance shows the level of which two random variables vary together.
@@ -168,21 +180,21 @@ class Signal_Info(object):
                       C[i, i] = similar level of i_channel itself
         '''
         return np.cov(X)
-    
-    @check_shape
+
+    @_check_shape
     def Correlation_Coefficient(self, X):
         '''
-        This is samiliar to covariance. The relationship between correlation 
+        This is samiliar to covariance. The relationship between correlation
         coefficient and covariane is that
             R[i, j] = C[i, j] / sqrt(C[i, i] * C[j, j])
         Values of R are between -1 and 1.
         '''
         return np.corrcoef(X)
-        
-    @check_shape
+
+    @_check_shape
     def Autocorrelation(self, X):
         '''
-        numpy.correlation(a, v, mode='solid') works by convolving `a` with 
+        numpy.correlation(a, v, mode='solid') works by convolving `a` with
         reverse of `v` and the result will be clipped by the `mode`.
         np.correlation will do correlation where
             -np.inf < t < np.inf
@@ -192,26 +204,49 @@ class Signal_Info(object):
         '''
         rst = np.array([np.correlate(ch, ch, mode='same') for ch in X])
         return rst[:, rst.shape[1]/2:]
-    
-    @check_shape
+
+    @_check_shape
     def Root_Mean_Square(self, X):
         return np.sqrt(np.mean(np.square(X), -1).reshape(-1, 1))
-    
-    @check_shape
+
+    @_check_shape
     def Detrend(self, X):
         '''
         remove DC part of raw signal
         '''
         return signal.detrend(X, axis=-1)
-    
-    @check_shape    
+
+    @_check_shape
+    def baseline(self, X, smooth=1e4, p=0.5, niter=10):
+        '''
+        This is python version implementation of `Asymmetric Least Squares
+        Smoothing` by P. Eilers and H. Boelens in 2005. The paper is free and
+        you can find it on google. It's modified for better performance. Origin
+        answer can be found at https://stackoverflow.com/question/29156532/
+        The interesting thing is, when set p to 1 or 0, the result is actually
+        corresponding upper and lower envelop of the signal.
+        '''
+        rst = []
+        L = X.shape[1]
+        D = sparse.diags([1,-2,1],[0,-1,-2], shape=(L , L-2))
+        tmp = smooth * D.dot(D.transpose())
+        for ch in X:
+            w = np.ones(L)
+            for i in np.arange(niter):
+                W = sparse.spdiags(w, 0, L, L)
+                z = sparse.linalg.spsolve(W + tmp, w * ch)
+                w = p * (ch > z) + (1 - p) * (ch < z)
+            rst += [z]
+        return np.array(rst)
+
+    @_check_shape
     def Bandpass_Filter(self, X, sample_rate=None):
         return X
         sample_rate  = sample_rate or self._fs
         # return bandwidth_filter(X, self._fs, min_freq=10, max_freq=450)
-        
-    @check_shape
-    def notch(self, X, sample_rate, Q=60, Hz=50, *args, **kwargs):
+
+    @_check_shape
+    def notch(self, X, sample_rate=None, Q=60, Hz=50, *args, **kwargs):
         '''
         Input shape:  n_channel x window_size
         Output shape: n_channel x window_size
@@ -224,12 +259,12 @@ class Signal_Info(object):
                      for fs in np.arange(Hz, sample_rate/2, Hz)]:
             X = scipy.signal.filtfilt(b, a, X, axis=-1)
         return X
-    
-    @check_shape
-    def smooth(self, X, window_length=20, method=1):
+
+    @_check_shape
+    def smooth(self, X, window_length=50, method=1):
         '''
         Smoothing a wave/signal may be achieved through many different ways.
-        
+
         Parameters
         ----------
         X : array_like
@@ -238,13 +273,13 @@ class Signal_Info(object):
             length of window used to cut raw data down, default 20
         method : int
             see Notes for details, defualt 1.
-        
+
         Notes
         -----
         1 np.convolve(np.ones(n)/n | wavelet): this is filtering way
         2 pyhht.EMD | scipy.signal.hilbert: this is decomposition way
-        3 RMS(root-mean-square): Calculate rms value on a moving window on 
-          source signal and use it as point of new signal. The result is 
+        3 RMS(root-mean-square): Calculate rms value on a moving window on
+          source signal and use it as point of new signal. The result is
           exactly same as method 1.
         '''
         assert method in [1, 2, 3]
@@ -261,17 +296,17 @@ class Signal_Info(object):
                 wh = min(l, i+window_length)
                 rst[:, i] = self.rms(X[:, wl:wh])[:, 0]
         return rst
-    
-    
-    @check_shape
+
+
+    @_check_shape
     def envelop(self, X, method=2):
         '''
         There are two ways to get envelop of a signal.
         1 Hilbert Transform
         2 Interpolation of all relative extrema: scipy.signal.argrelextrema,
-        Default is the last one, which is a modified version of 
+        Default is the last one, which is a modified version of
         `pyhht.utils.get_envelops` to support multi-channel time-series data.
-        
+
         Notes
         -----
         The difference between interpolation and curve fitting is that when you
@@ -279,7 +314,7 @@ class Signal_Info(object):
         the advantage of interpolation is that it will predict values based on
         points beside them. So points will be exactly on result curve.
         In scipyinterpolate module, there are many choices to interpolate by
-        points, here we use scipyinterpolate.spl* methods, because it's 
+        points, here we use scipyinterpolate.spl* methods, because it's
         relatively fast and the result is nice.
         '''
         if method == 1:
@@ -296,9 +331,9 @@ class Signal_Info(object):
                       ip.splev(t, ip.splrep(t[mins[i]], X[i][mins[i]]))]
                      for i in np.arange(nch)])
             return rst
-            
-        
-    @check_shape
+
+
+    @_check_shape
     def Fast_Fourier_Transform(self, X, sample_rate=None, resolution=1):
         '''
         People use FT(Fourier Transform) to extract frequency domain
@@ -324,7 +359,7 @@ class Signal_Info(object):
         sample_rate: sample rate of signal, always known as `fs`
         resolution:  number of points that between two Hz, default 1 point/Hz.
                      Assuming sample_rate is 300Hz, X.shape is (5, 1500),
-                     which means sample_time is 5s. If resolution is 3, 
+                     which means sample_time is 5s. If resolution is 3,
                      the result of fft will be of shape (5, 450).
                      rst = fft(X, 300, 3)
                      rst[30] ==> amp of 10.0000Hz
@@ -346,23 +381,23 @@ class Signal_Info(object):
             amp[:, -1] /= 2
         freq = np.linspace(0, sample_rate/2, amp.shape[1]-1)
         return freq, amp[:, :-1]
-    
-    
-    @check_shape
+
+
+    @_check_shape
     def fft_amp_only(self, X, sample_rate, resolution=1, *a, **k):
         '''
         Fast Fourier Transform
         Input shape:  n_channel x window_size
         Output shape: n_channel x window_size/2
-        
+
         Returns
         -------
         amp
         '''
         return self.fft(X, sample_rate, resolution)[1]
-    
-    @check_shape
-    def Short_Time_Fourier_Transfrom(self, X, sample_rate=None, 
+
+    @_check_shape
+    def Short_Time_Fourier_Transfrom(self, X, sample_rate=None,
                                      nperseg=None, noverlap=None):
         '''
         Short Time Fourier Transform.
@@ -370,7 +405,7 @@ class Signal_Info(object):
         Output shape: n_channel x freq x time
         freq = int(1.0 + math.floor( float(nperseg) / 2 ) )
         time = int(1.0 + math.ceil(float(X.shape[-1]) / (nperseg - noverlap)))
-        
+
         Returns
         -------
         freq, time, amp
@@ -386,34 +421,34 @@ class Signal_Info(object):
         noverlap = noverlap or int(sample_rate / 5.0 * 0.67)
         f, t, amp = signal.stft(X, sample_rate, 'hann', nperseg, noverlap)
         return f, t, np.abs(amp)
-    
-    @check_shape
-    def stft_amp_only(self, X, sample_rate=None, 
+
+    @_check_shape
+    def stft_amp_only(self, X, sample_rate=None,
                       nperseg=None, noverlap=None, *a, **k):
         '''
         Short Time Fourier Transform.
         Input shape:  n_channel x window_size
         Output shape: n_channel x freq x time
-        
+
         Returns
         -------
         amp
         '''
         return self.stft(X, sample_rate, nperseg, noverlap)[2]
-            
-    
-    @check_shape
+
+
+    @_check_shape
     def Discret_Wavelet_Transform(self, X, wavelet=None):
         '''
-        The nature of DWT is to send raw signal S into one pair of filters, 
-        high pass filter H and low pass filter L, which are actually the 
-        wavelet you choose. Next, convolve S with H and L, thus generating two 
+        The nature of DWT is to send raw signal S into one pair of filters,
+        high pass filter H and low pass filter L, which are actually the
+        wavelet you choose. Next, convolve S with H and L, thus generating two
         filtered signal Sh and Sl with length of ( len(S) + len(H) - 1 )
-        Then, downsample Sh and Sl and cut off len(H)/2 points at each end of 
+        Then, downsample Sh and Sl and cut off len(H)/2 points at each end of
         signals to avoid distortion( Sh = Sh[len(H)/2 : -len(H)/2] ).
-        That's all! What we get now is entirely high-freq part and low-freq 
+        That's all! What we get now is entirely high-freq part and low-freq
         part of raw signal, and this process is the DWT in my understanding.
-        
+
                  high pass  downsampling +--------+
                +---< H >-------< 2! >----+ Sh(cD) |
                |   filter                +--------+
@@ -423,29 +458,29 @@ class Signal_Info(object):
                | low pass   downsampling +--------+
                +---< L >-------< 2! >----+ Sl(cA) |
                    filter                +--------+
-        
-        Sometimes DWT is called FWT as well, which stands for Fast-WT. Indeed, 
-        DWT is really really fast and efficient. By constructing special QMFs 
-        the corresponding DWT can be computed via filtering and downsampling, 
-        which is the state-of-the-art algorithm to compute DWTs today. You do 
-        not need the scaling function to compute the DWT, it is just an 
+
+        Sometimes DWT is called FWT as well, which stands for Fast-WT. Indeed,
+        DWT is really really fast and efficient. By constructing special QMFs
+        the corresponding DWT can be computed via filtering and downsampling,
+        which is the state-of-the-art algorithm to compute DWTs today. You do
+        not need the scaling function to compute the DWT, it is just an
         implementation detail that FWT process.
-        
-        P.S. Sh, Sl is more known as cD(detailed coefficients vector) and 
+
+        P.S. Sh, Sl is more known as cD(detailed coefficients vector) and
         cA(approximate coefficients vector) in some tutorials.
         '''
         if wavelet not in pywt.wavelist():
             wavelet = 'haar'
         return pywt.dwt(X, wavelet)
-    
-    @check_shape
+
+    @_check_shape
     def convolve_fft(self, X, filters):
         '''
         Multiplication on frequency domain is convolve on time domain.
-        
-        2018.7.20: 
-            Well, after some trying, this function act to be useful only when 
-            X is very long. But Numpy can't convolve on 2D mat and fft and 
+
+        2018.7.20:
+            Well, after some trying, this function act to be useful only when
+            X is very long. But Numpy can't convolve on 2D mat and fft and
             multiply can. So convolve2d_fft is good. Enjoy!
         '''
         assert X.shape[1] == filters.shape[1]
@@ -453,8 +488,8 @@ class Signal_Info(object):
         f1 = np.fft.fft(X, axis=-1)
         f2 = np.fft.fft(filters, axis=-1)
         return np.real(np.fft.ifft(f1 * f2))
-    
-    @check_shape
+
+    @_check_shape
     def convolve2d_fft(self, X, filters):
         '''
         see convolve_fft for details
@@ -464,21 +499,21 @@ class Signal_Info(object):
         f1 = np.fft.fft2(X)
         f2 = np.fft.fft2(filters)
         return np.real(np.fft.ifft2(f1 * f2))
-    
-    @check_shape
-    def Continuous_Wavelet_Transform(self, X, scales, sample_rate=None, 
+
+    @_check_shape
+    def Continuous_Wavelet_Transform(self, X, scales, sample_rate=None,
                                      wavelet=None, use_scipy_signal=True):
         '''
         Unforturnately it's a very misleading terminology here to name it by
-        Continuous Wavelet Transform. Actually, in engineering, both cwt and 
-        dwt are digital, point-by-point transform algorithums that can easily 
+        Continuous Wavelet Transform. Actually, in engineering, both cwt and
+        dwt are digital, point-by-point transform algorithums that can easily
         implemented on a computer. If two mathematicians talk about CWT, it
         really mean Continuous-WT. But here, CWT just misleading people.
-        
+
         A cwt is a discret operation as well as dwt. The difference is how they
         convolve signal with wavelet. CWT will convolve signal with wavelet
-        moveing foreward point-by-point while DWT moves window-by-window. When 
-        decomposition level grows, wavelet need to be expanded in length. CWT 
+        moveing foreward point-by-point while DWT moves window-by-window. When
+        decomposition level grows, wavelet need to be expanded in length. CWT
         wavelet length will be 2, 3, 4, 5, ... and DWT will be 2, 4, 8, ...
         '''
         # check params
@@ -488,7 +523,7 @@ class Signal_Info(object):
         assert 0 not in scales
         if not use_scipy_signal and wavelet not in pywt.wavelist():
             wavelet = 'morl'
-        
+
         # prepare wavelets
         if use_scipy_signal:
             wavelets = [wavelet(min(10 * scale, X.shape[1]), scale) \
@@ -500,7 +535,7 @@ class Signal_Info(object):
                 j = np.floor(
                         np.arange(scale*(x[-1]-x[0])+1) / scale / (x[1]-x[0]))
                 wavelets += [int_psi[ j[j < len(int_psi)].astype(int) ][::-1]]
-        
+
         # convolve
         coef = np.array([[np.convolve(ch, w, mode='same') for w in wavelets] \
                          for ch in X])
@@ -508,12 +543,12 @@ class Signal_Info(object):
             freq = None
         else:
             coef = - np.sqrt(scales).reshape(len(scales), 1) * np.diff(coef)
-            freq = (pywt.central_frequency(wavelet, 10) / scales * 
+            freq = (pywt.central_frequency(wavelet, 10) / scales *
                     (sample_rate or self._fs))
         return coef, freq
-    
-    @check_shape
-    def Wavelet_Decomposition(self, X, wavelet=None, use_cwt=False, 
+
+    @_check_shape
+    def Wavelet_Decomposition(self, X, wavelet=None, use_cwt=False,
                               sample_rate=None, scales=None):
         '''
         While the difference between a wavelet decomposition and a wavelet
@@ -524,49 +559,49 @@ class Signal_Info(object):
         wavedec returns cAn cDn cDn-1 ... cD1
         '''
         if use_cwt:
-            c, f = self.cwt(X, (scales or 10), sample_rate, 
+            c, f = self.cwt(X, (scales or 10), sample_rate,
                             (wavelet or signal.ricker))
         else:
             if wavelet not in pywt.wavelist():
                 wavelet = 'haar'
             return pywt.wavedec(X, wavelet)
-        
-    @check_shape
+
+    @_check_shape
     def Hilbert_Huang_Transform(self, X, sample_rate=None):
         '''
         HHT(Hilbert Huang Transform) is a method to extract signal information
-        on both time and frequency domain, it performs Empirical Mode 
+        on both time and frequency domain, it performs Empirical Mode
         Decomposition(EMD) and Hilbert transform based Signal Analysis.
         First raw signal will be decomposed into Intrinsic Mode Functions(IMFs)
-        based on algorithm presented by Huang et al. in 1998. IMFs are actually 
-        components of raw signal within different frequency durations. 
-        Comparing to samiliar decomposition algrithm Wavelet Transform, EMD 
+        based on algorithm presented by Huang et al. in 1998. IMFs are actually
+        components of raw signal within different frequency durations.
+        Comparing to samiliar decomposition algrithm Wavelet Transform, EMD
         generates much precies result both in time domain and frenqucy domain.
         HSA can compute instant frenquency of IMFs, thus outputing time-freq
         spectrum.
-        
+
         +---+   EMD   +------+    HSA    +--------------------+
         | S +---------+ IMFs +-----------+ Freq-Time spectrum |
         +---+         +------+           +--------------------+
-        
+
         Notes
         -----
         Difference between two hilbert in scipy
         1 scipy.fftpack.hilbert(x) ==> y
         2 scipy.signal.hilbert(x) ==> x + iy
           y is hilbert tranform of x, this result is known as analytic signal
-          
+
         scipy.signal.hilbert(x) = x + scipy.fftpack.hilbert(x) * j
         '''
         imfs = np.array([pyhht.EMD(ch).decompose() for ch in X])
         analytic_signal = signal.hilbert(imfs, axis=-1)
         inst_phase_wrapped = np.angle(analytic_signal)
         inst_phase = np.unwrap(inst_phase_wrapped, axis=-1)
-        inst_freq = (np.diff(inst_phase, axis=-1) / (2 * np.pi) * 
+        inst_freq = (np.diff(inst_phase, axis=-1) / (2 * np.pi) *
                      (sample_rate or self._fs))
         return inst_freq
 
-    @check_shape
+    @_check_shape
     def sync_like(self, X):
         '''
         Sychronization likelihood is the method to abstract a state vector
@@ -581,7 +616,7 @@ class Signal_Info(object):
         '''
         pass
 
-    @check_shape
+    @_check_shape
     def find_max_amp(self, X, low, high, sample_rate):
         '''
         Extract peek between frequency duration (n_min, n_max)
@@ -594,7 +629,7 @@ class Signal_Info(object):
         amp = amp[:, int(low/dt):int(high/dt)]**2
         return np.array([np.argmax(amp, 1) * dt + low, np.max(amp, 1)])
 
-    @check_shape
+    @_check_shape
     def energy(self, X, low, high, sample_rate=None):
         '''
         Intergrate of energy on frequency duration (low, high)
@@ -607,7 +642,7 @@ class Signal_Info(object):
         amp = amp[:, int(low/dt):int(high/dt)]**2
         return np.sum(amp, 1) * dt
 
-    @check_shape
+    @_check_shape
     def energy_time_duration(self, reader, low, high, duration):
         '''
         calculate energy density of time duration
@@ -626,14 +661,14 @@ class Signal_Info(object):
         threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
         return stop_flag, energy_sum
 
-    @check_shape
+    @_check_shape
     def energy_spectrum(self, X):
         '''
-        
+
         '''
         pass
-    
-    @check_shape
+
+    @_check_shape
     def scalogram(self, X, sample_rate=None):
         rst = self.cwt(X,
                        scale=np.arange(1, 31),
@@ -647,7 +682,7 @@ class Signal_Info(object):
         '''
         return rst
 
-    @check_shape
+    @_check_shape
     def power_spectrum(self, X, sample_rate=None, method = 2):
         '''
         There are two kinds of defination of power spectrum(PS hereafter).
@@ -656,8 +691,8 @@ class Signal_Info(object):
         2. PS = abs(fft(X))**2 / sample_time
            It is known that
                'P = W / S'
-           (power equals to energy divided by time duration), and 
-           'abs(fft(X))**2' is known as energy spectrum. But here we use 
+           (power equals to energy divided by time duration), and
+           'abs(fft(X))**2' is known as energy spectrum. But here we use
                'psd = fft**2 / freq-duration'
            unit of psd will be 'W/Hz' instead of 'W/s'
 
@@ -681,11 +716,11 @@ class Signal_Info(object):
 
 
 
-    
-    
+
+
 if __name__ == '__main__':
     s = Signal_Info(500)
-    
+
     # fake data with shape of (10 samples x 8 channels x 1024 window_size)
     X = np.random.random((10, 8, 1024))
     print('create data with shape {}'.format(X.shape))

@@ -22,6 +22,9 @@ import numpy as np
 
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
+
+
 
 # In python3 reduce need to be imported while python2 not
 if sys.version_info.major == 3:

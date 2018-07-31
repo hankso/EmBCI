@@ -8,7 +8,7 @@ Created on Tue Mar  6 20:45:20 2018
 # built-in
 from __future__ import print_function
 import os
-import sys
+import sys; sys.path += ['../src']
 import time
 import mmap
 import socket
@@ -35,6 +35,9 @@ from gyms import TorcsEnv
 from gyms import PlaneClient
 from ads1299_api import ADS1299_API, ESP32_API
 from ili9341_api import ILI9341_API
+
+# from ../src
+import preprocessing
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
@@ -307,10 +310,19 @@ class _basic_reader(object):
         return np.concatenate((
             self._data[:-1, self._fr_last_index:],
             self._data[:-1, :self._fr_last_index]), -1)
-        
-    def __getitem__(self, item):
-        return self._data[:-1][item]
 
+    def __getitem__(self, items):
+        if isinstance(items, tuple):
+            for item in items:
+                self = self.__getitem__(item)
+            return self
+        if isinstance(items, slice):
+            return self._data[items]
+        elif isinstance(items, str) and items in vars(preprocessing.Signal_Info):
+            return getattr(preprocessing.Signal_Info(self.sample_rate), items)(self)
+        else:
+            print(self._name + 'unknown preprocessing method %s' % items)
+            return self
 
 class Fake_data_generator(_basic_reader):
     '''Generate random data, same as any Reader defined in IO.py'''
@@ -321,7 +333,7 @@ class Fake_data_generator(_basic_reader):
                  sample_time=2,
                  n_channel=1,
                  *args, **kwargs):
-        super(Fake_data_generator, self).__init__(sample_rate, 
+        super(Fake_data_generator, self).__init__(sample_rate,
                                                   sample_time, n_channel)
         self._name = '[Fake data generator %d] ' % Fake_data_generator._num
         self._send_to_pylsl = send_to_pylsl
@@ -347,7 +359,7 @@ class Fake_data_generator(_basic_reader):
         self._index = (self._index + 1) % self.window_size
         if self._send_to_pylsl:
             self._outlet.push_sample(d)
-            
+
 
 
 class Files_reader(_basic_reader):
@@ -540,8 +552,8 @@ class Serial_reader(_basic_reader):
         self._index = (self._index + 1) % self.window_size
         if self._send_to_pylsl:
             self._outlet.push_sample(d)
-            
-            
+
+
 
 class ADS1299_reader(_basic_reader):
     '''
@@ -633,7 +645,7 @@ class Socket_reader(_basic_reader):
                  sample_time=2,
                  n_channel=1,
                  *args, **kwargs):
-        super(Socket_reader, self).__init__(sample_rate, 
+        super(Socket_reader, self).__init__(sample_rate,
                                             sample_time, n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         # TCP IPv4 socket connection
@@ -1021,6 +1033,12 @@ class Serial_Screen_commander(Serial_commander):
                 k['c'] = self._color_map[type(k['c'])][k['c']]
             except NameError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
+        if 'bg' in k:
+            assert type(k['bg']) in self._color_map, 'bg only can be str or int'
+            try:
+                k['bg'] = self._color_map[type(k['bg'])][k['bg']]
+            except NameError:
+                raise ValueError('Unsupported color: {}'.format(k['bg']))
         try:
             cmd = cmd.format(*a, **k)
         except IndexError:
@@ -1033,26 +1051,6 @@ class Serial_Screen_commander(Serial_commander):
     def close(self):
         self.send('clear')
         super(Serial_Screen_commander, self).close()
-
-
-class Serial_ESP32_commander(Serial_commander):
-    def __init__(self, baud=115200, command_dict=command_dict_esp32):
-        raise RuntimeError('Deprecated!!!')
-    #     super(Serial_ESP32_commander, self).__init__(baud, command_dict)
-    #     self._name = self._name[:-2] + ' for ESP32' + self._name[-2:]
-    #
-    # def send(self, key, *args, **kwargs):
-    #     self.check_key(key)
-    #     cmd, delay = self._command_dict[key]
-    #     time.sleep(delay)
-    #     if key.startswith('readreg'):
-    #         self._serial.write(cmd)
-    #         return self._serial.read_until('\n')
-    #     elif key.startswith('writereg'):
-    #         self._serial.write(cmd)
-    #     elif key == 'start':
-    #         self._serial.write('start')
-    #     return cmd
 
 
 class _convert_24bit_to_565():
@@ -1096,7 +1094,7 @@ class SPI_Screen_commander(_basic_commander):
     def send(self, key, *a, **k):
         '''
         Never inherit API class, just use it. Because funcitons with same names
-        may conflict with each other!
+        may conflict with each other! super(aaa, self).bbb() is not a good idea.
         '''
         if 'c' in k:
             assert type(k['c']) in self._color_map, 'c only can be str or int'
@@ -1104,12 +1102,22 @@ class SPI_Screen_commander(_basic_commander):
                 k['c'] = self._color_map[type(k['c'])][k['c']]
             except KeyError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
+        if 'bg' in k:
+            assert type(k['bg']) in self._color_map, 'bg only can be str or int'
+            try:
+                k['bg'] = self._color_map[type(k['bg'])][k['bg']]
+            except NameError:
+                raise ValueError('Unsupported color: {}'.format(k['bg']))
         if hasattr(self._ili, 'draw_' + key):
             getattr(self._ili, 'draw_' + key)(*a, **k)
         elif hasattr(self._ili, key):
             getattr(self._ili, key)(*a, **k)
         else:
             print(self._name + 'No such key `{}`!'.format(key))
+
+    def close(self):
+        self._ili.close()
+        super(SPI_Screen_commander, self).close()
 
 
 class _testReader(unittest.TestCase):
