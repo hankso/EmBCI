@@ -407,7 +407,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
             pickle.dump(tmp, f)
 
-    def load_layout(self, dir):
+    def load_layout(self, dir, render=True):
         '''read in a layout from file'''
         layouts = glob.glob(os.path.join(dir, 'layout*.pcl'))
         if len(layouts) == 0:
@@ -436,7 +436,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 e['s'] = e['s'].encode('gbk')
         for e in self.widget:
             self.widget[e] += tmp[e]
-        self.render()
+        if render:
+            self.render()
 
     def freeze_frame(self):
         '''save current frame buffer in background'''
@@ -464,7 +465,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 self.clear(**e)
                 if name == 'button':
                     e['c'] = e['ct']; self.send('text', **e)
-                    if e['cr'] is not 'None':
+                    if e['cr'] is not None:
                         e['c'] = e['cr']; self.send('rect', **e)
                 elif name == 'img' and 'Serial' in self._name:
                     self._plot_point_by_point(e)
@@ -476,7 +477,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     if name == 'button':
                         for bt in self.widget[name]:
                             bt['c'] = bt['ct']; self.send('text', **bt)
-                            if bt['cr'] is not 'None':
+                            if bt['cr'] is not None:
                                 bt['c'] = bt['cr']; self.send('rect', **bt)
                     elif name == 'img' and 'Serial' in self._name:
                         for e in self.widget['img']:
