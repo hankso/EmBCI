@@ -109,8 +109,8 @@ def rgb888to565_pro(r, g, b):
 def rgb565to888(ch, cl):
     '''input [chigh, clow] and output (r, g, b)'''
     r = ch & 0b11111000 | ((ch >> 3) & 0b00111)
-    g = ch << 5 | (cl & 0b11100000) >> 3 | (cl >> 5) & 0b011
-    b = cl << 3 | cl & 0b00111
+    g = (ch & 0b111) << 5) | (cl & 0b11100000) >> 3 | (cl >> 5) & 0b011
+    b = (cl & 0b11111) << 3 | cl & 0b00111
     return (r, g, b)
 
 def rgb565to888_pro(ch, cl):
@@ -433,7 +433,7 @@ class ILI9341_API(spidev.SpiDev):
             return
         w, h = self.font.getsize(s)
         bg = ILI9341_BLACK if c == ILI9341_WHITE else ILI9341_WHITE
-        img = Image.new(mode='RGB', size=(w, h), color=rgb565to888(bg))
+        img = Image.new(mode='RGB', size=(w, h), color=rgb565to888(*bg))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8), bg=bg)
