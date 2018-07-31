@@ -9,6 +9,7 @@ Created on Wed Feb 28 10:56:36 2018
 @author: hank
 @page:   https://github.com/hankso
 """
+import os
 import sys; sys.path += ['../utils']
 import IO
 

@@ -456,11 +456,19 @@ class ESP32_API(ADS1299_API):
             return
         self.write_register(REG_IS, INPUT_SOURCE[src])
 
+    @property
+    def do_enable_bias(self):
+        return self._enable_bias
+
     @do_enable_bias.setter
     def do_enable_bias(self, boolean):
         assert self._started
         self.write_register(REG_BIAS, int(boolean))
         self._enable_bias = boolean
+
+    @property
+    def do_measure_inpedance(self):
+        return self._measure_inpedance
 
     @do_measure_inpedance.setter
     def do_measure_inpedance(self, boolean):

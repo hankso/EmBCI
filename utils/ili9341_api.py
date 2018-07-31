@@ -12,6 +12,7 @@ but it's fast enough: calling functions and passing params consume time!
 # built-ins
 import os
 import time
+import threading
 
 # pip install spidev, pillow, numpy
 import spidev
@@ -130,6 +131,7 @@ def rgb565to24(ch, cl):
 
 
 class ILI9341_API(spidev.SpiDev):
+    _lock = threading.Lock()
     def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
         '''
         Create an instance of the display using SPI communication.  Must
@@ -202,9 +204,10 @@ class ILI9341_API(spidev.SpiDev):
 
     def flush(self, x1, y1, x2, y2):
         '''write data in framebuffer to screen'''
-        self._set_window(x1, y1, x2, y2)
-        # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())  # used time: 621ns
-        self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())      # used time: 407ns
+        with self._lock:
+            self._set_window(x1, y1, x2, y2)
+            # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())  # used time: 621ns
+            self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())      # used time: 407ns
 
     def reset(self):
         self._rst.value = 1
@@ -261,8 +264,7 @@ class ILI9341_API(spidev.SpiDev):
 
     def draw_point(self, x, y, c, *a, **k):
         self.fb[y, x] = c
-        self._set_window(x, y, x, y)
-        self._data(c)
+        self.flush(x, y, x, y)
 
     def draw_line(self, x1, y1, x2, y2, c, *a, **k):
         # draw vertical or horizontal line

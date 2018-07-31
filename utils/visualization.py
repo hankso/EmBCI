@@ -27,7 +27,7 @@ import serial
 from PIL import Image
 
 # from ../src
-from preprocessing import Processer
+from preprocessing import Signal_Info
 from common import time_stamp, check_input
 from IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from IO import SPI_Screen_commander
@@ -108,7 +108,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         data = np.array(data)
     if len(data.shape) != 2:
         raise
-    p = Processer(sample_rate, sample_time)
+    p = Signal_Info(sample_rate)
     for ch, d in enumerate(data):
         plt.figure('%s_%d' % (actionname, ch))
 
@@ -161,6 +161,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.xlabel('Frequency')
         plt.ylabel('dB/Hz')
 
+
 class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
@@ -181,7 +182,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.start(port)  # set serial screen port
         self.send('dir', 1)  # set screen vertical
         self.width, self.height = width, height
-        self.write_lock = threading.Lock()
         self._touch_started = False
         self.touch_sensibility = 4
 
@@ -399,37 +399,36 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         # text string is storaged as gbk in self.widget
         # convert it to utf8 to jsonify
         tmp = self.widget.copy()
-        for i in tmp['button']:
-            i['callback'] = None
-        with open(os.path.join(dir, 'layout-%s.json' % time_stamp()), 'w') as f:
+        for e in tmp['button']:
+            e['callback'] = None
+        if 'Serial' in self._name:
+            for e in tmp['text'] + tmp['button']:
+                e['s'] = e['s'].decode('gbk')
+        with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
             pickle.dump(tmp, f)
 
     def load_layout(self, dir):
         '''read in a layout from file'''
         while 1:
             prompt = 'choose one from `%s`' % '` | `'.join([os.path.basename(i) \
-                    for i in glob.glob(os.path.join(dir, 'layout*.json'))])
+                    for i in glob.glob(os.path.join(dir, 'layout*.pcl'))])
             try:
                 with open(check_input(prompt, {}), 'r') as f:
-                    tmp = json.load(f)
+                    tmp = pickle.load(f)
             except KeyboardInterrupt:
                 print('Abort')
                 return
             except:
                 print('error!')
-        # json.load returns unicode
-        for i in tmp['button']:
-            if 'Serial' in self._name:
-                i['s'] = i['s'].encode('gbk')
             i['callback'] = self._default_callback \
                             if i['callback'] == None else i['callback']
-        for i in tmp['text']:
-            if 'Serial' in self._name:
-                i['s'] = i['s'].encode('gbk')
-        for i in self.widget['img']:
-            w, h = i['x2'] - i['x1'], i['y2'] - i['y1']
-            i['img'] = np.frombuffer(i['img'], np.uint8).reshape(h, w)
-        self.widget.update(tmp)
+        for e in tmp['button']:
+            e['callback'] = self._default_callback
+        if 'Serial' in self._name:
+            for e in tmp['text'] + tmp['button']:
+                e['s'] = e['s'].encode('gbk')
+        for e in self.widget:
+            self.widget[e] += tmp[e]
         self.render()
 
     def freeze_frame(self):
@@ -451,36 +450,35 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                   % (bt['id'], bt['s'], x, y, time.time()))
 
     def render(self, name=None, num=None, *a, **k):
-        with self.write_lock:
-            try:
-                if None not in [name, num]: # render an element
-                    ids = [i['id'] for i in self.widget[name]]
-                    e = self.widget[name][ids.index(num)]
-                    self.clear(**e)
+        try:
+            if None not in [name, num]: # render an element
+                ids = [i['id'] for i in self.widget[name]]
+                e = self.widget[name][ids.index(num)]
+                self.clear(**e)
+                if name == 'button':
+                    e['c'] = e['ct']; self.send('text', **e)
+                    if e['cr'] is not 'None':
+                        e['c'] = e['cr']; self.send('rect', **e)
+                elif name == 'img' and 'Serial' in self._name:
+                    self._plot_point_by_point(e)
+                else:
+                    self.send(name, **e)
+            else: # render all
+                self.clear() # clear all
+                for name in self.widget.keys():
                     if name == 'button':
-                        e['c'] = e['ct']; self.send('text', **e)
-                        if e['cr'] is not 'None':
-                            e['c'] = e['cr']; self.send('rect', **e)
+                        for bt in self.widget[name]:
+                            bt['c'] = bt['ct']; self.send('text', **bt)
+                            if bt['cr'] is not 'None':
+                                bt['c'] = bt['cr']; self.send('rect', **bt)
                     elif name == 'img' and 'Serial' in self._name:
-                        self._plot_point_by_point(e)
+                        for e in self.widget['img']:
+                            self._plot_point_by_point(e)
                     else:
-                        self.send(name, **e)
-                else: # render all
-                    self.clear() # clear all
-                    for name in self.widget.keys():
-                        if name == 'button':
-                            for bt in self.widget[name]:
-                                bt['c'] = bt['ct']; self.send('text', **bt)
-                                if bt['cr'] is not 'None':
-                                    bt['c'] = bt['cr']; self.send('rect', **bt)
-                        elif name == 'img' and 'Serial' in self._name:
-                            for e in self.widget['img']:
-                                self._plot_point_by_point(e)
-                        else:
-                            for e in self.widget[name]:
-                                self.send(name, **e)
-            except Exception as e:
-                print(e)
+                        for e in self.widget[name]:
+                            self.send(name, **e)
+        except Exception as e:
+            print(e)
 
     def _plot_point_by_point(self, e):
         for x in range(e['x2'] - e['x1']):
@@ -567,13 +565,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             for bt in self.widget['button']:
                 if x>bt['x1'] and x<bt['x2'] and y>bt['y1'] and y<bt['y2']:
                     if bt['ca'] is not 'None':
-                        with self.write_lock:
-                            bt['c'] = bt['ca']
-                            self.send('rect', **bt)
-                            time.sleep(0.3)
-                            bt['c'] = bt['cr']
-                            self.send('rect', **bt)
-                            time.sleep(0.2)
+                        bt['c'] = bt['ca']
+                        self.send('rect', **bt)
+                        time.sleep(0.3)
+                        bt['c'] = bt['cr']
+                        self.send('rect', **bt)
+                        time.sleep(0.2)
                     self._callback_threads.append(
                         threading.Thread(
                             target=bt['callback'],
@@ -590,8 +587,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                       x2=max(x1, x2), y2=max(y1, y2))
 
     def close(self):
-        with self.write_lock:
-            super(Serial_Screen_GUI, self).close()
+        super(Serial_Screen_GUI, self).close()
         if self._touch_started:
             self._flag_close.set()
             try:
@@ -629,7 +625,6 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         super(SPI_Screen_GUI, self).__init__(spi_device)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
         self.start()
-        self.write_lock = threading.Lock()
         self._touch_started = False
         self.touch_sensibility = 4
 

@@ -14,9 +14,8 @@ import mmap
 import socket
 import select
 import unittest
-from threading import Thread
-from multiprocessing import Process, Event
-from multiprocessing import Value
+import threading
+import multiprocessing
 from ctypes import c_uint16
 
 # pip install numpy, scipy, serial, mne, spidev, pylsl
@@ -196,13 +195,18 @@ class _basic_reader(object):
         # maintain a FIFO-loop queue to store data
         # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
         self._data = None
-        self._index_mp_value = Value(c_uint16, 0)
+        self._index_mp_value = multiprocessing.Value(c_uint16, 0)
         self._ch_last_index = self._fr_last_index = self._index_mp_value.value
         self._started = False
 
         # use these flags to controll the data streaming thread
-        self._flag_pause = Event()
-        self._flag_close = Event()
+        # ======================================================================
+        self._flag_pause = multiprocessing.Event()
+        self._flag_close = multiprocessing.Event()
+        # ======================================================================
+        # self._flag_pause = threading.Event()
+        # self._flag_close = threading.Event()
+        # ======================================================================
         self._flag_pause.set()
 
     def start(self):
@@ -217,11 +221,11 @@ class _basic_reader(object):
         self._start_time = time.time()
 
         # ======================================================================
-        self._process = Process(target=self._stream_data)
+        self._process = multiprocessing.Process(target=self._stream_data)
         self._process.daemon = True
         self._process.start()
         # ======================================================================
-        # self._thread = Thread(target=self._stream_data)
+        # self._thread = threading.Thread(target=self._stream_data)
         # self._thread.setDaemon(True)
         # self._thread.start()
         # ======================================================================
@@ -705,13 +709,13 @@ class Socket_server(object):
         self._server.bind((host, port))
         self._server.listen(5)
         self._server.settimeout(0.5)
-        self._flag_close = Event()
+        self._flag_close = threading.Event()
         print(self._name + 'binding socket server at %s:%d' % (host, port))
 
     def start(self):
         if not hasattr(self, '_thread'):
             # handle connection in a seperate thread
-            self._thread = Thread(target=self._manage_connections)
+            self._thread = threading.Thread(target=self._manage_connections)
             self._thread.setDaemon(True)
             self._thread.start()
 
@@ -871,16 +875,12 @@ class _basic_commander(object):
     def send(self, key, *args, **kwargs):
         raise NotImplementedError('you can not directly use this class')
 
+    write = send
+
     def check_key(self, key):
         if key not in self._command_dict:
             print(self._name + 'Wrong command {}! Abort.'.format(key))
             return
-
-    def write(self, key, *args, **kwargs):
-        '''
-        wrapper for usage of `print(cmd, file=commander)`
-        '''
-        self.send(key, *args, **kwargs)
 
     def close(self):
         raise NotImplementedError('you can not directly use this class')
@@ -970,6 +970,7 @@ class Pylsl_commander(_basic_commander):
 
 
 class Serial_commander(_basic_commander):
+    _lock = threading.Lock()
     _num =  1
     def __init__(self, baudrate=9600,
                  command_dict=command_dict_glove_box,
@@ -992,12 +993,13 @@ class Serial_commander(_basic_commander):
     def send(self, key, *args, **kwargs):
         self.check_key(key)
         cmd, delay = self._command_dict[key]
-        self._serial.write(cmd)
-        if self._CR:
-            self._serial.write('\r')
-        if self._LF:
-            self._serial.write('\n')
-        time.sleep(delay)
+        with self._lock:
+            self._serial.write(cmd)
+            if self._CR:
+                self._serial.write('\r')
+            if self._LF:
+                self._serial.write('\n')
+            time.sleep(delay)
         return cmd
 
     def close(self):
@@ -1044,7 +1046,8 @@ class Serial_Screen_commander(Serial_commander):
         except IndexError:
             print(self._name + 'unmatch key {} - {} and params {}!'.format(
                     key, cmd, a))
-        self._serial.write(cmd)
+        with self._lock:
+            self._serial.write(cmd)
         time.sleep(delay)
         return cmd
 
@@ -1074,7 +1077,7 @@ class SPI_Screen_commander(_basic_commander):
         if SPI_Screen_commander._singleton == False:
             raise RuntimeError('There is already one SPI Screen Commander.')
         self._ili = ILI9341_API(spi_device, width=width, height=height)
-        self._ili.setfont(__dir__ + '/../files/spi_screen/yahei_mono.ttf')
+        self._ili.setfont(__dir__ + '/../files/fonts/yahei_mono.ttf')
         self._name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
@@ -1117,7 +1120,6 @@ class SPI_Screen_commander(_basic_commander):
 
     def close(self):
         self._ili.close()
-        super(SPI_Screen_commander, self).close()
 
 
 class _testReader(unittest.TestCase):
