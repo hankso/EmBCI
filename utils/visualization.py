@@ -256,13 +256,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def draw_img(self, x, y, img, bg=None, **k):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
-        if 'Serial' in self._name and len(img.shape) > 2:
-            img = img[:, :, 0]
-        if 'SPI' in self._name:
-            if len(img.shape) == 2:
-                img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
-            if img.shape[-1] > 3:
-                img = img[:, :, :3]
+        if len(img.shape) == 2:
+            img = np.repeat(img[:,:,np.newaxis], 3, axis=2)
+        assert len(img.shape) == 3, 'Invalid image shape {}!'.format(img.shape)
         self.widget['img'].append({'id': k['num'], 'bg': bg,
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]})
@@ -488,9 +484,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print(e)
 
     def _plot_point_by_point(self, e):
+        img = e['img'].copy()
+        if len(img.shape) == 3:
+            img = img[:,:,0]
         for x in range(e['x2'] - e['x1']):
             for y in range(e['y2'] - e['y1']):
-                if e['img'][y, x]:
+                if img[y, x]:
                     self.send('point', c=e['img'][y, x],
                               x=e['x1'] + x, y=e['y1'] + y)
 
@@ -529,10 +528,26 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def display_logo(self, filename):
         self.freeze_frame()
-        img = Image.open(filename).resize((self.width, self.height - 34))
-        self.draw_img(0, 0, np.array(img, dtype=np.uint8))
-        self.draw_text(self.width/4, self.height - 33, '任意点击开始')
-        self.draw_text(self.width/4, self.height - 17, 'click to start')
+        img = Image.open(filename)
+        # adjust img size
+        w, h = img.size
+        if float(w) / h >= float(self.width) / self.height:
+            img = img.resize((self.width, int(float(self.width)/w*h)))
+        else:
+            img = img.resize((int(float(self.height/h*w)), self.height))
+        # place it on center of the frame
+        w, h = img.size
+        self.draw_img((self.width-w)/2,
+                      (self.height-h)/2,
+                      np.array(img, dtype=np.uint8))
+        # add guide text
+        s1 = '任意点击开始'
+        w, h = self.getsize(s1)
+        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1)
+        s2 = 'click to start'
+        w, h = self.getsize(s2)
+        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2)
+        # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
             with self._read_lock:
@@ -541,7 +556,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self._flag_pause.set()
         else:
             time.sleep(1)
-            self.recover_frame()
+        self.recover_frame()
 
     def _get_touch_point(self):
         '''

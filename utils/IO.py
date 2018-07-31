@@ -1035,12 +1035,6 @@ class Serial_Screen_commander(Serial_commander):
                 k['c'] = self._color_map[type(k['c'])][k['c']]
             except NameError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
-        if 'bg' in k:
-            assert type(k['bg']) in self._color_map, 'bg only can be str or int'
-            try:
-                k['bg'] = self._color_map[type(k['bg'])][k['bg']]
-            except NameError:
-                raise ValueError('Unsupported color: {}'.format(k['bg']))
         try:
             cmd = cmd.format(*a, **k)
         except IndexError:
@@ -1105,12 +1099,13 @@ class SPI_Screen_commander(_basic_commander):
                 k['c'] = self._color_map[type(k['c'])][k['c']]
             except KeyError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
-        if 'bg' in k:
-            assert type(k['bg']) in self._color_map, 'bg only can be str or int'
-            try:
-                k['bg'] = self._color_map[type(k['bg'])][k['bg']]
-            except NameError:
-                raise ValueError('Unsupported color: {}'.format(k['bg']))
+        # if 'bg' in k and k['bg'] is not None:
+        #     assert type(k['bg']) in self._color_map, 'bg only can be str or int'
+        #     try:
+        #         k['bg'] = self._color_map[type(k['bg'])][k['bg']]
+        #         k['bg'] = list(ILI9341_API.rgb565to888(*k['bg']))
+        #     except NameError:
+        #         raise ValueError('Unsupported bg color: {}'.format(k['bg']))
         if hasattr(self._ili, 'draw_' + key):
             getattr(self._ili, 'draw_' + key)(*a, **k)
         elif hasattr(self._ili, key):
