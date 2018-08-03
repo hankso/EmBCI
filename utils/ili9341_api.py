@@ -109,7 +109,7 @@ def rgb888to565_pro(r, g, b):
 def rgb565to888(ch, cl):
     '''input [chigh, clow] and output (r, g, b)'''
     r = ch & 0b11111000 | ((ch >> 3) & 0b00111)
-    g = (ch & 0b111) << 5) | (cl & 0b11100000) >> 3 | (cl >> 5) & 0b011
+    g = (ch & 0b111) << 5 | (cl & 0b11100000) >> 3 | (cl >> 5) & 0b011
     b = (cl & 0b11111) << 3 | cl & 0b00111
     return (r, g, b)
 

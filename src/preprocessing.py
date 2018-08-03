@@ -15,12 +15,19 @@ import IO
 
 
 # pip install numpy, scipy, pywavelets, pyhht
+# apt install python-tk
+# note1:
+#     `apt install python-pywt` is recommended because pywavelets need to be
+#     compiled with gcc and so on. The package name may be `python-pywavelets`
+#     or `python-wavelets` or `python-pywt`
+# note2:
+#     pyhht relies on python-tk(as well as other dependences), so install it
+#     by apt install or pip install
 import numpy as np
 import pywt
 import scipy
 from scipy import signal, sparse, interpolate as ip
 import pyhht
-# import PyEMD
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
