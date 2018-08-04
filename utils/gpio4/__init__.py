@@ -175,7 +175,7 @@ class SysfsGPIO(object):
     def edge(self, data):
         self._write('edge', data)
 
-    def fileno(self, attr):
+    def fileno(self, attr='value'):
         return self._file[attr].fileno()
 
     def _read(self, attr):
