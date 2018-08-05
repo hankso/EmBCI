@@ -384,7 +384,7 @@ class ESP32_API(ADS1299_API):
     Because we only use ESP32 as SPI buffer, its SPI interface is implemented
     similar with ADS1299. So define this API class in submodule `ads1299_api.py`
     '''
-    def __init__(self, n_batch=50, scale=5.0/24/2**24):
+    def __init__(self, n_batch=32, scale=5.0/24/2**24):
         self.n_batch = n_batch
 
         # we send `nBatchs * 4Bytes * 8chs` 0x00
