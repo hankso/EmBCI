@@ -439,7 +439,7 @@ class ESP32_API(ADS1299_API):
 
     def write(self, byte_array):
         self._epoll.poll()
-        super(ESP32_API, self).write(byte_array)
+        return super(ESP32_API, self).write(byte_array)
 
     def write_register(self, reg, byte):
         '''Write register `reg` with value `byte`'''
