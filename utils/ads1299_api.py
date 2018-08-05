@@ -429,7 +429,7 @@ class ESP32_API(ADS1299_API):
 
         if not len(self._data_buffer):
             data = struct.pack(self._data_format, *self.write(self._tosend))
-            data = np.frombuffer(data, np.float32).reshape(self.n_batch, 8)
+            data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
         while (time.time() - self._last_time) < (1.0 / self._sample_rate):
