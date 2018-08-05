@@ -629,7 +629,9 @@ class ESP32_SPI_reader(ADS1299_reader):
         super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
-        self._ads = self._esp = ESP32_API(sample_rate, bias_enabled, test_mode)
+        self._ads = self._esp = ESP32_API()
+        self._bias_enabled = bias_enabled
+        self._test_mode = test_mode
         ESP32_SPI_reader._singleton = False
 
     def start(self, spi_device=(0, 0)):

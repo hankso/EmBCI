@@ -408,25 +408,27 @@ class ILI9341_API(spidev.SpiDev):
 
     def draw_img(self, x, y, img, *a, **k):
         '''draw img with shape of (height, width, depth) at (x, y)'''
+        img = np.atleast_3d(img).astype(np.uint8)
         x1, y1 = x, y
         x2 = max(min(x1 + img.shape[1], self.width), x1)
         y2 = max(min(y1 + img.shape[0], self.height), y1)
-        # correct img shape and extracting alpha channel
-        alpha = None
-        if img.shape[2] == 3:
-            pass
-        elif img.shape[2] == 4:
-            img, alpha = img[:,:,:-1], img[:,:,-1]
-            alpha = (alpha > 127)
-        else:
-            img = np.repeat(img[:,:,0], 3, axis=2)
-        # crop img to limited size and convert to two-bytes(5-6-5) color
-        d = img[:y2-y1, :x2-x1].copy().astype(np.uint16)
-        d = np.stack(rgb888to565(d[:, :, 0], d[:, :, 1], d[:, :, 2]), axis=-1)
-        if alpha is None:
-            self.fb[y1:y2, x1:x2] = d
-        else:
-            self.fb[y1:y2, x1:x2][alpha] = d[alpha]
+        img = img[:y2-y1, :x2-x1].astype(np.int16)
+        # img shape correction and extracting alpha channel
+        alpha = np.ones(img.shape[:2]).astype(np.float)
+        if img.shape[2] == 4:
+            img, alpha = np.split(img, [-1], axis=-1)
+            alpha = alpha.astype(np.float) / 255
+        elif img.shape[2] != 3:
+            img = np.repeat(img[:,:,0], 3, axis=-1)
+        # calculate difference of image and current framebuffer
+        current = np.split(self.fb[y1:y2, x1:x2].astype(np.uint16), 2, -1)
+        current = np.concatenate(rgb565to888_pro(*current), -1).astype(np.int16)
+        # weight it with alpha channel
+        dest = current + (img - current) * alpha
+        # convert to rgb565 and draw back on framebuffer
+        dest = np.split(dest.astype(np.uint16), 3, -1)
+        dest = np.concatenate(rgb888to565_pro(*dest), -1).astype(np.uint8)
+        self.fb[y1:y2, x1:x2] = dest
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
