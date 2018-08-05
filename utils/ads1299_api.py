@@ -425,7 +425,7 @@ class ESP32_API(ADS1299_API):
                 tosend = cmd + self.tosend[len(cmd):]
             else:
                 tosend = self.tosend
-            data = struct.pack(self._data_format, self.write(tosend))
+            data = struct.pack(self._data_format, *self.write(tosend))
             data = np.frombuffer(data, np.flost32).reshape(self.n_batch, 8)
             self._data_buffer = list(data)
         while (time.time() - self._last_time) < (1.0 / self._sample_rate):
