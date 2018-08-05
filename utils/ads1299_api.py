@@ -329,10 +329,10 @@ class ADS1299_API(spidev.SpiDev):
         '''
         Write byte list to ADS1299 through SPI and return value list
         '''
-        if not isinstance(bytes, list):
-            bytes = [bytes]
+        if not isinstance(byte_array, list):
+            byte_array = [byte_array]
         with self._lock:
-            value = self.xfer2(bytes)
+            value = self.xfer2(byte_array)
         return value
 
     def write_register(self, reg, byte):
