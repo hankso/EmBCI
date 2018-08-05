@@ -170,10 +170,15 @@ class ADS1299_API(spidev.SpiDev):
         # self._START.value = 0
         self._DRDY.export = True
         self._DRDY.direction = 'in'
+
+        # BUG: fixed
+        # a SysfsGPIO must be read at least once first
+        # to make it can be polled then
+        self._DRDY.value
+
         self._DRDY.edge = 'falling'
         self._epoll = select.epoll()
-        self._epoll.register(self._DRDY.fileno('value'),
-                             select.EPOLLET|select.EPOLLPRI)
+        self._epoll.register(self._DRDY, select.EPOLLET|select.EPOLLPRI)
         self._opened = True
 
     def start(self, sample_rate=250):
@@ -226,7 +231,7 @@ class ADS1299_API(spidev.SpiDev):
             self.write(SDATAC)
             self.write(STOP)
             super(ADS1299_API, self).close()
-            self._epoll.unregister(self._DRDY.fileno('value'))
+            self._epoll.unregister(self._DRDY)
             self._DRDY.export = False
             # self._START.export = False
             # self._PWRDN.export = False
@@ -385,8 +390,8 @@ class ESP32_API(ADS1299_API):
         # we send `nBatchs * 4Bytes * 8chs` 0x00
         # first 4Bytes is reserved for command to control ESP32
         # [cmd cmd cmd cmd 0x00 0x00 0x00 0x00 ... 0x00]
-        self.tosend = 4 * 8 * self.n_batch * [0x00]
-        self._data_format = '%dB' % len(self.tosend)
+        self._tosend = 4 * 8 * self.n_batch * [0x00]
+        self._data_format = '%dB' % len(self._tosend)
         self._cmd_buffer = []
         self._data_buffer = []
         self._last_time = time.time()
@@ -402,36 +407,39 @@ class ESP32_API(ADS1299_API):
         assert self._opened, 'you need to open a spi device first'
         if self._started:
             return
-        self._epoll.poll()
-        self.write([START] + self.tosend[1:])
         self._started = True
-        self._cmd_buffer = []
+        self.set_sample_rate(sample_rate)
 
     def close(self):
+        self._data_buffer = []
         self._cmd_buffer = []
         if self._opened:
-            self._epoll.poll()
-            self.write([STOP] + self.tosend[1:])
             super(ADS1299_API, self).close()
-            self._epoll.unregister(self._DRDY.fileno('value'))
+            self._epoll.unregister(self._DRDY)
             self._DRDY.export = False
 
     def read(self, *args, **kwargs):
         assert self._started
+
+        if len(self._cmd_buffer):
+            cmd = self._cmd_buffer.pop(0)
+            self.write(cmd + self._tosend[len(cmd):])
+            self._data_buffer = []
+            return np.zeros(8, np.float32)
+
         if not len(self._data_buffer):
-            self._epoll.poll()
-            if len(self._cmd_buffer):
-                cmd = self._cmd_buffer.pop(0)
-                tosend = cmd + self.tosend[len(cmd):]
-            else:
-                tosend = self.tosend
-            data = struct.pack(self._data_format, *self.write(tosend))
+            data = struct.pack(self._data_format, *self.write(self._tosend))
             data = np.frombuffer(data, np.float32).reshape(self.n_batch, 8)
             self._data_buffer = list(data)
+
         while (time.time() - self._last_time) < (1.0 / self._sample_rate):
             pass
         self._last_time = time.time()
         return self._data_buffer.pop(0)
+
+    def write(self, byte_array):
+        self._epoll.poll()
+        super(ESP32_API, self).write(byte_array)
 
     def write_register(self, reg, byte):
         '''Write register `reg` with value `byte`'''
@@ -456,6 +464,7 @@ class ESP32_API(ADS1299_API):
             print(' | '.join(SAMPLE_RATE.keys()))
             return
         self.write_register(REG_SR, SAMPLE_RATE[rate])
+        self._sample_rate = rate
 
     def set_input_source(self, src):
         assert self._started
