@@ -632,16 +632,19 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
     access to GUI control functions offered by `Serial_Screen_GUI`.
 
     Methods Outline:
-        Serial_Screen_commander:
-            start, send, write, close, check_key
-        Serial_Screen_GUI:
-            calibration_touch_screen, clear, remove_element, move_element,
-            draw_img, draw_buttom, draw_point, draw_line, draw_rect, draw_round,
-            draw_round_rect, draw_circle, draw_text, render, display_logo,
-            save_layout, load_layout, freeze_frame, recover_frame
-        SPI_Screen_commander:
+        Inherit from `SPI_Screen_commander`:
             start, send, write, close, setfont, setsize, getsize
-            # it will overload conflict functions from Serial_Screen_commander
+        Inherit from `Serial_Screen_GUI`:
+            draw_img, draw_buttom, draw_point,
+            draw_line, draw_rect, draw_round,
+            draw_round_rect, draw_circle, draw_text,
+            render, display_logo, calibration_touch_screen, clear,
+            save_layout, load_layout,
+            freeze_frame, recover_frame,
+            remove_element, move_element,
+        Inherit from `Serial_Screen_commander`:
+            start(overload), send(overload), write(overload), close(overload),
+            check_key
     '''
     def __init__(self, spi_device=(0, 1), *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)
