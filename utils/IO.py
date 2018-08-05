@@ -365,7 +365,6 @@ class Fake_data_generator(_basic_reader):
             self._outlet.push_sample(d)
 
 
-
 class Files_reader(_basic_reader):
     '''
     Read data from mat, fif, csv... file and simulate as a common data reader
@@ -558,7 +557,6 @@ class Serial_reader(_basic_reader):
             self._outlet.push_sample(d)
 
 
-
 class ADS1299_reader(_basic_reader):
     '''
     Read data from SPI connection with ADS1299.
@@ -634,7 +632,7 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._ads = self._esp = ESP32_API(sample_rate, bias_enabled, test_mode)
         ESP32_SPI_reader._singleton = False
 
-    def start(self, spi_device=(0, 1)):
+    def start(self, spi_device=(0, 0)):
         super(ESP32_SPI_reader, self).start(spi_device)
 
 

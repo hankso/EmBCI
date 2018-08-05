@@ -387,6 +387,8 @@ class ESP32_API(ADS1299_API):
         self.tosend = 4 * 8 * self.n_batch * [0x00]
         self._data_format = '%dB' % len(self.tosend)
         self._cmd_buffer = []
+        self._data_buffer = []
+        self._last_time = time.time()
 
         super(ESP32_API, self).__init__(scale)
 
@@ -415,14 +417,20 @@ class ESP32_API(ADS1299_API):
 
     def read(self, *args, **kwargs):
         assert self._started
-        self._epoll.poll()
-        if self._cmd_buffer:
-            cmd = self._cmd_buffer.pop(0)
-            tosend = cmd + self.tosend[len(cmd):]
-        else:
-            tosend = self.tosend
-        data = struct.pack(self._data_format, self.write(tosend))
-        return np.frombuffer(data, np.flost32).reshape(self.n_batch, 8)
+        if not len(self._data_buffer):
+            self._epoll.poll()
+            if len(self._cmd_buffer):
+                cmd = self._cmd_buffer.pop(0)
+                tosend = cmd + self.tosend[len(cmd):]
+            else:
+                tosend = self.tosend
+            data = struct.pack(self._data_format, self.write(tosend))
+            data = np.frombuffer(data, np.flost32).reshape(self.n_batch, 8)
+            self._data_buffer = list(data)
+        while (time.time() - self._last_time) < (1.0 / self._sample_rate):
+            pass
+        self._last_time = time.time()
+        return self._data_buffer.pop(0)
 
     def write_register(self, reg, byte):
         '''Write register `reg` with value `byte`'''
