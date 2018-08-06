@@ -219,13 +219,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._touch_started = False
         self.touch_sensibility = 4
 
-    def __str__(self):
-        info, max_len = '', 0
+    def __repr__(self):
+        info, max_len = '', 12
         for key in self.widget:
             id_str = ', '.join([e.id for e in self.widget[key]])
             info += ' {:11s} | {}'.format(key, id_str)
             max_len = max(max_len, len(id_str))
-        s = ('<{} @ {}\n {}\n'.format(self._name, hex(id(self)), self.__doc__) +
+        s = ('<{} @ {}\n'.format(self._name, hex(id(self))) +
              ' Touch Screen started: {}\n\n'.format(self._touch_started) +
              ' Widget summary:\n elements    | id\n ------------+' +
              '-' * max_len)
