@@ -404,28 +404,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def load_layout(self, dir, render=True):
         '''read in a layout from file'''
-        layouts = glob.glob(os.path.join(dir, 'layout*.pcl'))
-        if len(layouts) == 0:
-            print(self._name + 'load layout: no available layout files')
+        layout = find_layouts(dir)
+        if layout is None:
+            print(self._name + 'no available layout files in dir ' + dir)
             return
-        while 1:
-            if len(layouts) == 1:
-                filename = layouts[0]
-            else:
-                prompt = 'Choose one from ` %s `: ' % '` | `'.join(
-                    [os.path.basename(layout) for layout in layouts])
-                filename = check_input(prompt, {})
-            try:
-                with open(filename, 'r') as f:
-                    tmp = pickle.load(f)
-                break
-            except KeyboardInterrupt:
-                print('Abort')
-                return
-            except:
-                print('error!')
-        for e in tmp['button']:
-            e['callback'] = self._default_callback
+        try:
+            with open(layout, 'r') as f:
+                tmp = pickle.load(f)
+        except Exception as e:
+            print(self._name + 'load layout `' + layout + '` error: %s' % e)
+            return
         if 'Serial' in self._name:
             for e in tmp['text'] + tmp['button']:
                 e['s'] = e['s'].encode('gbk')
@@ -537,16 +525,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img.resize((int(float(self.height/h*w)), self.height))
         # place it on center of the frame
         w, h = img.size
-        self.draw_img((self.width-w)/2,
-                      (self.height-h)/2,
-                      np.array(img, dtype=np.uint8))
+        self.draw_img((self.width-w)/2, (self.height-h)/2,
+                      np.array(img, dtype=np.uint8), render=False)
         # add guide text
         s1 = '任意点击开始'
         w, h = self.getsize(s1)
-        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1)
+        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, render=False)
         s2 = 'click to start'
         w, h = self.getsize(s2)
-        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2)
+        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, render=False)
+        self.render()
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
@@ -587,17 +575,15 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             for bt in self.widget['button']:
                 if x>bt['x1'] and x<bt['x2'] and y>bt['y1'] and y<bt['y2']:
                     if bt['ca'] is not 'None':
-                        bt['c'] = bt['ca']
-                        self.send('rect', **bt)
+                        bt['c'] = bt['ca']; self.send('rect', **bt)
                         time.sleep(0.3)
-                        bt['c'] = bt['cr']
-                        self.send('rect', **bt)
-                        time.sleep(0.2)
-                    self._callback_threads.append(
-                        threading.Thread(
+                        bt['c'] = bt['cr']; self.send('rect', **bt)
+                    if bt['callback'] is not None:
+                        thread = threading.Thread(
                             target=bt['callback'],
-                            kwargs={'x': x, 'y': y, 'bt':bt}))
-                    self._callback_threads[-1].start()
+                            kwargs={'x': x, 'y': y, 'bt':bt})
+                        thread.start()
+                        self._callback_threads.append(thread)
         print('[Touch Screen] exiting...')
 
     def clear(self, x1=None, y1=None, x2=None, y2=None, *a, **k):

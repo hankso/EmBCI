@@ -82,23 +82,24 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
     -------
         >>> check_input('This will call pip and try install pycnbi. [Y/n] ',
                         {'y': True, 'n': False})
-        This will call pip and try install pycnbi. [Y/n] 123
+        [1/3] This will call pip and try install pycnbi. [Y/n] 123
         Invalid argument! Choose from [ y | n ]
-        This will call pip and try install pycnbi. [Y/n] y
-        (return True)
+        [2/3] This will call pip and try install pycnbi. [Y/n] y
+        # return True
     '''
     # In python2 raw_input return `str` and input retrun `eval(str)`
     if sys.version_info.major == 2:
         input = raw_input
     k = list(answer.keys())
-    while times:
-        times -= 1
-        rst = input(prompt)
+    t = 0
+    while t < times:
+        t += 1
+        rst = input('[%d/%d] ' % (t, times) + prompt)
         # answer == {}, maybe user want raw_input str returned
         if not k:
             if not rst:
                 if input('nothing input, confirm? [Y/n] ').lower() == 'n':
-                    times += 1
+                    t -= 1
                     continue
             return rst
         # answer != {}, check keys
@@ -149,9 +150,12 @@ def find_outlets(name=None, **kwargs):
                   '\nstream num(default 0): ')
         answer = {str(i):stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
-        stream = check_input(prompt, answer)
+        try:
+            stream = check_input(prompt, answer)
+        except KeyboardInterrupt:
+            sys.exit('No stream available! Abort.')
     if stream:
-        print(('Select stream {name} -- {chs} channel {type_num} {fmt} data '
+        print(('Select stream `{name}` -- {chs} channel {type_num} {fmt} data '
                'from {source} on server {host}').format(
                     name = stream.name(),
                     chs = stream.channel_count(),
@@ -191,12 +195,11 @@ def find_ports(timeout=3):
             answer[''] = port_list[0]
             port = check_input(prompt, answer)
         if port:
-            print('Select port {} -- {}'.format(port.device,
+            print('Select port `{}` -- {}'.format(port.device,
                                                 port.description))
             return port.device
         else:
             break
-    sys.exit('No port available! Abort.')
 
 
 def find_spi_devices():
@@ -212,11 +215,34 @@ def find_spi_devices():
                   '\ndevice num(default 0): ')
         answer = {str(i):dev for i, dev in enumerate(dev_list)}
         answer[''] = dev_list[0]
-        device = check_input(prompt, answer)
+        try:
+            device = check_input(prompt, answer)
+        except KeyboardInterrupt:
+            sys.exit('No divice available! Abort.')
     if device:
-        print('Select device {}'.format(device))
+        print('Select device `{}`'.format(device))
         return device
     sys.exit('No divice available! Abort.')
+
+
+def find_layouts(dir):
+    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
+    if len(layout_list) == 0:
+        layout = None
+    elif len(layout_list) == 1:
+        layout = layout_list[0]
+    else:
+        prompt = ('Please choose one from all available layouts:\n    ' +
+                  '\n    '.join(['%d %s' % (i, os.path.basename(j)) \
+                                 for i, j in enumerate(layout_list)]) +
+                  '\nlayout num(default 0): ')
+        answer = {str(i):layout for i, layout in enumerate(layout_list)}
+        answer[''] = layout_list[0]
+        layout = check_input(prompt, answer)
+    if layout is not None:
+        print('Select layout `{}`'.format(layout))
+        return layout
+    print('[find layouts] no available layout files')
 
 
 def virtual_serial():
