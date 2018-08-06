@@ -162,6 +162,35 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.ylabel('dB/Hz')
 
 
+class element_dict(dict):
+    def __getitem__(self, items):
+        if not isinstance(items, tuple):
+            if items not in self:
+                print('choose one from `%s`' % '` | `'.join(self.keys()))
+                return None
+            return dict.__getitem__(self, items)
+        for item in items:
+            if self is None:
+                print('Invalid index {}'.format(item))
+                break
+            self = self.__getitem__(item)
+        return self
+    __getattr__ = __getitem__
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+class element_list(list):
+    def __getitem__(self, id):
+        ids = [e.id for e in self]
+        if id in ids:
+            return list.__getitem__(self, ids.index(id))
+        if len(ids):
+            print('choose one from `%s`' % '` | `'.join(ids))
+        else:
+            print('no elements in this list now')
+        return None
+
+
 class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
@@ -171,10 +200,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
         'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',
         'press': 'red', 'bg': 'white'}
-    widget = {
-        'point': [], 'line': [], 'circle': [], 'circlef': [],
-        'round':[], 'roundf':[], 'rect':[], 'rectf':[],
-        'round_rect': [], 'round_rectf': [], 'text':[], 'button':[], 'img':[]}
+    widget = element_dict({'point': element_list(),
+        'text': element_list(), 'img': element_list(),
+        'button': element_list(), 'line': element_list(),
+        'circle': element_list(), 'circlef': element_list(),
+        'round': element_list(), 'roundf': element_list(),
+        'rect': element_list(), 'rectf': element_list(),
+        'round_rect': element_list(), 'round_rectf': element_list()})
     def __init__(self, port='/dev/ttyS2', baud=115200, width=220, height=176,
                  command_dict=command_dict_uart_screen_v1, *args, **kwargs):
         super(Serial_Screen_GUI, self).__init__(baud, command_dict)
@@ -259,9 +291,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if len(img.shape) == 2:
             img = np.repeat(img[:,:,np.newaxis], 3, axis=2)
         assert len(img.shape) == 3, 'Invalid image shape {}!'.format(img.shape)
-        self.widget['img'].append({'id': k['num'], 'bg': bg,
+        self.widget['img'].append(element_dict({'id': k['num'], 'bg': bg,
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
-            'x2': x + img.shape[1], 'y2': y + img.shape[0]})
+            'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
 
     @_pre_draw_check('button')
     def draw_button(self, x, y, s,
@@ -288,7 +320,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             s = s.encode('gbk')
         elif 'SPI' in self._name:
             w, h = self.getsize(s)
-        self.widget['button'].append({'id': k['num'],
+        self.widget['button'].append(element_dict({'id': k['num'],
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
@@ -296,25 +328,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'ct': ct or self._element_color['text'],
             'cr': cr or self._element_color['rect'],
             'ca': ca or self._element_color['press'],
-            'callback': cb or self._default_callback})
+            'callback': cb or self._default_callback}))
 
     @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
-        self.widget['point'].append({'id': k['num'],
+        self.widget['point'].append(element_dict({'id': k['num'],
             'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
-            'c': c or self._element_color['point']})
+            'c': c or self._element_color['point']}))
 
     @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
-        self.widget['line'].append({'id': k['num'],
+        self.widget['line'].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color['line']})
+            'c': c or self._element_color['line']}))
 
     @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
-        self.widget[k['name']].append({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color[k['name']]})
+            'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
@@ -326,23 +358,23 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x1, y1, x2, y2 = x - r, y - r, x, y
         elif m == 3:
             x1, y1, x2, y2 = x, y - r, x + r, y
-        self.widget[k['name']].append({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['num'],
             'x': x, 'y': y, 'r': r, 'm': m,
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color[k['name']]})
+            'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
-        self.widget[k['name']].append({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
-            'c': c or self._element_color[k['name']]})
+            'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
-        self.widget[k['name']].append({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
             'x': x, 'y': y, 'r': r, 's': s, 'e': e,
-            'c': c or self._element_color[k['name']]})
+            'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, **k):
@@ -355,36 +387,36 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         elif 'SPI' in self._name:
             self.setsize(size)
             w, h = self.getsize(s)
-        self.widget['text'].append({'id': k['num'],
+        self.widget['text'].append(element_dict({'id': k['num'],
             'x': x, 'y': y, 's': s,
             'x1': x, 'y1': y, 'size': size,
             'x2': min(x + w, self.width - 1),
             'y2': min(y + h, self.height - 1),
-            'c': c or self._element_color['text']})
+            'c': c or self._element_color['text']}))
 
-    def remove_element(self, name=None, num=None, render=True):
-        names = [str(key) for key in self.widget.keys() if self.widget[key]]
-        if len(names) == 0:
+    def remove_element(self, element=None, id=None, render=True):
+        elements = [key for key in self.widget.keys() if self.widget[key]]
+        if len(elements) == 0:
             print('Empty widget bucket now. Nothing to remove!')
             return
-        if name not in names:
-            print('Choose one from `%s`' % '` | `'.join(names))
+        if element not in elements:
+            print('Choose one from `%s`' % '` | `'.join(elements))
             return
-        ids = [str(e['id']) for e in self.widget[name]]
-        if str(num) not in ids:
-            print('choose one from `%s`' % '` | `'.join(ids))
-            return
-        self.widget[name].pop(ids.index(str(num)))
-        if render:
-            self.render()
+        e = self.widget[element, id]
+        if e is not None:
+            self.widget[element].remove(e)
+            if render:
+                self.render()
 
-    def move_element(self, name, num, x, y):
-        ids = [i['id'] for i in self.widget[name]]
-        e = self.widget[name][ids.index(num)]
+    def move_element(self, element=None, id=None, x, y):
+        e = self.widget[element, id]
+        if e is None:
+            return
         if 'x' in e:
             e['x'] += x; e['y'] += y
         if 'x1' in e:
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
+        self.widget[element, id] = e
         self.render()
 
     def save_layout(self, dir):
