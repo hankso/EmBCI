@@ -224,7 +224,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         for key in self.widget:
             id_str = ', '.join([e.id for e in self.widget[key]])
             info += ' {:11s} | {}'.format(key, id_str)
-            max_len = max(max_len, (id_str))
+            max_len = max(max_len, len(id_str))
         s = ('<{} @ {}\n {}\n'.format(self._name, hex(id(self)), self.__doc__) +
              ' Touch Screen started: {}\n\n'.format(self._touch_started) +
              ' Widget summary:\n elements    | id\n ------------+' +
