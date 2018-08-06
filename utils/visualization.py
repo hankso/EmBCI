@@ -165,7 +165,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
 class element_dict(dict):
     def __getitem__(self, items):
         if not isinstance(items, tuple):
-            if items not in self:
+            if items not in self and not items.startswith('_') and self:
                 print('choose one from `%s`' % '` | `'.join(self.keys()))
                 return None
             return dict.__getitem__(self, items)
@@ -178,6 +178,8 @@ class element_dict(dict):
     __getattr__ = __getitem__
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+    __str__ = dict.__str__
+    __repr__ = dict.__repr__
 
 class element_list(list):
     def __getitem__(self, id):
@@ -216,6 +218,18 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.width, self.height = width, height
         self._touch_started = False
         self.touch_sensibility = 4
+
+    def __str__(self):
+        info, max_len = '', 0
+        for key in self.widget:
+            id_str = ', '.join([e.id for e in self.widget[key]])
+            info += ' {:11s} | {}'.format(key, id_str)
+            max_len = max(max_len, (id_str))
+        s = ('<{} @ {}\n {}\n'.format(self._name, hex(id(self)), self.__doc__) +
+             ' Touch Screen started: {}\n\n'.format(self._touch_started) +
+             ' Widget summary:\n elements    | id\n ------------+' +
+             '-' * max_len)
+        return s + info + '>'
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
