@@ -182,11 +182,13 @@ class element_dict(dict):
 
 class element_list(list):
     def __getitem__(self, id):
+        if id < 0:
+            return list.__getitem__(self, id)
         ids = [e['id'] for e in self]
         if id in ids:
             return list.__getitem__(self, ids.index(id))
         if len(ids):
-            print('choose one from `%s`' % '` | `'.join(ids))
+            print('choose one from `%s`' % '` | `'.join(map(str, ids)))
         else:
             print('no elements in this list now')
         return None
