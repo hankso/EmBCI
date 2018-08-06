@@ -33,7 +33,7 @@ from common import find_ports, find_outlets, find_spi_devices
 from gyms import TorcsEnv
 from gyms import PlaneClient
 from ads1299_api import ADS1299_API, ESP32_API
-from ili9341_api import ILI9341_API
+from ili9341_api import ILI9341_API, rgb24to565
 
 # from ../src
 import preprocessing
@@ -1053,9 +1053,7 @@ class Serial_Screen_commander(Serial_commander):
 class _convert_24bit_to_565():
     def __getitem__(self, v):
         if isinstance(v, int) and v < 0xFFFFFF and v > 0:
-            r, g, b = v >> 16, (v >> 8) | 0xFF, v & 0xFF
-            c = ((r & 0b11111000) << 8) | ((g & 0x11111100) << 3) | (b >> 3)
-            return [c >> 8, c & 0xff]
+            return rgb24to565(v)
         raise KeyError
 
 
