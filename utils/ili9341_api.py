@@ -122,7 +122,7 @@ def rgb565to888_pro(ch, cl):
 
 def rgb24to565(v):
     '''input v between 0x000000 - 0xffffff and output [chigh, clow]'''
-    return rgb888to565(v >> 16, v >> 8 | 0xff, v & 0xff)
+    return rgb888to565(v >> 16, v >> 8 & 0xff, v & 0xff)
 
 def rgb565to24(ch, cl):
     '''input [chigh, clow] and output v between 0x000000 - 0xffffff'''
