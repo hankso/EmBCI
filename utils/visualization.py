@@ -182,7 +182,7 @@ class element_dict(dict):
 
 class element_list(list):
     def __getitem__(self, id):
-        ids = [e.id for e in self]
+        ids = [e['id'] for e in self]
         if id in ids:
             return list.__getitem__(self, ids.index(id))
         if len(ids):
@@ -221,7 +221,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def __repr__(self):
         info, max_len = '', 12
         for key in self.widget:
-            id_str = ', '.join([e.id for e in self.widget[key]])
+            id_str = ', '.join([e['id'] for e in self.widget[key]])
             info += ' {:11s} | {}\n'.format(key, id_str if id_str else None)
             max_len = max(max_len, len(id_str))
         info = ('<{}at {}\n'.format(self._name, hex(id(self))) +
