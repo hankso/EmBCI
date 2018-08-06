@@ -28,7 +28,7 @@ from PIL import Image
 
 # from ../src
 from preprocessing import Signal_Info
-from common import time_stamp, check_input
+from common import time_stamp, check_input, find_layouts
 from IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from IO import SPI_Screen_commander
 
