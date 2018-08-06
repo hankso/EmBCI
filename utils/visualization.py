@@ -175,7 +175,6 @@ class element_dict(dict):
                 break
             self = self.__getitem__(item)
         return self
-    __getattr__ = __getitem__
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
     __str__ = dict.__str__
@@ -225,7 +224,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             id_str = ', '.join([e.id for e in self.widget[key]])
             info += ' {:11s} | {}\n'.format(key, id_str if id_str else None)
             max_len = max(max_len, len(id_str))
-        info = ('<{} @ {}\n'.format(self._name, hex(id(self))) +
+        info = ('<{}at {}\n'.format(self._name, hex(id(self))) +
                 ' Touch Screen started: {}\n\n'.format(self._touch_started) +
                 ' Widget summary:\n elements    | id\n ------------+' +
                 '-' * max_len + '\n') + info + '>'
