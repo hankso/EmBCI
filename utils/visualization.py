@@ -408,7 +408,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             if render:
                 self.render()
 
-    def move_element(self, element=None, id=None, x, y):
+    def move_element(self, element=None, id=None, x=0, y=0):
         e = self.widget[element, id]
         if e is None:
             return
