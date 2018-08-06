@@ -193,6 +193,17 @@ class element_list(list):
             print('no elements in this list now')
         return None
 
+    def index(self, element):
+        return element['id']
+
+    def pop(self, id):
+        ids = [e['id'] for e in self]
+        return list.pop(self, ids.index(id))
+
+    def remove(self, element):
+        ids = [e['id'] for e in self]
+        list.__delitem__(self, ids.index(element['id']))
+
 
 class Serial_Screen_GUI(Serial_Screen_commander):
     '''
