@@ -414,7 +414,7 @@ class ILI9341_API(spidev.SpiDev):
         y2 = max(min(y1 + img.shape[0], self.height), y1)
         img = img[:y2-y1, :x2-x1].astype(np.int16)
         # img shape correction and extracting alpha channel
-        alpha = np.ones(img.shape[:2]).astype(np.float)
+        alpha = np.ones(img.shape[:2])[:,:,None].astype(np.float)
         if img.shape[2] == 4:
             img, alpha = np.split(img, [-1], axis=-1)
             alpha = alpha.astype(np.float) / 255
