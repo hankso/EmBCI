@@ -223,13 +223,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         info, max_len = '', 12
         for key in self.widget:
             id_str = ', '.join([e.id for e in self.widget[key]])
-            info += ' {:11s} | {}'.format(key, id_str)
+            info += ' {:11s} | {}\n'.format(key, id_str if id_str else None)
             max_len = max(max_len, len(id_str))
-        s = ('<{} @ {}\n'.format(self._name, hex(id(self))) +
-             ' Touch Screen started: {}\n\n'.format(self._touch_started) +
-             ' Widget summary:\n elements    | id\n ------------+' +
-             '-' * max_len)
-        return s + info + '>'
+        info = ('<{} @ {}\n'.format(self._name, hex(id(self))) +
+                ' Touch Screen started: {}\n\n'.format(self._touch_started) +
+                ' Widget summary:\n elements    | id\n ------------+' +
+                '-' * max_len + '\n') + info + '>'
+        return info
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
