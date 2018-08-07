@@ -219,8 +219,10 @@ def _pre_draw_check(name):
 class element_dict(dict):
     def __getitem__(self, items):
         if not isinstance(items, tuple):
-            if items not in self and not items.startswith('_') and self:
-                print('choose one from `%s`' % '` | `'.join(self.keys()))
+            if items is None or \
+                (items not in self and not items.startswith('_') and self):
+                keys = list(self.keys())
+                print('choose one from `%s`' % '` | `'.join(map(str, keys)))
                 return None
             return dict.__getitem__(self, items)
         for item in items:
@@ -287,7 +289,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     def __repr__(self):
         info, max_len = '', 12
         for key in self.widget:
-            id_str = ', '.join([e['id'] for e in self.widget[key]])
+            id_str = ', '.join(map(str, [e['id'] for e in self.widget[key]]))
             info += ' {:11s} | {}\n'.format(key, id_str if id_str else None)
             max_len = max(max_len, len(id_str))
         info = ('<{}at {}\n'.format(self._name, hex(id(self))) +
@@ -406,7 +408,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print('Empty widget bucket now. Nothing to remove!')
             return
         if element not in elements:
-            print('Choose one from `%s`' % '` | `'.join(elements))
+            print('Choose one from `%s`' % '` | `'.join(map(str, elements)))
             return
         e = self.widget[element, id]
         if e is not None:
@@ -422,7 +424,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             e['x'] += x; e['y'] += y
         if 'x1' in e:
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
-        self.widget[element, id] = e
         self.render()
 
     def save_layout(self, dir):
