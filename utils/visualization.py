@@ -571,14 +571,18 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img.resize((int(float(self.height/h*w)), self.height))
         # place it on center of the frame
         w, h = img.size
-        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
+        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img),
+                      render=False)
         # add guide text
         s1 = '任意点击开始'
         w, h = self.get_size_text_font(s1, size=18)[0]
-        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, 'red', 18)
+        w, h = (self.width-w)/2, self.height - 2*h - 2
+        self.draw_text(w, h, s1, 'red', 18, render=False)
         s2 = 'click to start'
         w, h = self.get_size_text_font(s2, size=18)[0]
-        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, 'red', 18)
+        w, h = (self.width-w)/2, self.height - 1*h - 1
+        self.draw_text(w, h, s2, 'red', 18, render=False)
+        self.render()
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
