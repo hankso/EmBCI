@@ -1067,7 +1067,7 @@ class Serial_Screen_commander(Serial_commander):
             # Although there is already `# -*- coding: utf-8 -*-` above,
             # we'd better explicitly use utf-8 to decode string in py2.
             # py3 default use utf-8 coding, which is really really nice.
-            if sys.version[0] == 2 and not isinstance(s, unicode):
+            if sys.version_info.major == 2 and not isinstance(s, unicode):
                 s = s.decode('utf8')
             en_zh = [ord(char) > 255 for char in s]
             w = en_zh.count(False)*8 + en_zh.count(True)*16
@@ -1115,7 +1115,7 @@ class SPI_Screen_commander(_basic_commander):
             exists or supported, return None.
         '''
         if s is not None:
-            if sys.version[0] == 2 and not isinstance(s, unicode):
+            if sys.version_info.major == 2 and not isinstance(s, unicode):
                 s = s.decode('utf8')
             if size is not None:
                 self._ili.setsize(size)
