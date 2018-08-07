@@ -434,7 +434,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         '''
         # text string is storaged as gbk in self.widget
         # convert it to utf8 to jsonify
-        tmp = self.widget.copy()
+        tmp = element_dict(self.widget.copy())
         for e in tmp['button']:
             e['callback'] = None
         if 'Serial' in self._name:
@@ -574,11 +574,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
         s1 = '任意点击开始'
-        w, h = self.get_size_text_font(s1)[0]
-        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, c='red')
+        w, h = self.get_size_text_font(s1, size=10)[0]
+        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, 'red', 10)
         s2 = 'click to start'
-        w, h = self.get_size_text_font(s2)[0]
-        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, c='red')
+        w, h = self.get_size_text_font(s2, size=10)[0]
+        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, 'red', 10)
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
