@@ -223,7 +223,8 @@ def find_spi_devices():
 
 def find_layouts(dir):
     '''If no layouts found, return None.'''
-    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl')).sort(reverse=True)
+    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
+    layout_list.sort(reverse=True)
     if len(layout_list) == 0:
         return
     elif len(layout_list) == 1:
