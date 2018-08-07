@@ -182,7 +182,7 @@ class element_dict(dict):
 
 class element_list(list):
     def __getitem__(self, id):
-        if id < 0:
+        if isinstance(id, int) and id < 0:
             return list.__getitem__(self, id)
         ids = [e['id'] for e in self]
         if id in ids:
@@ -201,8 +201,7 @@ class element_list(list):
         return list.pop(self, ids.index(id))
 
     def remove(self, element):
-        ids = [e['id'] for e in self]
-        list.__delitem__(self, ids.index(element['id']))
+        self.pop(self.index(element))
 
 
 class Serial_Screen_GUI(Serial_Screen_commander):
