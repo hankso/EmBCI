@@ -126,10 +126,7 @@ def first_use():
 
 
 def find_outlets(name=None, **kwargs):
-    '''
-    寻找已经存在的pylsl注册的stream
-
-    '''
+    '''If no wanted pylsl stream outlets found, exit python'''
     if name is None:
         stream_list = pylsl.resolve_stream()
     else:
@@ -169,10 +166,8 @@ def find_outlets(name=None, **kwargs):
 
 def find_ports(timeout=3):
     '''
-    利用check_input和serial.tools.list_ports.comports寻找当前电脑上的串口
-    如果有多个可用的串口，提示用户选择一个
-
-    This fucntion will guide user to choose one port
+    This fucntion will guide user to choose one port. Wait `timeout` seconds
+    for devices to be detected. If no ports found, return None
     '''
     # scan for all available serial ports
     while timeout > 0:
@@ -203,6 +198,7 @@ def find_ports(timeout=3):
 
 
 def find_spi_devices():
+    '''If there is no spi devices, exit python'''
     dev_list = glob.glob('/dev/spidev*')
     if len(dev_list) == 0:
         device = None
@@ -226,9 +222,10 @@ def find_spi_devices():
 
 
 def find_layouts(dir):
-    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
+    '''If no layouts found, return None.'''
+    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl')).sort(reverse=True)
     if len(layout_list) == 0:
-        layout = None
+        return
     elif len(layout_list) == 1:
         layout = layout_list[0]
     else:
@@ -238,17 +235,18 @@ def find_layouts(dir):
                   '\nlayout num(default 0): ')
         answer = {str(i):layout for i, layout in enumerate(layout_list)}
         answer[''] = layout_list[0]
-        layout = check_input(prompt, answer)
-    if layout is not None:
-        print('Select layout `{}`'.format(layout))
-        return layout
-    print('[find layouts] no available layout files')
+        try:
+            layout = check_input(prompt, answer)
+        except KeyboardInterrupt:
+            return
+    print('Select layout `{}`'.format(layout))
+    return layout
 
 
 def virtual_serial():
     '''
-    generate a pair of virtual serial port at /dev/pts/*
-    super useful when debugging without a real UART device
+    Generate a pair of virtual serial port at /dev/pts/*.
+    Super useful when debugging without a real UART device.
     e.g.:
         /dev/pts/0 <--> /dev/pts/1
         s = serial.Serial('/dev/pts/1',115200)
@@ -259,27 +257,32 @@ def virtual_serial():
     master1, slave1 = os.openpty()
     master2, slave2 = os.openpty()
     port1, port2 = os.ttyname(slave1), os.ttyname(slave2)
-    #  RX1 TX1 RX2 TX2
-    c = [0,  0,  0,  0]
+
+    #       RX1 TX1 RX2 TX2
+    count = [0., 0., 0., 0.]
+
     print('Pty opened!\nPort1: %s\nPort2: %s' % (port1, port2))
     def echo(flag_close):
         while not flag_close.isSet():
             readable = select.select([master1, master2], [], [], 1)
             # if readable:
-            #     if max(c) < 1024:
-            #         print('\rRX1: %dB TX1: %dB' % tuple(c[:2]), end='')
+            #     if c.max() < 1024:
+            #         info = '\rPort1 RX %dB  TX %dB  Lost from Port2 %dB' % \
+            #             (count[0], count[1], count[3]-count[0])
             #     else:
-            #         print('\rRX1: %dKB TX1: %dKB' % (c[0]/1024.0, c[1]/1024.0), end='')
+            #         info = '\rPort1 RX %.2fkB TX %.2fkB Lost from Port2 %dB' % \
+            #             (count[0]/1024, count[1]/1024, count[3]-count[0])
+            #     sys.stdout.write(info); sys.stdout.flush()
             for master in readable[0]:
                 msg = os.read(master, 1024)
                 if master == master1:
                     print('[{} --> {}] {}'.format(port1, port2, msg))
-                    c[0] += len(msg)
-                    c[3] += os.write(master2, msg)
+                    count[1] += len(msg)
+                    count[2] += os.write(master2, msg)
                 elif master == master2:
                     print('[{} --> {}] {}'.format(port2, port1, msg))
-                    c[2] += len(msg)
-                    c[1] += os.write(master1, msg)
+                    count[3] += len(msg)
+                    count[0] += os.write(master1, msg)
         print('[Virtual Serial] shutdown...')
     flag_close = threading.Event()
     t = threading.Thread(target=echo, args=(flag_close,))
@@ -399,6 +402,8 @@ def get_label_list(username):
 
 
 def record_animate(times):
+    '''use python lib `progressbar`'''
+    # TODO
     t = 0.0
     while t < 10*times:
         print('\r[%s>%s] %.2f%%' % ('='*int(t),
