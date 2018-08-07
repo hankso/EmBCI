@@ -335,7 +335,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             cr: color of outside rect
             ca: color of outside rect when button is pressed
         '''
-        (w, h), s, font = self.check_size_text_font(s, size, font)
+        (w, h), s, font = self.get_size_text_font(s, size, font)
         self.widget['button'].append(element_dict({
             'id': k['num'], 'font': font,
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
@@ -472,14 +472,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def freeze_frame(self):
         '''save current frame buffer in background'''
-        self._tmp = (self.widget.copy(), self.touch_sensibility)
-        for e in self.widget:
-            self.widget[e] = []
+        self._tmp = (element_dict(self.widget.copy()), self.touch_sensibility)
+        for key in self.widget:
+            self.widget[key] = element_list([])
         self.clear()
 
     def recover_frame(self):
         '''recover lastest frame buffer from background'''
-        if self._tmp:
+        if hasattr(self, '_tmp') and self._tmp:
             self.widget, self.touch_sensibility = self._tmp
             self.render()
 
@@ -552,7 +552,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = Image.open(filename_or_img)
         elif isinstance(filename_or_img, np.ndarray):
             img = Image.fromarray(filename_or_img)
-        elif not Image.isImageType(filename_or_img):
+        elif Image.isImageType(filename_or_img):
+            img = filename_or_img
+        else:
             return
         self.freeze_frame()
         # adjust img size
@@ -566,11 +568,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
         s1 = '任意点击开始'
-        w, h = self.get_size_text_font(s1, size=10)[0]
-        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, 'red', 10)
+        w, h = self.get_size_text_font(s1, size=18)[0]
+        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, 'red', 18)
         s2 = 'click to start'
-        w, h = self.get_size_text_font(s2, size=10)[0]
-        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, 'red', 10)
+        w, h = self.get_size_text_font(s2, size=18)[0]
+        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, 'red', 18)
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
