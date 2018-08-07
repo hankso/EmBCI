@@ -263,7 +263,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
     '''
-    _element_color = {'bg': 'white', 'press': ['red', 'cyan']
+    _element_color = {'bg': 'white', 'press': ['red', 'cyan'],
         'point': 'blue', 'line': 'red', 'circle': 'red', 'circlef': 'red',
         'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
         'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',}
