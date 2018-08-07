@@ -1028,6 +1028,9 @@ class Serial_Screen_commander(Serial_commander):
 
     def send(self, key, *a, **k):
         self.check_key(key)
+        if key == 'img':
+            self._plot_img_point_by_point(k)
+            return 'img'
         cmd, delay = self._command_dict[key]
         if 'c' in k:
             assert type(k['c']) in self._color_map, 'c only can be str or int'
@@ -1044,6 +1047,20 @@ class Serial_Screen_commander(Serial_commander):
             self._serial.write(cmd)
         time.sleep(delay)
         return cmd
+
+    def _plot_img_point_by_point(self, e):
+        img = e['img'].copy()
+        x1, y1, x2, y2 = e['x1'], e['y1'], e['x2'], e['y2']
+        if len(img.shape) == 3:
+            img = img[:,:,0]
+        cmd, delay = self._command_dict['point']
+        with self._lock:
+            for x, y in [(x, y) for x in range(x2-x1) for y in range(y2-y1)]:
+                if img[y, x] > 15:
+                    continue
+                tosend = cmd.format(x=e['x1'] + x, y=e['y1'] + y, c=img[y, x])
+                self._serial.write(tosend)
+                time.sleep(delay)
 
     def close(self):
         self.send('clear')

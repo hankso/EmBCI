@@ -430,21 +430,23 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def save_layout(self, dir):
         '''
-        save current layout(texts, buttons, any elements) in a json file
+        save current layout(texts, buttons, any elements) in a pickle file
         '''
-        # text string is storaged as gbk in self.widget
-        # convert it to utf8 to jsonify
         tmp = element_dict(self.widget.copy())
         for e in tmp['button']:
             e['callback'] = None
-        if 'Serial' in self._name:
-            for e in tmp['text'] + tmp['button']:
-                e['s'] = e['s'].decode('gbk')
+        # text string is stored as str(gbk encoding) in self.widget
+        # convert it to utf8 to pickle
+        for e in tmp['text'] + tmp['button']:
+            e['s'] = e['s'].decode('gbk')
         with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
             pickle.dump(tmp, f)
 
-    def load_layout(self, dir, render=True):
-        '''read in a layout from file'''
+    def load_layout(self, dir, extend=True, render=True):
+        '''
+        read in a layout from file, `extend` means to extend current layout by
+        loaded layout, or to replace current layout with loaded layout
+        '''
         layout = find_layouts(dir)
         if layout is None:
             print(self._name + 'no available layout files in dir ' + dir)
@@ -455,11 +457,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         except Exception as e:
             print(self._name + 'load layout `' + layout + '` error: %s' % e)
             return
-        if 'Serial' in self._name:
-            for e in tmp['text'] + tmp['button']:
-                e['s'] = e['s'].encode('gbk')
-        for e in self.widget:
-            self.widget[e] += tmp[e]
+        # text string is stored as unicode in layout file
+        # convert it to gbk after pickle
+        for e in tmp['text'] + tmp['button']:
+            e['s'] = e['s'].encode('gbk')
+        for key in self.widget:
+            elements = [element_dict(e) for e in tmp[key]]
+            if extend:
+                self.widget[key].extend(elements)
+            else:
+                self.widget[key] = element_list(elements)
         if render:
             self.render()
 
@@ -491,8 +498,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     e['c'] = e['ct']; self.send('text', **e)
                     if e['cr'] is not None:
                         e['c'] = e['cr']; self.send('rect', **e)
-                elif name == 'img' and 'Serial' in self._name:
-                    self._plot_point_by_point(e)
                 else:
                     self.send(name, **e)
             else: # render all
@@ -503,24 +508,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                             bt['c'] = bt['ct']; self.send('text', **bt)
                             if bt['cr'] is not None:
                                 bt['c'] = bt['cr']; self.send('rect', **bt)
-                    elif name == 'img' and 'Serial' in self._name:
-                        for e in self.widget['img']:
-                            self._plot_point_by_point(e)
                     else:
                         for e in self.widget[name]:
                             self.send(name, **e)
         except Exception as e:
-            print(e)
-
-    def _plot_point_by_point(self, e):
-        img = e['img'].copy()
-        if len(img.shape) == 3:
-            img = img[:,:,0]
-        for x in range(e['x2'] - e['x1']):
-            for y in range(e['y2'] - e['y1']):
-                if img[y, x]:
-                    self.send('point', c=e['img'][y, x],
-                              x=e['x1'] + x, y=e['y1'] + y)
+            print(self._name + 'render error: {}'.format(e))
 
     def calibration_touch_screen(self):
         if not self._touch_started:
@@ -555,7 +547,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.recover_frame()
             self._flag_pause.set() # resume _handle_touch_screen thread
 
-    def display_logo(self, filename_or_img):
+    def display_img(self, filename_or_img):
         if isinstance(filename_or_img, str):
             img = Image.open(filename_or_img)
         elif isinstance(filename_or_img, np.ndarray):
@@ -696,6 +688,39 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             finally:
                 self._t.close()
 
+    def save_layout(self, dir):
+        '''
+        save current layout(texts, buttons, any elements) in a pickle file
+        '''
+        tmp = element_dict(self.widget.copy())
+        for e in tmp['button']:
+            e['callback'] = None
+        with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
+            pickle.dump(tmp, f)
+
+    def load_layout(self, dir, extend=True, render=True):
+        '''
+        read in a layout from file, `extend` means to extend current layout by
+        loaded layout, or to replace current layout with loaded layout
+        '''
+        layout = find_layouts(dir)
+        if layout is None:
+            print(self._name + 'no available layout files in dir ' + dir)
+            return
+        try:
+            with open(layout, 'r') as f:
+                tmp = pickle.load(f)
+        except Exception as e:
+            print(self._name + 'load layout `' + layout + '` error: %s' % e)
+            return
+        for key in self.widget:
+            elements = [element_dict(e) for e in tmp[key]]
+            if extend:
+                self.widget[key].extend(elements)
+            else:
+                self.widget[key] = element_list(elements)
+        if render:
+            self.render()
 
 
 if __name__ == '__main__':
