@@ -402,7 +402,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'y2': min(y + h, self.height - 1),
             'c': c or self._element_color['text']}))
 
-    def remove_element(self, element=None, id=None, render=True):
+    def _get_element_from_name_and_id(self, element=None, id=None):
         elements = [key for key in self.widget.keys() if self.widget[key]]
         if len(elements) == 0:
             print('Empty widget bucket now. Nothing to remove!')
@@ -410,14 +410,18 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if element not in elements:
             print('Choose one from `%s`' % '` | `'.join(map(str, elements)))
             return
-        e = self.widget[element, id]
-        if e is not None:
-            self.widget[element].remove(e)
-            if render:
-                self.render()
+        return self.widget[element, id]
+
+    def remove_element(self, element=None, id=None, render=True):
+        e = self._get_element_from_name_and_id(element, id)
+        if e is None:
+            return
+        self.widget[element].remove(e)
+        if render:
+            self.render()
 
     def move_element(self, element=None, id=None, x=0, y=0):
-        e = self.widget[element, id]
+        e = self._get_element_from_name_and_id(element, id)
         if e is None:
             return
         if 'x' in e:
