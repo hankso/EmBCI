@@ -571,9 +571,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.recover_frame()
             self._flag_pause.set() # resume _handle_touch_screen thread
 
-    def display_logo(self, filename):
+    def display_logo(self, filename_or_img):
+        if isinstance(filename_or_img, str):
+            img = Image.open(filename_or_img)
+        elif isinstance(filename_or_img, np.ndarray):
+            img = Image.fromarray(filename_or_img)
+        elif not Image.isImageType(filename_or_img):
+            return
         self.freeze_frame()
-        img = Image.open(filename)
         # adjust img size
         w, h = img.size
         if float(w) / h >= float(self.width) / self.height:
@@ -582,16 +587,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img.resize((int(float(self.height/h*w)), self.height))
         # place it on center of the frame
         w, h = img.size
-        self.draw_img((self.width-w)/2, (self.height-h)/2,
-                      np.array(img, dtype=np.uint8), render=False)
+        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
-        s1 = '任意点击开始'
+        s1 = u'任意点击开始'
         w, h = self.getsize(s1)
-        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, render=False)
-        s2 = 'click to start'
+        self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, c='red')
+        s2 = u'click to start'
         w, h = self.getsize(s2)
-        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, render=False)
-        self.render()
+        self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, c='red')
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
@@ -600,7 +603,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 self._t.read_until()
             self._flag_pause.set()
         else:
-            time.sleep(1)
+            time.sleep(2)
         self.recover_frame()
 
     def _get_touch_point(self):
