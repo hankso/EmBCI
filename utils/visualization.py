@@ -263,11 +263,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
     '''
-    _element_color = {
+    _element_color = {'bg': 'white', 'press': ['red', 'cyan']
         'point': 'blue', 'line': 'red', 'circle': 'red', 'circlef': 'red',
         'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
-        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',
-        'press': 'red', 'bg': 'white'}
+        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',}
     widget = element_dict({'point': element_list(),
         'text': element_list(), 'img': element_list(),
         'button': element_list(), 'line': element_list(),
@@ -324,7 +323,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     @_pre_draw_check('button')
     def draw_button(self, x, y, s, size=16, font=None,
-                    cb=None, ct=None, cr=None, ca=None, **k):
+                    cb=None, ct=None, cr=None, **k):
         '''
         draw button on current frame
         params:
@@ -333,7 +332,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             cb: callback function, default None
             ct: color of text
             cr: color of outside rect
-            ca: color of outside rect when button is pressed
         '''
         (w, h), s, font = self.get_size_text_font(s, size, font)
         self.widget['button'].append(element_dict({
@@ -344,7 +342,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x': x, 'y': y, 's': s, 'size': size,
             'ct': ct or self._element_color['text'],
             'cr': cr or self._element_color['rect'],
-            'ca': ca or self._element_color['press'],
             'callback': cb or self._default_callback}))
 
     @_pre_draw_check('point')
@@ -614,13 +611,18 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x, y = self._get_touch_point()
             for bt in self.widget['button']:
                 if x>bt['x1'] and x<bt['x2'] and y>bt['y1'] and y<bt['y2']:
-                    if bt['ca'] is not 'None':
-                        bt['c'] = bt['ca']; self.send('rect', **bt)
-                        time.sleep(0.3)
-                        if bt['cr'] is not 'None':
-                            bt['c'] = bt['cr']; self.send('rect', **bt)
-                        else:
-                            self.render('button', bt['id'])
+                    if bt['ct'] != self._element_color['press'][0]:
+                        c = self._element_color['press'][0]
+                    else:
+                        c = self._element_color['press'][1]
+                    bt['c'] = c; self.send('text', **bt)
+                    if bt['cr'] is not 'None':
+                        self.send('rect', **bt)
+                    time.sleep(0.3)
+                    bt['c'] = bt['ct']; self.send('text', **bt)
+                    if bt['cr'] is not 'None':
+                        bt['c'] = bt['cr']
+                        self.send('rect', **bt)
                     if bt['callback'] is not None:
                         thread = threading.Thread(
                             target=bt['callback'],
@@ -629,11 +631,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                         self._callback_threads.append(thread)
         print('[Touch Screen] exiting...')
 
-    def clear(self, x1=None, y1=None, x2=None, y2=None, *a, **k):
+    def clear(self, x1=None, y1=None, x2=None, y2=None, c=None, *a, **k):
         if None in [x1, y1, x2, y2]:
-            self.send('clear', c=self._element_color['bg'])
+            self.send('clear', c=( c or self._element_color['bg'] ))
         else:
-            self.send('rectf', c=self._element_color['bg'],
+            self.send('rectf', c=( c or self._element_color['bg'] ),
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
 
