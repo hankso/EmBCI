@@ -496,14 +496,15 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             # render one element
             if None not in [element, id]:
                 e = self.widget[element, id]
+                if e is None:
+                    return
                 self.clear(**e)
                 if element == 'button':
                     e['c'] = e['ct']; self.send('text', **e)
-                    if e['cr'] is not 'None':
+                    if e['cr'] != 'None':
                         e['c'] = e['cr']; self.send('rect', **e)
                 else:
                     self.send(element, **e)
-
             # render all
             else:
                 self.clear() # clear all
@@ -511,7 +512,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     if element == 'button':
                         for bt in self.widget[element]:
                             bt['c'] = bt['ct']; self.send('text', **bt)
-                            if bt['cr'] is not 'None':
+                            if bt['cr'] != 'None':
                                 bt['c'] = bt['cr']; self.send('rect', **bt)
                     else:
                         for e in self.widget[element]:
@@ -622,11 +623,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     else:
                         c = self._element_color['press'][1]
                     bt['c'] = c; self.send('text', **bt)
-                    if bt['cr'] is not 'None':
+                    if bt['cr'] != 'None':
                         self.send('rect', **bt)
                     time.sleep(0.3)
                     bt['c'] = bt['ct']; self.send('text', **bt)
-                    if bt['cr'] is not 'None':
+                    if bt['cr'] != 'None':
                         bt['c'] = bt['cr']
                         self.send('rect', **bt)
                     if bt['callback'] is not None:
