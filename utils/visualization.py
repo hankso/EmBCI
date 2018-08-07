@@ -488,29 +488,31 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
                   % (bt['id'], bt['s'], x, y, time.time()))
 
-    def render(self, name=None, num=None, *a, **k):
+    def render(self, element=None, id=None, *a, **k):
         try:
-            if None not in [name, num]: # render an element
-                ids = [i['id'] for i in self.widget[name]]
-                e = self.widget[name][ids.index(num)]
+            # render one element
+            if None not in [element, id]:
+                e = self.widget[element, id]
                 self.clear(**e)
-                if name == 'button':
+                if element == 'button':
                     e['c'] = e['ct']; self.send('text', **e)
-                    if e['cr'] is not None:
+                    if e['cr'] is not 'None':
                         e['c'] = e['cr']; self.send('rect', **e)
                 else:
-                    self.send(name, **e)
-            else: # render all
+                    self.send(element, **e)
+
+            # render all
+            else:
                 self.clear() # clear all
-                for name in self.widget.keys():
-                    if name == 'button':
-                        for bt in self.widget[name]:
+                for element in self.widget.keys():
+                    if element == 'button':
+                        for bt in self.widget[element]:
                             bt['c'] = bt['ct']; self.send('text', **bt)
-                            if bt['cr'] is not None:
+                            if bt['cr'] is not 'None':
                                 bt['c'] = bt['cr']; self.send('rect', **bt)
                     else:
-                        for e in self.widget[name]:
-                            self.send(name, **e)
+                        for e in self.widget[element]:
+                            self.send(element, **e)
         except Exception as e:
             print(self._name + 'render error: {}'.format(e))
 
@@ -615,7 +617,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     if bt['ca'] is not 'None':
                         bt['c'] = bt['ca']; self.send('rect', **bt)
                         time.sleep(0.3)
-                        bt['c'] = bt['cr']; self.send('rect', **bt)
+                        if bt['cr'] is not 'None':
+                            bt['c'] = bt['cr']; self.send('rect', **bt)
+                        else:
+                            self.render('button', bt['id'])
                     if bt['callback'] is not None:
                         thread = threading.Thread(
                             target=bt['callback'],
