@@ -200,7 +200,7 @@ def _pre_draw_check(name):
             num = 0 if not len(self.widget[static]) \
                     else (self.widget[static][-1]['id'] + 1)
             k['name'] = static
-            k['num'] = num
+            k['id'] = num
             # transfer params from user and name & num
             # it will overload name=None and num=None(default)
             # in conclusion:
@@ -209,7 +209,7 @@ def _pre_draw_check(name):
             #     real function finally recieve new *a, **k, and defaults
             func(self, *a, **k)
             if 'render' not in k or ('render' in k and k['render']):
-                self.render(**k)
+                self.render(element=static, id=num)
         param_collector.__doc__ = func.__doc__
         param_collector.__name__ = func.__name__
         return param_collector
@@ -319,48 +319,48 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if len(img.shape) == 2:
             img = np.repeat(img[:,:,np.newaxis], 3, axis=2)
         assert len(img.shape) == 3, 'Invalid image shape {}!'.format(img.shape)
-        self.widget['img'].append(element_dict({'id': k['num'], 'bg': bg,
+        self.widget['img'].append(element_dict({'id': k['id'], 'bg': bg,
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
 
     @_pre_draw_check('button')
-    def draw_button(self, x, y, s, size=16, font=None,
-                    cb=None, ct=None, cr=None, **k):
+    def draw_button(self, x, y, s, size=16, font=None, callback=None,
+                    ct=None, color_text=None, cr=None, color_rect=None, **k):
         '''
         draw button on current frame
         params:
             x, y: left upper point of button text
             s: button text string
-            cb: callback function, default None
-            ct: color of text
-            cr: color of outside rect
+            callback: callback function, default None
+            color_text | ct: color of text
+            color_rect | cr color of outside rect
         '''
         (w, h), s, font = self.get_size_text_font(s, size, font)
         self.widget['button'].append(element_dict({
-            'id': k['num'], 'font': font,
+            'id': k['id'], 'font': font,
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
             'x': x, 'y': y, 's': s, 'size': size,
-            'ct': ct or self._element_color['text'],
-            'cr': cr or self._element_color['rect'],
-            'callback': cb or self._default_callback}))
+            'ct': ct or color_text or self._element_color['text'],
+            'cr': cr or color_rect or self._element_color['rect'],
+            'callback': callback or self._default_callback}))
 
     @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
-        self.widget['point'].append(element_dict({'id': k['num'],
+        self.widget['point'].append(element_dict({'id': k['id'],
             'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
             'c': c or self._element_color['point']}))
 
     @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
-        self.widget['line'].append(element_dict({'id': k['num'],
+        self.widget['line'].append(element_dict({'id': k['id'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color['line']}))
 
     @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['id'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
@@ -374,20 +374,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x1, y1, x2, y2 = x - r, y - r, x, y
         elif m == 3:
             x1, y1, x2, y2 = x, y - r, x + r, y
-        self.widget[k['name']].append(element_dict({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['id'],
             'x': x, 'y': y, 'r': r, 'm': m,
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['id'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
             'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['num'],
+        self.widget[k['name']].append(element_dict({'id': k['id'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
             'x': x, 'y': y, 'r': r, 's': s, 'e': e,
             'c': c or self._element_color[k['name']]}))
@@ -395,7 +395,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, font=None, **k):
         (w, h), s, font = self.get_size_text_font(s, size, font)
-        self.widget['text'].append(element_dict({'id': k['num'],
+        self.widget['text'].append(element_dict({'id': k['id'],
             'x': x, 'y': y, 's': s, 'size': size,
             'x1': x, 'y1': y, 'font': font,
             'x2': min(x + w, self.width - 1),
@@ -485,7 +485,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.widget, self.touch_sensibility = self._tmp
             self.render()
 
-    def _default_callback(self, x, y, bt):
+    @staticmethod
+    def _default_callback(x, y, bt):
         '''default button callback'''
         print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
                   % (bt['id'], bt['s'], x, y, time.time()))
