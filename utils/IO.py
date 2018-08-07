@@ -1049,6 +1049,32 @@ class Serial_Screen_commander(Serial_commander):
         self.send('clear')
         super(Serial_Screen_commander, self).close()
 
+    def get_size_text_font(self, s=None, size=None, font=None):
+        '''
+        Returns
+        -------
+        w, h: tuple | None
+            size in pixel
+        s: str | None
+            string in correct encoding
+        font_path: str | None
+            If param `font` offered, check whether font exist. If font file not
+            exists or supported, return None.
+        '''
+        # Serial Screen use 8 pixels for English characters and 16 pixels for
+        # Chinese characters(GBK encoding)
+        if s is not None:
+            # Although there is already `# -*- coding: utf-8 -*-` above,
+            # we'd better explicitly use utf-8 to decode string in py2.
+            # py3 default use utf-8 coding, which is really really nice.
+            if sys.version[0] == 2 and not isinstance(s, unicode):
+                s = s.decode('utf8')
+            en_zh = [ord(char) > 255 for char in s]
+            w = en_zh.count(False)*8 + en_zh.count(True)*16
+            h = 16
+            return (w, h), s.encode('gbk'), None
+        return None, None, None
+
 
 class _convert_24bit_to_565():
     def __getitem__(self, v):
@@ -1073,14 +1099,37 @@ class SPI_Screen_commander(_basic_commander):
         self._name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
-        SPI_Screen_commander._singleton = False
-        self.setfont = self._ili.setfont
-        self.setsize = self._ili.setsize
         self.close = self._ili.close
+        SPI_Screen_commander._singleton = False
 
-    def getsize(self, t):
-        w, h = self._ili.font.getsize(t)
-        return w/2, h/2
+    def get_size_text_font(self, s=None, size=None, font=None):
+        '''
+        Returns
+        -------
+        w, h: tuple | None
+            size in pixel
+        s: str | None
+            string in correct encoding
+        font_path: str | None
+            If param `font` offered, check whether font exist. If font file not
+            exists or supported, return None.
+        '''
+        if s is not None:
+            if sys.version[0] == 2 and not isinstance(s, unicode):
+                s = s.decode('utf8')
+            if size is not None:
+                self._ili.setsize(size)
+            if font is not None:
+                if not os.path.exist(font):
+                    font = None
+                else:
+                    try:
+                        self._ili.setfont(font)
+                    except:
+                        font = None
+            w, h = self._ili.font.getsize(s)
+            return (w/2, h/2), s, font
+        return None, None, None
 
     def start(self):
         self._ili.start()
@@ -1110,9 +1159,6 @@ class SPI_Screen_commander(_basic_commander):
             getattr(self._ili, key)(*a, **k)
         else:
             print(self._name + 'No such key `{}`!'.format(key))
-
-    def close(self):
-        self._ili.close()
 
 
 class _testReader(unittest.TestCase):

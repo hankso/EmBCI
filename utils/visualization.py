@@ -256,6 +256,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._touch_started = True
         self._callback_threads = []
 
+    @staticmethod
     def _pre_draw_check(name):
         '''This decorator can not be used directly'''
         def func_collector(func):
@@ -309,7 +310,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             return param_collector
         return func_collector
 
-    @_pre_draw_check('img')
+    @Serial_Screen_GUI._pre_draw_check('img')
     def draw_img(self, x, y, img, bg=None, **k):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
@@ -320,9 +321,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
 
-    @_pre_draw_check('button')
-    def draw_button(self, x, y, s,
-                    size=16, cb=None, ct=None, cr=None, ca=None, **k):
+    @Serial_Screen_GUI._pre_draw_check('button')
+    def draw_button(self, x, y, s, size=16, font=None,
+                    cb=None, ct=None, cr=None, ca=None, **k):
         '''
         draw button on current frame
         params:
@@ -333,19 +334,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             cr: color of outside rect
             ca: color of outside rect when button is pressed
         '''
-        # Although there is already `# -*- coding: utf-8 -*-` at file start
-        # we'd better explicitly use utf-8 to decode every string in Py2.
-        # Py3 default use utf-8 coding, which is really really nice.
-        s = s.decode('utf8')
-        # English use 8 pixels and Chinese use 16 pixels(GBK encoding)
-        if 'Serial' in self._name:
-            en_zh = [ord(char) > 255 for char in s]
-            w = en_zh.count(False)*8 + en_zh.count(True)*16
-            h = 16
-            s = s.encode('gbk')
-        elif 'SPI' in self._name:
-            w, h = self.getsize(s)
-        self.widget['button'].append(element_dict({'id': k['num'],
+        (w, h), s, font = self.check_size_text_font(s, size, font)
+        self.widget['button'].append(element_dict({
+            'id': k['num'], 'font': font,
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
             'x2': min(x + w + 1, self.width - 1),
             'y2': min(y + h + 1, self.height - 1),
@@ -355,25 +346,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'ca': ca or self._element_color['press'],
             'callback': cb or self._default_callback}))
 
-    @_pre_draw_check('point')
+    @Serial_Screen_GUI._pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
         self.widget['point'].append(element_dict({'id': k['num'],
             'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
             'c': c or self._element_color['point']}))
 
-    @_pre_draw_check('line')
+    @Serial_Screen_GUI._pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
         self.widget['line'].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color['line']}))
 
-    @_pre_draw_check('rect')
+    @Serial_Screen_GUI._pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
-    @_pre_draw_check('round')
+    @Serial_Screen_GUI._pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
         if m == 0:
             x1, y1, x2, y2 = x, y, x + r, y + r
@@ -388,33 +379,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
-    @_pre_draw_check('round_rect')
+    @Serial_Screen_GUI._pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
             'c': c or self._element_color[k['name']]}))
 
-    @_pre_draw_check('circle')
+    @Serial_Screen_GUI._pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
             'x': x, 'y': y, 'r': r, 's': s, 'e': e,
             'c': c or self._element_color[k['name']]}))
 
-    @_pre_draw_check('text')
-    def draw_text(self, x, y, s, c=None, size=16, **k):
-        s = s.decode('utf8')
-        if 'Serial' in self._name:
-            en_zh = [ord(char) > 255 for char in s]
-            w = en_zh.count(False)*8 + en_zh.count(True)*16
-            h = 16
-            s = s.encode('gbk')
-        elif 'SPI' in self._name:
-            self.setsize(size)
-            w, h = self.getsize(s)
+    @Serial_Screen_GUI._pre_draw_check('text')
+    def draw_text(self, x, y, s, c=None, size=16, font=None, **k):
+        (w, h), s, font = self.get_size_text_font(s, size, font)
         self.widget['text'].append(element_dict({'id': k['num'],
-            'x': x, 'y': y, 's': s,
-            'x1': x, 'y1': y, 'size': size,
+            'x': x, 'y': y, 's': s, 'size': size,
+            'x1': x, 'y1': y, 'font': font,
             'x2': min(x + w, self.width - 1),
             'y2': min(y + h, self.height - 1),
             'c': c or self._element_color['text']}))
@@ -589,11 +572,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         w, h = img.size
         self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
-        s1 = u'任意点击开始'
-        w, h = self.getsize(s1)
+        s1 = '任意点击开始'
+        w, h = self.get_size_text_font(s1)[0]
         self.draw_text((self.width-w)/2, self.height - 2*h - 2, s1, c='red')
-        s2 = u'click to start'
-        w, h = self.getsize(s2)
+        s2 = 'click to start'
+        w, h = self.get_size_text_font(s2)[0]
         self.draw_text((self.width-w)/2, self.height - 1*h - 1, s2, c='red')
         # touch screen to continue
         if self._touch_started:

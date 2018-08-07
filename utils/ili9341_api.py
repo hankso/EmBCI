@@ -168,7 +168,8 @@ class ILI9341_API(spidev.SpiDev):
 
     def setsize(self, size):
         if self.font is None:
-            raise RuntimeError('[ILI9341 API] font not set')
+            print('[ILI9341 API] font not set yet!')
+            return
         if self.size != size:
             self.font = ImageFont.truetype(self.font.path, size * 2)
             self.size = size
@@ -407,7 +408,7 @@ class ILI9341_API(spidev.SpiDev):
         self.draw_rectf(x2 - r, y1 + r, x2, y2 - r, c)
 
     def draw_img(self, x, y, img, *a, **k):
-        '''draw img with shape of (height, width, depth) at (x, y)'''
+        '''draw RGB[A] img with shape of (height, width, depth) at (x, y)'''
         img = np.atleast_3d(img).astype(np.uint8)
         x1, y1 = x, y
         x2 = max(min(x1 + img.shape[1], self.width), x1)
@@ -432,6 +433,9 @@ class ILI9341_API(spidev.SpiDev):
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
+        if self.font is None:
+            print('[ILI9341 API] font not set yet!')
+            return
         try:
             if size is not None and self.size != size:
                 self.setsize(size)
