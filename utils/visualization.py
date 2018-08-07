@@ -162,6 +162,60 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.ylabel('dB/Hz')
 
 
+def _pre_draw_check(name):
+    '''This decorator can not be used directly'''
+    def func_collector(func):
+        '''This will get function to be executed'''
+        def param_collector(self, *a, **k):
+            '''This will get params from user'''
+            a = list(a)
+            if name in ['point', 'text', 'img', 'button']:
+                a[0] = max(min(a[0], self.width - 1), 0)
+                a[1] = max(min(a[1], self.height - 1), 0)
+            elif name in ['circle', 'round']:
+                a[0] = max(min(a[0], self.width - 2), 1)
+                a[1] = max(min(a[1], self.height - 2), 1)
+                right, down = self.width - 1 - a[0], self.height - 1 - a[1]
+                a[2] = max(min(a[0], a[1], right, down, a[2]), 0)
+            elif name in ['rect', 'round_rect']:
+                a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
+                a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
+                a[0] = max(min(a[0], self.width - 1), 0)
+                a[1] = max(min(a[1], self.height - 1), 0)
+                a[2] = max(min(a[2], self.width - 1), a[0])
+                a[3] = max(min(a[3], self.height - 1), a[1])
+            elif name in ['line']:
+                a[0] = max(min(a[0], self.width - 1), 0)
+                a[1] = max(min(a[1], self.height - 1), 0)
+                a[2] = max(min(a[2], self.width - 1), 0)
+                a[3] = max(min(a[3], self.height - 1), 0)
+            '''
+            # TODO: fix this question
+            You cannot modify variable `name` from `_pre_draw_check` inside
+            this function! It will warn that local variable `name` is not
+            defined yet. I still dont know why. So I use `static` to store
+            `name` temporarily.
+            '''
+            static = name + ('f' if ('fill' in k and k['fill']) else '')
+            num = 0 if not len(self.widget[static]) \
+                    else (self.widget[static][-1]['id'] + 1)
+            k['name'] = static
+            k['num'] = num
+            # transfer params from user and name & num
+            # it will overload name=None and num=None(default)
+            # in conclusion:
+            #     user provide param *a and **k
+            #     this wrapper modify them and generate new *a, **k
+            #     real function finally recieve new *a, **k, and defaults
+            func(self, *a, **k)
+            if 'render' not in k or ('render' in k and k['render']):
+                self.render(**k)
+        param_collector.__doc__ = func.__doc__
+        param_collector.__name__ = func.__name__
+        return param_collector
+    return func_collector
+
+
 class element_dict(dict):
     def __getitem__(self, items):
         if not isinstance(items, tuple):
@@ -179,6 +233,7 @@ class element_dict(dict):
     __delattr__ = dict.__delitem__
     __str__ = dict.__str__
     __repr__ = dict.__repr__
+
 
 class element_list(list):
     def __getitem__(self, id):
@@ -256,61 +311,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._touch_started = True
         self._callback_threads = []
 
-    @staticmethod
-    def _pre_draw_check(name):
-        '''This decorator can not be used directly'''
-        def func_collector(func):
-            '''This will get function to be executed'''
-            def param_collector(self, *a, **k):
-                '''This will get params from user'''
-                a = list(a)
-                if name in ['point', 'text', 'img', 'button']:
-                    a[0] = max(min(a[0], self.width - 1), 0)
-                    a[1] = max(min(a[1], self.height - 1), 0)
-                elif name in ['circle', 'round']:
-                    a[0] = max(min(a[0], self.width - 2), 1)
-                    a[1] = max(min(a[1], self.height - 2), 1)
-                    right, down = self.width - 1 - a[0], self.height - 1 - a[1]
-                    a[2] = max(min(a[0], a[1], right, down, a[2]), 0)
-                elif name in ['rect', 'round_rect']:
-                    a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
-                    a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
-                    a[0] = max(min(a[0], self.width - 1), 0)
-                    a[1] = max(min(a[1], self.height - 1), 0)
-                    a[2] = max(min(a[2], self.width - 1), a[0])
-                    a[3] = max(min(a[3], self.height - 1), a[1])
-                elif name in ['line']:
-                    a[0] = max(min(a[0], self.width - 1), 0)
-                    a[1] = max(min(a[1], self.height - 1), 0)
-                    a[2] = max(min(a[2], self.width - 1), 0)
-                    a[3] = max(min(a[3], self.height - 1), 0)
-                '''
-                # TODO: fix this question
-                You cannot modify variable `name` from `_pre_draw_check` inside
-                this function! It will warn that local variable `name` is not
-                defined yet. I still dont know why. So I use `static` to store
-                `name` temporarily.
-                '''
-                static = name + ('f' if ('fill' in k and k['fill']) else '')
-                num = 0 if not len(self.widget[static]) \
-                        else (self.widget[static][-1]['id'] + 1)
-                k['name'] = static
-                k['num'] = num
-                # transfer params from user and name & num
-                # it will overload name=None and num=None(default)
-                # in conclusion:
-                #     user provide param *a and **k
-                #     this wrapper modify them and generate new *a, **k
-                #     real function finally recieve new *a, **k, and defaults
-                func(self, *a, **k)
-                if 'render' not in k or ('render' in k and k['render']):
-                    self.render(**k)
-            param_collector.__doc__ = func.__doc__
-            param_collector.__name__ = func.__name__
-            return param_collector
-        return func_collector
-
-    @Serial_Screen_GUI._pre_draw_check('img')
+    @_pre_draw_check('img')
     def draw_img(self, x, y, img, bg=None, **k):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
@@ -321,7 +322,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
             'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
 
-    @Serial_Screen_GUI._pre_draw_check('button')
+    @_pre_draw_check('button')
     def draw_button(self, x, y, s, size=16, font=None,
                     cb=None, ct=None, cr=None, ca=None, **k):
         '''
@@ -346,25 +347,25 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'ca': ca or self._element_color['press'],
             'callback': cb or self._default_callback}))
 
-    @Serial_Screen_GUI._pre_draw_check('point')
+    @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
         self.widget['point'].append(element_dict({'id': k['num'],
             'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
             'c': c or self._element_color['point']}))
 
-    @Serial_Screen_GUI._pre_draw_check('line')
+    @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
         self.widget['line'].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color['line']}))
 
-    @Serial_Screen_GUI._pre_draw_check('rect')
+    @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
-    @Serial_Screen_GUI._pre_draw_check('round')
+    @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
         if m == 0:
             x1, y1, x2, y2 = x, y, x + r, y + r
@@ -379,20 +380,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
             'c': c or self._element_color[k['name']]}))
 
-    @Serial_Screen_GUI._pre_draw_check('round_rect')
+    @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
             'c': c or self._element_color[k['name']]}))
 
-    @Serial_Screen_GUI._pre_draw_check('circle')
+    @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
         self.widget[k['name']].append(element_dict({'id': k['num'],
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
             'x': x, 'y': y, 'r': r, 's': s, 'e': e,
             'c': c or self._element_color[k['name']]}))
 
-    @Serial_Screen_GUI._pre_draw_check('text')
+    @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, font=None, **k):
         (w, h), s, font = self.get_size_text_font(s, size, font)
         self.widget['text'].append(element_dict({'id': k['num'],
