@@ -568,7 +568,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if float(w) / h >= float(self.width) / self.height:
             img = img.resize((self.width, int(float(self.width)/w*h)))
         else:
-            img = img.resize((int(float(self.height/h*w)), self.height))
+            img = img.resize((int(float(self.height)/h*w), self.height))
         # place it on center of the frame
         w, h = img.size
         self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img),
