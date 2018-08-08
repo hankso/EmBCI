@@ -650,6 +650,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
 
+    def empty_widget(self):
+        for key in self.widget:
+            self.widget[key] = element_list([])
+        self.clear()
+
     def close(self):
         super(Serial_Screen_GUI, self).close()
         if self._touch_started:
