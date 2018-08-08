@@ -64,7 +64,6 @@ class Signal_Info(object):
         self.stft = self.Short_Time_Fourier_Transfrom
         self.wavedec = self.Wavelet_Decomposition
 
-
     def _check_shape(func):
         def param_collector(self, X, *args, **kwargs):
             if isinstance(X, tuple):
@@ -305,7 +304,6 @@ class Signal_Info(object):
                 rst[:, i] = self.rms(X[:, wl:wh])[:, 0]
         return rst
 
-
     @_check_shape
     def envelop(self, X, method=2):
         '''
@@ -339,7 +337,6 @@ class Signal_Info(object):
                       ip.splev(t, ip.splrep(t[mins[i]], X[i][mins[i]]))]
                      for i in np.arange(nch)])
             return rst
-
 
     @_check_shape
     def Fast_Fourier_Transform(self, X, sample_rate=None, resolution=1):
@@ -389,7 +386,6 @@ class Signal_Info(object):
             amp[:, -1] /= 2
         freq = np.linspace(0, sample_rate/2, amp.shape[1]-1)
         return freq, amp[:, :-1]
-
 
     @_check_shape
     def fft_amp_only(self, X, sample_rate, resolution=1, *a, **k):
@@ -443,7 +439,6 @@ class Signal_Info(object):
         amp
         '''
         return self.stft(X, sample_rate, nperseg, noverlap)[2]
-
 
     @_check_shape
     def Discret_Wavelet_Transform(self, X, wavelet=None):

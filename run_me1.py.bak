@@ -16,9 +16,9 @@ import IPython
 import numpy as np
 
 # from ./utils
-from common import check_input, Signal_Info, mapping
+from common import check_input, mapping
 # from gpio4 import SysfsGPIO
-from preprocessing import Processer
+from preprocessing import Signal_Info
 # from visualization import Serial_Screen_GUI as Screen_GUI
 from visualization import SPI_Screen_GUI as Screen_GUI
 # from IO import ADS1299_reader as Reader
@@ -381,6 +381,18 @@ page3 = {
 menu_list = {'a': [page0, page1, page2, page3], 'i': 0}
 
 
+
+
+def tremor_coefficient(si, reader):
+    return si.find_max_amp(reader)
+
+def stiff_coefficient(si, reader):
+    return np.zeros(reader.n_channel)
+
+def move_coefficient(si, reader):
+    return si.energy(reader)
+
+
 if __name__ == '__main__':
     username = 'test'
     try:
@@ -396,6 +408,7 @@ if __name__ == '__main__':
     # reset_avr.value = 1
     # time.sleep(1)
 
+    '''
     program_exit = threading.Event()
 
     try:
@@ -425,3 +438,4 @@ if __name__ == '__main__':
         # s1.close()
         # stop.set()
         server.close()
+    '''
