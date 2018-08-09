@@ -373,10 +373,10 @@ STOP            = 0x0A
 RREG            = 0x20
 WREG            = 0x40
 # virtual registers, only used between ARM and ESP32
-REG_SR          = 0x80  # sample_rate
-REG_IS          = 0x82  # input_source
-REG_BIAS        = 0x84  # enable_bias
-REG_INPEDANCE   = 0x86  # measure_inpedance
+REG_SR          = 0x50  # sample_rate
+REG_IS          = 0x52  # input_source
+REG_BIAS        = 0x54  # enable_bias
+REG_INPEDANCE   = 0x56  # measure_inpedance
 
 
 class ESP32_API(ADS1299_API):
@@ -428,7 +428,11 @@ class ESP32_API(ADS1299_API):
             return np.zeros(8, np.float32)
 
         if not len(self._data_buffer):
-            data = struct.pack(self._data_format, *self.write(self._tosend))
+            # spidev lib is written in C language, where value of list will be
+            # changed in-situ. Because we want self._tosend keep as [0x00] *n,
+            # self._tosend cannot be used directly in self.xfer[2]. Here we pass
+            # a new list same as self._tosend created by slicing itself.
+            data = struct.pack(self._data_format, *self.write(self._tosend[:]))
             data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
