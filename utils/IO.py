@@ -36,7 +36,7 @@ from ads1299_api import ADS1299_API, ESP32_API
 from ili9341_api import ILI9341_API, rgb24to565
 
 # from ../src
-import preprocessing
+import preprocessing as pp
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
@@ -296,7 +296,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._ch_last_index == self._index:
-                if (time.time() - t) > 1.5 / self.sample_rate:
+                if (time.time() - t) > (1.5 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._ch_last_index = self._index
@@ -307,7 +307,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._fr_last_index == self._index:
-                if (time.time() - t) > 1.5 / self.sample_rate:
+                if (time.time() - t) > (1.5 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._fr_last_index = self._index
@@ -322,11 +322,12 @@ class _basic_reader(object):
             return self
         if isinstance(items, slice):
             return self._data[items]
-        elif isinstance(items, str) and items in vars(preprocessing.Signal_Info):
-            return getattr(preprocessing.Signal_Info(self.sample_rate), items)(self)
+        elif isinstance(items, str) and items in vars(pp.Signal_Info):
+            return getattr(pp.Signal_Info(self.sample_rate), items)(self)
         else:
             print(self._name + 'unknown preprocessing method %s' % items)
             return self
+
 
 class Fake_data_generator(_basic_reader):
     '''Generate random data, same as any Reader defined in IO.py'''

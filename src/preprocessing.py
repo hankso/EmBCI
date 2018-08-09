@@ -45,7 +45,7 @@ class Signal_Info(object):
         n_channel x window_size, where window_size = sample_rate * sample_time
     '''
     def __init__(self, sample_rate):
-        self._fs = sample_rate
+        self.sample_rate = self._fs = sample_rate
 
         # alias
         self.avr = self.Average
@@ -106,6 +106,10 @@ class Signal_Info(object):
         param_collector.__name__ = func.__name__
         return param_collector
 
+
+    '''
+    Time domain features
+    '''
     @_check_shape
     def Average(self, X):
         '''The most simple feature: average of each channel'''
@@ -217,13 +221,6 @@ class Signal_Info(object):
         return np.sqrt(np.mean(np.square(X), -1).reshape(-1, 1))
 
     @_check_shape
-    def Detrend(self, X):
-        '''
-        remove DC part of raw signal
-        '''
-        return signal.detrend(X, axis=-1)
-
-    @_check_shape
     def baseline(self, X, smooth=1e4, p=0.5, niter=10):
         '''
         This is python version implementation of `Asymmetric Least Squares
@@ -247,10 +244,104 @@ class Signal_Info(object):
         return np.array(rst)
 
     @_check_shape
-    def Bandpass_Filter(self, X, sample_rate=None):
-        return X
-        sample_rate  = sample_rate or self._fs
-        # return bandwidth_filter(X, self._fs, min_freq=10, max_freq=450)
+    def envelop(self, X, method=1):
+        '''
+        There are two ways to get envelop of a signal.
+        1 Hilbert Transform
+        2 Interpolation of all relative extrema: scipy.signal.argrelextrema,
+        Default is the last one, which is a modified version of
+        `pyhht.utils.get_envelops` to support multi-channel time-series data.
+
+        Notes
+        -----
+        The difference between interpolation and curve fitting is that when you
+        fit a curve with points, these points may not be on result curve. But
+        the advantage of interpolation is that it will predict values based on
+        points beside them. So points will be exactly on result curve.
+        In scipy.interpolate module, there are many choices to interpolate by
+        points, here we use scipy.interpolate.spl* methods, because it's
+        relatively fast and the result is nice.
+        '''
+        if method == 1:
+            return abs(signal.hilbert(X, axis=-1))
+        elif method == 2:
+            nch, wsize = X.shape
+            t = np.arange(wsize)
+            maxs = [np.concatenate(([0], signal.argrelmax(ch)[-1], [wsize-1])) \
+                    for ch in X]
+            mins = [np.concatenate(([0], signal.argrelmin(ch)[-1], [wsize-1])) \
+                    for ch in X]
+            rst = np.array(
+                    [[ip.splev(t, ip.splrep(t[maxs[ch]], X[ch][maxs[ch]])),
+                      ip.splev(t, ip.splrep(t[mins[ch]], X[ch][mins[ch]]))]
+                     for ch in np.arange(nch)])
+            return rst
+
+    @_check_shape
+    def energy(self, X, low, high, sample_rate=None):
+        '''
+        Intergrate of energy on frequency duration (low, high)
+        '''
+        if isinstance(X, tuple) and len(X) == 2:
+            freq, amp = X
+        else:
+            freq, amp = self.fft(X, (sample_rate or self._fs))
+        dt = float(freq[1] - freq[0])
+        amp = amp[:, int(low/dt):int(high/dt)]**2
+        return np.sum(amp, 1) * dt
+
+    @_check_shape
+    def energy_time_duration(self, reader, low, high, duration):
+        '''
+        calculate energy density of time duration
+        '''
+        import time, threading
+        energy_sum = np.zeros(reader.n_channel)
+        sample_rate = reader.sample_rate
+        stop_flag = threading.Event()
+        def _sum(flag, eng):
+            start_time = time.time()
+            while not flag.isSet():
+                if (time.time() - start_time) > duration:
+                    break
+                eng += self.energy(reader.data_frame, low, high,  sample_rate)
+            eng /= (sample_rate * (time.time() - start_time))
+        threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
+        return stop_flag, energy_sum
+
+    @_check_shape
+    def find_max_amp(self, X, low, high, sample_rate=None):
+        '''
+        Extract peek between frequency duration (n_min, n_max)
+        '''
+        if isinstance(X, tuple) and len(X) == 2:
+            freq, amp = X
+        else:
+            freq, amp = self.fft(X, sample_rate or self._fs)
+        dt = float(freq[1] - freq[0])
+        amp = amp[:, int(low/dt):int(high/dt)]**2
+        return np.array([np.argmax(amp, 1) * dt + low, np.max(amp, 1)])
+
+
+    '''
+    Preprocessing methods
+    '''
+    @_check_shape
+    def Detrend(self, X, method=1):
+        '''
+        remove DC part of raw signal
+        '''
+        assert method in [1, 2]
+        if method == 1:
+            return signal.detrend(X, axis=-1, bp=np.arange(0, X.shape[1], 100))
+        elif method == 2:
+            return X - self.baseline(X)
+
+    @_check_shape
+    def Bandpass_Filter(self, X, low, high, order=8, sample_rate=None):
+        fs = float(sample_rate or self._fs)
+        b, a = signal.butter(order, (low / fs, high / fs), 'bandpass')
+        return signal.lfilter(b, a, X, axis=-1)
 
     @_check_shape
     def notch(self, X, sample_rate=None, Q=60, Hz=50, *args, **kwargs):
@@ -264,7 +355,7 @@ class Signal_Info(object):
         sample_rate = sample_rate or self._fs
         for b, a in [signal.iirnotch( float(fs)/(sample_rate/2), Q ) \
                      for fs in np.arange(Hz, sample_rate/2, Hz)]:
-            X = scipy.signal.filtfilt(b, a, X, axis=-1)
+            X = signal.filtfilt(b, a, X, axis=-1)
         return X
 
     @_check_shape
@@ -294,7 +385,7 @@ class Signal_Info(object):
             filters = np.ones(window_length) / float(window_length)
             rst = np.array([np.convolve(ch, filters) for ch in X])
         elif method == 2:
-            pass
+            raise NotImplementedError()
         else:
             l = X.shape[1]
             rst = np.zeros(X.shape)
@@ -305,39 +396,24 @@ class Signal_Info(object):
         return rst
 
     @_check_shape
-    def envelop(self, X, method=2):
+    def sync_like(self, X):
         '''
-        There are two ways to get envelop of a signal.
-        1 Hilbert Transform
-        2 Interpolation of all relative extrema: scipy.signal.argrelextrema,
-        Default is the last one, which is a modified version of
-        `pyhht.utils.get_envelops` to support multi-channel time-series data.
-
-        Notes
-        -----
-        The difference between interpolation and curve fitting is that when you
-        fit a curve with points, these points may not be on result curve. But
-        the advantage of interpolation is that it will predict values based on
-        points beside them. So points will be exactly on result curve.
-        In scipyinterpolate module, there are many choices to interpolate by
-        points, here we use scipyinterpolate.spl* methods, because it's
-        relatively fast and the result is nice.
+        Sychronization likelihood is the method to abstract a state vector
+        from a time-series data. This vector is distinguishable in state space,
+        thus representing current state(raw data pattern).
+        In a time interval, if state vectors of each frequency ranges (α|β|γ..)
+        of each channels are similar, we can say sync_level of this people is
+        high at present and vice versa. It has been discovered that many kinds
+        of nervous diseases are related to out-sync of brain activities, such
+        as Alzheimer's Disease. By comparing state vector we can tell how
+        synchronous the subject's brain is.
         '''
-        if method == 1:
-            return abs(scipy.signal.hilbert(X, axis=-1))
-        elif method == 2:
-            nch, wsize = X.shape
-            t = np.arange(nch)
-            maxs = scipy.signal.argrelextrema(X, np.greater, axis=-1)[0]
-            mins = scipy.signal.argrelextrema(X, np.less, axis=-1)[0]
-            maxs = np.concatenate(([[0]]*nch, maxs, [[wsize-1]]*nch))
-            mins = np.concatenate(([[0]]*nch, mins, [[wsize-1]]*nch))
-            rst = np.array(
-                    [[ip.splev(t, ip.splrep(t[maxs[i]], X[i][maxs[i]])),
-                      ip.splev(t, ip.splrep(t[mins[i]], X[i][mins[i]]))]
-                     for i in np.arange(nch)])
-            return rst
+        pass
 
+
+    '''
+    Frequency domain features
+    '''
     @_check_shape
     def Fast_Fourier_Transform(self, X, sample_rate=None, resolution=1):
         '''
@@ -603,66 +679,6 @@ class Signal_Info(object):
         inst_freq = (np.diff(inst_phase, axis=-1) / (2 * np.pi) *
                      (sample_rate or self._fs))
         return inst_freq
-
-    @_check_shape
-    def sync_like(self, X):
-        '''
-        Sychronization likelihood is the method to abstract a state vector
-        from a time-series data. This vector is distinguishable in state space,
-        thus representing current state(raw data pattern).
-        In a time interval, if state vectors of each frequency ranges (α|β|γ..)
-        of each channels are similar, we can say sync_level of this people is
-        high at present and vice versa. It has been discovered that many kinds
-        of nervous diseases are related to out-sync of brain activities, such
-        as Alzheimer's Disease. By comparing state vector we can tell how
-        synchronous the subject's brain is.
-        '''
-        pass
-
-    @_check_shape
-    def find_max_amp(self, X, low, high, sample_rate):
-        '''
-        Extract peek between frequency duration (n_min, n_max)
-        '''
-        if isinstance(X, tuple) and len(X) == 2:
-            freq, amp = X
-        else:
-            freq, amp = self.fft(X, sample_rate)
-        dt = float(freq[1] - freq[0])
-        amp = amp[:, int(low/dt):int(high/dt)]**2
-        return np.array([np.argmax(amp, 1) * dt + low, np.max(amp, 1)])
-
-    @_check_shape
-    def energy(self, X, low, high, sample_rate=None):
-        '''
-        Intergrate of energy on frequency duration (low, high)
-        '''
-        if isinstance(X, tuple) and len(X) == 2:
-            freq, amp = X
-        else:
-            freq, amp = self.fft(X, (sample_rate or self._fs))
-        dt = float(freq[1] - freq[0])
-        amp = amp[:, int(low/dt):int(high/dt)]**2
-        return np.sum(amp, 1) * dt
-
-    @_check_shape
-    def energy_time_duration(self, reader, low, high, duration):
-        '''
-        calculate energy density of time duration
-        '''
-        import time, threading
-        energy_sum = np.zeros(reader.n_channel)
-        sample_rate = reader.sample_rate
-        stop_flag = threading.Event()
-        def _sum(flag, eng):
-            start_time = time.time()
-            while not flag.isSet():
-                if (time.time() - start_time) > duration:
-                    break
-                eng += self.energy(reader.data_frame, low, high,  sample_rate)
-            eng /= time.time() - start_time
-        threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
-        return stop_flag, energy_sum
 
     @_check_shape
     def energy_spectrum(self, X):

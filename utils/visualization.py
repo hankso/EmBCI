@@ -637,7 +637,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     if bt['callback'] is not None:
                         thread = threading.Thread(
                             target=bt['callback'],
-                            kwargs={'x': x, 'y': y, 'bt':bt})
+                            kwargs={'x': x, 'y': y, 'bt': bt})
                         thread.start()
                         self._callback_threads.append(thread)
         print('[Touch Screen] exiting...')
@@ -705,13 +705,7 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         if self._touch_started:
             # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
             self._flag_close.set()
-            try:
-                self._t.write('\xaa\xaa\xaa\xaa') # send close signal
-                time.sleep(1)
-            except:
-                pass
-            finally:
-                self._t.close()
+            self._t.close()
 
     def save_layout(self, dir):
         '''
