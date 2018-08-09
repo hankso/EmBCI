@@ -300,6 +300,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._t = serial.Serial(port, baud)
+        self._t.flush()
         self._flag_close = threading.Event()
         self._flag_pause = threading.Event()
         self._flag_pause.set()
@@ -430,10 +431,21 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
         self.render()
 
-    def save_layout(self, dir):
+    def save_layout(self, dir_or_file):
         '''
         save current layout(texts, buttons, any elements) in a pickle file
         '''
+        if os.path.exists(dir_or_file):
+            if os.path.isdir(dir_or_file):
+                name = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
+            elif ps.path.isfile(dir_or_file):
+                name = dir_or_file
+        else:
+            dir = os.path.basename(dir_or_file),
+            if not ps.path.exits(dir) or not os.path.isdir(dir):
+                return
+            name = dir_or_file
+        # prepare data
         tmp = element_dict(self.widget.copy())
         for e in tmp['button']:
             e['callback'] = None
@@ -441,8 +453,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         # convert it to utf8 to pickle
         for e in tmp['text'] + tmp['button']:
             e['s'] = e['s'].decode('gbk')
-        with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
+        with open(name, 'w') as f:
             pickle.dump(tmp, f)
+        print(self._name + 'save layout `{}`'.format(name))
 
     def load_layout(self, dir, extend=True, render=True):
         '''
