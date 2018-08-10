@@ -432,7 +432,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             return
         return self.widget[element, id]
 
-    def remove_element(self, element=None, id=None, render=True):
+    def remove_element(self, element=None, id=None, render=True, *a, **k):
         e = self._get_element_from_name_and_id(element, id)
         if e is None:
             return
@@ -440,7 +440,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if render:
             self.render()
 
-    def move_element(self, element=None, id=None, x=0, y=0):
+    def move_element(self, element=None, id=None, x=0, y=0, *a, **k):
         e = self._get_element_from_name_and_id(element, id)
         if e is None:
             return
@@ -450,7 +450,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
         self.render()
 
-    def save_layout(self, dir_or_file):
+    def save_layout(self, dir_or_file, *a, **k):
         '''
         save current layout(texts, buttons, any elements) in a pickle file
         '''
@@ -477,7 +477,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             pickle.dump(tmp, f)
         print(self._name + 'save layout `{}`'.format(name))
 
-    def load_layout(self, dir_or_file, extend=True, render=True):
+    def load_layout(self, dir_or_file, extend=True, render=True, *a, **k):
         '''
         read in a layout from file, `extend` means to extend current layout by
         loaded layout, or to replace current layout with loaded layout
@@ -511,14 +511,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if render:
             self.render()
 
-    def freeze_frame(self):
+    def freeze_frame(self, *a, **k):
         '''save current frame buffer in background'''
         self._tmp = (element_dict(self.widget.copy()), self.touch_sensibility)
         for key in self.widget:
             self.widget[key] = element_list([])
         self.clear()
 
-    def recover_frame(self):
+    def recover_frame(self, *a, **k):
         '''recover lastest frame buffer from background'''
         if hasattr(self, '_tmp') and self._tmp:
             self.widget, self.touch_sensibility = self._tmp
@@ -559,7 +559,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         except Exception as e:
             print(self._name + 'render error: {}'.format(e))
 
-    def calibration_touch_screen(self):
+    def calibration_touch_screen(self, *a, **k):
         if not self._touch_started:
             print('[Screen GUI] touch screen not initialized yet!')
             return
@@ -592,7 +592,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.recover_frame()
             self._flag_pause.set() # resume _handle_touch_screen thread
 
-    def display_img(self, filename_or_img):
+    def display_img(self, filename_or_img, *a, **k):
         if isinstance(filename_or_img, str):
             img = Image.open(filename_or_img)
         elif isinstance(filename_or_img, np.ndarray):
@@ -689,12 +689,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
 
-    def empty_widget(self):
+    def empty_widget(self, *a, **k):
         for key in self.widget:
             self.widget[key] = element_list([])
         self.clear()
 
-    def close(self):
+    def close(self, *a, **k):
         super(Serial_Screen_GUI, self).close()
         if self._touch_started:
             self._flag_close.set()
