@@ -566,10 +566,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.freeze_frame()
         self.touch_sensibility = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
-        self.draw_text(78, 80, '屏幕校准', c='green')
-        self.draw_text(79, 80, '屏幕校准', c='green')
+        s = '屏幕校准'
+        w, h = self.getsize(s, size=20)
+        self.draw_text((self.width-w)/2, (self.height-h)/2, s, c='green')
         # points where to be touched
-        pts = np.array([[10, 10], [210, 10], [10, 165], [210, 165]])
+        pts = np.array([[10, 10],
+                        [self.width-10, 10],
+                        [10, self.height-10],
+                        [self.width-10, self.height-10]])
         # points where user touched
         ptt = np.zeros((4, 2))
         try:
@@ -578,7 +582,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 self.draw_circle(pts[i][0], pts[i][1], 4, 'blue')
                 ptt[i] = self._get_touch_point()
                 print('[Calibration] touch at {}, {}'.format(*ptt[i]))
-                self.draw_circle(pts[i][0], pts[i][1], 2, 'blue', fill=True)
+                self.draw_circle(pts[i][0], pts[i][1], 2, 'green', fill=True)
             self._cali_matrix = np.array([
                     np.polyfit(ptt[:, 0], pts[:, 0], 1),
                     np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
@@ -609,18 +613,16 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             img = img.resize((int(float(self.height)/h*w), self.height))
         # place it on center of the frame
         w, h = img.size
-        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img),
-                      render=False)
+        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
         s1 = '任意点击开始'
         w, h = self.getsize(s1, size=18)[0]
         w, h = (self.width-w)/2, self.height - 2*h - 2
-        self.draw_text(w, h, s1, 'red', 18, render=False)
+        self.draw_text(w, h, s1, 'red', 18)
         s2 = 'click to start'
         w, h = self.getsize(s2, size=18)[0]
         w, h = (self.width-w)/2, self.height - 1*h - 1
-        self.draw_text(w, h, s2, 'red', 18, render=False)
-        self.render()
+        self.draw_text(w, h, s2, 'red', 18)
         # touch screen to continue
         if self._touch_started:
             self._flag_pause.clear()
@@ -682,11 +684,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                         self._callback_threads.append(thread)
         print('[Touch Screen] exiting...')
 
-    def clear(self, x1=None, y1=None, x2=None, y2=None, c=None, *a, **k):
+    def clear(self, x1=None, y1=None, x2=None, y2=None, bg=None, *a, **k):
         if None in [x1, y1, x2, y2]:
-            self.send('clear', c=( c or self._element_color['bg'] ))
+            self.send('clear', c=( bg or self._element_color['bg'] ))
         else:
-            self.send('rectf', c=( c or self._element_color['bg'] ),
+            self.send('rectf', c=( bg or self._element_color['bg'] ),
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
 
