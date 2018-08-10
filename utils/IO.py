@@ -1067,8 +1067,9 @@ class Serial_Screen_commander(Serial_commander):
         self.send('clear')
         super(Serial_Screen_commander, self).close()
 
-    def get_size_text_font(self, s=None, size=None, font=None):
+    def getsize(self, s, size=None, font=None):
         '''
+        Get width and height of string `s` with `size` and `font`
         Returns
         -------
         w, h: tuple | None
@@ -1079,19 +1080,15 @@ class Serial_Screen_commander(Serial_commander):
             If param `font` offered, check whether font exist. If font file not
             exists or supported, return None.
         '''
+        # Although there is already `# -*- coding: utf-8 -*-` above,
+        # we'd better explicitly use utf-8 to decode string in py2.
+        # py3 default use utf-8 coding, which is really really nice.
+        if sys.version_info.major == 2 and not isinstance(s, unicode):
+            s = s.decode('utf8')
         # Serial Screen use 8 pixels for English characters and 16 pixels for
         # Chinese characters(GBK encoding)
-        if s is not None:
-            # Although there is already `# -*- coding: utf-8 -*-` above,
-            # we'd better explicitly use utf-8 to decode string in py2.
-            # py3 default use utf-8 coding, which is really really nice.
-            if sys.version_info.major == 2 and not isinstance(s, unicode):
-                s = s.decode('utf8')
-            en_zh = [ord(char) > 255 for char in s]
-            w = en_zh.count(False)*8 + en_zh.count(True)*16
-            h = 16
-            return (w, h), s.encode('gbk'), None
-        return None, None, None
+        en_zh = [ord(char) > 255 for char in s]
+        return en_zh.count(False)*8 + en_zh.count(True)*16, 16
 
 
 class _convert_24bit_to_565():
@@ -1120,8 +1117,9 @@ class SPI_Screen_commander(_basic_commander):
         self.close = self._ili.close
         SPI_Screen_commander._singleton = False
 
-    def get_size_text_font(self, s=None, size=None, font=None):
+    def getsize(self, s, size=None, font=None):
         '''
+        get
         Returns
         -------
         w, h: tuple | None
@@ -1132,22 +1130,20 @@ class SPI_Screen_commander(_basic_commander):
             If param `font` offered, check whether font exist. If font file not
             exists or supported, return None.
         '''
-        if s is not None:
-            if sys.version_info.major == 2 and not isinstance(s, unicode):
-                s = s.decode('utf8')
-            if size is not None:
-                self._ili.setsize(size)
-            if font is not None:
-                if not os.path.exist(font):
-                    font = None
-                else:
-                    try:
-                        self._ili.setfont(font)
-                    except:
-                        font = None
-            w, h = self._ili.font.getsize(s)
-            return (w/2, h/2), s, font
-        return None, None, None
+        if sys.version_info.major == 2 and not isinstance(s, unicode):
+            s = s.decode('utf8')
+        if size is not None:
+            self._ili.setsize(size)
+        if font is not None and os.path.exist(font):
+            font_backup = self._ili.font.path
+            try:
+                self._ili.setfont(font)
+                w, h = self._ili.font.getsize(s)
+                return w/2, h/2
+            except:
+                self._ili.setfont(font_backup)
+        w, h = self._ili.font.getsize(s)
+        return w/2, h/2
 
     def start(self):
         self._ili.start()

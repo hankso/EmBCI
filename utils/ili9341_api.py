@@ -440,15 +440,17 @@ class ILI9341_API(spidev.SpiDev):
         try:
             if size is not None and self.size != size:
                 self.setsize(size)
-            if font is not None and self.font.path != font:
-                self.setfont(font, self.size)
+            if font is not None and os.path.exists(font) and self.font.path != font:
+                font = ImageFont.truetype(font, self.size * 2)
+            else:
+                font = self.font
         except:
             print(('[ILI9341_API] error occur when setting font `{}` and size '
                    '`{}`').format(font, self.size))
             return
         w, h = self.font.getsize(s)
         img = Image.new(mode='RGBA', size=(w, h))
-        ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), self.font)
+        ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), font)
         img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 

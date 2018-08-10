@@ -290,6 +290,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                  command_dict=command_dict_uart_screen_v1, *args, **kwargs):
         super(Serial_Screen_GUI, self).__init__(baud, command_dict)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
+        self._encoding = 'gbk'
         self.start(port)  # set serial screen port
         self.send('dir', 1)  # set screen vertical
         self.width, self.height = width, height
@@ -346,7 +347,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             color_text | ct: color of text
             color_rect | cr color of outside rect
         '''
-        (w, h), s, font = self.get_size_text_font(s, size, font)
+        w, h = self.getsize(s, size, font)
+        if sys.version_info.major == 2 and not isinstance(s, unicode):
+            s = s.decode('utf8')
+            if self._encoding != 'utf8':
+                s = s.encode(self._encoding)
         self.widget['button'].append(element_dict({
             'id': k['id'], 'font': font,
             'x1': max(x - 1, 0), 'y1': max(y - 1, 0),
@@ -405,7 +410,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, font=None, **k):
-        (w, h), s, font = self.get_size_text_font(s, size, font)
+        w, h = self.getsize(s, size, font)
+        if sys.version_info.major == 2 and not isinstance(s, unicode):
+            s = s.decode('utf8')
+            if self._encoding != 'utf8':
+                s = s.encode(self._encoding)
         self.widget['text'].append(element_dict({'id': k['id'],
             'x': x, 'y': y, 's': s, 'size': size,
             'x1': x, 'y1': y, 'font': font,
@@ -459,10 +468,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         tmp = element_dict(self.widget.copy())
         for e in tmp['button']:
             e['callback'] = None
-        # text string is stored as str(gbk encoding) in self.widget
-        # convert it to utf8 to pickle
-        for e in tmp['text'] + tmp['button']:
-            e['s'] = e['s'].decode('gbk')
+        if self._encoding != 'utf8':
+            # text string is stored as str in self.widget
+            # convert it to unicode to pickle
+            for e in tmp['text'] + tmp['button']:
+                e['s'] = e['s'].decode('gbk')
         with open(name, 'w') as f:
             pickle.dump(tmp, f)
         print(self._name + 'save layout `{}`'.format(name))
@@ -487,10 +497,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         except Exception as e:
             print(self._name + 'load layout `' + layout + '` error: %s' % e)
             return
-        # text string is stored as unicode in layout file
-        # convert it to gbk after pickle
-        for e in tmp['text'] + tmp['button']:
-            e['s'] = e['s'].encode('gbk')
+        if self._encoding != 'utf8':
+            # text string is stored as unicode in layout file
+            # convert it to correct encoding after pickle
+            for e in tmp['text'] + tmp['button']:
+                e['s'] = e['s'].encode(self._encoding)
         for key in self.widget:
             elements = [element_dict(e) for e in tmp[key]]
             if extend:
@@ -603,11 +614,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                       render=False)
         # add guide text
         s1 = '任意点击开始'
-        w, h = self.get_size_text_font(s1, size=18)[0]
+        w, h = self.getsize(s1, size=18)[0]
         w, h = (self.width-w)/2, self.height - 2*h - 2
         self.draw_text(w, h, s1, 'red', 18, render=False)
         s2 = 'click to start'
-        w, h = self.get_size_text_font(s2, size=18)[0]
+        w, h = self.getsize(s2, size=18)[0]
         w, h = (self.width-w)/2, self.height - 1*h - 1
         self.draw_text(w, h, s2, 'red', 18, render=False)
         self.render()
@@ -724,6 +735,7 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
     def __init__(self, spi_device=(0, 1), *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
+        self._encoding = 'utf8'
         self.start()
         self._touch_started = False
         self.touch_sensibility = 4
@@ -734,40 +746,6 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
             self._flag_close.set()
             self._t.close()
-
-    def save_layout(self, dir):
-        '''
-        save current layout(texts, buttons, any elements) in a pickle file
-        '''
-        tmp = element_dict(self.widget.copy())
-        for e in tmp['button']:
-            e['callback'] = None
-        with open(os.path.join(dir, 'layout-%s.pcl' % time_stamp()), 'w') as f:
-            pickle.dump(tmp, f)
-
-    def load_layout(self, dir, extend=True, render=True):
-        '''
-        read in a layout from file, `extend` means to extend current layout by
-        loaded layout, or to replace current layout with loaded layout
-        '''
-        layout = find_layouts(dir)
-        if layout is None:
-            print(self._name + 'no available layout files in dir ' + dir)
-            return
-        try:
-            with open(layout, 'r') as f:
-                tmp = pickle.load(f)
-        except Exception as e:
-            print(self._name + 'load layout `' + layout + '` error: %s' % e)
-            return
-        for key in self.widget:
-            elements = [element_dict(e) for e in tmp[key]]
-            if extend:
-                self.widget[key].extend(elements)
-            else:
-                self.widget[key] = element_list(elements)
-        if render:
-            self.render()
 
 
 if __name__ == '__main__':
