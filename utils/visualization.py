@@ -570,10 +570,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         w, h = self.getsize(s, size=20)
         self.draw_text((self.width-w)/2, (self.height-h)/2, s, c='green')
         # points where to be touched
-        pts = np.array([[10, 10],
-                        [self.width-10, 10],
-                        [10, self.height-10],
-                        [self.width-10, self.height-10]])
+        pts = np.array([[20, 20],
+                        [self.width-20, 20],
+                        [20, self.height-20],
+                        [self.width-20, self.height-20]])
         # points where user touched
         ptt = np.zeros((4, 2))
         try:
@@ -651,7 +651,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                     if len(yxp) == 3:
                         pt = self._cali_matrix[1] + \
                              [int(yxp[1]), int(yxp[0])] * self._cali_matrix[0]
-                        print('[Touch Screen] touch at {}, {}'.format(*pt))
+                        # print('[Touch Screen] touch at {}, {}'.format(*pt))
                         return abs(pt)
                     else:
                         print('[Touch Screen] Invalid input %s' % raw)

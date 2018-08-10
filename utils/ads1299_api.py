@@ -138,7 +138,7 @@ class ADS1299_API(spidev.SpiDev):
         do_measure_impedance = True|False | lsbfirst = True|False
                                           | fileno
     '''
-    def __init__(self, scale=5.0/24/2**24):
+    def __init__(self, scale=4.5/24/2**24):
         self.scale = float(scale)
         self._DRDY = SysfsGPIO(PIN_DRDY)
         # self._PWRDN = SysfsGPIO(PIN_PWRDN)
@@ -181,7 +181,7 @@ class ADS1299_API(spidev.SpiDev):
         self._epoll.register(self._DRDY, select.EPOLLET|select.EPOLLPRI)
         self._opened = True
 
-    def start(self, sample_rate=250):
+    def start(self, sample_rate):
         '''
         Before device power up, all digital and analog inputs must be low.
         At the time of power up, keep all of these signals low until the
@@ -384,7 +384,7 @@ class ESP32_API(ADS1299_API):
     Because we only use ESP32 as SPI buffer, its SPI interface is implemented
     similar with ADS1299. So define this API class in submodule `ads1299_api.py`
     '''
-    def __init__(self, n_batch=32, scale=5.0/24/2**24):
+    def __init__(self, n_batch=32, scale=4.5/24/2**24):
         self.n_batch = n_batch
 
         # we send `nBatchs * 4Bytes * 8chs` 0x00
@@ -398,7 +398,7 @@ class ESP32_API(ADS1299_API):
 
         super(ESP32_API, self).__init__(scale)
 
-    def start(self, sample_rate=250):
+    def start(self, sample_rate):
         '''
         Before device power up, all digital and analog inputs must be low.
         At the time of power up, keep all of these signals low until the

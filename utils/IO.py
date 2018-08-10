@@ -588,7 +588,7 @@ class ADS1299_reader(_basic_reader):
         print(self._name + 'finding available spi devices... ', end='')
         device = device if device is not None else find_spi_devices()
         self._ads.open(device)
-        self._ads.start()
+        self._ads.start(self.sample_rate)
         print('`spi%d-%d` opened.' % device)
         # 2. start get data process
         if self._send_to_pylsl:
