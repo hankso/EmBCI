@@ -70,10 +70,10 @@ INPUT_SOURCE = {
     'test':     0b101,
 }
 # OrangePi supported spidev max_speed_hz: 100MHz divided by 1, 2, 3, ... n
-SUGGESTED_MSH = np.array([
+SUGGESTED_MSH = np.int([
     100e6, 50e6, 33.33e6, 25e6, 20e6, 12.5e6, 11.11e6, 10e6,
     5e6, 4e6, 3.33e6, 3.03e6, 2.5e6, 2e6, 1e6,
-    8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5], np.int)
+    8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5])
 
 
 
@@ -102,11 +102,11 @@ class ADS1299_API(spidev.SpiDev):
             MVDD: supply measurement
             temper: temperature sensor
             test: test signal(internal or external generated test square wave)
-        do_measure_inpedance: property, set it to True or False:
+        do_measure_impedance: property, set it to True or False:
             >>> ads = ADS1299_API()
             >>> ads.open((0, 0))
-            >>> ads.do_measure_inpedance = True
-            >>> ads.read() # this will return inpedance value of each channel
+            >>> ads.do_measure_impedance = True
+            >>> ads.read() # this will return impedance value of each channel
         do_enable_bias: property, set it to True or False
 
     Attention
@@ -135,7 +135,7 @@ class ADS1299_API(spidev.SpiDev):
         set_sample_rate(rate)             | cshigh = True|False
         set_input_source(src)             | threewire = True|False
         do_enable_bias = True|False       | loop = True|False
-        do_measure_inpedance = True|False | lsbfirst = True|False
+        do_measure_impedance = True|False | lsbfirst = True|False
                                           | fileno
     '''
     def __init__(self, scale=5.0/24/2**24):
@@ -149,7 +149,7 @@ class ADS1299_API(spidev.SpiDev):
         self._opened = False
         self._started = False
         self._enable_bias = False
-        self._measure_inpedance = False
+        self._measure_impedance = False
 
     def open(self, dev, max_speed_hz=2e6):
         '''
@@ -282,11 +282,11 @@ class ADS1299_API(spidev.SpiDev):
         self.write(RDATAC)
 
     @property
-    def do_measure_inpedance(self):
-        return self._measure_inpedance
+    def do_measure_impedance(self):
+        return self._measure_impedance
 
-    @do_measure_inpedance.setter
-    def do_measure_inpedance(self, boolean):
+    @do_measure_impedance.setter
+    def do_measure_impedance(self, boolean):
         assert self._started
         self.write(SDATAC)
         vs = self.read_registers(REG_CHnSET_BASE, 8)
@@ -297,7 +297,7 @@ class ADS1299_API(spidev.SpiDev):
         elif boolean is False:
             self.write_register(REG_LOFF_SENSP, 0b00000000)
             self.write_registers(REG_CHnSET_BASE, [v | 0b110 << 4 for v in vs])
-        self._measure_inpedance = boolean
+        self._measure_impedance = boolean
         self.write(RDATAC)
 
     def read(self, *args, **kwargs):
@@ -376,7 +376,7 @@ WREG            = 0x40
 REG_SR          = 0x50  # sample_rate
 REG_IS          = 0x52  # input_source
 REG_BIAS        = 0x54  # enable_bias
-REG_INPEDANCE   = 0x56  # measure_inpedance
+REG_INPEDANCE   = 0x56  # measure_impedance
 
 
 class ESP32_API(ADS1299_API):
@@ -489,14 +489,14 @@ class ESP32_API(ADS1299_API):
         self._enable_bias = boolean
 
     @property
-    def do_measure_inpedance(self):
-        return self._measure_inpedance
+    def do_measure_impedance(self):
+        return self._measure_impedance
 
-    @do_measure_inpedance.setter
-    def do_measure_inpedance(self, boolean):
+    @do_measure_impedance.setter
+    def do_measure_impedance(self, boolean):
         assert self._started
         self.write_register(REG_INPEDANCE, int(boolean))
-        self._measure_inpedance = boolean
+        self._measure_impedance = boolean
 
 
 
@@ -537,12 +537,12 @@ class _testADS(unittest.TestCase):
         print(self._ads.read())
         self._ads.do_enable_bias = tmp
 
-    def test_5_do_measure_inpedance(self):
-        '''Set measure source to inpedance'''
-        tmp = self._ads.do_measure_inpedance
-        self._ads.do_measure_inpedance = True
+    def test_5_do_measure_impedance(self):
+        '''Set measure source to impedance'''
+        tmp = self._ads.do_measure_impedance
+        self._ads.do_measure_impedance = True
         print(self._ads.read())
-        self._ads.do_measure_inpedance = tmp
+        self._ads.do_measure_impedance = tmp
 
 
 
