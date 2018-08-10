@@ -151,7 +151,7 @@ class ADS1299_API(spidev.SpiDev):
         self._enable_bias = False
         self._measure_impedance = False
 
-    def open(self, dev, max_speed_hz=2e6):
+    def open(self, dev, max_speed_hz=12500000):
         '''
         connect to user space SPI interface `/dev/spidev*.*`
         param `dev` must be tuple/list, e.g. (1, 0) means `/dev/spidev1.0`
