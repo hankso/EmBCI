@@ -238,17 +238,27 @@ class element_dict(dict):
 
 
 class element_list(list):
-    def __getitem__(self, id):
-        if isinstance(id, int) and id < 0:
-            return list.__getitem__(self, id)
-        ids = [e['id'] for e in self]
-        if id in ids:
-            return list.__getitem__(self, ids.index(id))
-        if len(ids):
-            print('choose one from `%s`' % '` | `'.join(map(str, ids)))
-        else:
-            print('no elements in this list now')
-        return None
+    def __getitem__(self, items):
+        if not isinstance(items, tuple):
+            id = items
+            if isinstance(id, int) and id < 0:
+                return list.__getitem__(self, id)
+            ids = [e['id'] for e in self]
+            if id in ids:
+                return list.__getitem__(self, ids.index(id))
+            if len(ids):
+                print('choose one from `%s`' % '` | `'.join(map(str, ids)))
+            else:
+                print('no elements in this list now')
+            return None
+        for item in items:
+            if self is None:
+                print('Invalid index {}'.format(item))
+                break
+            self = self.__getitem__(item)
+        return self
+    __str__ = list.__str__
+    __repr__ = list.__repr__
 
     def index(self, element):
         return element['id']
@@ -457,15 +467,20 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             pickle.dump(tmp, f)
         print(self._name + 'save layout `{}`'.format(name))
 
-    def load_layout(self, dir, extend=True, render=True):
+    def load_layout(self, dir_or_file, extend=True, render=True):
         '''
         read in a layout from file, `extend` means to extend current layout by
         loaded layout, or to replace current layout with loaded layout
         '''
-        layout = find_layouts(dir)
-        if layout is None:
-            print(self._name + 'no available layout files in dir ' + dir)
+        if not os.path.exists(dir_or_file):
+            print(self._name + 'invalid dir or layout file name')
             return
+        layout = dir_or_file
+        if os.path.isdir(dir_or_file):
+            layout = find_layouts(dir)
+            if layout is None:
+                print(self._name + 'no available layout files in dir ' + dir)
+                return
         try:
             with open(layout, 'r') as f:
                 tmp = pickle.load(f)
