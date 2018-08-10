@@ -70,7 +70,7 @@ INPUT_SOURCE = {
     'test':     0b101,
 }
 # OrangePi supported spidev max_speed_hz: 100MHz divided by 1, 2, 3, ... n
-SUGGESTED_MSH = np.int([
+SUGGESTED_MSH = np.int32([
     100e6, 50e6, 33.33e6, 25e6, 20e6, 12.5e6, 11.11e6, 10e6,
     5e6, 4e6, 3.33e6, 3.03e6, 2.5e6, 2e6, 1e6,
     8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5])
