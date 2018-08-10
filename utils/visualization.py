@@ -13,10 +13,7 @@ import threading
 import json
 import glob
 import pickle
-if sys.version_info.major == 2:
-    _py_2_ = True
-else:
-    _py_2_ = False
+import select
 
 # pip install matplotlib, numpy, scipy, pyserial, PIL
 #  import matplotlib
@@ -309,13 +306,15 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 '-' * max_len + '\n') + info + '>'
         return info
 
-    def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
-        self._t = serial.Serial(port, baud)
-        self._t.flush()
+    def start_touch_screen(self, port='/dev/ttyS1', baud=115200):
+        self._touch = serial.Serial(port, baud)
+        self._touch.flushInput()
         self._flag_close = threading.Event()
         self._flag_pause = threading.Event()
         self._flag_pause.set()
         self._read_lock = threading.Lock()
+        self._read_epoll = select.epoll()
+        self._read_epoll.register(self._touch, select.EPOLLIN)
         self._last_touch_time = time.time()
         self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
         self._touch_thread = threading.Thread(target=self._handle_touch_screen)
@@ -626,8 +625,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if self._touch_started:
             self._flag_pause.clear()
             with self._read_lock:
-                self._t.flushInput()
-                self._t.read_until()
+                self._touch.flushInput()
+                self._read_epoll.poll()
+                self._touch.read_all()
             self._flag_pause.set()
         else:
             time.sleep(2)
@@ -639,8 +639,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         '''
         while 1:
             with self._read_lock:
-                self._t.flushInput()
-                raw = self._t.read_until().strip()
+                self._touch.flushInput()
+                self._read_epoll.poll()
+                raw = self._touch.read_until().strip()
             if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
                 self._last_touch_time = time.time()
                 try:
@@ -699,12 +700,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if self._touch_started:
             self._flag_close.set()
             try:
-                self._t.write('\xaa\xaa\xaa\xaa') # send close signal
+                self._touch.write('\xaa\xaa\xaa\xaa') # send close signal
                 time.sleep(1)
             except:
                 pass
             finally:
-                self._t.close()
+                self._touch.close()
 
 
 class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
@@ -745,7 +746,7 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         if self._touch_started:
             # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
             self._flag_close.set()
-            self._t.close()
+            self._touch.close()
 
 
 if __name__ == '__main__':

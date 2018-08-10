@@ -252,8 +252,8 @@ def virtual_serial():
         /dev/pts/0 <--> /dev/pts/1
         s = serial.Serial('/dev/pts/1',115200)
         m = serial.Serial('/dev/pts/0',115200)
-        s.write('hello?\n')
-        m.read_until() ==> 'hello?\n'
+        s.write('hello?\\n')
+        m.read_until() ==> 'hello?\\n'
     '''
     master1, slave1 = os.openpty()
     master2, slave2 = os.openpty()
