@@ -190,7 +190,7 @@ class _basic_reader(object):
         self._name = name if name is not None else ' reader%s  ' % time_stamp()
 
         # channels are defined here
-        self.ch_list = ['channel%d' % i for i in range(n_channel)] + ['time']
+        self.ch_list = ['ch%d' % i for i in range(1, n_channel + 1)] + ['time']
 
         # maintain a FIFO-loop queue to store data
         # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
@@ -210,9 +210,8 @@ class _basic_reader(object):
         self._flag_pause.set()
 
     def start(self):
-        self._data_tmp_file_name = '{}/../data/mmap_tmp_for_{}.dat'.format(
-            __dir__, self._name[1:-2].replace(' ', '_'))
-        self._f = open(self._data_tmp_file_name, 'w+')
+        self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
+        self._f = open(self._data_file, 'w+')
         self._f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
         self._f.flush()
         self._m = mmap.mmap(self._f.fileno(), 0)
@@ -255,11 +254,18 @@ class _basic_reader(object):
         time.sleep(0.5)
         if hasattr(self, '_process') and self._process.is_alive():
             self._process.terminate()
-        self._data = self._data.copy()  # reduce reference to data buffer
+        self._data = self._data.copy()  # remove reference to old data buffer
         self._m.close()
         self._f.close()
-        os.remove(self._data_tmp_file_name)
+        os.remove(self._data_file)
         self._started = False  # you can re-start this reader now, enjoy~~
+
+    def restart(self):
+        if self._started:
+            return
+        self._flag_close.clear()
+        self._flag_pause.set()
+        self.start()
 
     def pause(self):
         self._flag_pause.clear()
@@ -320,10 +326,10 @@ class _basic_reader(object):
             for item in items:
                 self = self.__getitem__(item)
             return self
-        if isinstance(items, slice):
-            return self._data[items]
-        elif isinstance(items, str) and items in vars(pp.Signal_Info):
+        if isinstance(items, str) and items in vars(pp.Signal_Info):
             return getattr(pp.Signal_Info(self.sample_rate), items)(self)
+        if isinstance(items, (slice, int)):
+            return self._data[items]
         else:
             print(self._name + 'unknown preprocessing method %s' % items)
             return self
@@ -332,14 +338,11 @@ class _basic_reader(object):
 class Fake_data_generator(_basic_reader):
     '''Generate random data, same as any Reader defined in IO.py'''
     _num = 1
-    def __init__(self,
-                 send_to_pylsl=True,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
+                 send_to_pylsl=False, *a, **k):
         super(Fake_data_generator, self).__init__(sample_rate,
-                                                  sample_time, n_channel)
+                                                  sample_time,
+                                                  n_channel)
         self._name = '[Fake data generator %d] ' % Fake_data_generator._num
         self._send_to_pylsl = send_to_pylsl
         Fake_data_generator._num += 1
@@ -371,12 +374,8 @@ class Files_reader(_basic_reader):
     Read data from mat, fif, csv... file and simulate as a common data reader
     '''
     _num = 1
-    def __init__(self,
-                 filename,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, filename, sample_rate=250, sample_time=2, n_channel=1,
+                 *a, **k):
         super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
         self.filename = filename
         self._name = '[Files reader %d] ' % Files_reader._num
@@ -446,11 +445,7 @@ class Pylsl_reader(_basic_reader):
     There should be at least one stream available.
     '''
     _num = 1
-    def __init__(self,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
         super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
         Pylsl_reader._num += 1
@@ -505,13 +500,8 @@ class Serial_reader(_basic_reader):
     There should be at least one port available.
     '''
     _num = 1
-    def __init__(self,
-                 baudrate=115200,
-                 send_to_pylsl=False,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
+                 baudrate=115200, send_to_pylsl=False, *a, **k):
         super(Serial_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._serial = serial.Serial(baudrate=baudrate)
         self._name = '[Serial reader %d] ' % Serial_reader._num
@@ -564,17 +554,13 @@ class ADS1299_reader(_basic_reader):
     This class is only used on ARM. It depends on class ADS1299_API
     '''
     _singleton = True
-    def __init__(self,
-                 bias_enabled=False,
-                 test_mode=False,
-                 send_to_pylsl=False,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
+                 send_to_pylsl=False, *a, **k):
         if ADS1299_reader._singleton == False:
             raise RuntimeError('There is already one ADS1299 reader.')
-        super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
+        super(ADS1299_reader, self).__init__(sample_rate,
+                                             sample_time,
+                                             n_channel)
         self._name = '[ADS1299 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
@@ -617,22 +603,16 @@ class ESP32_SPI_reader(ADS1299_reader):
     This class is only used on ARM.
     '''
     _singleton = True
-    def __init__(self,
-                 bias_enabled=False,
-                 test_mode=False,
-                 send_to_pylsl=False,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
+                 send_to_pylsl=False, *a, **k):
         if ESP32_SPI_reader._singleton == False:
             raise RuntimeError('There is already one ESP32 SPI reader.')
-        super(ADS1299_reader, self).__init__(sample_rate, sample_time, n_channel)
+        super(ADS1299_reader, self).__init__(sample_rate,
+                                             sample_time,
+                                             n_channel)
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
-        self._bias_enabled = bias_enabled
-        self._test_mode = test_mode
         ESP32_SPI_reader._singleton = False
 
     def start(self, spi_device=(0, 0)):
@@ -645,13 +625,10 @@ class Socket_reader(_basic_reader):
     understand. Read data from socket.
     '''
     _num = 1
-    def __init__(self,
-                 sample_rate=250,
-                 sample_time=2,
-                 n_channel=1,
-                 *args, **kwargs):
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
         super(Socket_reader, self).__init__(sample_rate,
-                                            sample_time, n_channel)
+                                            sample_time,
+                                            n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1093,7 +1070,7 @@ class Serial_Screen_commander(Serial_commander):
 
 class _convert_24bit_to_565():
     def __getitem__(self, v):
-        if isinstance(v, int) and v < 0xFFFFFF and v > 0:
+        if isinstance(v, int) and v <= 0xFFFFFF and v >= 0:
             return rgb24to565(v)
         raise KeyError
 
