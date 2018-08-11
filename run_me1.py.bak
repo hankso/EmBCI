@@ -422,7 +422,7 @@ def page1_daemon(flag_pause, flag_close, fps=5, thres=0):
     last_status = True
     while not flag_close.isSet():
         print(time.time())
-        while (time.time - last_time) < 1.0/fps:
+        while (time.time() - last_time) < 1.0/fps:
             time.sleep(0.05)
         flag_pause.wait()
         data = reader.data_channel
