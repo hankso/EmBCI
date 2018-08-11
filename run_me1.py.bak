@@ -31,7 +31,11 @@ white = [0xff, 0xff]
 
 
 def shutdown(*a, **k):
+    for flag in flag_list:
+        flag[0].set()
+        flag[1].set()
     s.close()
+    reader.close()
     os.system('shutdown now')
 
 def reboot(*a, **k):
@@ -383,7 +387,8 @@ test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
 
 def reverse_status(*a, **k):
-    name = (page_list['i'], k['bt']['id'])
+    print('reverse!')
+    name = (page_list['i']+1, k['bt']['id'])
     test_dict[name] = not test_dict[name]
 
 prev = partial(list_callback, l=page_list, operate='prev', after=change_page,
@@ -410,7 +415,7 @@ callback_list = [
     # page5
     {0: prev, 1: generate_pdf}]
 
-def page1_daemon(flag_pause, flag_close, fps=5, thres=0):
+def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
     print('turn to page1')
     img_red = Image.open('./files/icons/4@300x-8.png').resize((21, 21))
     img_red = np.array(img_red.convert('RGBA'))
@@ -419,23 +424,23 @@ def page1_daemon(flag_pause, flag_close, fps=5, thres=0):
     reader.do_measure_impedance = True
     reader.data_channel
     last_time = time.time()
-    last_status = True
+    last_status = [True] * 8
     while not flag_close.isSet():
-        print(time.time())
         while (time.time() - last_time) < 1.0/fps:
             time.sleep(0.05)
+        last_time = time.time()
         flag_pause.wait()
         data = reader.data_channel
-        for i in np.arange(reader.n_channel):
+        for i in np.arange(8):
             if test_dict[(1, i+2)]:
-                s.widget['button', i+2]['s'] = ' {:.1e}'.format()
+                s.widget['button', i+2]['s'] = '{:.1e}'.format(data[i])
                 s.render('button', i+2)
-                if data[i] > thres and not last_status:
-                    last_status = True
+                if data[i] > thres and not last_status[i]:
+                    last_status[i] = True
                     s.widget['img', i+5]['img'] = img_green
                     s.render('img', i+5)
-                elif data[i] < thres and last_status:
-                    last_status = False
+                elif data[i] < thres and last_status[i]:
+                    last_status[i] = False
                     s.widget['img', i+5]['img'] = img_red
                     s.render('img', i+5)
     print('leave page1')
@@ -466,7 +471,7 @@ def page2_daemon(flag_pause, flag_close, step=1, center=112,
                 s._ili.draw_point(x, line[x], c)
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=5, area=[26, 56, 154, 184]):
+def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184]):
     print('turn to page3')
     last_time = time.time()
     sin_sig = 0.1 * np.sin(2*np.pi*20*np.linspace(0, si.sample_time, si.window_size))
@@ -490,7 +495,7 @@ def page3_daemon(flag_pause, flag_close, fps=5, area=[26, 56, 154, 184]):
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
 
-def page4_daemon(flag_pause, flag_close, fps=5):
+def page4_daemon(flag_pause, flag_close, fps=2):
     print('turn to page4')
     start_time = [None, None]
     while not flag_close.isSet():
@@ -583,7 +588,7 @@ if __name__ == '__main__':
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
 
-    reader = Reader(sample_rate=500, sample_time=2, n_channel=1)
+    reader = Reader(sample_rate=500, sample_time=2, n_channel=8)
     reader.start()
     si = Signal_Info(500)
     s = Screen_GUI()
