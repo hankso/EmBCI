@@ -389,12 +389,13 @@ def change_page(*a, **k):
     threading.Thread(target=globals()['page%d_daemon' % (page_num + 1)],
                      args=flag_list[page_num]).start()
 
+def change_channel(*a, **k):
+    s.widget['text', 15]['s'] = 'CH%d' % channel_range['n']
 
 test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
 
 def reverse_status(*a, **k):
-    print('reverse!')
     name = (page_list['i']+1, k['bt']['id'])
     test_dict[name] = not test_dict[name]
 
@@ -411,8 +412,10 @@ callback_list = [
      6: reverse_status, 7: reverse_status, 8: reverse_status, 9: reverse_status},
     # page2
     {0: prev, 1: next,
-     2: partial(range_callback, r=channel_range, operate='minus'),
-     3: partial(range_callback, r=channel_range, operate='plus')},
+     2: partial(range_callback, r=channel_range,
+                operate='minus', after=change_channel),
+     3: partial(range_callback, r=channel_range,
+                operate='plus', after=change_channel)},
     # page3
     {0: prev, 1: next},
     # page4
@@ -428,7 +431,7 @@ def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
     img_red = np.array(img_red.convert('RGBA'))
     img_green = Image.open('./files/icons/5@300x-8.png').resize((21, 21))
     img_green = np.array(img_green.convert('RGBA'))
-    reader.do_measure_impedance = True
+    reader._esp.do_measure_impedance = True
     reader.data_channel
     last_time = time.time()
     last_status = [False] * 8
@@ -450,6 +453,7 @@ def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
                     s.widget['img', i+5]['img'] = img_red
                     s.render('img', i+5)
                     last_status[i] = False
+    reader._esp.do_measure_impedance = False
     print('leave page1')
 
 def page2_daemon(flag_pause, flag_close, step=1, center=112,
@@ -457,12 +461,12 @@ def page2_daemon(flag_pause, flag_close, step=1, center=112,
                  ILI9341_GREEN, ILI9341_CYAN, ILI9341_MAGENTA, ILI9341_YELLOW,
                  ILI9341_PURPLE, ILI9341_ORANGE]):
     print('turn to page2')
-    DC = 0
     line = np.repeat(center, area[2])
     while not flag_close.isSet():
+        DC = 0
         for x in np.arange(area[0], area[2], step, dtype=int):
-            # if flag_close.isSet():
-            #     break
+            if flag_close.isSet():
+                break
             flag_pause.wait()
             ch = channel_range['n']
             c = color[ch]
@@ -470,8 +474,7 @@ def page2_daemon(flag_pause, flag_close, step=1, center=112,
             # d = reader.data_channel[ch]
             d *= scale_list['a'][scale_list['i']]
             DC = d * 0.1 + DC * 0.9
-            s._ili.draw_line(x, min(line[x-step: x+1]),
-                             x, max(line[x-step: x+1]), ILI9341_WHITE)
+            s._ili.draw_line(x, area[1], x, area[3], ILI9341_WHITE)
             line[x] = np.int16(np.clip(center-d+DC, area[1], area[3]))
             if line[x] != line[x-step]:
                 s._ili.draw_line(x, min(line[x-step: x+1]),
@@ -483,19 +486,22 @@ def page2_daemon(flag_pause, flag_close, step=1, center=112,
 def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184]):
     print('turn to page3')
     last_time = time.time()
-    sin_sig = 0.1 * np.sin(2*np.pi*20*np.linspace(0, si.sample_time, si.window_size))
+    x = np.linspace(0, reader.sample_time, reader.window_size)
+    sin_sig = 1e-3 * np.sin(2*np.pi*20*x)
     while not flag_close.isSet():
         if flag_close.isSet():
             break
         flag_pause.wait()
         ch = channel_range['n']
         d = si.notch(si.remove_DC(reader[ch]))
-        freq, amp = si.fft(d, resolution=4)
+        freq, amp = si.fft(sin_sig, resolution=4)
+        amp = amp[0, :128]
+        amp = 127*amp/amp.max()
         img = np.zeros((128, 128, 4), np.uint8)
-        img[(1e5*amp[0, :128]).astype(np.uint8), range(128)] = 255
+        img[np.uint8(amp), range(128)] = 255
         s._ili.clear(ILI9341_WHITE)
         s._ili.draw_img(area[0], area[1], img)
-        if (time.time - last_time) < 1.0/fps:
+        if (time.time() - last_time) < 1.0/fps:
             continue
         last_time = time.time()
         s.widget['text', 21]['s'] = '%.2f@%.1e' % tremor_coefficient(d)
@@ -507,9 +513,9 @@ def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184]):
 def page4_daemon(flag_pause, flag_close, fps=2):
     print('turn to page4')
     start_time = [None, None]
+    last_time = time.time()
     while not flag_close.isSet():
-        print(time.time())
-        while (time.time - last_time) < 1.0/fps:
+        while (time.time() - last_time) < 1.0/fps:
             time.sleep(0.05)
         flag_pause.wait()
         ch = channel_range['n']
