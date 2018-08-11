@@ -375,7 +375,7 @@ def change_page(*a, **k):
         s.widget['button', id]['callback'] = callback_list[page_num][id]
     flag_list[page_num][0].set()
     flag_list[page_num][1].clear()
-    threading.Thread(target=globals()['page%d_daemon' % page_num],
+    threading.Thread(target=globals()['page%d_daemon' % (page_num + 1)],
                      args=flag_list[page_num]).start()
 
 
@@ -413,10 +413,10 @@ callback_list = [
 def page1_daemon(flag_pause, flag_close, fps=5, thres=0):
     print('turn to page1')
     img_red = Image.open('./files/icons/4@300x-8.png').resize((21, 21))
-    img_red = np.array(img_green.convert('RGBA'))
+    img_red = np.array(img_red.convert('RGBA'))
     img_green = Image.open('./files/icons/5@300x-8.png').resize((21, 21))
     img_green = np.array(img_green.convert('RGBA'))
-    s.do_measure_impedance = True
+    reader.do_measure_impedance = True
     reader.data_channel
     last_time = time.time()
     last_status = True
@@ -453,7 +453,7 @@ def page2_daemon(flag_pause, flag_close, step=1, center=112,
             flag_pause.wait()
             ch = channel_range['n']
             c = color[ch]
-            d = si.remove_DC(reader.data_frame[ch])[0， -1]
+            d = si.remove_DC(reader.data_frame[ch])[0, -1]
             # d = reader.data_channel[ch]
             d *= scale_list['a'][scale_list['i']]
             DC = d * 0.1 + DC * 0.9
@@ -519,8 +519,8 @@ def page4_daemon(flag_pause, flag_close, fps=5):
             b, a = s.widget['button', i-19, 's'], s.widget['button', i-16, 's']
             if b != '  test  ' and a != '  test  ':
                 b, a = float(b), float(a)
-               s.widget['text', i]['s'] = '%.2d%%' % abs(b-a) / b
-               s.render('text', i)
+                s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b)
+                s.render('text', i)
     print('leave page4')
 
 def page5_daemon(flag_pause, flag_close):
@@ -532,8 +532,8 @@ def tremor_coefficient(data, ch=0, distance=None):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
-    return si.sample_rate/np.average(np.diff(peaks)),
-           1000 * np.average(heights['peak_heights'])
+    return (si.sample_rate/np.average(np.diff(peaks)),
+            1000 * np.average(heights['peak_heights']))
     # # preprocessing
     # data = si.notch(si.remove_DC(data[ch]))[0]
     #
@@ -588,9 +588,10 @@ if __name__ == '__main__':
     reader.start()
     si = Signal_Info(500)
     s = Screen_GUI()
-    s.load_layout('../files/layouts/layout-DBS-page1.pcl')
+    s.start_touch_screen('/dev/ttyS1')
+    s.load_layout('./files/layouts/layout-DBS-page1.pcl')
     change_page()
-    IPython.embed()
+    # IPython.embed()
 
     # reset_avr = SysfsGPIO(10) # PA10
     # reset_avr.export = True
