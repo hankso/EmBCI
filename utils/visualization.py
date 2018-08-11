@@ -306,7 +306,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 '-' * max_len + '\n') + info + '>'
         return info
 
-    def start_touch_screen(self, port='/dev/ttyS1', baud=115200):
+    def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
         self._touch = serial.Serial(port, baud)
         self._touch.flushInput()
         self._flag_close = threading.Event()
@@ -749,6 +749,10 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
             self._flag_close.set()
             self._touch.close()
+
+    def start_touch_screen(self, port='/dev/ttyS1', baud=115200):
+        super(SPI_Screen_GUI, self).start_touch_screen(port, baud)
+        self._cali_matrix = np.array([[0.1911, -0.1490], [-22.0794, 255.0536]])
 
 
 if __name__ == '__main__':

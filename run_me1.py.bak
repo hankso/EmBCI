@@ -438,7 +438,6 @@ def page1_daemon(flag_pause, flag_close, fps=5, thres=0):
                     last_status = False
                     s.widget['img', i+5]['img'] = img_red
                     s.render('img', i+5)
-        s.render()
     print('leave page1')
 
 def page2_daemon(flag_pause, flag_close, step=1, center=112,
