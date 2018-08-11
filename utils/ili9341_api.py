@@ -80,13 +80,14 @@ ILI9341_PWCTR6      = 0xFC
 # colors
 ILI9341_BLACK       = [0x00, 0x00]
 ILI9341_BLUE        = [0x00, 0x1F]
-ILI9341_RED         = [0xF8, 0x00]
 ILI9341_GREEN       = [0x07, 0xE0]
 ILI9341_CYAN        = [0x07, 0xFF]
+ILI9341_PURPLE      = [0x41, 0x2B]
+ILI9341_ORANGE      = [0xEC, 0xAF]
+ILI9341_RED         = [0xF8, 0x00]
 ILI9341_MAGENTA     = [0xF8, 0x1F]
 ILI9341_YELLOW      = [0xFF, 0xE0]
 ILI9341_WHITE       = [0xFF, 0xFF]
-ILI9341_PURPLE      = [0x41, 0x2B]
 # rotation definition
 ILI9341_MADCTL_MY   = 0x80
 ILI9341_MADCTL_MX   = 0x40

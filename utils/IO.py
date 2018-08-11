@@ -1080,7 +1080,8 @@ class SPI_Screen_commander(_basic_commander):
         str: {
             'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'purple': [0x41, 0x2B],
             'green': [0x07, 0xE0], 'cyan': [0x07, 0xFF], 'yellow': [0xFF, 0xE0],
-            'white': [0xFF, 0xFF], 'pink': [0xF8, 0x1F], 'red': [0xF8, 0x00],},
+            'white': [0xFF, 0xFF], 'pink': [0xF8, 0x1F], 'orange': [0xEC, 0xAF],
+            'red': [0xF8, 0x00],},
         int: _convert_24bit_to_565()}
     _singleton = True
     def __init__(self, spi_device, width=None, height=None):
