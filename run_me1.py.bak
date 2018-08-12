@@ -414,6 +414,7 @@ def change_page(*a, **k):
 
 def change_channel(*a, **k):
     s.widget['text', 15]['s'] = 'CH%d' % channel_range['n']
+    s.render('text', 15)
 
 test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
@@ -495,10 +496,13 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             scale = scale_list['a'][scale_list['i']]
             c = color[ch]
             data = reader.data_channel[ch]
+            s.widget['text', 16]['s'] = u'%5.1fs\u2191' % \
+                                        (time.time() - reader._start_time)
+            s.render('text', 16)
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
-            yraw, yflt = line[:, x-step:x+1]
-            s._ili.draw_line(x+5, area[1], x+5, area[3], ILI9341_WHITE)
+            yraw, yflt = line[:, x-step], line[:, x]
+            s._ili.draw_line(x+step*4, area[1], x+step*4, area[3], ILI9341_WHITE)
             if yraw[0] == yraw[1]:
                 s._ili.draw_point(x, yraw[0], ILI9341_GREY)
             else:
@@ -507,7 +511,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                 s._ili.draw_point(x, yraw[0], c)
             else:
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
-        s._ili.draw_rectf(area[0], area[1], area[0]+4, area[3], ILI9341_WHITE)
+        s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
     print('leave page2')
 
 def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],
