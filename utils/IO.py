@@ -613,7 +613,6 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
-        self.set_sample_rate = self._esp.set_sample_rate
         self.set_input_source = self._esp.set_input_source
         self.do_enable_bias = self._esp.do_enable_bias
         self.do_measure_impedance = self._esp.do_measure_impedance
