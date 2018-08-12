@@ -53,16 +53,17 @@ class Signal_Info(object):
         self.std = self.Standard_Deviation
         self.cov = self.Covariance
         self.rms = self.Root_Mean_Square
-
-        self.remove_DC = self.Detrend
-        self.bandpass = self.Bandpass_Filter
-
         self.fft = self.Fast_Fourier_Transform
         self.hht = self.Hilbert_Huang_Transform
         self.dwt = self.Discret_Wavelet_Transform
         self.cwt = self.Continuous_Wavelet_Transform
         self.stft = self.Short_Time_Fourier_Transfrom
         self.wavedec = self.Wavelet_Decomposition
+
+        # filter state
+        self._b = {}
+        self._a = {}
+        self._zi = {}
 
     def _check_shape(func):
         def param_collector(self, X, *args, **kwargs):
@@ -71,20 +72,11 @@ class Signal_Info(object):
             if isinstance(X, IO._basic_reader):
                 X._data = param_collector(self, X._data, *args, **kwargs)
                 return X
-            if not isinstance(X, np.ndarray):
-                X = np.array(X)
-
-            # simple 1D time series
-            # Input:  window_size
-            # Resize: n_channel x window_size
-            # Output: result_shape
-            if len(X.shape) == 1:
-                return func(self, X.reshape(1, -1), *args, **kwargs)
-
+            X = np.atleast_2d(X)
             # 2D array
             # Input:  n_channel x window_size
             # Output: result_shape
-            elif len(X.shape) == 2:
+            if len(X.shape) == 2:
                 return func(self, X, *args, **kwargs)
 
             # 3D array
@@ -278,7 +270,7 @@ class Signal_Info(object):
             return rst
 
     @_check_shape
-    def energy(self, X, low, high, sample_rate=None):
+    def energy(self, X, low=2, high=15, sample_rate=None):
         '''
         Intergrate of energy on frequency duration (low, high)
         '''
@@ -289,25 +281,6 @@ class Signal_Info(object):
         dt = float(freq[1] - freq[0])
         amp = amp[:, int(low/dt):int(high/dt)]**2
         return np.sum(amp, 1) * dt
-
-    @_check_shape
-    def energy_time_duration(self, reader, low, high, duration):
-        '''
-        calculate energy density of time duration
-        '''
-        import time, threading
-        energy_sum = np.zeros(reader.n_channel)
-        sample_rate = reader.sample_rate
-        stop_flag = threading.Event()
-        def _sum(flag, eng):
-            start_time = time.time()
-            while not flag.isSet():
-                if (time.time() - start_time) > duration:
-                    break
-                eng += self.energy(reader.data_frame, low, high,  sample_rate)
-            eng /= (sample_rate * (time.time() - start_time))
-        threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
-        return stop_flag, energy_sum
 
     @_check_shape
     def find_max_amp(self, X, low, high, sample_rate=None):
@@ -327,24 +300,40 @@ class Signal_Info(object):
     Preprocessing methods
     '''
     @_check_shape
-    def Detrend(self, X, method=1):
+    def detrend(self, X, method=1):
         '''
         remove DC part of raw signal
         '''
         assert method in [1, 2]
         if method == 1:
-            return signal.detrend(X, axis=-1, bp=np.arange(0, X.shape[1], 100))
+            return signal.detrend(X, axis=-1, bp=np.arange(0, X.shape[1], 200))
         elif method == 2:
             return X - self.baseline(X)
 
     @_check_shape
-    def Bandpass_Filter(self, X, low, high, order=8, sample_rate=None):
-        fs = float(sample_rate or self._fs)
-        b, a = signal.butter(order, (low / fs, high / fs), 'bandpass')
-        return signal.lfilter(b, a, X, axis=-1)
+    def bandpass(self, X, low, high, order=5, sample_rate=None, register=False):
+        nyq = float(sample_rate or self._fs) / 2
+        b, a = signal.butter(order, (low / nyq, high / nyq), 'band')
+        if register:
+            # store params for real-time filtering
+            zi = signal.lfilter_zi(b, a) * np.average(np.abs(X))
+            self._b['band'], self._a['band'], self._zi['band'] = b, a, zi
+        return signal.lfilter(b, a, X)
+
+    def bandpass_realtime(self, x):
+        '''
+        sample_rate, b, a, and low/high param are all registed by calling
+        `Signal_Info.Bandpass_Filter(X, low, high, order, sample_rate)` and
+        will be updated by recalling `Bandpass_Filter`
+        '''
+        assert self._b.get('band') is not None, 'call `bandpass` first!'
+        x = np.atleast_1d(x)
+        x, self._zi['band'] = signal.lfilter(self._b['band'], self._a['band'],
+                                             x, zi=self._zi['band'])
+        return x
 
     @_check_shape
-    def notch(self, X, sample_rate=None, Q=60, Hz=50, *args, **kwargs):
+    def notch(self, X, Hz=50, Q=10, sample_rate=None, register=False):
         '''
         Input shape:  n_channel x window_size
         Output shape: n_channel x window_size
@@ -352,11 +341,35 @@ class Signal_Info(object):
         Q: Quality factor
         Hz: target frequence to be notched
         '''
-        sample_rate = sample_rate or self._fs
-        for b, a in [signal.iirnotch( float(fs)/(sample_rate/2), Q ) \
-                     for fs in np.arange(Hz, sample_rate/2, Hz)]:
-            X = signal.filtfilt(b, a, X, axis=-1)
-        return X
+        nyq = float(sample_rate or self._fs) / 2
+        if register:
+            self._b['notch'], self._a['notch'], self._zi['notch'] = [], [], []
+            for b, a in [signal.iirnotch( freq / nyq, Q ) \
+                         for freq in np.arange(Hz, nyq, Hz)]:
+                self._b['notch'].append(b)
+                self._a['notch'].append(a)
+                data_level = np.average(np.abs(X))
+                self._zi['notch'].append(signal.lfilter_zi(b, a) * data_level)
+                X = signal.lfilter(b, a, X, axis=-1)
+            return X
+        else:
+            for b, a in [signal.iirnotch( freq / nyq, Q ) \
+                         for freq in np.arange(Hz, nyq, Hz)]:
+                X = signal.lfilter(b, a, X, axis=-1)
+            return X
+
+    def notch_realtime(self, x):
+        '''
+        Realtime online notch filter,
+        Refer to `bandpass_realtime` for more info.
+        '''
+        assert self._b.get('notch') is not None, 'call `notch` first!'
+        zis, self._zi['notch'] = self._zi['notch'], []
+        x = np.atleast_1d(x)
+        for b, a, zi in zip(self._b['notch'], self._a['notch'], zis):
+            x, zi = signal.lfilter(b, a, x, zi=zi)
+            self._zi['notch'].append(zi)
+        return x
 
     @_check_shape
     def smooth(self, X, window_length=50, method=1):

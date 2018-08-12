@@ -15,7 +15,7 @@ from functools import partial
 import IPython
 import numpy as np
 from scipy import signal
-from PIL import Image
+from PIL import Image, ImageDraw
 
 # from ./utils
 from common import check_input, mapping
@@ -27,15 +27,20 @@ from visualization import SPI_Screen_GUI as Screen_GUI
 from IO import ESP32_SPI_reader as Reader
 from IO import Socket_server
 
-ILI9341_BLUE        = [0x00, 0x1F]
-ILI9341_RED         = [0xF8, 0x00]
-ILI9341_GREEN       = [0x07, 0xE0]
-ILI9341_CYAN        = [0x07, 0xFF]
-ILI9341_MAGENTA     = [0xF8, 0x1F]
-ILI9341_YELLOW      = [0xFF, 0xE0]
-ILI9341_PURPLE      = [0x41, 0x2B]
-ILI9341_ORANGE      = [0xEC, 0xAF]
-ILI9341_WHITE       = [0xFF, 0xFF]
+ILI9341_BLUE        = [0x00, 0x1F] #   0   0 255
+ILI9341_GREEN       = [0x07, 0xE0] #   0 255   0
+ILI9341_CYAN        = [0x07, 0xFF] #   0 255 255
+ILI9341_RED         = [0xF8, 0x00] # 255   0   0
+ILI9341_MAGENTA     = [0xF8, 0x1F] # 255   0 255
+ILI9341_YELLOW      = [0xFF, 0xE0] # 255 255   0
+ILI9341_WHITE       = [0xFF, 0xFF] # 255 255 255
+ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
+ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
+ILI9341_GREY        = [0x84, 0x10] # 128 128 128
+
+color = [
+    ILI9341_BLUE, ILI9341_YELLOW, ILI9341_MAGENTA, ILI9341_CYAN,
+    ILI9341_GREEN, ILI9341_RED, ILI9341_PURPLE, ILI9341_ORANGE, ILI9341_GREY]
 
 def shutdown(*a, **k):
     for flag in flag_list:
@@ -251,7 +256,7 @@ def generate_pdf(*a, **k):
 #
 #             assert not flag_close.is_set()
 #             data = s.reader.buffer['channel%d' % current_ch_range['n']]
-#             x, y = si.fft(p.notch(p.remove_DC(data)), sample_rate)
+#             x, y = si.fft(p.notch(p.detrend(data)), sample_rate)
 #             # get peek of specific duration of signal
 #             f, a = si.peek_extract((x, y),
 #                                    min(f1_range['n'], f2_range['n']),
@@ -319,6 +324,24 @@ def generate_pdf(*a, **k):
 #         # recover old widget
 #         s.recover_frame()
 #         s.reader.pause()
+#
+# def energy_time_duration(self, reader, low, high, duration):
+#     '''
+#     calculate energy density of time duration
+#     '''
+#     import time, threading
+#     energy_sum = np.zeros(reader.n_channel)
+#     sample_rate = reader.sample_rate
+#     stop_flag = threading.Event()
+#     def _sum(flag, eng):
+#         start_time = time.time()
+#         while not flag.isSet():
+#             if (time.time() - start_time) > duration:
+#                 break
+#             eng += self.energy(reader.data_frame, low, high,  sample_rate)
+#         eng /= (sample_rate * (time.time() - start_time))
+#     threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
+#     return stop_flag, energy_sum
 
 # rate_list = {'a': [250, 500, 1000], 'i': 0}
 
@@ -456,55 +479,64 @@ def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
     reader._esp.do_measure_impedance = False
     print('leave page1')
 
-def page2_daemon(flag_pause, flag_close, step=1, center=112,
-                 area=[39, 45, 290, 179], color=[ILI9341_BLUE, ILI9341_RED,
-                 ILI9341_GREEN, ILI9341_CYAN, ILI9341_MAGENTA, ILI9341_YELLOW,
-                 ILI9341_PURPLE, ILI9341_ORANGE]):
+def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
+                 area=[39, 45, 290, 179], center=112):
     print('turn to page2')
-    line = np.repeat(center, area[2])
+    line = np.zeros((2, area[2]))
+    data = reader.data_frame
+    si.bandpass(data, low, high, register=True)
+    si.notch(data, register=True)
     while not flag_close.isSet():
-        DC = 0
         for x in np.arange(area[0], area[2], step, dtype=int):
             if flag_close.isSet():
                 break
             flag_pause.wait()
             ch = channel_range['n']
+            scale = scale_list['a'][scale_list['i']]
             c = color[ch]
-            d = si.remove_DC(reader.data_frame[ch])[0, -1]
-            # d = reader.data_channel[ch]
-            d *= scale_list['a'][scale_list['i']]
-            DC = d * 0.1 + DC * 0.9
-            s._ili.draw_line(x, area[1], x, area[3], ILI9341_WHITE)
-            line[x] = np.int16(np.clip(center-d+DC, area[1], area[3]))
-            if line[x] != line[x-step]:
-                s._ili.draw_line(x, min(line[x-step: x+1]),
-                                 x, max(line[x-step: x+1]), c)
+            data = reader.data_channel[ch]
+            data = [data, si.bandpass_realtime(si.notch_realtime(data))]
+            line[x] = np.int16(np.clip(center - data*scale, area[1], area[3]))
+            yraw, yflt = line[:, x-step:x+1]
+            s._ili.draw_line(x+5, area[1], x+5, area[3], ILI9341_WHITE)
+            if yraw[0] == yraw[1]:
+                s._ili.draw_point(x, yraw[0], ILI9341_GREY)
             else:
-                s._ili.draw_point(x, line[x], c)
+                s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
+            if yflt[0] == yflt[1]:
+                s._ili.draw_point(x, yraw[0], c)
+            else:
+                s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
+        s._ili.draw_rectf(area[0], area[1], area[0]+4, area[3])
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184]):
+def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184],
+                 color=[]):
     print('turn to page3')
     last_time = time.time()
     x = np.linspace(0, reader.sample_time, reader.window_size)
-    sin_sig = 1e-3 * np.sin(2*np.pi*20*x)
+    sin_sig = 1e-3 * np.sin(2*np.pi*32*x)
+    x = np.arange(128).reshape(1, 128)
+    blank = np.zeros((128, 128, 4), np.uint8)
     while not flag_close.isSet():
         if flag_close.isSet():
             break
         flag_pause.wait()
         ch = channel_range['n']
-        d = si.notch(si.remove_DC(reader[ch]))
-        freq, amp = si.fft(sin_sig, resolution=4)
-        amp = amp[0, :128]
-        amp = 127*amp/amp.max()
-        img = np.zeros((128, 128, 4), np.uint8)
-        img[np.uint8(amp), range(128)] = 255
-        s._ili.clear(ILI9341_WHITE)
-        s._ili.draw_img(area[0], area[1], img)
+        c = color[ch]
+
+        d = si.notch(si.detrend(reader.data_frame[ch]))
+        freq, amp = si.fft(sin_sig+d[0], resolution=4)
+        amp = amp[:, :128]
+        amp = 127 * (1 - amp/amp.max())
+        img = Image.fromarray(blank)
+        ImageDraw.Draw(img).polygon(np.concatenate((x, amp)).T, outline=c)
+        s._ili.draw_img(area[0], area[1], np.uint8(img))
+
         if (time.time() - last_time) < 1.0/fps:
             continue
         last_time = time.time()
-        s.widget['text', 21]['s'] = '%.2f@%.1e' % tremor_coefficient(d)
+        s.widget['text', 21]['s'] = '%.1f@%.1e' % tremor_coefficient(d)
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(reader[ch])
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
@@ -519,7 +551,7 @@ def page4_daemon(flag_pause, flag_close, fps=2):
             time.sleep(0.05)
         flag_pause.wait()
         ch = channel_range['n']
-        d = si.notch(si.remove_DC(reader[ch]))
+        d = si.notch(si.detrend(reader[ch]))
         for i in np.arange(6):
             if test_dict[(4, i+2)]:
                 if i % 3 == 0:
@@ -548,13 +580,14 @@ def page5_daemon(flag_pause, flag_close):
     print('leave page5')
 
 def tremor_coefficient(data, ch=0, distance=None):
+    return 5, 1
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
     return (si.sample_rate/np.average(np.diff(peaks)),
             1000 * np.average(heights['peak_heights']))
     # # preprocessing
-    # data = si.notch(si.remove_DC(data[ch]))[0]
+    # data = si.notch(si.detrend(data[ch]))[0]
     #
     # # peaks on raw data
     # #===========================================================================
@@ -591,7 +624,7 @@ def stiff_coefficient(data, ch=0):
     return si.rms(signal.lfilter(b, a, data, -1))
 
 def move_coefficient(data, ch=0):
-    data = si.notch(data[ch])
+    data = si.notch(data)
     data = si.smooth(si.envelop(data, method=1), 10)[0]
     return np.average(data)
 
