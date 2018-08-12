@@ -482,7 +482,7 @@ def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
 def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                  area=[39, 45, 290, 179], center=112):
     print('turn to page2')
-    line = np.zeros((2, area[2]))
+    line = np.ones((2, area[2]), np.uint16) * center
     data = reader.data_frame
     si.bandpass(data, low, high, register=True)
     si.notch(data, register=True)
@@ -495,8 +495,8 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             scale = scale_list['a'][scale_list['i']]
             c = color[ch]
             data = reader.data_channel[ch]
-            data = [data, si.bandpass_realtime(si.notch_realtime(data))]
-            line[x] = np.int16(np.clip(center - data*scale, area[1], area[3]))
+            data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
+            line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step:x+1]
             s._ili.draw_line(x+5, area[1], x+5, area[3], ILI9341_WHITE)
             if yraw[0] == yraw[1]:
@@ -507,7 +507,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                 s._ili.draw_point(x, yraw[0], c)
             else:
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
-        s._ili.draw_rectf(area[0], area[1], area[0]+4, area[3])
+        s._ili.draw_rectf(area[0], area[1], area[0]+4, area[3], ILI9341_WHITE)
     print('leave page2')
 
 def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],
