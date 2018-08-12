@@ -510,7 +510,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
         s._ili.draw_rectf(area[0], area[1], area[0]+4, area[3])
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184],
+def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],
                  color=[]):
     print('turn to page3')
     last_time = time.time()
@@ -521,10 +521,11 @@ def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184],
     while not flag_close.isSet():
         if flag_close.isSet():
             break
+        if (time.time() - last_time) < 1.0/fps:
+            continue
         flag_pause.wait()
         ch = channel_range['n']
         c = color[ch]
-
         d = si.notch(si.detrend(reader.data_frame[ch]))
         freq, amp = si.fft(sin_sig+d[0], resolution=4)
         amp = amp[:, :128]
@@ -532,9 +533,6 @@ def page3_daemon(flag_pause, flag_close, fps=2, area=[26, 56, 154, 184],
         img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(np.concatenate((x, amp)).T, outline=c)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
-
-        if (time.time() - last_time) < 1.0/fps:
-            continue
         last_time = time.time()
         s.widget['text', 21]['s'] = '%.1f@%.1e' % tremor_coefficient(d)
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)

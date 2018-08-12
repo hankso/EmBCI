@@ -480,8 +480,8 @@ class Pylsl_reader(_basic_reader):
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
-        super(Pylsl_reader, self).start()
         self._start_time = info.created_at()
+        super(Pylsl_reader, self).start()
 
     def close(self):
         self._inlet.close_stream()
@@ -613,6 +613,10 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
+        self.set_sample_rate = self._esp.set_sample_rate
+        self.set_input_source = self._esp.set_input_source
+        self.do_enable_bias = self._esp.do_enable_bias
+        self.do_measure_impedance = self._esp.do_measure_impedance
         ESP32_SPI_reader._singleton = False
 
     def start(self, spi_device=(0, 0)):

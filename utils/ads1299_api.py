@@ -11,7 +11,7 @@ import time
 import struct
 import select
 import unittest
-import threading
+import multiprocessing
 
 # pip install numpy, spidev
 import spidev
@@ -145,7 +145,7 @@ class ADS1299_API(spidev.SpiDev):
         # self._RESET = SysfsGPIO(PIN_RESET)
         # self._START = SysfsGPIO(PIN_START)
 
-        self._lock = threading.Lock()
+        self._lock = multiprocessing.Lock()
         self._opened = False
         self._started = False
         self._enable_bias = False
@@ -392,7 +392,7 @@ class ESP32_API(ADS1299_API):
         # [cmd cmd cmd cmd 0x00 0x00 0x00 0x00 ... 0x00]
         self._tosend = 4 * 8 * self.n_batch * [0x00]
         self._data_format = '%dB' % len(self._tosend)
-        self._cmd_buffer = []
+        self._cmd_queue = multiprocessing.Queue()
         self._data_buffer = []
         self._last_time = time.time()
 
@@ -411,8 +411,8 @@ class ESP32_API(ADS1299_API):
         self.set_sample_rate(sample_rate)
 
     def close(self):
+        self._cmd_queue.close()
         self._data_buffer = []
-        self._cmd_buffer = []
         if self._opened:
             super(ADS1299_API, self).close()
             self._epoll.unregister(self._DRDY)
@@ -421,8 +421,8 @@ class ESP32_API(ADS1299_API):
     def read(self, *args, **kwargs):
         assert self._started
 
-        if len(self._cmd_buffer):
-            cmd = self._cmd_buffer.pop(0)
+        if not self._cmd_queue.empty():
+            cmd = self._cmd_queue.get()
             self.write(cmd + self._tosend[len(cmd):])
             self._data_buffer = []
             return np.zeros(8, np.float32)
@@ -447,19 +447,19 @@ class ESP32_API(ADS1299_API):
 
     def write_register(self, reg, byte):
         '''Write register `reg` with value `byte`'''
-        self._cmd_buffer += [[WREG, reg, byte]]
+        self._cmd_queue.put([WREG, reg, byte])
 
     def write_registers(self, reg, byte_array):
         '''Write registers start from `reg` with values `byte_array`'''
-        self._cmd_buffer += [[WREG, reg] + list(byte_array)]
+        self._cmd_queue.put([WREG, reg] + list(byte_array))
 
     def read_register(self, reg):
         '''Read single register at `reg`'''
-        self._cmd_buffer += [[RREG, reg]]
+        self._cmd_queue.put([RREG, reg])
 
     def read_registers(self, reg, num):
         '''Read `num` registers start from `reg`'''
-        self._cmd_buffer += [[RREG, reg] + list(range(num))]
+        self._cmd_queue.put([RREG, reg] + list(range(num)))
 
     def set_sample_rate(self, rate):
         assert self._started
