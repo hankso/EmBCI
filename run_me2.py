@@ -356,7 +356,9 @@ def generate_pdf(*a, **k):
 
 # f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
-scale_list = {'a': [1000, 2000, 5000, 10000, 50000, 100000, 1000000, 5000000], 'i': 4}
+scale_list = {'a': [1000, 2000, 5000, 10000, 50000,
+                    100000, 1000000, 5000000],
+              'i': 1}
 
 channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
 
@@ -495,9 +497,6 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             scale = scale_list['a'][scale_list['i']]
             c = color[ch]
             data = reader.data_channel[ch]
-            s.widget['text', 16]['s'] = u'%5.1fs\u2191' % \
-                                        (time.time() - reader._start_time)
-            s.render('text', 16)
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step], line[:, x]
@@ -511,6 +510,9 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             else:
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
         s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
+        s.widget['text', 16]['s'] = u'%5.1fs\u2191' % \
+            (time.time() - reader._start_time)
+        s.render('text', 16)
     print('leave page2')
 
 def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],

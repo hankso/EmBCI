@@ -456,7 +456,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if os.path.exists(dir_or_file):
             if os.path.isdir(dir_or_file):
                 name = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
-            elif ps.path.isfile(dir_or_file):
+            elif os.path.isfile(dir_or_file):
                 name = dir_or_file
         else:
             dir = os.path.basename(dir_or_file),
@@ -474,7 +474,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 e['s'] = e['s'].decode('gbk')
         with open(name, 'w') as f:
             pickle.dump(tmp, f)
-        print(self._name + 'save layout `{}`'.format(name))
+        print(self._name + 'saved layout `{}`'.format(name))
 
     def load_layout(self, dir_or_file, extend=True, render=True, *a, **k):
         '''
