@@ -38,9 +38,23 @@ ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
 ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
 ILI9341_GREY        = [0x84, 0x10] # 128 128 128
 
-color = [
+RGB_BLUE        = [  0,   0, 255]
+RGB_GREEN       = [  0, 255,   0]
+RGB_CYAN        = [  0, 255, 255]
+RGB_RED         = [255,   0,   0]
+RGB_MAGENTA     = [255,   0, 255]
+RGB_YELLOW      = [255, 255,   0]
+RGB_WHITE       = [255, 255, 255]
+RGB_PURPLE      = [128,   0, 128]
+RGB_ORANGE      = [255, 160,  10]
+RGB_GREY        = [128, 128, 128]
+
+ILI9341_COLOR = [
     ILI9341_BLUE, ILI9341_YELLOW, ILI9341_MAGENTA, ILI9341_CYAN,
     ILI9341_GREEN, ILI9341_RED, ILI9341_PURPLE, ILI9341_ORANGE, ILI9341_GREY]
+RGB_COLOR = [
+    RGB_BLUE, RGB_YELLOW, RGB_MAGENTA, RGB_CYAN,
+    RGB_GREEN, RGB_RED, RGB_PURPLE, RGB_ORANGE, RGB_GREY]
 
 def shutdown(*a, **k):
     for flag in flag_list:
@@ -495,16 +509,16 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             flag_pause.wait()
             ch = channel_range['n']
             scale = scale_list['a'][scale_list['i']]
-            c = color[ch]
+            c = ILI9341_COLOR[ch]
             data = reader.data_channel[ch]
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step], line[:, x]
             s._ili.draw_line(x+step*4, area[1], x+step*4, area[3], ILI9341_WHITE)
-            if yraw[0] == yraw[1]:
-                s._ili.draw_point(x, yraw[0], ILI9341_GREY)
-            else:
-                s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
+            # if yraw[0] == yraw[1]:
+            #     s._ili.draw_point(x, yraw[0], ILI9341_GREY)
+            # else:
+            #     s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
             if yflt[0] == yflt[1]:
                 s._ili.draw_point(x, yraw[0], c)
             else:
@@ -529,7 +543,7 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
             continue
         flag_pause.wait()
         ch = channel_range['n']
-        c = color[ch]
+        c = RGB_COLOR[ch]
         d = si.notch(reader.data_frame[ch])
         img = Image.fromarray(blank)
         amp = si.fft(sin_sig + si.detrend(d), resolution=4)[1][:, :128]
