@@ -466,7 +466,7 @@ callback_list = [
     # page5
     {0: prev, 1: generate_pdf}]
 
-def page1_daemon(flag_pause, flag_close, fps=2, thres=0):
+def page1_daemon(flag_pause, flag_close, fps=1, thres=0):
     print('turn to page1')
     img_red = Image.open('./files/icons/4@300x-8.png').resize((21, 21))
     img_red = np.array(img_red.convert('RGBA'))
@@ -533,7 +533,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
+def page3_daemon(flag_pause, flag_close, fps=1, area=[26, 56, 153, 183]):
     print('turn to page3')
     last_time = time.time()
     x = np.linspace(0, reader.sample_time, reader.window_size)
@@ -541,11 +541,10 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
     x = np.arange(127).reshape(1, -1)
     blank = np.zeros((127, 127, 4), np.uint8)
     while not flag_close.isSet():
-        if flag_close.isSet():
-            break
+        flag_pause.wait()
         if (time.time() - last_time) < 1.0/fps:
             continue
-        flag_pause.wait()
+            last_time = time.time()
         ch = channel_range['n']
         c = RGB_COLOR[ch]
         d = reader.data_frame
@@ -554,32 +553,33 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         d = si.detrend(d)
         amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
+        amp[-1] = 0
         amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
         img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
         s._ili.draw_rectf(*area, c=ILI9341_WHITE)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
-        last_time = time.time()
         s.widget['text', 21]['s'] = '%.2f' % tremor_coefficient(d)[0]
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
 
-def page4_daemon(flag_pause, flag_close, fps=2):
+def page4_daemon(flag_pause, flag_close, fps=1):
     print('turn to page4')
     start_time = [None, None]
     last_time = time.time()
     while not flag_close.isSet():
-        while (time.time() - last_time) < 1.0/fps:
-            time.sleep(0.05)
         flag_pause.wait()
+        if (time.time() - last_time) < 1.0/fps:
+            continue
+            last_time = time.time()
         ch = channel_range['n']
         d = si.notch(si.detrend(reader[ch]))
-        for i in np.arange(6):
-            if test_dict[(4, i+2)]:
-                if i % 3 == 0:
-                    freq, amp = tremor_coefficient(d)
-                elif i % 3 == 1:
+        for i in np.arange(2, 8):
+            if test_dict[(4, i)]:
+                if i % 3 == 2:
+                    s.widget['button', i]['s'] = '%.2f' % tremor_coefficient(d)[0]
+                elif i % 3 == 0:
                     stiffness = stiff_coefficient(d)
                 else:
                     if not start_time[i/3]:
@@ -590,7 +590,8 @@ def page4_daemon(flag_pause, flag_close, fps=2):
             elif i % 3 == 2 and start_time[i/3]:
                 start_time[i/3] = None
         for i in np.arange(21, 24):
-            b, a = s.widget['button', i-19, 's'], s.widget['button', i-16, 's']
+            b = s.widget['button', i-19, 's'][:-1]
+            a = s.widget['button', i-16, 's'][:-1]
             if b != '  test  ' and a != '  test  ':
                 b, a = float(b), float(a)
                 s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b)
