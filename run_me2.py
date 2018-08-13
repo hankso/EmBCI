@@ -545,13 +545,14 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
         ch = channel_range['n']
         c = RGB_COLOR[ch]
         d = si.notch(reader.data_frame[ch])
-        img = Image.fromarray(blank)
         amp = si.fft(sin_sig + si.detrend(d), resolution=4)[1][:, :128]
         amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
+        img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
+        s._ili.draw_rectf(*area, c=ILI9341_WHITE)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
         last_time = time.time()
-        s.widget['text', 21]['s'] = '%.1f@%.1e' % tremor_coefficient(d)
+        s.widget['text', 21]['s'] = '%.2f' % tremor_coefficient(d)[0]
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
