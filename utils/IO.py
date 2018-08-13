@@ -302,7 +302,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._ch_last_index == self._index:
-                if (time.time() - t) > (1.5 / self.sample_rate):
+                if (time.time() - t) > (2.0 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._ch_last_index = self._index
@@ -313,7 +313,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._fr_last_index == self._index:
-                if (time.time() - t) > (1.5 / self.sample_rate):
+                if (time.time() - t) > (2.0 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._fr_last_index = self._index
