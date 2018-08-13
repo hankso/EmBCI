@@ -1,1 +1,2 @@
-print(1)
+#!/usr/bin/env python
+pass
