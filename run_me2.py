@@ -454,7 +454,9 @@ callback_list = [
      2: partial(range_callback, r=channel_range,
                 operate='minus', after=change_channel),
      3: partial(range_callback, r=channel_range,
-                operate='plus', after=change_channel)},
+                operate='plus', after=change_channel),
+     4: partial(list_callback, l=scale_list, operate='next'),
+     5: partial(list_callback, l=scale_list, operate='prev')},
     # page3
     {0: prev, 1: next},
     # page4
@@ -503,14 +505,20 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
     si.bandpass(data, low, high, register=True)
     si.notch(data, register=True)
     while not flag_close.isSet():
+        flag_pause.wait()
+        ch = channel_range['n']
+        scale = scale_list['a'][scale_list['i']]
+        c = ILI9341_COLOR[ch]
+        s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
+        s.widget['text', 16]['s'] = u'%5.1fs\u2191' % \
+            (time.time() - reader._start_time)
+        s.render('text', 16)
         for x in np.arange(area[0], area[2], step, dtype=int):
             if flag_close.isSet():
                 break
-            flag_pause.wait()
-            ch = channel_range['n']
-            scale = scale_list['a'][scale_list['i']]
-            c = ILI9341_COLOR[ch]
-            data = reader.data_channel[ch]
+            d = reader.data_channel
+            server.send(d)
+            data = d[ch]
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step], line[:, x]
@@ -523,10 +531,6 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                 s._ili.draw_point(x, yraw[0], c)
             else:
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
-        s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
-        s.widget['text', 16]['s'] = u'%5.1fs\u2191' % \
-            (time.time() - reader._start_time)
-        s.render('text', 16)
     print('leave page2')
 
 def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
