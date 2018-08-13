@@ -579,16 +579,18 @@ def page4_daemon(flag_pause, flag_close, fps=1):
             if test_dict[(4, i)]:
                 if i % 3 == 2:
                     s.widget['button', i]['s'] = '%.2f' % tremor_coefficient(d)[0]
+                    s.render('button', i)
                 elif i % 3 == 0:
-                    stiffness = stiff_coefficient(d)
+                    s.widget['button', i]['s'] = '%.2f' % stiff_coefficient(d)
+                    s.render('button', i)
                 else:
-                    if not start_time[i/3]:
-                        start_time[i/3] = time.time()
-                    s.widget['button', i+2]['s'] = '  {:4.1f}s '.format(
-                        time.time() - start_time[i/3])
-                    s.render('button', i+2)
-            elif i % 3 == 2 and start_time[i/3]:
-                start_time[i/3] = None
+                    if not start_time[(i-2)/3]:
+                        start_time[(i-2)/3] = time.time()
+                    s.widget['button', i]['s'] = '  {:4.1f}s '.format(
+                        time.time() - start_time[(i-2)/3])
+                    s.render('button', i)
+            elif i % 3 == 1 and start_time[(i-2)/3]:
+                start_time[(i-2)/3] = None
         for i in np.arange(21, 24):
             b = s.widget['button', i-19, 's'][:-1]
             a = s.widget['button', i-16, 's'][:-1]
