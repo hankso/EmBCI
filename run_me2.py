@@ -544,7 +544,9 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
         flag_pause.wait()
         ch = channel_range['n']
         c = RGB_COLOR[ch]
-        d = si.notch(reader.data_frame[ch])
+        d = reader.data_frame
+        server.send(d)
+        d = si.notch(d[ch])
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         d = si.detrend(d)
         amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
@@ -654,6 +656,8 @@ if __name__ == '__main__':
 
     reader = Reader(sample_rate=500, sample_time=2, n_channel=8)
     reader.start()
+    server = Socket_server()
+    server.start()
     si = Signal_Info(500)
     s = Screen_GUI()
     s.start_touch_screen('/dev/ttyS1')
@@ -674,7 +678,6 @@ if __name__ == '__main__':
 
     try:
         reader = Reader(); reader.start(spi_device=(0, 1))
-        server = Socket_server()
         s = Screen_GUI(spi_device=(0, 0))
         # s = Screen_GUI(screen_port='/dev/ttyS1', screen_baud=115200)
         s.start_touch_screen('/dev/ttyS2')

@@ -207,9 +207,10 @@ class _basic_reader(object):
         # self._flag_pause = threading.Event()
         # self._flag_close = threading.Event()
         # ======================================================================
-        self._flag_pause.set()
 
     def start(self):
+        self._flag_pause.set()
+        self._flag_close.clear()
         self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
         self._f = open(self._data_file, 'w+')
         self._f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
@@ -633,8 +634,6 @@ class Socket_reader(_basic_reader):
                                             sample_time,
                                             n_channel)
         self._name = '[Socket reader %d] ' % Socket_reader._num
-        # TCP IPv4 socket connection
-        self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         Socket_reader._num += 1
 
     def start(self):
@@ -657,12 +656,14 @@ class Socket_reader(_basic_reader):
                 break
             except socket.error:
                 print(self._name + 'invalid addr!')
+        # TCP IPv4 socket connection
+        self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
         # 2. read data in another thread
         super(Socket_reader, self).start()
 
     def close(self):
-        self._client.close()
+        # self._client.close()
         super(Socket_reader, self).close()
 
     def _save_data_in_buffer(self):
