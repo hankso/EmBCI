@@ -38,16 +38,16 @@ ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
 ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
 ILI9341_GREY        = [0x84, 0x10] # 128 128 128
 
-RGB_BLUE        = [  0,   0, 255]
-RGB_GREEN       = [  0, 255,   0]
-RGB_CYAN        = [  0, 255, 255]
-RGB_RED         = [255,   0,   0]
-RGB_MAGENTA     = [255,   0, 255]
-RGB_YELLOW      = [255, 255,   0]
-RGB_WHITE       = [255, 255, 255]
-RGB_PURPLE      = [128,   0, 128]
-RGB_ORANGE      = [255, 160,  10]
-RGB_GREY        = [128, 128, 128]
+RGB_BLUE            = (  0,   0, 255)
+RGB_GREEN           = (  0, 255,   0)
+RGB_CYAN            = (  0, 255, 255)
+RGB_RED             = (255,   0,   0)
+RGB_MAGENTA         = (255,   0, 255)
+RGB_YELLOW          = (255, 255,   0)
+RGB_WHITE           = (255, 255, 255)
+RGB_PURPLE          = (128,   0, 128)
+RGB_ORANGE          = (255, 160,  10)
+RGB_GREY            = (128, 128, 128)
 
 ILI9341_COLOR = [
     ILI9341_BLUE, ILI9341_YELLOW, ILI9341_MAGENTA, ILI9341_CYAN,
