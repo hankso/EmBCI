@@ -35,26 +35,26 @@ def sEMG_Recognition(username, reader, model, commander):
     #==========================================================================
     # user initializition
     #==========================================================================
-    if not os.path.exists('./models/' + username):
+    if not os.path.exists('./model/' + username):
         # no this user before
         try:
-            os.mkdir('./models/' + username)
+            os.mkdir('./model/' + username)
             os.mkdir('./data/' + username)
         except:
             pass
         model_flag = True
-    elif os.listdir('./models/' + username):
-        # there is trained models
+    elif os.listdir('./model/' + username):
+        # there is trained model
         print('found saved model:', end='')
-        models = [i for i in sorted(os.listdir('./models/' + username))[::-1] \
+        model = [i for i in sorted(os.listdir('./model/' + username))[::-1] \
                   if not i.endswith('.json')]
         prompt = ('choose one to use:\n    %s\n    0\trecord '
                   'action data and train a new model\nnum: ') % \
-                  '\n    '.join('%d\t%s'%(n+1, m) for n,m in enumerate(models))
-        answer = {str(i+1): models[i] for i in range(len(models))}
+                  '\n    '.join('%d\t%s'%(n+1, m) for n,m in enumerate(model))
+        answer = {str(i+1): model[i] for i in range(len(model))}
         answer.update({'0': True})
         model_flag = check_input(prompt, answer)
-        models = prompt = answer = None
+        model = prompt = answer = None
     else:
         # no model, then collect data and train a new one!
         model_flag = True
@@ -98,7 +98,7 @@ def sEMG_Recognition(username, reader, model, commander):
                             '(not recommended)\ndelete data? [Y/n] ')):
                 os.system('rm ./data/%s/*.mat' % username)
 
-            model_name = './models/%s/%s.h5' % (username, time_stamp())
+            model_name = './model/%s/%s.h5' % (username, time_stamp())
             model.save(model_name)
             with open(model_name[:-3] + '-action-dict.json', 'w') as f:
                 json.dump(action_dict, f)
@@ -116,7 +116,7 @@ def sEMG_Recognition(username, reader, model, commander):
     # load saved classifier
     #==========================================================================
     else:
-        model_name = './models/%s/%s' % (username, model_flag)
+        model_name = './model/%s/%s' % (username, model_flag)
         print('loading %s ... ' % model_name, end='')
         model.load(model_name)
         with open(model_name[:-3] + '-action-dict.json', 'r') as f:
