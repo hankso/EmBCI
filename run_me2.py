@@ -529,13 +529,13 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
         s.render('text', 16)
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
+def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 153, 183]):
     print('turn to page3')
     last_time = time.time()
     x = np.linspace(0, reader.sample_time, reader.window_size)
     sin_sig = 1e-3 * np.sin(2*np.pi*32*x).reshape(1, -1)
-    x = np.arange(128).reshape(1, 128)
-    blank = np.zeros((128, 128, 4), np.uint8)
+    x = np.arange(127).reshape(1, -1)
+    blank = np.zeros((127, 127, 4), np.uint8)
     while not flag_close.isSet():
         if flag_close.isSet():
             break
@@ -545,7 +545,9 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
         ch = channel_range['n']
         c = RGB_COLOR[ch]
         d = si.notch(reader.data_frame[ch])
-        amp = si.fft(sin_sig + si.detrend(d), resolution=4)[1][:, :128]
+        s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
+        d = si.detrend(d)
+        amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
         amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
         img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
@@ -554,7 +556,6 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
         last_time = time.time()
         s.widget['text', 21]['s'] = '%.2f' % tremor_coefficient(d)[0]
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
-        s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
 
@@ -599,7 +600,7 @@ def tremor_coefficient(data, ch=0, distance=None):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
-    return (si.sample_rate/np.average(np.diff(peaks)),
+    return (si.sample_rate/(np.average(np.diff(peaks))+1),
             1000 * np.average(heights['peak_heights']))
     # # preprocessing
     # data = si.notch(si.detrend(data[ch]))[0]

@@ -683,7 +683,7 @@ class Socket_server(object):
         # if host is None:
         #     host = get_self_ip_addr()
         self._name = '[Socket server %d] ' % Socket_server._num
-        self.connections = []
+        self._connections = []
         Socket_server._num += 1
         # TCP IPv4 socket connection
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -694,16 +694,16 @@ class Socket_server(object):
         print(self._name + 'binding socket server at %s:%d' % (host, port))
 
     def start(self):
-        if not hasattr(self, '_thread'):
-            # handle connection in a seperate thread
-            self._thread = threading.Thread(target=self._manage_connections)
-            self._thread.setDaemon(True)
-            self._thread.start()
+        # handle connection in a seperate thread
+        self._flag_close.clear()
+        self._thread = threading.Thread(target=self._manage_connections)
+        self._thread.setDaemon(True)
+        self._thread.start()
 
     def _manage_connections(self):
         while not self._flag_close.is_set():
             # manage all connections and wait for new client
-            rdable = select.select([self._server] + self.connections, [], [], 1)
+            rdable = select.select([self._server] + self._connections, [], [], 1)
             if not rdable[0]:
                 continue
             s = rdable[0][0]
@@ -712,36 +712,35 @@ class Socket_server(object):
                 con, addr = self._server.accept()
                 con.settimeout(0.5)
                 print('{}accept client from {}:{}'.format(self._name, *addr))
-                self.connections.append(con)
+                self._connections.append(con)
             # some client maybe closed
-            elif s in self.connections:
+            elif s in self._connections:
                 addr = s.getpeername()
                 t = s.recv(1024)
                 # client shutdown and we should clear correspond server
                 if t == '':
                     s.close()
                     print('{}lost client from {}:{}'.format(self._name, *addr))
-                    self.connections.remove(s)
+                    self._connections.remove(s)
                 # client sent some data
                 else:
                     print('{}recv `{}` from {}:{}'.format(self._name, t, *addr))
         print(self._name + 'socket manager say goodbye to you ;-)')
 
     def send(self, data):
-        for con in self.connections:
+        for con in self._connections:
             con.sendall(data.tobytes())
 
     def close(self):
-        print(self._name + 'stop broadcasting data...')
         self._flag_close.set()
-        for con in self.connections:
+        print(self._name + 'stop broadcasting data...')
+        for con in self._connections:
             con.close()
-        self._server.close()
-        time.sleep(1)
+        # self._server.close()
         print(self._name + 'Socket server shut down.')
 
     def has_listeners(self):
-        return len(self.connections)
+        return len(self._connections)
 
 
 command_dict_plane = {
