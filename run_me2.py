@@ -544,7 +544,7 @@ def page3_daemon(flag_pause, flag_close, fps=1, area=[26, 56, 153, 183]):
         flag_pause.wait()
         if (time.time() - last_time) < 1.0/fps:
             continue
-            last_time = time.time()
+        last_time = time.time()
         ch = channel_range['n']
         c = RGB_COLOR[ch]
         d = reader.data_frame
@@ -572,16 +572,18 @@ def page4_daemon(flag_pause, flag_close, fps=1):
         flag_pause.wait()
         if (time.time() - last_time) < 1.0/fps:
             continue
-            last_time = time.time()
+        last_time = time.time()
         ch = channel_range['n']
         d = si.notch(si.detrend(reader[ch]))
         for i in np.arange(2, 8):
             if test_dict[(4, i)]:
                 if i % 3 == 2:
-                    s.widget['button', i]['s'] = '%.2f' % tremor_coefficient(d)[0]
+                    freq = tremor_coefficient(d)[0]
+                    s.widget['button', i]['s'] = '  %5.2f ' % freq
                     s.render('button', i)
                 elif i % 3 == 0:
-                    s.widget['button', i]['s'] = '%.2f' % stiff_coefficient(d)
+                    stiff = stiff_coefficient(d)
+                    s.widget['button', i]['s'] = '  %5.2f ' % stiff
                     s.render('button', i)
                 else:
                     if not start_time[(i-2)/3]:
@@ -592,10 +594,10 @@ def page4_daemon(flag_pause, flag_close, fps=1):
             elif i % 3 == 1 and start_time[(i-2)/3]:
                 start_time[(i-2)/3] = None
         for i in np.arange(21, 24):
-            b = s.widget['button', i-19, 's'][:-1]
-            a = s.widget['button', i-16, 's'][:-1]
+            b = s.widget['button', i-19, 's']
+            a = s.widget['button', i-16, 's']
             if 'test' not in b and 'test' not in a:
-                b, a = float(b), float(a)
+                b, a = float(b[:-2]), float(a[:-2])
                 s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b)
                 s.render('text', i)
     print('leave page4')
