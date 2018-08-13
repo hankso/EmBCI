@@ -515,12 +515,11 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
         s.render('text', 16)
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],
-                 color=[]):
+def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184]):
     print('turn to page3')
     last_time = time.time()
     x = np.linspace(0, reader.sample_time, reader.window_size)
-    sin_sig = 1e-3 * np.sin(2*np.pi*32*x)
+    sin_sig = 1e-3 * np.sin(2*np.pi*32*x).reshape(1, -1)
     x = np.arange(128).reshape(1, 128)
     blank = np.zeros((128, 128, 4), np.uint8)
     while not flag_close.isSet():
@@ -531,17 +530,16 @@ def page3_daemon(flag_pause, flag_close, fps=3, area=[26, 56, 154, 184],
         flag_pause.wait()
         ch = channel_range['n']
         c = color[ch]
-        d = si.notch(si.detrend(reader.data_frame[ch]))
-        freq, amp = si.fft(sin_sig+d[0], resolution=4)
-        amp = amp[:, :128]
-        amp = 127 * (1 - amp/amp.max())
+        d = si.notch(reader.data_frame[ch])
         img = Image.fromarray(blank)
-        ImageDraw.Draw(img).polygon(np.concatenate((x, amp)).T, outline=c)
+        amp = si.fft(sin_sig + si.detrend(d), resolution=4)[1][:, :128]
+        amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
+        ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
         last_time = time.time()
         s.widget['text', 21]['s'] = '%.1f@%.1e' % tremor_coefficient(d)
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
-        s.widget['text', 23]['s'] = '%.2f' % move_coefficient(reader[ch])
+        s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
 
