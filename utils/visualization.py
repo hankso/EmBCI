@@ -486,9 +486,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             return
         layout = dir_or_file
         if os.path.isdir(dir_or_file):
-            layout = find_layouts(dir)
+            layout = find_layouts(dir_or_file)
             if layout is None:
-                print(self._name + 'no available layout files in dir ' + dir)
+                print(self._name + 'no available layout in ' + dir_or_file)
                 return
         try:
             with open(layout, 'r') as f:

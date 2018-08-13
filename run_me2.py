@@ -364,7 +364,6 @@ page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i \
                    for i in range(1, 6)],
              'i': 0}
 
-
 def range_callback(r, operate, prev=None, after=None, *a, **k):
     if prev is not None:
         prev(*a, **k)
@@ -582,7 +581,6 @@ def page5_daemon(flag_pause, flag_close):
     print('leave page5')
 
 def tremor_coefficient(data, ch=0, distance=None):
-    return 5, 1
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
