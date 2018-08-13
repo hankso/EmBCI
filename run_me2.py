@@ -553,7 +553,7 @@ def page3_daemon(flag_pause, flag_close, fps=1, area=[26, 56, 153, 183]):
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
         d = si.detrend(d)
         amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
-        amp[-1] = 0
+        amp[0, -1] = amp[0, 0] = 0
         amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
         img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
@@ -594,7 +594,7 @@ def page4_daemon(flag_pause, flag_close, fps=1):
         for i in np.arange(21, 24):
             b = s.widget['button', i-19, 's'][:-1]
             a = s.widget['button', i-16, 's'][:-1]
-            if b != '  test  ' and a != '  test  ':
+            if 'test' not in b and 'test' not in a:
                 b, a = float(b), float(a)
                 s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b)
                 s.render('text', i)
@@ -609,7 +609,7 @@ def tremor_coefficient(data, ch=0, distance=None):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
-    return (si.sample_rate/(np.average(np.diff(peaks))+1),
+    return (si.sample_rate/(np.average(np.diff(peaks)) + 1),
             1000 * np.average(heights['peak_heights']))
     # # preprocessing
     # data = si.notch(si.detrend(data[ch]))[0]
