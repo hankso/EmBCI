@@ -1,9 +1,7 @@
 # user data no need to save
-data/*
-model/*
-doc/*
-*.mat
-*.fif
+#data/*
+#model/*
+#doc/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
