@@ -472,7 +472,7 @@ next = partial(list_callback, l=page_list, operate='next', after=change_page,
 callback_list = [
     # page0
     # id of button: callback function
-    {0: shutdown, 1: next, 2: update},
+    {0: shutdown, 1: next, 2: update, 3: exit_program},
     # page1
     {0: prev, 1: next,
      2: reverse_status, 3: reverse_status, 4: reverse_status, 5: reverse_status,
