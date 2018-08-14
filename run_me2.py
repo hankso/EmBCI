@@ -523,14 +523,14 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step:x+1]
             s._ili.draw_line(x+step*4, area[1], x+step*4, area[3], ILI9341_WHITE)
-            # if yraw[0] == yraw[1]:
-            #     s._ili.draw_point(x, yraw[0], ILI9341_GREY)
-            # else:
-            #     s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
-            if yflt[0] == yflt[1]:
-                s._ili.draw_point(x, yraw[0], c)
+            if yraw[0] == yraw[1]:
+                s._ili.draw_point(x, yraw[0], ILI9341_GREY)
             else:
-                s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
+                s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
+            if yflt[0] == yflt[1]:
+                s._ili.draw_point(x, yflt[0], c)
+            else:
+                s._ili.draw_line(x, yflt.min(), x, yflt.max(), c)
     print('leave page2')
 
 def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
