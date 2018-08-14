@@ -429,8 +429,9 @@ def change_page(*a, **k):
         s.widget['button', id]['callback'] = callback_list[page_num][id]
     flag_list[page_num][0].set()
     flag_list[page_num][1].clear()
-    threading.Thread(target=globals()['page%d_daemon' % page_num],
-                     args=flag_list[page_num]).start()
+    func = globals().get('page%d_daemon' % page_num)
+    if func is not None:
+        threading.Thread(target=func, args=flag_list[page_num]).start()
 
 def change_channel(*a, **k):
     s.widget['text', 15]['s'] = 'CH%d' % channel_range['n']
@@ -621,12 +622,7 @@ def page4_daemon(flag_pause, flag_close, fps=0.8):
                 pass
     print('leave page4')
 
-def page5_daemon(flag_pause, flag_close):
-    print('turn to page5')
-    print('Nothing to do! Abort')
-    print('leave page5')
-
-def tremor_coefficient(data, ch=0, distance=None):
+def tremor_coefficient(data, ch=0, distance=25):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
