@@ -320,12 +320,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._last_touch_time = time.time()
         self._callback_threads = []
         self._touch_started = True
-        if not block:
-            self._touch_thread = threading.Thread(target=self._handle_touch)
-            self._touch_thread.setDaemon(True)
-            self._touch_thread.start()
-        else:
-            self._handle_touch()
+        self._touch_thread = threading.Thread(target=self._handle_touch)
+        self._touch_thread.setDaemon(True)
+        self._touch_thread.start()
+        if block:
+            # block current thread(usually main thread) by looply sleep, until
+            # `self.close` is called or `self._flag_close` is set.
+            while not self._flag_close.isSet():
+                time.sleep(5)
 
     @_pre_draw_check('img')
     def draw_img(self, x, y, img, bg=None, **k):
@@ -643,7 +645,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         '''
         parse touch screen data to get point index(with calibration)
         '''
-        while 1:
+        while not self._flag_close.isSet():
             with self._read_lock:
                 self._touch.flushInput()
                 self._read_epoll.poll()
@@ -661,6 +663,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                         print('[Touch Screen] Invalid input %s' % raw)
                 except:
                     continue
+        return 0, 0
 
     def _handle_touch(self):
         while not self._flag_close.isSet():
@@ -727,18 +730,17 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
 
     Methods Outline:
         Inherit from `SPI_Screen_commander`:
-            start, send, write, close, setfont, setsize, getsize
+            start, send, write(alias of send), close, getsize
         Inherit from `Serial_Screen_GUI`:
-            draw_img, draw_buttom, draw_point,
-            draw_line, draw_rect, draw_round,
-            draw_round_rect, draw_circle, draw_text,
-            render, display_logo, calibration_touch_screen, clear,
+            draw_img, draw_buttom, draw_point, draw_line, draw_rect,
+            draw_round, draw_round_rect, draw_circle, draw_text,
+            render, display_img, calibration_touch_screen, clear,
             save_layout, load_layout,
             freeze_frame, recover_frame,
             remove_element, move_element,
         Inherit from `Serial_Screen_commander`:
-            start(overload), send(overload), write(overload), close(overload),
-            check_key
+            start(overload), send(overload), close(overload), getsize(overload),
+            check_key(useless)
     '''
     def __init__(self, spi_device=(0, 1), *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)

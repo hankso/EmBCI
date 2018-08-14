@@ -72,6 +72,7 @@ def exit_program(*a, **k):
     s.draw_text((s.width-w)/2, (s.height-h)/2, s1, 'red')
     time.sleep(2)
     s.close()
+    server.close()
     reader.close()
 
 def reboot(*a, **k):
