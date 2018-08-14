@@ -374,9 +374,13 @@ def update(*a, **k):
 
 # f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
-scale_list = {'a': [100, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 1000000,
-                    2000000, 5000000, 10000000],
-              'i': 0}
+scale_list = {'a': [100, 200, 500,
+                    1000, 2000, 5000,
+                    10000, 20000, 50000,
+                    100000, 200000, 500000,
+                    1000000, 2000000, 5000000,
+                    10000000],
+              'i': 2}
 
 channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
 
@@ -685,9 +689,9 @@ if __name__ == '__main__':
     server.start()
     si = Signal_Info(500)
     s = Screen_GUI()
-    s.start_touch_screen('/dev/ttyS1')
     change_page()
-    IPython.embed()
+    change_scale()
+    s.start_touch_screen('/dev/ttyS1', block=True)
 
     # reset_avr = SysfsGPIO(10) # PA10
     # reset_avr.export = True

@@ -306,7 +306,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 '-' * max_len + '\n') + info + '>'
         return info
 
-    def start_touch_screen(self, port='/dev/ttyS2', baud=115200):
+    def start_touch_screen(self, port='/dev/ttyS2', baud=115200, block=False):
         self._touch = serial.Serial(port, baud)
         self._touch.flushInput()
         self._flag_close = threading.Event()
@@ -316,12 +316,15 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._read_epoll = select.epoll()
         self._read_epoll.register(self._touch, select.EPOLLIN)
         self._last_touch_time = time.time()
-        self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
-        self._touch_thread = threading.Thread(target=self._handle_touch_screen)
-        self._touch_thread.setDaemon(True)
-        self._touch_thread.start()
-        self._touch_started = True
         self._callback_threads = []
+        self._touch_started = True
+        self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
+        if not block:
+            self._touch_thread = threading.Thread(target=self._handle_touch)
+            self._touch_thread.setDaemon(True)
+            self._touch_thread.start()
+        else:
+            self._handle_touch()
 
     @_pre_draw_check('img')
     def draw_img(self, x, y, img, bg=None, **k):
@@ -562,7 +565,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if not self._touch_started:
             print('[Screen GUI] touch screen not initialized yet!')
             return
-        self._flag_pause.clear() # pause _handle_touch_screen thread
+        self._flag_pause.clear() # pause _handle_touch thread
         self.freeze_frame()
         self.touch_sensibility = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
@@ -593,7 +596,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print(e)
         finally:
             self.recover_frame()
-            self._flag_pause.set() # resume _handle_touch_screen thread
+            self._flag_pause.set() # resume _handle_touch thread
 
     def display_img(self, filename_or_img, *a, **k):
         if isinstance(filename_or_img, str):
@@ -658,7 +661,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 except:
                     continue
 
-    def _handle_touch_screen(self):
+    def _handle_touch(self):
         while not self._flag_close.isSet():
             self._flag_pause.wait()
             x, y = self._get_touch_point()
