@@ -466,7 +466,7 @@ callback_list = [
     # page5
     {0: prev, 1: generate_pdf}]
 
-def page1_daemon(flag_pause, flag_close, fps=1, thres=0):
+def page1_daemon(flag_pause, flag_close, fps=0.8, thres=0):
     print('turn to page1')
     img_red = Image.open('./files/icons/4@300x-8.png').resize((21, 21))
     img_red = np.array(img_red.convert('RGBA'))
@@ -533,7 +533,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
                 s._ili.draw_line(x, yraw.min(), x, yraw.max(), c)
     print('leave page2')
 
-def page3_daemon(flag_pause, flag_close, fps=1, area=[26, 56, 153, 183]):
+def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
     print('turn to page3')
     last_time = time.time()
     x = np.linspace(0, reader.sample_time, reader.window_size)
@@ -564,7 +564,7 @@ def page3_daemon(flag_pause, flag_close, fps=1, area=[26, 56, 153, 183]):
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
 
-def page4_daemon(flag_pause, flag_close, fps=1):
+def page4_daemon(flag_pause, flag_close, fps=0.8):
     print('turn to page4')
     start_time = [None, None]
     last_time = time.time()
@@ -579,27 +579,29 @@ def page4_daemon(flag_pause, flag_close, fps=1):
             if test_dict[(4, i)]:
                 if i % 3 == 2:
                     freq = tremor_coefficient(d)[0]
-                    s.widget['button', i]['s'] = '  %5.2f ' % freq
+                    s.widget['button', i]['s'] = '  %5.1f ' % freq
                     s.render('button', i)
                 elif i % 3 == 0:
                     stiff = stiff_coefficient(d)
-                    s.widget['button', i]['s'] = '  %5.2f ' % stiff
+                    s.widget['button', i]['s'] = '  %5.1f ' % stiff
                     s.render('button', i)
                 else:
                     if not start_time[(i-2)/3]:
                         start_time[(i-2)/3] = time.time()
-                    s.widget['button', i]['s'] = '  {:4.1f}s '.format(
-                        time.time() - start_time[(i-2)/3])
+                    t = time.time() - start_time[(i-2)/3]
+                    s.widget['button', i]['s'] = '  %4.1fs ' % t
                     s.render('button', i)
             elif i % 3 == 1 and start_time[(i-2)/3]:
                 start_time[(i-2)/3] = None
         for i in np.arange(21, 24):
-            b = s.widget['button', i-19, 's']
-            a = s.widget['button', i-16, 's']
-            if 'test' not in b and 'test' not in a:
-                b, a = float(b[:-2]), float(a[:-2])
-                s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b)
-                s.render('text', i)
+            if not test_dict[(4, i-19)] or not test_dict[(4, i-16)]:
+                continue
+            b, a = s.widget['button', i-19, 's'], s.widget['button', i-16, 's']
+            if 'test' in b or 'test' in a:
+                continue
+            b, a = float(b[:-2]), float(a[:-2])
+            s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b * 100)
+            s.render('text', i)
     print('leave page4')
 
 def page5_daemon(flag_pause, flag_close):
