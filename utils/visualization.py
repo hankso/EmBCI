@@ -460,7 +460,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 name = dir_or_file
         else:
             dir = os.path.basename(dir_or_file),
-            if not ps.path.exits(dir) or not os.path.isdir(dir):
+            if not os.path.exits(dir) or not os.path.isdir(dir):
                 return
             name = dir_or_file
         # prepare data

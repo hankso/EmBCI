@@ -72,6 +72,10 @@ def generate_pdf(*a, **k):
     # TODO: generate pdf using python-reportlab
     print('pdf saved!')
 
+def update(*a, **k):
+    os.system('git pull')
+    # TODO: draw element to show update done
+
 
 # def range_callback(r, operate, element, id=None, fm=None, *a, **k):
 #     if operate == 'plus':
@@ -370,14 +374,14 @@ def generate_pdf(*a, **k):
 
 # f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
-scale_list = {'a': [1000, 2000, 5000, 10000, 50000,
-                    100000, 1000000, 5000000],
-              'i': 1}
+scale_list = {'a': [1000, 2000, 5000, 10000, 20000, 50000, 100000, 1000000,
+                    2000000, 5000000, 10000000],
+              'i': 0}
 
 channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
 
 page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i \
-                   for i in range(1, 6)],
+                   for i in range(6)],
              'i': 0}
 
 def range_callback(r, operate, prev=None, after=None, *a, **k):
@@ -410,7 +414,8 @@ def list_callback(l, operate, prev=None, after=None, *a, **k):
         after(*a, **k)
 
 #                    flag_pause         flag_close
-flag_list = [(threading.Event(), threading.Event()),  # page1
+flag_list = [(threading.Event(), threading.Event()),  # page0
+             (threading.Event(), threading.Event()),  # page1
              (threading.Event(), threading.Event()),  # page2
              (threading.Event(), threading.Event()),  # page3
              (threading.Event(), threading.Event()),  # page4
@@ -424,12 +429,18 @@ def change_page(*a, **k):
         s.widget['button', id]['callback'] = callback_list[page_num][id]
     flag_list[page_num][0].set()
     flag_list[page_num][1].clear()
-    threading.Thread(target=globals()['page%d_daemon' % (page_num + 1)],
+    threading.Thread(target=globals()['page%d_daemon' % page_num],
                      args=flag_list[page_num]).start()
 
 def change_channel(*a, **k):
     s.widget['text', 15]['s'] = 'CH%d' % channel_range['n']
     s.render('text', 15)
+
+def change_scale(*a, **k):
+    scale = scale_list['a'][scale_list['i']]
+    exp = int(np.log10(scale))
+    s.widget['text', 16]['s'] = '%de%d' % (scale/10**exp, exp)
+    s.render('text', 16)
 
 test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
@@ -444,9 +455,11 @@ next = partial(list_callback, l=page_list, operate='next', after=change_page,
                prev=lambda *a, **k: flag_list[page_list['i']][1].set())
 
 callback_list = [
-    # page1
+    # page0
     # id of button: callback function
-    {0: shutdown, 1: next,
+    {0: shutdown, 1: next, 2: update},
+    # page1
+    {0: prev, 1: next,
      2: reverse_status, 3: reverse_status, 4: reverse_status, 5: reverse_status,
      6: reverse_status, 7: reverse_status, 8: reverse_status, 9: reverse_status},
     # page2
@@ -455,8 +468,8 @@ callback_list = [
                 operate='minus', after=change_channel),
      3: partial(range_callback, r=channel_range,
                 operate='plus', after=change_channel),
-     4: partial(list_callback, l=scale_list, operate='next'),
-     5: partial(list_callback, l=scale_list, operate='prev')},
+     4: partial(list_callback, l=scale_list, operate='next', after=change_scale),
+     5: partial(list_callback, l=scale_list, operate='prev', after=change_scale)},
     # page3
     {0: prev, 1: next},
     # page4
@@ -522,7 +535,8 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
             yraw, yflt = line[:, x-step:x+1]
-            s._ili.draw_line(x+step*4, area[1], x+step*4, area[3], ILI9341_WHITE)
+            _x = max((x + step*4), area[2])
+            s._ili.draw_line(_x, area[1], _x, area[3], ILI9341_WHITE)
             if yraw[0] == yraw[1]:
                 s._ili.draw_point(x, yraw[0], ILI9341_GREY)
             else:
