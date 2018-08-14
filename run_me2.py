@@ -521,7 +521,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             data = d[ch]
             data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
             line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
-            yraw, yflt = line[:, x-step], line[:, x]
+            yraw, yflt = line[:, x-step:x+1]
             s._ili.draw_line(x+step*4, area[1], x+step*4, area[3], ILI9341_WHITE)
             # if yraw[0] == yraw[1]:
             #     s._ili.draw_point(x, yraw[0], ILI9341_GREY)
