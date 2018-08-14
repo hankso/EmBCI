@@ -616,7 +616,8 @@ def tremor_coefficient(data, ch=0, distance=None):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
-    return (si.sample_rate/(np.average(np.diff(peaks)) + 1),
+    peaks = np.concatenate(([0], peaks))
+    return (si.sample_rate / (np.average(np.diff(peaks) + 1),
             1000 * np.average(heights['peak_heights']))
     # # preprocessing
     # data = si.notch(si.detrend(data[ch]))[0]
@@ -653,12 +654,12 @@ def tremor_coefficient(data, ch=0, distance=None):
 
 def stiff_coefficient(data, ch=0):
     b, a = signal.butter(4, 10.0/si.sample_rate, btype='lowpass')
-    return si.rms(signal.lfilter(b, a, data, -1))
+    return 1000 * si.rms(signal.lfilter(b, a, data, -1))
 
 def move_coefficient(data, ch=0):
     data = si.notch(data)
     data = si.smooth(si.envelop(data, method=1), 10)[0]
-    return np.average(data)
+    return 1000 * np.average(data)
 
 
 if __name__ == '__main__':
