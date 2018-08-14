@@ -447,7 +447,7 @@ test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
 
 def reverse_status(*a, **k):
-    name = (page_list['i']+1, k['bt']['id'])
+    name = (page_list['i'], k['bt']['id'])
     test_dict[name] = not test_dict[name]
 
 prev = partial(list_callback, l=page_list, operate='prev', after=change_page,

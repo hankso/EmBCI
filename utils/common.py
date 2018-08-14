@@ -339,7 +339,7 @@ class Timer(object):
         return decorator
 
 
-def get_self_ip_addr(self):
+def get_self_ip_addr():
     '''
     Create a UDP socket which can broadcast data packages even there is no
     listeners. So this socket can actually connect to any hosts you offer
