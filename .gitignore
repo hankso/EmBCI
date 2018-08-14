@@ -1,6 +1,6 @@
 # user data no need to save
-#data/*
-#model/*
+data/*
+model/*
 #doc/*
 
 # Byte-compiled / optimized / DLL files

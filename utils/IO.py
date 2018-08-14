@@ -996,6 +996,12 @@ class Serial_commander(_basic_commander):
             print(self._name + 'reconnect failed.')
 
 
+class _convert_24bit_to_15():
+    def __getitem__(self, v):
+        if isinstance(v, int) and v <= 0xFFFFFF and v >= 0:
+            return int(float(v) / 0xFFFFFF * 15)
+        raise KeyError('')
+
 class Serial_Screen_commander(Serial_commander):
     _color_map = {
         str: {
@@ -1017,7 +1023,7 @@ class Serial_Screen_commander(Serial_commander):
             assert type(k['c']) in self._color_map, 'c only can be str or int'
             try:
                 k['c'] = self._color_map[type(k['c'])][k['c']]
-            except NameError:
+            except KeyError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
         try:
             cmd = cmd.format(*a, **k)
@@ -1044,7 +1050,7 @@ class Serial_Screen_commander(Serial_commander):
                 time.sleep(delay)
 
     def close(self):
-        self.send('clear')
+        self.send('clear', c='black')
         super(Serial_Screen_commander, self).close()
 
     def getsize(self, s, size=None, font=None):
@@ -1075,8 +1081,7 @@ class _convert_24bit_to_565():
     def __getitem__(self, v):
         if isinstance(v, int) and v <= 0xFFFFFF and v >= 0:
             return rgb24to565(v)
-        raise KeyError
-
+        raise KeyError('')
 
 class SPI_Screen_commander(_basic_commander):
     _color_map = {

@@ -291,7 +291,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self.start(port)  # set serial screen port
         self.send('dir', 1)  # set screen vertical
         self.width, self.height = width, height
+
         self._touch_started = False
+        self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
         self.touch_sensibility = 4
 
     def __repr__(self):
@@ -318,7 +320,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._last_touch_time = time.time()
         self._callback_threads = []
         self._touch_started = True
-        self._cali_matrix = np.array([[0.2969, 0.2238], [-53.2104, -22.8996]])
         if not block:
             self._touch_thread = threading.Thread(target=self._handle_touch)
             self._touch_thread.setDaemon(True)
@@ -706,11 +707,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self._flag_close.set()
             try:
                 self._touch.write('\xaa\xaa\xaa\xaa') # send close signal
-                time.sleep(1)
+                time.sleep(0.5)
             except:
                 pass
             finally:
                 self._touch.close()
+        time.sleep(0.5)
 
 
 class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
@@ -743,7 +745,9 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
         self._name = self._name[:-2] + ' @ GUI' + self._name[-2:]
         self._encoding = 'utf8'
         self.start()
+
         self._touch_started = False
+        self._cali_matrix = np.array([[0.1911, -0.1490], [-22.0794, 255.0536]])
         self.touch_sensibility = 4
 
     def close(self):
@@ -752,10 +756,9 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
             self._flag_close.set()
             self._touch.close()
+        time.sleep(1)
 
-    def start_touch_screen(self, port='/dev/ttyS1', baud=115200):
-        super(SPI_Screen_GUI, self).start_touch_screen(port, baud)
-        self._cali_matrix = np.array([[0.1911, -0.1490], [-22.0794, 255.0536]])
+
 
 
 if __name__ == '__main__':
