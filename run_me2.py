@@ -594,14 +594,17 @@ def page4_daemon(flag_pause, flag_close, fps=0.8):
             elif i % 3 == 1 and start_time[(i-2)/3]:
                 start_time[(i-2)/3] = None
         for i in np.arange(21, 24):
-            if not test_dict[(4, i-19)] or not test_dict[(4, i-16)]:
+            if not test_dict[(4, i-19)] and not test_dict[(4, i-16)]:
                 continue
             b, a = s.widget['button', i-19, 's'], s.widget['button', i-16, 's']
             if 'test' in b or 'test' in a:
                 continue
-            b, a = float(b[:-2]), float(a[:-2])
-            s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b * 100)
-            s.render('text', i)
+            try:
+                b, a = float(b[:-2]), float(a[:-2])
+                s.widget['text', i]['s'] = '%.2d%%' % (abs(b-a) / b * 100)
+                s.render('text', i)
+            except:
+                pass
     print('leave page4')
 
 def page5_daemon(flag_pause, flag_close):
@@ -672,7 +675,6 @@ if __name__ == '__main__':
     si = Signal_Info(500)
     s = Screen_GUI()
     s.start_touch_screen('/dev/ttyS1')
-    s.load_layout('./files/layouts/layout-DBS-page1.pcl')
     change_page()
     IPython.embed()
 
