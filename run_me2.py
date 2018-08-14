@@ -617,7 +617,7 @@ def tremor_coefficient(data, ch=0, distance=None):
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
     peaks = np.concatenate(([0], peaks))
-    return (si.sample_rate / (np.average(np.diff(peaks) + 1),
+    return (si.sample_rate / (np.average(np.diff(peaks)) + 1),
             1000 * np.average(heights['peak_heights']))
     # # preprocessing
     # data = si.notch(si.detrend(data[ch]))[0]
