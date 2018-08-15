@@ -372,7 +372,7 @@ def _combine_action(d1, d2):
     return d1
 
 
-@check_dir
+@mkuserdir
 def get_label_list(username):
     '''
     扫描./data/username文件夹下的数据，列出存储的数据和数量
