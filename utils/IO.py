@@ -1100,7 +1100,6 @@ class SPI_Screen_commander(_basic_commander):
         self._name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
-        self.close = self._ili.close
         SPI_Screen_commander._singleton = False
 
     def getsize(self, s, size=None, font=None):
@@ -1159,6 +1158,9 @@ class SPI_Screen_commander(_basic_commander):
             getattr(self._ili, key)(*a, **k)
         else:
             print(self._name + 'No such key `{}`!'.format(key))
+
+    def close(self):
+        self._ili.close()
 
 
 class _testReader(unittest.TestCase):

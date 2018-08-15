@@ -319,10 +319,10 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._read_epoll.register(self._touch, select.EPOLLIN)
         self._last_touch_time = time.time()
         self._callback_threads = []
-        self._touch_started = True
         self._touch_thread = threading.Thread(target=self._handle_touch)
         self._touch_thread.setDaemon(True)
         self._touch_thread.start()
+        self._touch_started = True
         if block:
             # block current thread(usually main thread) by looply sleep, until
             # `self.close` is called or `self._flag_close` is set.
