@@ -58,14 +58,14 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
     return (a - low) / (high - low) * (t_high - t_low) + t_low
 
 
-def check_dir(func):
+def mkuserdir(func):
     '''
     check if user folder exist before saving data etc.
     '''
     def wrapper(*a, **k):
         if a and isinstance(a[0], str) and not os.path.exists('./data/' + a[0]):
-            os.mkdir('./data/' + a[0])
-            os.mkdir('./model/' + a[0])
+            os.system('mkdir -p ./data/' + a[0])
+            os.system('mkdir -p ./model/' + a[0])
         else:
             print('This wrapper may be used in wrong place.')
         return func(*a, **k)

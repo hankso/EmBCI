@@ -27,7 +27,7 @@ import pylsl
 import mne
 
 # from ./
-from common import check_dir, check_input, get_label_list, Timer
+from common import mkuserdir, check_input, get_label_list, Timer
 from common import record_animate, time_stamp, virtual_serial
 from common import find_ports, find_outlets, find_spi_devices
 from gyms import TorcsEnv
@@ -42,7 +42,7 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
 
 
-@check_dir
+@mkuserdir
 def save_data(username, data, label, sample_rate,
               print_summary=False, save_fif=False):
     '''
@@ -88,7 +88,7 @@ def save_data(username, data, label, sample_rate,
         print(get_label_list(username)[1])
 
 
-@check_dir
+@mkuserdir
 def load_data(username, print_summary=True):
     '''
     读取./data/username文件夹下的所有数据，返回三维数组
