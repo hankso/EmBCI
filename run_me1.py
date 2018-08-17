@@ -36,7 +36,7 @@ ILI9341_YELLOW      = [0xFF, 0xE0] # 255 255   0
 ILI9341_WHITE       = [0xFF, 0xFF] # 255 255 255
 ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
 ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
-ILI9341_GREY        = [0x84, 0x10] # 128 128 128
+ILI9341_GREY        = [0xCE, 0x59] # 200 200 200
 
 RGB_BLUE            = (  0,   0, 255)
 RGB_GREEN           = (  0, 255,   0)
@@ -526,7 +526,7 @@ def page1_daemon(flag_pause, flag_close, fps=0.8, thres=0):
     reader._esp.do_measure_impedance = False
     print('leave page1')
 
-def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
+def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
                  area=[39, 45, 290, 179], center=112):
     print('turn to page2')
     change_scale()
@@ -554,10 +554,10 @@ def page2_daemon(flag_pause, flag_close, step=1, low=2.5, high=30.0,
             yraw, yflt = line[:, x-step:x+1]
             _x = min((x + step*4), area[2])
             s._ili.draw_line(_x, area[1], _x, area[3], ILI9341_WHITE)
-            # if yraw[0] == yraw[1]:
-            #     s._ili.draw_point(x, yraw[0], ILI9341_GREY)
-            # else:
-            #     s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
+            if yraw[0] == yraw[1]:
+                s._ili.draw_point(x, yraw[0], ILI9341_GREY)
+            else:
+                s._ili.draw_line(x, yraw.min(), x, yraw.max(), ILI9341_GREY)
             if yflt[0] == yflt[1]:
                 s._ili.draw_point(x, yflt[0], c)
             else:
