@@ -14,12 +14,10 @@ import os
 import time
 import threading
 
-# pip install spidev, pillow, numpy
+# pip install spidev, pillow, numpy, gpio4
 import spidev
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-
-# from ./
 from gpio4 import SysfsGPIO
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

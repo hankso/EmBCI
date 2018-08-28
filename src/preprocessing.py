@@ -9,8 +9,14 @@ Created on Wed Feb 28 10:56:36 2018
 @author: hank
 @page:   https://github.com/hankso
 """
+# built-in
 import os
-import sys; sys.path += ['../utils']
+import sys
+
+
+if '../utils' not in sys.path:
+    sys.path.append('../utils')
+# from ../utils
 import IO
 
 

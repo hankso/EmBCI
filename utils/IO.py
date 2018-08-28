@@ -8,7 +8,7 @@ Created on Tue Mar  6 20:45:20 2018
 # built-in
 from __future__ import print_function
 import os
-import sys; sys.path += ['../src']
+import sys
 import time
 import mmap
 import socket
@@ -34,6 +34,9 @@ from gyms import TorcsEnv
 from gyms import PlaneClient
 from ads1299_api import ADS1299_API, ESP32_API
 from ili9341_api import ILI9341_API, rgb24to565
+
+if '../src' not in sys.path:
+    sys.path.append('../src')
 
 # from ../src
 import preprocessing as pp

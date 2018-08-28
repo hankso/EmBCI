@@ -13,12 +13,12 @@ import select
 import unittest
 import multiprocessing
 
-# pip install numpy, spidev
+# pip install numpy, spidev, gpio4
 import spidev
 import numpy as np
+from gpio4 import SysfsGPIO
 
 # from ./
-from gpio4 import SysfsGPIO
 from common import time_stamp
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

@@ -6,11 +6,8 @@ Author: Hankso
 Web: http://github.com/hankso
 Time: Thu 02 Aug 2018 10:21:59 AM UTC
 '''
-
-import sys; sys.path += ['../../utils']
 import time
 from gpio4 import SysfsGPIO
-
 
 en = SysfsGPIO(19)
 en.export = True

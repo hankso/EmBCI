@@ -11,17 +11,21 @@ import os
 import time
 import json
 import sys
-sys.path += ['../utils']
+
 
 # pip install numpy
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+if '../utils' not in sys.path:
+    sys.path.append('../utils')
 # from ../utils
 from common import time_stamp, check_input, first_use, record_animate
 from common import Signal_Info
 from IO import load_data, save_action
 from preprocessing import Processer
+
 
 # TODO: put this in __init__.py
 # =============================================================================

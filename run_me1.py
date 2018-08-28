@@ -7,25 +7,27 @@ Created on Thu Apr 26 19:27:13 2018
 """
 # built-in
 from __future__ import print_function
-import os, sys, time, threading
-sys.path += ['./src', './utils']
+import os, sys, time, threading, subprocess
 from functools import partial
 
-# pip install ipython, numpy, scipy, pillow
+# pip install ipython, numpy, scipy, pillow, reportlab, gpio4
 import IPython
 import numpy as np
 from scipy import signal
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDra
+from reportlab import pdfbase, pdfgen
+from gpio4 import SysfsGPIO
+
+
+for path in ['./src', './utils']:
+    if path not in sys.path:
+        sys.path.append(path)
 
 # from ./utils
-from common import check_input, mapping
-# from gpio4 import SysfsGPIO
+from common import check_input, mapping, time_stamp
 from preprocessing import Signal_Info
-# from visualization import Serial_Screen_GUI as Screen_GUI
 from visualization import SPI_Screen_GUI as Screen_GUI
-# from IO import ADS1299_reader as Reader
-from IO import ESP32_SPI_reader as Reader
-from IO import Socket_server
+from IO import ESP32_SPI_reader as Reader, Socket_server
 
 ILI9341_BLUE        = [0x00, 0x1F] #   0   0 255
 ILI9341_GREEN       = [0x07, 0xE0] #   0 255   0
@@ -49,44 +51,12 @@ RGB_PURPLE          = (128,   0, 128)
 RGB_ORANGE          = (255, 160,  10)
 RGB_GREY            = (128, 128, 128)
 
-ILI9341_COLOR = [
+ILI9341_Rainbow = [
     ILI9341_BLUE, ILI9341_YELLOW, ILI9341_MAGENTA, ILI9341_CYAN,
     ILI9341_GREEN, ILI9341_RED, ILI9341_PURPLE, ILI9341_ORANGE, ILI9341_GREY]
-RGB_COLOR = [
+RGB_Rainbow = [
     RGB_BLUE, RGB_YELLOW, RGB_MAGENTA, RGB_CYAN,
     RGB_GREEN, RGB_RED, RGB_PURPLE, RGB_ORANGE, RGB_GREY]
-
-def shutdown(*a, **k):
-    for flag in flag_list:
-        flag[1].set()
-    s.close()
-    reader.close()
-    os.system('shutdown now')
-
-def exit_program(*a, **k):
-    for flag in flag_list:
-        flag[1].set()
-    s.empty_widget()
-    s1 = 'Debug Mode'
-    w, h = s.getsize(s1, size=25)
-    s.draw_text((s.width-w)/2, (s.height-h)/2, s1, 'red')
-    time.sleep(2)
-    s.close()
-    server.close()
-    reader.close()
-
-def reboot(*a, **k):
-    s.close()
-    os.system('reboot')
-
-def generate_pdf(*a, **k):
-    # TODO: generate pdf using python-reportlab
-    print('pdf saved!')
-
-def update(*a, **k):
-    os.system('git pull')
-    # TODO: draw element to show update done
-
 
 # def range_callback(r, operate, element, id=None, fm=None, *a, **k):
 #     if operate == 'plus':
@@ -385,6 +355,58 @@ def update(*a, **k):
 
 # f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
 
+
+
+def shutdown(*a, **k):
+    for flag in flag_list:
+        flag[1].set()
+    s.close()
+    reader.close()
+    os.system('shutdown now')
+
+def exit_program(*a, **k):
+    for flag in flag_list:
+        flag[1].set()
+    s.empty_widget()
+    s1 = 'Debug Mode'
+    w, h = s.getsize(s1, size=25)
+    s.draw_text((s.width-w)/2, (s.height-h)/2, s1, 'red')
+    time.sleep(2)
+    s.close()
+    server.close()
+    reader.close()
+
+def reboot(*a, **k):
+    for flag in flag_list:
+        flag[1].set()
+    s.close()
+    reader.close()
+    os.system('reboot')
+
+def generate_pdf(*a, **k):
+    font = pdfbase.ttfonts.TTFont('Mono', 'files/fonts/yahei_mono.ttf')
+    pdfbase.pdfmetrics.registerFont(font)
+    c = pdfgen.canvas.Canvas('data/%s/%s.pdf' % (username, time_stamp()))
+    c.line()
+    c.save()
+    print('pdf saved!')
+
+def update(*a, **k):
+    try:
+        output = subprocess.check_output('git pull', shell=True,
+                                         stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print('Update failed!')
+        s.freeze_frame()
+        # TODO: draw element to show update failed
+        s.recover_frame()
+    else:
+        # TODO: draw element to show update done
+        print('Update success!\n' + output + '\nRebooting now...')
+        reboot()
+
+
+
 scale_list = {'a': [100, 200, 500,
                     1000, 2000, 5000,
                     10000, 20000, 50000,
@@ -538,7 +560,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
         flag_pause.wait()
         ch = channel_range['n']
         scale = scale_list['a'][scale_list['i']]
-        c = ILI9341_COLOR[ch]
+        c = ILI9341_Rainbow[ch]
         s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
         s.widget['text', 17]['s'] = u'%5.1fs\u2191' % \
             (time.time() - reader._start_time)
@@ -577,7 +599,7 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
             continue
         last_time = time.time()
         ch = channel_range['n']
-        c = RGB_COLOR[ch]
+        c = RGB_Rainbow[ch]
         d = reader.data_frame
         server.send(d)
         d = si.notch(d[ch])

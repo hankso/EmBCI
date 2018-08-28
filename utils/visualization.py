@@ -7,7 +7,7 @@ Created on Thu Mar 22 08:26:16 2018
 """
 # built-in
 import time
-import sys; sys.path += ['../src']
+import sys;
 import os
 import threading
 import json
@@ -23,11 +23,17 @@ import scipy.io as sio
 import serial
 from PIL import Image
 
-# from ../src
-from preprocessing import Signal_Info
+# from ./
 from common import time_stamp, check_input, find_layouts
 from IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from IO import SPI_Screen_commander
+
+
+if '../src' not in sys.path:
+    sys.path.append('../src')
+
+# from ../src
+from preprocessing import Signal_Info
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
