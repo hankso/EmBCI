@@ -26,11 +26,11 @@ __filename__ = os.path.basename(__file__)
 
 
 # ADS1299 Pin mapping
-# PIN_PWRDN       = 2 # pin PA02
-# PIN_START       = 3 # pin PA03
-# PIN_DRDY        = 6 # pin PA06 only for ads1299 direct connection
-PIN_DRDY        = 7 # pin PA07 only for esp32 spi buffer
-# PIN_RESET       = 7 # pin PA07
+# PIN_PWRDN       = 2  # pin PA02
+# PIN_START       = 3  # pin PA03
+# PIN_DRDY        = 6  # pin PA06 only for ads1299 direct connection
+PIN_DRDY        = 7  # pin PA07 only for esp32 spi buffer
+# PIN_RESET       = 7  # pin PA07
 # ADS1299 Registers
 REG_CONFIG1     = 0x01
 REG_CONFIG2     = 0x02
@@ -76,7 +76,6 @@ SUGGESTED_MSH = np.int32([
     8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5])
 
 
-
 class ADS1299_API(spidev.SpiDev):
     '''
     There is a module named RaspberryPiADS1299 to communicate will ADS1299
@@ -111,11 +110,8 @@ class ADS1299_API(spidev.SpiDev):
 
     Attention
     ---------
-    In spidev, SpiDev().mode indicate mode of device that it connect to(avr/ads1299),
-    NOT the mode of device where python code run(PC/Raspi/esp32/etc.)
-
-    So, ads1299 accept data from DIN at raising edge and transfer data out from DOUT
-    to OrangePi as falling edge. set mode to 0b10 (CPOL=1 & CPHA=0)
+    ADS1299 accept data from DIN at raising edge and transfer data out from
+    DOUT to OrangePi at falling edge. so set mode to 0b10 (CPOL=1 & CPHA=0)
 
     Notes
     -----
@@ -178,7 +174,7 @@ class ADS1299_API(spidev.SpiDev):
 
         self._DRDY.edge = 'falling'
         self._epoll = select.epoll()
-        self._epoll.register(self._DRDY, select.EPOLLET|select.EPOLLPRI)
+        self._epoll.register(self._DRDY, select.EPOLLET | select.EPOLLPRI)
         self._opened = True
 
     def start(self, sample_rate):
@@ -190,12 +186,12 @@ class ADS1299_API(spidev.SpiDev):
         assert self._opened, 'you need to open a spi device first'
         if self._started:
             return
-        #======================================================================
+        # =====================================================================
         # power up
-        #======================================================================
+        # =====================================================================
         # self._PWRDN.value=1 # we pull it up to high
 
-        #self._RESET.value=1
+        # self._RESET.value=1
         self.write(RESET)
 
         # wait for tPOR(2**18*666.0/1e9 = 0.1746) and tBG(assume 0.83)
@@ -205,9 +201,9 @@ class ADS1299_API(spidev.SpiDev):
         # command so registers can be written
         self.write(SDATAC)
 
-        #======================================================================
+        # =====================================================================
         # configure_registers_before_streaming
-        #======================================================================
+        # =====================================================================
         # common setting
         self.write_register(REG_CONFIG1, 0b10010000 | SAMPLE_RATE[sample_rate])
         self.write_register(REG_CONFIG2, 0b11010000)
@@ -219,9 +215,9 @@ class ADS1299_API(spidev.SpiDev):
         self.write(START)
         time.sleep(1)
 
-        #======================================================================
+        # =====================================================================
         # start streaming data
-        #======================================================================
+        # =====================================================================
         self.write(RDATAC)
 
         self._started = True
@@ -326,8 +322,10 @@ class ADS1299_API(spidev.SpiDev):
         num = self.write([0x00] * 27)[3:]
         byte = ''
         for i in range(8):
-            # tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i]) # use time: 4.3us
-            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i]) # use time: 1.3us
+            # used time: 4.3us
+            # tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i])
+            # used time: 1.3us
+            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i])
             byte += tmp + ('\xff' if num[3*i] > 127 else '\x00')
         return np.frombuffer(byte, np.int32) * self.scale
 
@@ -364,7 +362,6 @@ class ADS1299_API(spidev.SpiDev):
         return value
 
 
-
 # ESP32_SPI_BUFFER Commands
 # same as ADS1299
 RESET           = 0x06
@@ -381,8 +378,9 @@ REG_INPEDANCE   = 0x56  # measure_impedance
 
 class ESP32_API(ADS1299_API):
     '''
-    Because we only use ESP32 as SPI buffer, its SPI interface is implemented
-    similar with ADS1299. So define this API class in submodule `ads1299_api.py`
+    Because we only use ESP32 as SPI buffer, its SPI interface is designed
+    similar as ADS1299's. So we define ESP32_API class in this file and
+    inherit from ADS1299_API.
     '''
     def __init__(self, n_batch=32, scale=4.5/24/2**24):
         self.n_batch = n_batch
@@ -430,13 +428,13 @@ class ESP32_API(ADS1299_API):
         if not len(self._data_buffer):
             # spidev lib is written in C language, where value of list will be
             # changed in-situ. Because we want self._tosend keep as [0x00] *n,
-            # self._tosend cannot be used directly in self.xfer[2]. Here we pass
-            # a new list same as self._tosend created by slicing itself.
+            # self._tosend cannot be used directly in self.xfer[2]. Here we
+            # pass a new list same as self._tosend created by slicing itself.
             data = struct.pack(self._data_format, *self.write(self._tosend[:]))
             data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
-        while (time.time() - self._last_time) < (1.0 / self._sample_rate):
+        while (time.time() - self._last_time) < (0.9 / self._sample_rate):
             pass
         self._last_time = time.time()
         return self._data_buffer.pop(0)
@@ -499,7 +497,6 @@ class ESP32_API(ADS1299_API):
         self._measure_impedance = boolean
 
 
-
 class _testADS(unittest.TestCase):
     def setUp(self):
         '''Initialization before test.'''
@@ -545,7 +542,6 @@ class _testADS(unittest.TestCase):
         self._ads.do_measure_impedance = tmp
 
 
-
 class _testESP(_testADS):
     def setUp(self):
         from common import Serial_ESP32_commander
@@ -559,7 +555,6 @@ class _testESP(_testADS):
     def tearDown(self):
         self._c.close()
         self._esp.close()
-
 
 
 if __name__ == '__main__':
