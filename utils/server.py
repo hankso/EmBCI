@@ -10,4 +10,9 @@ def display():
     return (bottle.request.__repr__() + '\n' +
             time.strftime('%a,%b %d %H:%M:%S %Y', time.localtime()))
 
+
+@bottle.route('/aaa')
+def test():
+    return 'subpage aaa~'
+
 application = bottle.default_app()
