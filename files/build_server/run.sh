@@ -22,7 +22,7 @@ fi
 
 # sites conf
 SITE=/etc/apache2/sites-available/000-default.conf
-mv $SITE $SITE.bak
+mv $SITE $SITE.$(date +"%Y%m%d")
 cp 0-sites.conf $SITE
 
 # server files
@@ -36,6 +36,18 @@ service apache2 restart
 
 
 #
+# config interface
+#
+# service networking interface set wlan0 static ip 
+INTF=/etc/network/interfaces
+mv $INTF $INTF.$(date +"%Y%m%d")
+cp 1-interfaces $INTF
+service networking restart
+# ifdown wlan0 && ifup wlan0
+
+
+
+#
 # config hostapd
 #
 # Hostapd will turn WiFi chip into AP(Access Point) mode, thus you can
@@ -43,46 +55,25 @@ service apache2 restart
 #
 
 # hostapd.conf
-HOSTAPD=/etc/apache2/hostapd.conf
-mv $HOSTAPD $HOSTAPD.bak
-cp 1-hostapd.conf $HOSTAPD
-echo 'DAEMON_CONF="/etc/hostapd.conf"' >> /etc/default/hostapd
+HOSTAPD=/etc/hostapd.conf
+mv $HOSTAPD $HOSTAPD.$(date +"%Y%m%d")
+cp 2-hostapd.conf $HOSTAPD
+# echo 'DAEMON_CONF="/etc/hostapd.conf"' > /etc/default/hostapd
 service hostapd restart
-
-
-
-#
-# config dhcpd
-#
-# Dhcpd can automatically select and distribute an IP address to devices that 
-# connect to this WiFi hotspot, unless they are set to a static IP manually
-#
-
-# interface config wlan0 static ip 
-INTF=/etc/network/interfaces
-mv $INTF $INTF.bak
-cp 2-interfaces $INTF
-ifdown wlan0 && ifup wlan0
-
-# dhcp daemon
-DHCP=/etc/dhcp/dhcpd.conf
-mv $DHCP $DHCP.bak
-cp 3-dhcpd.conf $DHCP
-
-# dhcp server
-DHCPSERVER=/etc/default/isc-dhcp-server
-mv $DHCPSERVER $DHCPSERVER.bak
-cp 4-isc-dhcp-server $DHCPSERVER
-service isc-dhcp-server restart
 
 
 
 #
 # config dnsmasq
 #
+# Dnsmasq provide DHCP and FTP service, DHCP can automatically select 
+# and distribute an IP address to devices that connect to this WiFi 
+# hotspot, unless they are set to a static IP manually
+#
 DNS=/etc/dnsmasq.conf
-mv $DNS $DNS.bak
+mv $DNS $DNS.$(date +"%Y%m%d")
 cp 5-dnsmasq.conf $DNS
+# echo 'DNSMASQ_OPTS="--conf-file=/etc/dnsmasq.conf"' >> /etc/default/dnsmasq
 service dnsmasq restart
 
 
