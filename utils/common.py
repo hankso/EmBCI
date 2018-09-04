@@ -19,11 +19,11 @@ import threading
 import pylsl
 from serial.tools.list_ports import comports
 import numpy as np
+from gpio4 import SysfsGPIO
 
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
-
 
 
 # In python3 reduce need to be imported while python2 not
@@ -63,7 +63,8 @@ def mkuserdir(func):
     check if user folder exist before saving data etc.
     '''
     def wrapper(*a, **k):
-        if a and isinstance(a[0], str) and not os.path.exists('./data/' + a[0]):
+        if (a and isinstance(a[0], str) and
+            not os.path.exists('./data/' + a[0])):
             os.system('mkdir -p ./data/' + a[0])
             os.system('mkdir -p ./model/' + a[0])
         else:
@@ -142,10 +143,10 @@ def find_outlets(name=None, **kwargs):
         dv = [stream.name() for stream in stream_list]
         ds = [stream.type() for stream in stream_list]
         prompt = ('Please choose one from all available streams:\n    ' +
-                  '\n    '.join(['%d %s - %s' % (i, j, k) \
+                  '\n    '.join(['%d %s - %s' % (i, j, k)
                                  for i, (j, k) in enumerate(zip(dv, ds))]) +
                   '\nstream num(default 0): ')
-        answer = {str(i):stream for i, stream in enumerate(stream_list)}
+        answer = {str(i): stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
         try:
             stream = check_input(prompt, answer)
@@ -154,12 +155,12 @@ def find_outlets(name=None, **kwargs):
     if stream:
         print(('Select stream `{name}` -- {chs} channel {type_num} {fmt} data '
                'from {source} on server {host}').format(
-                    name = stream.name(),
-                    chs = stream.channel_count(),
-                    type_num = stream.type(),
-                    fmt = stream.channel_format(),
-                    source = stream.source_id(),
-                    host = stream.hostname()))
+                    name=stream.name(),
+                    chs=stream.channel_count(),
+                    type_num=stream.type(),
+                    fmt=stream.channel_format(),
+                    source=stream.source_id(),
+                    host=stream.hostname()))
         return stream
     sys.exit('No stream available! Abort.')
 
@@ -183,7 +184,7 @@ def find_ports(timeout=3):
             dv = [port.device for port in port_list]
             ds = [port.description for port in port_list]
             prompt = ('Please choose one from all available ports:\n    ' +
-                      '\n    '.join(['%d %s - %s' % (i, j, k) \
+                      '\n    '.join(['%d %s - %s' % (i, j, k)
                                      for i, (j, k) in enumerate(zip(dv, ds))]) +
                       '\nport num(default 0): ')
             answer = {str(i):port for i, port in enumerate(port_list)}
@@ -243,6 +244,39 @@ def find_layouts(dir):
     print('Select layout `{}`'.format(layout))
     return layout
 
+
+def reset_esp(flash=False):
+    rst = SysfsGPIO(19)
+    rst.export = True
+    boot = SysfsGPIO(18)
+    boot.export = True
+
+    # press reset
+    print('[ESP Reset] enable value = 0')
+    rst.direction = 'out'
+    rst.value = 0
+
+    if flash:
+        # press boot
+        print('[ESP Reset] boot value = 0')
+        boot.direction = 'out'
+        boot.value = 0
+
+    time.sleep(0.2)
+
+    # release reset
+    print('[ESP Reset] enable value = 1')
+    rst.value = 1
+    time.sleep(0.3)
+
+    if flash:
+        # release boot
+        print('[ESP Reset] boot value = 1')
+        boot.value = 1
+
+    print('[ESP Reset] soft reset done!')
+    boot.export = False
+    rst.export = False
 
 def virtual_serial():
     '''
