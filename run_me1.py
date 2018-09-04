@@ -7,24 +7,26 @@ Created on Thu Apr 26 19:27:13 2018
 """
 # built-in
 from __future__ import print_function
-import os, sys, time, threading, subprocess
+import os
+import sys
+import time
+import threading
+import subprocess
 from functools import partial
 
 # pip install ipython, numpy, scipy, pillow, reportlab, gpio4
 import IPython
 import numpy as np
 from scipy import signal
-from PIL import Image, ImageDra
-from reportlab import pdfbase, pdfgen
-from gpio4 import SysfsGPIO
-
+from PIL import Image, ImageDraw
+#  from reportlab import pdfbase, pdfgen
 
 for path in ['./src', './utils']:
     if path not in sys.path:
         sys.path.append(path)
 
 # from ./utils
-from common import check_input, mapping, time_stamp
+from common import check_input, reset_esp, time_stamp
 from preprocessing import Signal_Info
 from visualization import SPI_Screen_GUI as Screen_GUI
 from IO import ESP32_SPI_reader as Reader, Socket_server
@@ -58,304 +60,6 @@ RGB_Rainbow = [
     RGB_BLUE, RGB_YELLOW, RGB_MAGENTA, RGB_CYAN,
     RGB_GREEN, RGB_RED, RGB_PURPLE, RGB_ORANGE, RGB_GREY]
 
-# def range_callback(r, operate, element, id=None, fm=None, *a, **k):
-#     if operate == 'plus':
-#         r['n'] += r['step']
-#         if r['n'] > r['r'][1]:
-#             r['n'] = r['r'][0]
-#     elif operate == 'minus':
-#         r['n'] -= r['step']
-#         if r['n'] < r['r'][0]:
-#             r['n'] = r['r'][1]
-#     else:
-#         return
-#     if None not in [element, id]:
-#         e = s.widget[element, id]
-#         if e is not None:
-#             if fm is not None:
-#                 e['s'] = fm.format(e['n'])
-#             else:
-#                 e['s'] = str(e['n'])
-#             s.render(element, id)
-
-# def list_callback(l, operate, element, id=None, fm=None, cb=False, *a, **k):
-#     if operate == 'next':
-#         l['i'] += 1
-#     elif operate == 'prev':
-#         l['i'] -= 1
-#     else:
-#         return
-#     l['i'] %= len(l['a'])
-#     if None not in [element, id]:
-#         e = s.widget[element, id]
-#         if e is not None:
-#             if fm is not None:
-#                 e['s'] = fm.format(l['a'][l['i']])
-#             else:
-#                 e['s'] = str(l['a'][l['i']])
-#             s.render(element, id)
-#             if cb:
-#                 e['callback'] = l['callback'][l['i']]
-
-# def display_waveform(*args, **kwargs):
-#     s.freeze_frame()
-#     # start and stop flag
-#     flag_close = threading.Event()
-#
-#     # construct reader
-#     sample_rate = rate_list['a'][rate_list['i']]
-#     sample_time = time_range['n']
-#     n_channel = channel_range['n']
-#     if not hasattr(s, 'reader'):
-#         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-#     s.reader.start()
-#     n_channel = min(n_channel, s.reader.n_channel)
-#     current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
-#     color = np.arange(1, 9)
-#     area = [0, 40, 219, 175]
-#
-#     # plot page widgets
-#     s.draw_text(5, 1, '波形显示', c=2) # 0
-#     s.draw_text(4, 1, '波形显示', c=2) # 1
-#     s.draw_button(5, 19, '返回上层', callback=lambda *a, **k: flag_close.set())
-#     s.draw_rect(72, 0, 219, 35, c=5)
-#     s.draw_text(74, 1, '幅度') # 2
-#     s.draw_button(112, 2, '－', partial(list_callback, l=scale_list, fm='{:8d}',
-#                                         element='text', id=3, operate='prev'))
-#     s.draw_text(134, 1, '%8d' % scale_list['a'][scale_list['i']]) # 3
-#     s.draw_button(202, 2, '＋', partial(list_callback, l=scale_list, fm='{:8d}',
-#                                         element='text', id=3, operate='next'))
-#     s.draw_text(74, 18, '通道') # 4
-#     s.draw_button(112, 19, '－', partial(range_callback, r=current_ch_range,
-#                                          element='text', operate='minus',
-#                                          fm='  ch{:2d}  ', id=5))
-#     s.draw_text(134, 18, '  ch%2d  ' % current_ch_range['n']) # 5
-#     s.draw_button(202, 19, '＋', partial(range_callback, r=current_ch_range,
-#                                          element='text', operate='plus',
-#                                          fm='  ch{:2d}  ', id=5))
-#     center = area[1] + (area[3] - area[1])/2
-#     data = np.repeat(center, area[2] - area[0])
-#     DC = 0
-#     step = 1
-#     # start plotting!
-#     try:
-#         while 1:
-#             for x in range(step, area[2] - area[0], step):
-#                 assert not flag_close.is_set()
-#                 d = s.reader.channel_data  # raw data
-#                 server.send(d)
-#                 ch = current_ch_range['n']
-#                 d = d[ch] * scale_list['a'][scale_list['i']]  # pick one channel and re-scale this data
-#                 DC = d * 0.1 + DC * 0.9  # real-time remove DC
-#                 data[x] = np.clip(center - (d - DC), area[1], area[3]).astype(np.int)  # get screen position
-#                 with s.write_lock:
-#                     s.send('line', x1=x, y1=area[1], x2=x, y2=area[3], c=0)  # first clear current line
-#                     if data[x] != data[x-step]:  # then draw current point
-#                         s.send('line', x1=x, x2=x, y1=data[x-step], y2=data[x], c=color[ch])
-#                     else:
-#                         s.send('point', x=x, y=data[x], c=color[ch])
-#             data[0] = data[x]
-#     except AssertionError:
-#         pass
-#     except Exception as e:
-#         print('[Display Waveform] {}: '.format(type(e)), end='')
-#         print(e)
-#     finally:
-#         print('[Display Waveform] terminating...')
-#         s.recover_frame()
-#         s.reader.pause()
-
-# def display_info(x, y, bt):
-#     s.freeze_frame()
-#     # start and stop flag
-#     flag_close = threading.Event()
-#
-#     # construct reader
-#     sample_rate = rate_list['a'][rate_list['i']]
-#     sample_time = time_range['n']
-#     n_channel = channel_range['n']
-#     scale_list['i'] = 6
-#     if not hasattr(s, 'reader'):
-#         s.reader = Reader(sample_rate, sample_time, n_channel, send_to_pylsl=False)
-#     s.reader.start()
-#     n_channel = min(n_channel, s.reader.n_channel)
-#     sample_rate, sample_time = s.reader.sample_rate, s.reader.sample_time
-#     current_ch_range = {'r': (0, n_channel-1), 'n': 0, 'step': 1}
-#     si = Signal_Info()
-#     p = Processer(sample_rate, sample_time)
-#     global cx, draw_fft
-#     draw_fft = True
-#     area = [0, 70, 182, 175]
-#     f_max = 1
-#     f_min = 0
-#     cx = 0
-#     def change_plot(*a, **k):
-#         global cx, draw_fft
-#         with s.write_lock:
-#             cx = 0
-#             draw_fft = not draw_fft
-#             s.clear(*area)
-#         for bt in s.widget['button']:
-#             if bt['id'] == 9:
-#                 bt['s'] = '\xbb\xad\xcd\xbc' if draw_fft else '\xbb\xad\xcf\xdf'
-#         s.render('button', 9)
-#
-#     # plot page widgets
-#     s.draw_button(187, 1, '返回', callback=lambda *a, **k: flag_close.set())
-#     s.draw_button(2, 0, '↑', partial(range_callback, r=f1_range, fm='{:2d}'
-#                                      element='text', id=0, operate='plus'))
-#     s.draw_text(0, 17, ' 4', c=3) # 0
-#     s.draw_button(2, 36, '↓', partial(range_callback, r=f1_range, fm='{:2d}',
-#                                       element='text', id=0, operate='minus'))
-#     s.draw_text(16, 17, '-') # 1
-#     s.draw_button(26, 0, '↑', partial(range_callback, r=f2_range, fm='{:2d}',
-#                                       element='text', id=2, operate='plus'))
-#     s.draw_text(24, 17, ' 6', c=3) # 2
-#     s.draw_button(26, 36, '↓', partial(range_callback, r=f2_range, fm='{:2d}',
-#                                        element='text', id=2, operate='minus'))
-#     s.draw_text(44, 0, '幅度') # 3
-#     s.draw_button(78, 1, '－', partial(list_callback, l=scale_list, fm='{:8d}',
-#                                        element='text', id=4, operate='prev'))
-#     s.draw_text(95, 0, '%8d' % scale_list['a'][scale_list['i']]) # 4
-#     s.draw_button(169, 1, '＋', partial(list_callback, l=scale_list, fm='{:8d}',
-#                                         element='text', id=4, operate='next'))
-#     s.draw_text(40, 18, '最大峰值') # 5
-#     s.draw_text(104, 18, '       ', c=1) # 6 7*8=56
-#     s.draw_text(163, 18, '     ', c=1) # 7 5*8=40
-#     s.draw_text(203, 18, 'Hz') # 8
-#     s.draw_text(43, 34, '2-30Hz能量和') # 9
-#     s.draw_text(139, 34, '          ', c=1) # 10 10*8=80
-#     s.draw_text(0, 53, '2-125最大峰值') # 11
-#     s.draw_text(104, 53, '       ', c=1) # 12 7*8=56
-#     s.draw_text(163, 53, '     ', c=1) # 13 5*8=40
-#     s.draw_text(203, 53, 'Hz') # 14
-#     s.draw_text(185, 70, '通道') # 15
-#     s.draw_button(185, 88, '－', partial(range_callback, r=current_ch_range,
-#                                         element='text', id=16, fm='ch{:2d}',
-#                                         operate='minus'))
-#     s.draw_text(185, 106, 'ch%2d' % current_ch_range['n']) # 16
-#     s.draw_button(203, 88, '＋', partial(range_callback, r=current_ch_range,
-#                                          element='text', id=16, fm='ch{:2d}',
-#                                          operate='plus'))
-#     s.draw_button(185, 125, '画图' if draw_fft else '画线', change_plot)
-#
-#     r_amp = s.widget['text'][6]
-#     r_fre = s.widget['text'][7]
-#     egy30 = s.widget['text'][10]
-#     a_amp = s.widget['text'][12]
-#     a_fre = s.widget['text'][13]
-#
-#     # start display!
-#     last_time = time.time()
-#     try:
-#         while 1:
-#             while (time.time() - last_time) < 0.5:
-#                 time.sleep(0)
-#             last_time = time.time()
-#
-#             assert not flag_close.is_set()
-#             data = s.reader.buffer['channel%d' % current_ch_range['n']]
-#             x, y = si.fft(p.notch(p.detrend(data)), sample_rate)
-#             # get peek of specific duration of signal
-#             f, a = si.peek_extract((x, y),
-#                                    min(f1_range['n'], f2_range['n']),
-#                                    max(f1_range['n'], f2_range['n']),
-#                                    sample_rate)[0]
-#             r_amp['s'] = '%.1e' % a
-#             r_fre['s'] = '%5.2f' % f
-#             # get peek of all
-#             f, a = si.peek_extract((x, y), 2, sample_rate/2, sample_rate)[0]
-#             a_amp['s'] = '%.1e' % a
-#             a_fre['s'] = '%5.1f' % f
-#             a_f_m = int(f*2.0*(x.shape[0] - 1)/sample_rate)
-#             # get energy info
-#             e = si.energy((x ,y), 3, 30, sample_rate)[0]
-#             egy30['s'] = '%.4e' % e
-#
-#             if draw_fft:  # draw amp-freq graph
-#                 step = 1
-#                 s.clear(*area)
-#                 y = y[0][:area[2] - area[0]]
-#                 server.send(y)  # raw data
-#                 y = np.clip(area[3] - y * scale_list['a'][scale_list['i']],
-#                             area[1], area[3]).astype(np.int)
-#                 for x in range(step, len(y), step):
-#                     if not draw_fft:
-#                         break
-#                     with s.write_lock:
-#                         if y[x] != y[x-step]:
-#                             s.send('line', x1=x, x2=x, y1=y[x-step], y2=y[x], c=3)
-#                         else:
-#                             s.send('point', x=x, y=y[x], c=3)
-#                 # render elements
-#                 s.render('text', 6)
-#                 s.render('text', 7)
-#                 s.render('text', 10)
-#                 s.render('text', 12)
-#                 s.render('text', 13)
-#                 s.send('line', x1=a_f_m, y1=area[1], x2=a_f_m, y2=area[3], c=1)
-#                 time.sleep(0.5)
-#             else:
-#                 y = np.log10(y[0][:int(60.0*(x.shape[0] - 1)/sample_rate)])
-#                 f_max = max(f_max, int(y.max()))
-#                 f_min = min(f_min, int(y.min()))
-#                 y = np.round(mapping(y, f_min, f_max,
-#                                      0, len(s.rainbow))).astype(np.int)
-#                 with s.write_lock:
-#                     for i, v in enumerate(y):
-#                         s.send('point', x=cx, y=area[1] + i, c=s.rainbow[v])
-#                 cx += 1
-#                 if cx > area[2]:
-#                     cx = area[0]
-#                     s.clear(*area)
-#                 s.render('text', 6)
-#                 s.render('text', 7)
-#                 s.render('text', 10)
-#                 s.render('text', 12)
-#                 s.render('text', 13)
-#     except AssertionError:
-#         pass
-#     except Exception as e:
-#         print('[Display Info] {}: '.format(type(e)), end='')
-#         print(e)
-#     finally:
-#         print('[Display Info] terminating...')
-#         # recover old widget
-#         s.recover_frame()
-#         s.reader.pause()
-#
-# def energy_time_duration(self, reader, low, high, duration):
-#     '''
-#     calculate energy density of time duration
-#     '''
-#     import time, threading
-#     energy_sum = np.zeros(reader.n_channel)
-#     sample_rate = reader.sample_rate
-#     stop_flag = threading.Event()
-#     def _sum(flag, eng):
-#         start_time = time.time()
-#         while not flag.isSet():
-#             if (time.time() - start_time) > duration:
-#                 break
-#             eng += self.energy(reader.data_frame, low, high,  sample_rate)
-#         eng /= (sample_rate * (time.time() - start_time))
-#     threading.Thread(target=_sum, args=(stop_flag, energy_sum)).start()
-#     return stop_flag, energy_sum
-
-# rate_list = {'a': [250, 500, 1000], 'i': 0}
-
-# time_range = {'r': (0.5, 5.0), 'n': 3.0, 'step': 0.1}
-
-# jobs_list = {'a': ['\xb2\xa8\xd0\xce\xcf\xd4\xca\xbe',
-#                    '\xcf\xd4\xca\xbe\xd0\xc5\xcf\xa2'],
-#              'i': 0,
-#              'callback': [display_waveform, display_info]}
-
-# f1_range = {'r': (1, 30), 'n': 4, 'step': 1}
-
-# f2_range = {'r': (1, 30), 'n': 6, 'step': 1}
-
-
 
 def shutdown(*a, **k):
     for flag in flag_list:
@@ -363,6 +67,7 @@ def shutdown(*a, **k):
     s.close()
     reader.close()
     os.system('shutdown now')
+
 
 def exit_program(*a, **k):
     for flag in flag_list:
@@ -376,12 +81,14 @@ def exit_program(*a, **k):
     server.close()
     reader.close()
 
+
 def reboot(*a, **k):
     for flag in flag_list:
         flag[1].set()
     s.close()
     reader.close()
     os.system('reboot')
+
 
 def generate_pdf(*a, **k):
     font = pdfbase.ttfonts.TTFont('Mono', 'files/fonts/yahei_mono.ttf')
@@ -390,6 +97,7 @@ def generate_pdf(*a, **k):
     c.line()
     c.save()
     print('pdf saved!')
+
 
 def update(*a, **k):
     try:
@@ -406,7 +114,6 @@ def update(*a, **k):
         reboot()
 
 
-
 scale_list = {'a': [100, 200, 500,
                     1000, 2000, 5000,
                     10000, 20000, 50000,
@@ -417,9 +124,11 @@ scale_list = {'a': [100, 200, 500,
 
 channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
 
+
 page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i \
                    for i in range(6)],
              'i': 0}
+
 
 def range_callback(r, operate, prev=None, after=None, *a, **k):
     if prev is not None:
@@ -437,6 +146,7 @@ def range_callback(r, operate, prev=None, after=None, *a, **k):
     if after is not None:
         after(*a, **k)
 
+
 def list_callback(l, operate, prev=None, after=None, *a, **k):
     if prev is not None:
         prev(*a, **k)
@@ -450,6 +160,7 @@ def list_callback(l, operate, prev=None, after=None, *a, **k):
     if after is not None:
         after(*a, **k)
 
+
 #                    flag_pause         flag_close
 flag_list = [(threading.Event(), threading.Event()),  # page0
              (threading.Event(), threading.Event()),  # page1
@@ -457,6 +168,7 @@ flag_list = [(threading.Event(), threading.Event()),  # page0
              (threading.Event(), threading.Event()),  # page3
              (threading.Event(), threading.Event()),  # page4
              (threading.Event(), threading.Event())]  # page5
+
 
 def change_page(*a, **k):
     time.sleep(0.5)
@@ -470,9 +182,11 @@ def change_page(*a, **k):
     if func is not None:
         threading.Thread(target=func, args=flag_list[page_num]).start()
 
+
 def change_channel(*a, **k):
     s.widget['text', 15]['s'] = 'CH%d' % channel_range['n']
     s.render('text', 15)
+
 
 def change_scale(*a, **k):
     scale = scale_list['a'][scale_list['i']]
@@ -480,17 +194,21 @@ def change_scale(*a, **k):
     s.widget['text', 16]['s'] = '%de%d' % (scale/10**exp, exp)
     s.render('text', 16)
 
+
 test_dict = dict.fromkeys([(1, i) for i in range(2, 10)] +
                           [(4, i) for i in range(2,  8)])
+
 
 def reverse_status(*a, **k):
     name = (page_list['i'], k['bt']['id'])
     test_dict[name] = not test_dict[name]
 
+
 prev = partial(list_callback, l=page_list, operate='prev', after=change_page,
                prev=lambda *a, **k: flag_list[page_list['i']][1].set())
 next = partial(list_callback, l=page_list, operate='next', after=change_page,
                prev=lambda *a, **k: flag_list[page_list['i']][1].set())
+
 
 callback_list = [
     # page0
@@ -516,6 +234,7 @@ callback_list = [
      5: reverse_status, 6: reverse_status, 7: reverse_status},
     # page5
     {0: prev, 1: next, 2: generate_pdf}]
+
 
 def page1_daemon(flag_pause, flag_close, fps=0.8, thres=0):
     print('turn to page1')
@@ -547,6 +266,7 @@ def page1_daemon(flag_pause, flag_close, fps=0.8, thres=0):
                     last_status[i] = False
     reader._esp.do_measure_impedance = False
     print('leave page1')
+
 
 def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
                  area=[39, 45, 290, 179], center=112):
@@ -586,6 +306,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
                 s._ili.draw_line(x, yflt.min(), x, yflt.max(), c)
     print('leave page2')
 
+
 def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
     print('turn to page3')
     last_time = time.time()
@@ -616,6 +337,7 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
         s.render('text', 21); s.render('text', 22); s.render('text', 23)
     print('leave page3')
+
 
 def page4_daemon(flag_pause, flag_close, fps=0.8):
     print('turn to page4')
@@ -660,6 +382,7 @@ def page4_daemon(flag_pause, flag_close, fps=0.8):
                 pass
     print('leave page4')
 
+
 def tremor_coefficient(data, ch=0, distance=25):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
@@ -700,9 +423,11 @@ def tremor_coefficient(data, ch=0, distance=25):
     #
     # return si.sample_rate / np.average(intervals), 1000 * np.average(heights)
 
+
 def stiff_coefficient(data, ch=0):
     b, a = signal.butter(4, 10.0/si.sample_rate, btype='lowpass')
     return 1000 * si.rms(signal.lfilter(b, a, data, -1))
+
 
 def move_coefficient(data, ch=0):
     data = si.notch(data)
@@ -717,6 +442,8 @@ if __name__ == '__main__':
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
 
+    reset_esp()
+
     reader = Reader(sample_rate=500, sample_time=2, n_channel=8)
     reader.start()
     server = Socket_server()
@@ -725,42 +452,4 @@ if __name__ == '__main__':
     s = Screen_GUI()
     change_page()
     s.start_touch_screen('/dev/ttyS1', block=True)
-
-    # reset_avr = SysfsGPIO(10) # PA10
-    # reset_avr.export = True
-    # reset_avr.direction = 'out'
-    # reset_avr.value = 0
-    # time.sleep(1)
-    # reset_avr.value = 1
-    # time.sleep(1)
-
-    '''
-    program_exit = threading.Event()
-
-    try:
-        reader = Reader(); reader.start(spi_device=(0, 1))
-        s = Screen_GUI(spi_device=(0, 0))
-        # s = Screen_GUI(screen_port='/dev/ttyS1', screen_baud=115200)
-        s.start_touch_screen('/dev/ttyS2')
-        # stop = virtual_serial()
-        # s.start_touch_screen('/dev/pts/0')
-        # s1 = serial.Serial('/dev/pts/1', 115200)
-        # s.display_logo('./files/LOGO.bmp')
-        s.display_logo('./files/LOGO.jpg')
-        # s.widget = menu
-        s.widget = menu_list['a'][menu_list['i']]
-        s.render()
-        while not program_exit.is_set():
-            time.sleep(5)
-    except KeyboardInterrupt:
-        print('keyboard interrupt shutdown')
-    except SystemExit:
-        print('touch screen shutdown')
-    except Exception:
-        IPython.embed()
-    finally:
-        s.close()
-        # s1.close()
-        # stop.set()
-        server.close()
-    '''
+    #  IPython.embed()
