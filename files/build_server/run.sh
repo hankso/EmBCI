@@ -27,7 +27,7 @@ cp 0-sites.conf $SITE
 
 # server files
 mkdir -p /var/www/pyemg
-cp src/* /var/www/pyemg/
+cp html/* /var/www/pyemg/
 
 # other configs
 a2enmod macro

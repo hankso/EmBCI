@@ -34,11 +34,10 @@ from preprocessing import Processer
 # =============================================================================
 
 
-
 def sEMG_Recognition(username, reader, model, commander):
-    #==========================================================================
+    # =========================================================================
     # user initializition
-    #==========================================================================
+    # =========================================================================
     if not os.path.exists('./model/' + username):
         # no this user before
         try:
@@ -50,11 +49,12 @@ def sEMG_Recognition(username, reader, model, commander):
     elif os.listdir('./model/' + username):
         # there is trained model
         print('found saved model:', end='')
-        model = [i for i in sorted(os.listdir('./model/' + username))[::-1] \
-                  if not i.endswith('.json')]
+        model = [i for i in sorted(os.listdir('./model/' + username))[::-1]
+                 if not i.endswith('.json')]
         prompt = ('choose one to use:\n    %s\n    0\trecord '
                   'action data and train a new model\nnum: ') % \
-                  '\n    '.join('%d\t%s'%(n+1, m) for n,m in enumerate(model))
+                  '\n    '.join('%d\t%s' % (n + 1, m)
+                                for n, m in enumerate(model))
         answer = {str(i+1): model[i] for i in range(len(model))}
         answer.update({'0': True})
         model_flag = check_input(prompt, answer)
@@ -67,9 +67,9 @@ def sEMG_Recognition(username, reader, model, commander):
     # variables existing:
     #     'model_flag', 'username', 'reader', 'model', 'commander'
 
-    #==========================================================================
+    # =========================================================================
     # record data and train classifier
-    #==========================================================================
+    # =========================================================================
     if model_flag is True:
         # no pre-saved model
         if not first_use():
@@ -77,9 +77,9 @@ def sEMG_Recognition(username, reader, model, commander):
         while not check_input('start record data?[Y/n] '):
             pass
 
-        #===============================================
+        # ==============================================
         save_action(username, reader, ['left', 'right'])
-        #===============================================
+        # ==============================================
 
         if not os.path.exists('./data/'+username):
             sys.exit('No data saved for training.')
@@ -91,8 +91,7 @@ def sEMG_Recognition(username, reader, model, commander):
             print('done\n')
 
             print('Building model... ', end='')
-            model.build(nb_classes = len(action_dict),
-                        input_shape = data.shape)
+            model.build(nb_classes=len(action_dict), input_shape=data.shape)
             model.train(data, label)
             print('done\n')
 
@@ -116,9 +115,9 @@ def sEMG_Recognition(username, reader, model, commander):
         # vars:
         #     'action_dict', 'username', 'reader', 'model', 'commander'
 
-    #==========================================================================
+    # =========================================================================
     # load saved classifier
-    #==========================================================================
+    # =========================================================================
     else:
         model_name = './model/%s/%s' % (username, model_flag)
         print('loading %s ... ' % model_name, end='')
@@ -134,9 +133,9 @@ def sEMG_Recognition(username, reader, model, commander):
     # vars:
     #     'action_dict', 'username', 'reader', 'model', 'commander'
 
-    #==========================================================================
+    # =========================================================================
     # online recognizing, mainloop
-    #==========================================================================
+    # =========================================================================
     try:
         # main thread
         while reader.isOpen():
@@ -156,7 +155,7 @@ def sEMG_Recognition(username, reader, model, commander):
                                             action_name)
                 if action_cmd is not None:
                     print('send control command %s for action %s' % (
-                            action_cmd, action_name))
+                          action_cmd, action_name))
 
     except KeyboardInterrupt:
         reader.close()
@@ -201,6 +200,7 @@ def Matplotlib_Plot_Info(reader, commander):
         text_p = axes[2, 1].texts[0]
         text_s = axes[2, 1].texts[1]
 
+        fs = reader.sample_rate
         while 1:
             data = reader.buffer[display_ch]
             line_raw.set_ydata(data)
@@ -209,12 +209,12 @@ def Matplotlib_Plot_Info(reader, commander):
             line_fft.set_ydata(np.log10(p.fft(data)[0]))
             line_psd.set_ydata(np.log10(p.psd(data)[0]))
             img_stft.set_data(np.log10(p.stft(data)[0]))
-#            e = si.energy(data, 4, 10, reader.sample_rate)[0]
-#            max_freq, max_amp = si.peek_extract(data, 4, 6, reader.sample_rate)[0]
-            text_p.set_text('4-6Hz has max energy %f at %fHz' % \
-                            si.peek_extract(data, 4, 6, reader.sample_rate)[0][::-1])
-            text_s.set_text('4-10Hz sum of energy is %f' % \
-                            si.energy(data, 4, 10, reader.sample_rate)[0])
+            #  e = si.energy(data, 4, 10, fs)[0]
+            #  max_freq, max_amp = si.peek_extract(data, 4, 6, fs)[0]
+            text_p.set_text('4-6Hz has max energy %f at %fHz' %
+                            si.peek_extract(data, 4, 6, fs)[0][::-1])
+            text_s.set_text('4-10Hz sum of energy is %f' %
+                            si.energy(data, 4, 10, fs)[0])
             plt.show()
             plt.pause(0.1)
 
@@ -222,14 +222,18 @@ def Matplotlib_Plot_Info(reader, commander):
         reader.close()
         commander.close()
 
+
 def P300(username, reader, model, commander):
     raise NotImplemented
+
 
 def SSVEP():
     raise NotImplemented
 
+
 def TGAM_relax(username, reader, model, commander):
     raise NotImplemented
+
 
 def MotorImaginary(username, reader, model, commander):
     raise NotImplemented

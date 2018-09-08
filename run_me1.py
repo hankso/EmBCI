@@ -19,7 +19,8 @@ import IPython
 import numpy as np
 from scipy import signal
 from PIL import Image, ImageDraw
-#  from reportlab import pdfbase, pdfgen
+from reportlab.pdfbase import ttfonts, pdfmetrics
+from reportlab.pdfgen import canvas
 
 for path in ['./src', './utils']:
     if path not in sys.path:
@@ -91,10 +92,34 @@ def reboot(*a, **k):
 
 
 def generate_pdf(*a, **k):
-    font = pdfbase.ttfonts.TTFont('Mono', 'files/fonts/yahei_mono.ttf')
-    pdfbase.pdfmetrics.registerFont(font)
-    c = pdfgen.canvas.Canvas('data/%s/%s.pdf' % (username, time_stamp()))
-    c.line()
+    fontname, fontpath = 'Mono', 'files/fonts/yahei_mono.ttf'
+    if fontname not in pdfmetrics.getRegisteredFontNames():
+        font = ttfonts.TTFont(fontname, fontpath)
+        pdfmetrics.registerFont(font)
+    pdfname = 'data/%s/%s.pdf' % (username, time_stamp())
+    c = canvas.Canvas(pdfname, bottomup=0)
+    c.setFont(fontname, 30)
+    c.drawString(65, 80, u'天坛医院DBS术后调控肌电报告单')
+    c.setFontSize(20)
+    c.line(30, 120, 580, 120)
+    c.drawString(35, 150, u'姓名： test   性别： 男   年龄： 20   病号ID： 0000')
+    c.line(30, 165, 580, 165)
+    c.line(30, 710, 580, 710)
+    c.drawString(35, 740, u'改善率    震颤： 80%    僵直： 80%    运动： 80%')
+    c.line(30, 755, 580, 755)
+    c.drawImage('./aaa1.png', 35, 190)
+    c.drawImage('./aaa1.png', 35, 450)
+    c.setFontSize(24)
+    c.drawString(360, 250, u'术前')
+    c.drawString(360, 510, u'术后')
+    c.setFontSize(18)
+    c.drawString(380, 290, u'震颤： 12.345Hz')
+    c.drawString(380, 320, u'僵直： 123.45')
+    c.drawString(380, 350, u'运动： 10.0s')
+    c.drawString(380, 550, u'震颤： 12.345Hz')
+    c.drawString(380, 580, u'僵直： 123.45')
+    c.drawString(380, 610, u'运动： 10.0s')
+    c.drawString(35, 795, u'医师签字：                     Powered by Cheitech')
     c.save()
     print('pdf saved!')
 
@@ -104,7 +129,7 @@ def update(*a, **k):
         output = subprocess.check_output('git pull', shell=True,
                                          stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        print('Update failed!')
+        print('Update failed!' + str(e))
         s.freeze_frame()
         # TODO: draw element to show update failed
         s.recover_frame()
@@ -125,7 +150,7 @@ scale_list = {'a': [100, 200, 500,
 channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
 
 
-page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i \
+page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i
                    for i in range(6)],
              'i': 0}
 

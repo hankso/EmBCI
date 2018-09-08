@@ -1,7 +1,7 @@
 import os
 import sys
 filepath = os.path.dirname(os.path.abspath(__file__))
-filepath = os.path.join(filepath, '../files/test/')
+filepath = os.path.join(filepath, '../test/')
 if filepath not in sys.path:
     sys.path.append(filepath)
 

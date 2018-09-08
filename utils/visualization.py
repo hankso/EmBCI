@@ -15,7 +15,7 @@ import glob
 import pickle
 import select
 
-# pip install matplotlib, numpy, scipy, pyserial, PIL
+# pip install matplotlib, numpy, scipy, pyserial, pillow
 #  import matplotlib
 #  import matplotlib.pyplot as plt
 import numpy as np

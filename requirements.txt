@@ -1,10 +1,23 @@
+# device drivers
+pyserial
+spidev
+gpio4
+
+# data & ML 
+mne
+pywavelets
+pyhht
 numpy
 sklearn
 scipy
 tensorflow
 keras
+
+# utils
 pylsl
-pyserial
+bottle
 matplotlib
+reportlab
+pillow
 h5py
 gym
