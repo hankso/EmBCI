@@ -8,7 +8,6 @@ Created on Tue Feb 27 22:59:33 2018
 """
 # built-in
 import math
-import sys
 
 # pip install numpy, sklearn, keras
 import numpy as np
@@ -18,16 +17,16 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical
 
-# from ./
-from preprocessing import Processer
+from .preprocessing import Signal_Info
 
 
 class Models():
     supported_models = ['Default: 2layer-CNN(keras)',
                         'CNN_LSTM: 2layer-CNN-1layer-LSTM(keras)',
                         'Double_Dense: 2layer-Dense(keras)',
-                        'SVM: Support-Vector-Machine(sklearn)',]
-    def __init__(self, sample_rate, sample_time, model_type = 'Default'):
+                        'SVM: Support-Vector-Machine(sklearn)']
+
+    def __init__(self, sample_rate, sample_time, model_type='Default'):
         '''
         Please check Models.supported_models for a full list of all implemented
         classifiers. You are welcomed to add a new one.
@@ -46,10 +45,9 @@ class Models():
         self.built = False
         self.model_type = model_type
         self.fs = sample_rate
-        self._p = Processer(sample_rate, sample_time)
+        self._p = Signal_Info(sample_rate)
         self._result = None
         self._preprocessers = []
-
 
     def build(self, nb_classes, input_shape):
         self._preprocessers = []
@@ -61,7 +59,7 @@ class Models():
             freq: int(1 + math.floor(float(nperseg)/2))
             time: int(1 + math.ceil(float(window_size)/(nperseg-noverlap)))
             '''
-            self._preprocessers += [self._p.remove_DC]
+            self._preprocessers += [self._p.detrend]
             self._preprocessers += [self._p.notch]
             self._preprocessers += [self._p.stft]
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
@@ -74,9 +72,8 @@ class Models():
             self._Default(nb_classes, (f, t, input_shape[1]))
             self.epochs, self.batch_size = 60, 25
 
-
         elif self.model_type == 'CNN_LSTM':
-            self._preprocessers += [self._p.remove_DC,
+            self._preprocessers += [self._p.detrend,
                                     self._p.notch,
                                     self._p.stft]
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
@@ -87,17 +84,15 @@ class Models():
             self._CNN_LSTM(nb_classes, (f, t, input_shape[1]))
             self.epochs, self.batch_size = 60, 20
 
-
         elif self.model_type == 'Double_Dense':
             '''
             src: n_sample x n_channel x window_size
             out: n_sample x n_channel x window_size
             label: n_sample x 1
             '''
-            self._preprocessers += [self._p.remove_DC, self._p.notch]
+            self._preprocessers += [self._p.detrend, self._p.notch]
             self._Double_Dense(nb_classes, input_shape[1:])
             self.epochs, self.batch_size = 200, 15
-
 
         elif self.model_type == 'SVM':
             '''
@@ -105,14 +100,12 @@ class Models():
             out: n_sample x series(n_channel * freq * time)
             label:  n_sample x 1
             '''
-            self._preprocessers += [self._p.remove_DC,
+            self._preprocessers += [self._p.detrend,
                                     self._p.notch,
                                     self._p.stft]
             self._preprocessers += [lambda X: X.reshape(X.shape[0], -1)]
             self._SVM()
-
         self.built = True
-
 
     def _Default(self, nb_classes, input_shape):
         print('building model with data shape{}'.format(input_shape))
@@ -140,10 +133,10 @@ class Models():
         print('building model with data shape{}'.format(input_shape))
 
         self.model.add(TimeDistributed(Conv2D(32, 5, 5, padding='same'),
-                                        activation='relu',
-                                        input_shape = input_shape))
+                                       activation='relu',
+                                       input_shape=input_shape))
         self.model.add(TimeDistributed(Conv2D(32, 5, 5),
-                                        activation='relu'))
+                                       activation='relu'))
         self.model.add(TimeDistributed(MaxPooling2D(5)))
         self.model.add(TimeDistributed(Dropout(0.25)))
         self.model.add(TimeDistributed(Flatten()))
@@ -176,12 +169,12 @@ class Models():
         self._preprocessers = []
         self.model = keras.models.load_model(model_name)
         # TODO 5: fix bug, model name can be saved but cannot be loaded
-        #if self.model.name in ['Default', 'CNN_LSTM']:
-        self._preprocessers += [self._p.remove_DC]
+        # if self.model.name in ['Default', 'CNN_LSTM']:
+        self._preprocessers += [self._p.detrend]
         self._preprocessers += [self._p.notch]
         self._preprocessers += [self._p.stft]
         self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
-        #elif self.model.name in ['Double_Dense']:
+        # elif self.model.name in ['Double_Dense']:
         #    pass
         self.built = True
 
@@ -195,7 +188,7 @@ class Models():
         label = to_categorical(label)
 
         # train the model
-        if self.model_type =='SVM':
+        if self.model_type == 'SVM':
             self.model.fit(data, label)
         elif self.model_type in ['Default', 'CNN_LSTM', 'Double_Dense']:
             self.model.fit(data, label, validation_split=0.2, shuffle=True,
@@ -213,7 +206,7 @@ class Models():
         if self.model_type == 'SVM':
             tmp = self.model.predict_proba(data)
         elif self.model_type in ['Default', 'CNN_LSTM', 'Double_Dense']:
-            #tmp = self.model.predict_classes(data, verbose=0)
+            # tmp = self.model.predict_classes(data, verbose=0)
             tmp = self.model.predict_proba(data, verbose=0)
 
         return tmp.argmax(), tmp.max()

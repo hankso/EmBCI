@@ -75,18 +75,18 @@ ILI9341_RDID4       = 0xDD
 ILI9341_GMCTRP1     = 0xE0
 ILI9341_GMCTRN1     = 0xE1
 ILI9341_PWCTR6      = 0xFC
-# colors                               R   G   B
-ILI9341_BLACK       = [0x00, 0x00] #   0   0   0
-ILI9341_BLUE        = [0x00, 0x1F] #   0   0 255
-ILI9341_GREEN       = [0x07, 0xE0] #   0 255   0
-ILI9341_CYAN        = [0x07, 0xFF] #   0 255 255
-ILI9341_RED         = [0xF8, 0x00] # 255   0   0
-ILI9341_MAGENTA     = [0xF8, 0x1F] # 255   0 255
-ILI9341_YELLOW      = [0xFF, 0xE0] # 255 255   0
-ILI9341_WHITE       = [0xFF, 0xFF] # 255 255 255
-ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
-ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
-ILI9341_GREY        = [0x84, 0x10] # 128 128 128
+# colors                                R   G   B
+ILI9341_BLACK       = [0x00, 0x00]  #   0   0   0
+ILI9341_BLUE        = [0x00, 0x1F]  #   0   0 255
+ILI9341_GREEN       = [0x07, 0xE0]  #   0 255   0
+ILI9341_CYAN        = [0x07, 0xFF]  #   0 255 255
+ILI9341_RED         = [0xF8, 0x00]  # 255   0   0
+ILI9341_MAGENTA     = [0xF8, 0x1F]  # 255   0 255
+ILI9341_YELLOW      = [0xFF, 0xE0]  # 255 255   0
+ILI9341_WHITE       = [0xFF, 0xFF]  # 255 255 255
+ILI9341_PURPLE      = [0x41, 0x2B]  # 128   0 128
+ILI9341_ORANGE      = [0xFD, 0xC0]  # 255 160  10
+ILI9341_GREY        = [0x84, 0x10]  # 128 128 128
 # rotation definition
 ILI9341_MADCTL_MY   = 0x80
 ILI9341_MADCTL_MX   = 0x40
@@ -102,10 +102,14 @@ def rgb888to565(r, g, b):
     c = ((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | (b >> 3)
     return [c >> 8, c & 0xff]
 
+
 def rgb888to565_pro(r, g, b):
     '''takes about 1.5 time than normal rgb888to565, but more precise'''
-    c = (r*249+1014) & 0xf800 | ((g*253+505) >> 5) & 0xffe0 | (b*249+1014) >> 11
+    c = ((r * 249 + 1014) & 0xf800 |
+         ((g * 253 + 505) >> 5) & 0xffe0 |
+         (b * 249 + 1014) >> 11)
     return [c >> 8, c & 0xff]
+
 
 def rgb565to888(ch, cl):
     '''input [chigh, clow] and output (r, g, b)'''
@@ -114,6 +118,7 @@ def rgb565to888(ch, cl):
     b = (cl & 0b11111) << 3 | cl & 0b00111
     return (r, g, b)
 
+
 def rgb565to888_pro(ch, cl):
     '''takes about 1.4 times than normal rgb565to888, but more precise'''
     r = ((ch >> 3) * 527 + 23) >> 6
@@ -121,9 +126,11 @@ def rgb565to888_pro(ch, cl):
     b = ((cl & 0b00011111) * 527 + 23) >> 6
     return (r, g, b)
 
+
 def rgb24to565(v):
     '''input v between 0x000000 - 0xffffff and output [chigh, clow]'''
     return rgb888to565(v >> 16, v >> 8 & 0xff, v & 0xff)
+
 
 def rgb565to24(ch, cl):
     '''input [chigh, clow] and output v between 0x000000 - 0xffffff'''
@@ -133,6 +140,7 @@ def rgb565to24(ch, cl):
 
 class ILI9341_API(spidev.SpiDev):
     _lock = threading.Lock()
+
     def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
         '''
         Create an instance of the display using SPI communication.  Must
@@ -208,8 +216,10 @@ class ILI9341_API(spidev.SpiDev):
         '''write data in framebuffer to screen'''
         with self._lock:
             self._set_window(x1, y1, x2, y2)
-            # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())  # used time: 621ns
-            self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())      # used time: 407ns
+            # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())
+            # used time: 621ns
+            self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())
+            # used time: 407ns
 
     def reset(self):
         self._rst.value = 1
@@ -389,8 +399,8 @@ class ILI9341_API(spidev.SpiDev):
         # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
         # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
         self.draw_round(x2 - r, y2 - r, r, c, 0)  # right - bottom
-        self.draw_round(x1 + r, y2 - r, r, c, 1)  #  left - bottom
-        self.draw_round(x1 + r, y1 + r, r, c, 2)  #  left - top
+        self.draw_round(x1 + r, y2 - r, r, c, 1)  # left  - bottom
+        self.draw_round(x1 + r, y1 + r, r, c, 2)  # left  - top
         self.draw_round(x2 - r, y1 + r, r, c, 3)  # right - top
         self.draw_rectf(x1 + r, y1, x2 - r, y1, c)
         self.draw_rectf(x1 + r, y2, x2 - r, y2, c)
@@ -416,15 +426,15 @@ class ILI9341_API(spidev.SpiDev):
         y2 = max(min(y1 + img.shape[0], self.height), y1)
         img = img[:y2-y1, :x2-x1].astype(np.int16)
         # img shape correction and extracting alpha channel
-        alpha = np.ones(img.shape[:2])[:,:,None].astype(np.float)
+        alpha = np.ones(img.shape[:2])[:, :, None].astype(np.float)
         if img.shape[2] == 4:
             img, alpha = np.split(img, [-1], axis=-1)
             alpha = alpha.astype(np.float) / 255
         elif img.shape[2] != 3:
-            img = np.repeat(img[:,:,0], 3, axis=-1)
+            img = np.repeat(img[:, :, 0], 3, axis=-1)
         # calculate difference of image and current framebuffer
         current = np.split(self.fb[y1:y2, x1:x2].astype(np.uint16), 2, -1)
-        current = np.concatenate(rgb565to888_pro(*current), -1).astype(np.int16)
+        current = np.int16(np.concatenate(rgb565to888_pro(*current), -1))
         # weight it with alpha channel
         dest = current + (img - current) * alpha
         # convert to rgb565 and draw back on framebuffer
@@ -440,7 +450,9 @@ class ILI9341_API(spidev.SpiDev):
         try:
             if size is not None and self.size != size:
                 self.setsize(size)
-            if font is not None and os.path.exists(font) and self.font.path != font:
+            if font is not None and \
+               os.path.exists(font) and \
+               self.font.path != font:
                 font = ImageFont.truetype(font, self.size * 2)
             else:
                 font = self.font
@@ -463,20 +475,20 @@ class ILI9341_API(spidev.SpiDev):
         elif (m % 4) == 2:
             self._data([ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR])
         elif (m % 4) == 3:
-            self._data([ILI9341_MADCTL_MX \
-                        | ILI9341_MADCTL_MY \
-                        | ILI9341_MADCTL_MV \
-                        | ILI9341_MADCTL_BGR])
+            self._data([ILI9341_MADCTL_MX |
+                        ILI9341_MADCTL_MY |
+                        ILI9341_MADCTL_MV |
+                        ILI9341_MADCTL_BGR])
 
     def clear(self, c=ILI9341_BLACK, *a, **k):
         self.draw_rectf(0, 0, self.width - 1, self.height - 1, c)
 
 
-
 if __name__ == '__main__':
+    from embci import BASEDIR
     ili = ILI9341_API((0, 1))
     ili.start()
-    ili.setfont(__dir__ + '/../files/yahei_mono.ttf')
+    ili.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
     for i in range(240):
         ili.draw_point(i, i, [int(i/240.0*0xff)]*2)
     ili.draw_line(239, 0, 0, 239, ILI9341_WHITE)
@@ -490,4 +502,5 @@ if __name__ == '__main__':
     ili.draw_round(100, 100, 15, ILI9341_WHITE, 3)
     tiffany_blue = [0x0A, 0xBA, 0xB5]
     ili.draw_round_rectf(150, 120, 300, 220, 7, rgb888to565(*tiffany_blue))
-    ili.draw_text(200, 200, 'cheitech', rgb24to565(np.random.randint(0xffffff)))
+    ili.draw_text(200, 200, 'cheitech',
+                  c=rgb24to565(np.random.randint(0xffffff)))

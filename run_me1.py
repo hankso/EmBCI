@@ -32,16 +32,21 @@ from preprocessing import Signal_Info
 from visualization import SPI_Screen_GUI as Screen_GUI
 from IO import ESP32_SPI_reader as Reader, Socket_server
 
-ILI9341_BLUE        = [0x00, 0x1F] #   0   0 255
-ILI9341_GREEN       = [0x07, 0xE0] #   0 255   0
-ILI9341_CYAN        = [0x07, 0xFF] #   0 255 255
-ILI9341_RED         = [0xF8, 0x00] # 255   0   0
-ILI9341_MAGENTA     = [0xF8, 0x1F] # 255   0 255
-ILI9341_YELLOW      = [0xFF, 0xE0] # 255 255   0
-ILI9341_WHITE       = [0xFF, 0xFF] # 255 255 255
-ILI9341_PURPLE      = [0x41, 0x2B] # 128   0 128
-ILI9341_ORANGE      = [0xFD, 0xC0] # 255 160  10
-ILI9341_GREY        = [0xCE, 0x59] # 200 200 200
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+__filename__ = os.path.basename(__file__)
+
+
+ILI9341_BLUE        = [0x00, 0x1F]  #   0   0 255
+ILI9341_GREEN       = [0x07, 0xE0]  #   0 255   0
+ILI9341_CYAN        = [0x07, 0xFF]  #   0 255 255
+ILI9341_RED         = [0xF8, 0x00]  # 255   0   0
+ILI9341_MAGENTA     = [0xF8, 0x1F]  # 255   0 255
+ILI9341_YELLOW      = [0xFF, 0xE0]  # 255 255   0
+ILI9341_WHITE       = [0xFF, 0xFF]  # 255 255 255
+ILI9341_PURPLE      = [0x41, 0x2B]  # 128   0 128
+ILI9341_ORANGE      = [0xFD, 0xC0]  # 255 160  10
+ILI9341_GREY        = [0xCE, 0x59]  # 200 200 200
 
 RGB_BLUE            = (  0,   0, 255)
 RGB_GREEN           = (  0, 255,   0)
@@ -91,23 +96,28 @@ def reboot(*a, **k):
     os.system('reboot')
 
 
-def generate_pdf(*a, **k):
-    fontname, fontpath = 'Mono', 'files/fonts/yahei_mono.ttf'
+def generate_pdf(*a, username=u'test', gender=u'\u7537', id=0, age=20,
+                 fontname='Mono', fontpath='files/fonts/yahei_mono.ttf',
+                 **k):
     if fontname not in pdfmetrics.getRegisteredFontNames():
         font = ttfonts.TTFont(fontname, fontpath)
         pdfmetrics.registerFont(font)
-    pdfname = 'data/%s/%s.pdf' % (username, time_stamp())
-    c = canvas.Canvas(pdfname, bottomup=0)
+    userpath = os.path.join(__dir__, 'data', username)
+    c = canvas.Canvas('%s/%s.pdf' % (userpath, time_stamp()), bottomup=0)
     c.setFont(fontname, 30)
     c.drawString(65, 80, u'天坛医院DBS术后调控肌电报告单')
     c.setFontSize(20)
     c.line(30, 120, 580, 120)
-    c.drawString(35, 150, u'姓名： test   性别： 男   年龄： 20   病号ID： 0000')
+    c.drawString(35, 150,
+                 (u'姓名：   {}    '
+                  '性别：   {}    '
+                  '年龄：   {}    '
+                  '病号ID： {}    ').format(username, gender, age, id))
     c.line(30, 165, 580, 165)
     c.line(30, 710, 580, 710)
     c.drawString(35, 740, u'改善率    震颤： 80%    僵直： 80%    运动： 80%')
     c.line(30, 755, 580, 755)
-    c.drawImage('./aaa1.png', 35, 190)
+    c.drawImage('aaa1.png', 35, 190)
     c.drawImage('./aaa1.png', 35, 450)
     c.setFontSize(24)
     c.drawString(360, 250, u'术前')
@@ -241,16 +251,20 @@ callback_list = [
     {0: shutdown, 1: next, 2: update, 3: exit_program},
     # page1
     {0: prev, 1: next,
-     2: reverse_status, 3: reverse_status, 4: reverse_status, 5: reverse_status,
-     6: reverse_status, 7: reverse_status, 8: reverse_status, 9: reverse_status},
+     2: reverse_status, 3: reverse_status,
+     4: reverse_status, 5: reverse_status,
+     6: reverse_status, 7: reverse_status,
+     8: reverse_status, 9: reverse_status},
     # page2
     {0: prev, 1: next,
      2: partial(range_callback, r=channel_range,
                 operate='minus', after=change_channel),
      3: partial(range_callback, r=channel_range,
                 operate='plus', after=change_channel),
-     4: partial(list_callback, l=scale_list, operate='next', after=change_scale),
-     5: partial(list_callback, l=scale_list, operate='prev', after=change_scale)},
+     4: partial(list_callback, l=scale_list,
+                operate='next', after=change_scale),
+     5: partial(list_callback, l=scale_list,
+                operate='prev', after=change_scale)},
     # page3
     {0: prev, 1: next},
     # page4
@@ -306,7 +320,8 @@ def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
         ch = channel_range['n']
         scale = scale_list['a'][scale_list['i']]
         c = ILI9341_Rainbow[ch]
-        s._ili.draw_rectf(area[0], area[1], area[0]+step*3, area[3], ILI9341_WHITE)
+        s._ili.draw_rectf(area[0], area[1],
+                          area[0]+step*3, area[3], ILI9341_WHITE)
         s.widget['text', 17]['s'] = u'%5.1fs\u2191' % \
             (time.time() - reader._start_time)
         s.render('text', 17)
@@ -316,8 +331,9 @@ def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
             d = reader.data_channel
             server.send(d)
             data = d[ch]
-            data = np.array([data, si.bandpass_realtime(si.notch_realtime(data))])
-            line[:, x] = np.uint16(np.clip(center - data*scale, area[1], area[3]))
+            filtered = si.bandpass_realtime(si.notch_realtime(data))
+            data = center - np.array([data, filtered]) * scale
+            line[:, x] = np.uint16(np.clip(data, area[1], area[3]))
             yraw, yflt = line[:, x-step:x+1]
             _x = min((x + step*4), area[2])
             s._ili.draw_line(_x, area[1], _x, area[3], ILI9341_WHITE)
@@ -350,17 +366,19 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
         server.send(d)
         d = si.notch(d[ch])
         s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
+        s.render('text', 23)
         d = si.detrend(d)
         amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
         amp[0, -1] = amp[0, 0] = 0
-        amp = np.concatenate(( x, 127*(1 - amp/amp.max()) )).T
+        amp = np.concatenate((x, 127 * (1 - amp / amp.max()))).T
         img = Image.fromarray(blank)
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
         s._ili.draw_rectf(*area, c=ILI9341_WHITE)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
         s.widget['text', 21]['s'] = '%.2f' % tremor_coefficient(d)[0]
+        s.render('text', 21)
         s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
-        s.render('text', 21); s.render('text', 22); s.render('text', 23)
+        s.render('text', 22)
     print('leave page3')
 
 

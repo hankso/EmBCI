@@ -13,6 +13,8 @@ import sys
 import glob
 import select
 import socket
+import platform
+import StringIO
 import threading
 
 # pip install pyserial, pylsl, numpy, scipy
@@ -21,14 +23,10 @@ from serial.tools.list_ports import comports
 import numpy as np
 from gpio4 import SysfsGPIO
 
+from embci import BASEDIR, input, reduce
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
-
-
-# In python3 reduce need to be imported while python2 not
-if sys.version_info.major == 3:
-    from functools import reduce
 
 
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
@@ -63,10 +61,15 @@ def mkuserdir(func):
     check if user folder exist before saving data etc.
     '''
     def wrapper(*a, **k):
-        if (a and isinstance(a[0], str) and
-            not os.path.exists('./data/' + a[0])):
-            os.system('mkdir -p ./data/' + a[0])
-            os.system('mkdir -p ./model/' + a[0])
+        if a and isinstance(a[0], str):
+            username = a[0]
+            if os.path.exists(BASEDIR, 'data', username):
+                return
+            try:
+                os.mkdir(os.path.join(BASEDIR, 'data', username))
+                os.mkdir(os.path.join(BASEDIR, 'model', username))
+            except:
+                pass
         else:
             print('This wrapper may be used in wrong place.')
         return func(*a, **k)
@@ -88,9 +91,6 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
         [2/3] This will call pip and try install pycnbi. [Y/n] y
         # return True
     '''
-    # In python2 raw_input return `str` and input retrun `eval(str)`
-    if sys.version_info.major == 2:
-        input = raw_input
     k = list(answer.keys())
     t = 0
     while t < times:
@@ -155,12 +155,12 @@ def find_outlets(name=None, **kwargs):
     if stream:
         print(('Select stream `{name}` -- {chs} channel {type_num} {fmt} data '
                'from {source} on server {host}').format(
-                    name=stream.name(),
-                    chs=stream.channel_count(),
-                    type_num=stream.type(),
-                    fmt=stream.channel_format(),
-                    source=stream.source_id(),
-                    host=stream.hostname()))
+                   name=stream.name(),
+                   chs=stream.channel_count(),
+                   type_num=stream.type(),
+                   fmt=stream.channel_format(),
+                   source=stream.source_id(),
+                   host=stream.hostname()))
         return stream
     sys.exit('No stream available! Abort.')
 
@@ -181,18 +181,17 @@ def find_ports(timeout=3):
         if len(port_list) == 1:
             port = port_list[0]
         else:
-            dv = [port.device for port in port_list]
-            ds = [port.description for port in port_list]
+            tmp = [(port.device, port.description) for port in port_list]
             prompt = ('Please choose one from all available ports:\n    ' +
-                      '\n    '.join(['%d %s - %s' % (i, j, k)
-                                     for i, (j, k) in enumerate(zip(dv, ds))]) +
+                      '\n    '.join(['%d %s - %s' % (i, dv, ds)
+                                     for i, (dv, ds) in enumerate(tmp)]) +
                       '\nport num(default 0): ')
-            answer = {str(i):port for i, port in enumerate(port_list)}
+            answer = {str(i): port for i, port in enumerate(port_list)}
             answer[''] = port_list[0]
             port = check_input(prompt, answer)
         if port:
             print('Select port `{}` -- {}'.format(port.device,
-                                                port.description))
+                                                  port.description))
             return port.device
         else:
             break
@@ -207,10 +206,10 @@ def find_spi_devices():
         device = dev_list[0]
     else:
         prompt = ('Please choose one from all available devices:\n    ' +
-                  '\n    '.join(['%d %s' % (i, dev) \
+                  '\n    '.join(['%d %s' % (i, dev)
                                  for i, dev in enumerate(dev_list)]) +
                   '\ndevice num(default 0): ')
-        answer = {str(i):dev for i, dev in enumerate(dev_list)}
+        answer = {str(i): dev for i, dev in enumerate(dev_list)}
         answer[''] = dev_list[0]
         try:
             device = check_input(prompt, answer)
@@ -232,10 +231,10 @@ def find_layouts(dir):
         layout = layout_list[0]
     else:
         prompt = ('Please choose one from all available layouts:\n    ' +
-                  '\n    '.join(['%d %s' % (i, os.path.basename(j)) \
+                  '\n    '.join(['%d %s' % (i, os.path.basename(j))
                                  for i, j in enumerate(layout_list)]) +
                   '\nlayout num(default 0): ')
-        answer = {str(i):layout for i, layout in enumerate(layout_list)}
+        answer = {str(i): layout for i, layout in enumerate(layout_list)}
         answer[''] = layout_list[0]
         try:
             layout = check_input(prompt, answer)
@@ -278,6 +277,7 @@ def reset_esp(flash=False):
     boot.export = False
     rst.export = False
 
+
 def virtual_serial():
     '''
     Generate a pair of virtual serial port at /dev/pts/*.
@@ -297,16 +297,17 @@ def virtual_serial():
     count = [0., 0., 0., 0.]
 
     print('Pty opened!\nPort1: %s\nPort2: %s' % (port1, port2))
+
     def echo(flag_close):
         while not flag_close.isSet():
             readable = select.select([master1, master2], [], [], 1)
             # if readable:
             #     if c.max() < 1024:
-            #         info = '\rPort1 RX %dB  TX %dB  Lost from Port2 %dB' % \
-            #             (count[0], count[1], count[3]-count[0])
+            #         info = '\rPort1 RX %dB  TX %dB  Lost from Port2 %dB' \
+            #             % (count[0], count[1], count[3]-count[0])
             #     else:
-            #         info = '\rPort1 RX %.2fkB TX %.2fkB Lost from Port2 %dB' % \
-            #             (count[0]/1024, count[1]/1024, count[3]-count[0])
+            #         info = '\rPort1 RX %.2fkB TX %.2fkB Lost from Port2 %dB'\
+            #             % (count[0]/1024, count[1]/1024, count[3]-count[0])
             #     sys.stdout.write(info); sys.stdout.flush()
             for master in readable[0]:
                 msg = os.read(master, 1024)
@@ -357,10 +358,12 @@ class Timer(object):
     ...
     '''
     last_time_dict = {}
+
     @staticmethod
     def duration(name, time_in_sec, warning=''):
         if name not in Timer.last_time_dict:
             Timer.last_time_dict[name] = time.time()
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 if (time.time() - Timer.last_time_dict[name]) < time_in_sec:
@@ -409,7 +412,7 @@ def _combine_action(d1, d2):
 @mkuserdir
 def get_label_list(username):
     '''
-    扫描./data/username文件夹下的数据，列出存储的数据和数量
+    扫描 $BASEDIR/data/{username}文件夹下的数据，列出存储的数据和数量
 
     This function is used to count all saved data.
     Return label_list, e.g.:
@@ -420,7 +423,8 @@ def get_label_list(username):
          ...
     }
     '''
-    paths = [i[:-4] for i in os.listdir('./data/' + username)]
+    userpath = os.path.join(BASEDIR, 'data', username)
+    paths = [i[:-4] for i in os.listdir(userpath)]
     if len(paths) == 0:
         label_list = {}
     elif len(paths) == 1:
@@ -436,107 +440,92 @@ def get_label_list(username):
     return label_list, summary
 
 
-def record_animate(times):
-    '''use python lib `progressbar`'''
-    # TODO
-    t = 0.0
-    while t < 10*times:
-        print('\r[%s>%s] %.2f%%' % ('='*int(t),
-                                  ' '*int(10*times-t-1),
-                                  10.0*t/times), end='')
-        t += 0.1*times
-        time.sleep(times/100.0)
-    print('\r[{}] finished'.format('='*10*times))
+# TODO 11: interesting function copied from package `mne`,
+# modify it for our usage
+def sys_info(fid=None, show_paths=False):
+    """Print the system information for debugging.
 
+    This function is useful for printing system information
+    to help triage bugs.
 
-# TODO 11: interesting function copied from package `mne`, modify it for our usage
-# =============================================================================
-# def sys_info(fid=None, show_paths=False):
-#     """Print the system information for debugging.
-#
-#     This function is useful for printing system information
-#     to help triage bugs.
-#
-#     Parameters
-#     ----------
-#     fid : file-like | None
-#         The file to write to. Will be passed to :func:`print()`.
-#         Can be None to use :data:`sys.stdout`.
-#     show_paths : bool
-#         If True, print paths for each module.
-#
-#     Examples
-#     --------
-#     Running this function with no arguments prints an output that is
-#     useful when submitting bug reports::
-#
-# import mne
-# mne.sys_info() # doctest: +SKIP
-#         Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
-#         Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
-#         Executable:    /usr/bin/python
-#
-#         mne:           0.12.dev0
-#         numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
-#         scipy:         0.18.0.dev0+3deede3
-#         matplotlib:    1.5.1+1107.g1fa2697
-#
-#         sklearn:       0.18.dev0
-#         nibabel:       2.1.0dev
-#         mayavi:        4.3.1
-#         pycuda:        2015.1.3
-#         skcuda:        0.5.2
-#         pandas:        0.17.1+25.g547750a
-#
-#     """  # noqa: E501
-#     ljust = 15
-#     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
-#     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
-#     out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
-#     old_stdout = sys.stdout
-#     capture = StringIO()
-#     try:
-#         sys.stdout = capture
-#         np.show_config()
-#     finally:
-#         sys.stdout = old_stdout
-#     lines = capture.getvalue().split('\n')
-#     libs = []
-#     for li, line in enumerate(lines):
-#         for key in ('lapack', 'blas'):
-#             if line.startswith('%s_opt_info' % key):
-#                 libs += ['%s=' % key +
-#                          lines[li + 1].split('[')[1].split("'")[1]]
-#     libs = ', '.join(libs)
-#     version_texts = dict(pycuda='VERSION_TEXT')
-#     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-#                      'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
-#                      'pandas'):
-#         if mod_name == '':
-#             out += '\n'
-#             continue
-#         out += ('%s:' % mod_name).ljust(ljust)
-#         try:
-#             mod = __import__(mod_name)
-#         except Exception:
-#             out += 'Not found\n'
-#         else:
-#             version = getattr(mod, version_texts.get(mod_name, '__version__'))
-#             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
-#             if mod_name == 'numpy':
-#                 extra = ' {%s}%s' % (libs, extra)
-#             out += '%s%s\n' % (version, extra)
-#     print(out, end='', file=fid)
-# =============================================================================
+    Parameters
+    ----------
+    fid : file-like | None
+        The file to write to. Will be passed to :func:`print()`.
+        Can be None to use :data:`sys.stdout`.
+    show_paths : bool
+        If True, print paths for each module.
+
+    Examples
+    --------
+    Running this function with no arguments prints an output that is
+    useful when submitting bug reports::
+
+    import mne
+    mne.sys_info() # doctest: +SKIP
+        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
+        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)
+                        [GCC 5.2.1 20151010]
+        Executable:    /usr/bin/python
+
+        mne:           0.12.dev0
+        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
+        scipy:         0.18.0.dev0+3deede3
+        matplotlib:    1.5.1+1107.g1fa2697
+
+        sklearn:       0.18.dev0
+        nibabel:       2.1.0dev
+        mayavi:        4.3.1
+        pycuda:        2015.1.3
+        skcuda:        0.5.2
+        pandas:        0.17.1+25.g547750a
+
+    """  # noqa: E501
+    raise RuntimeError('do not use me')
+    ljust = 15
+    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    old_stdout = sys.stdout
+    capture = StringIO()
+    try:
+        sys.stdout = capture
+        np.show_config()
+    finally:
+        sys.stdout = old_stdout
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                libs += ['%s=' % key +
+                         lines[li + 1].split('[')[1].split("'")[1]]
+    libs = ', '.join(libs)
+    version_texts = dict(pycuda='VERSION_TEXT')
+    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
+                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
+                     'pandas'):
+        if mod_name == '':
+            out += '\n'
+            continue
+        out += ('%s:' % mod_name).ljust(ljust)
+        try:
+            mod = __import__(mod_name)
+        except Exception:
+            out += 'Not found\n'
+        else:
+            version = getattr(mod, version_texts.get(mod_name, '__version__'))
+            extra = ((' (%s)' % os.path.dirname(mod.__file__))
+                     if show_paths else '')
+            if mod_name == 'numpy':
+                extra = ' {%s}%s' % (libs, extra)
+            out += '%s%s\n' % (version, extra)
+    print(out, end='', file=fid)
 
 
 if __name__ == '__main__':
-    os.chdir('../')
     username = 'test'
     first_use()
-    record_animate(5)
     print('time stamp: ' + time_stamp())
-    # print(find_ports())
-    # print(find_outlets('testing'))
     print(get_label_list(username)[1])
     pass

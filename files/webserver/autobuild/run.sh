@@ -25,12 +25,12 @@ SITE=/etc/apache2/sites-available/000-default.conf
 mv $SITE $SITE.$(date +"%Y%m%d")
 cp 0-sites.conf $SITE
 
-# server files
-mkdir -p /var/www/pyemg
-cp html/* /var/www/pyemg/
+# wsgi for python
+mod_wsgi-express install-module
+echo "LoadModule wsgi_module $(mod_wsgi-express module-location)" > /etc/apache2/mods-available/wsgi.load
 
 # other configs
-a2enmod macro
+a2enmod macro wsgi
 service apache2 restart
 
 

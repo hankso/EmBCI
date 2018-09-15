@@ -7,33 +7,25 @@ Created on Thu Mar 22 08:26:16 2018
 """
 # built-in
 import time
-import sys;
+import sys
 import os
 import threading
-import json
-import glob
 import pickle
 import select
 
 # pip install matplotlib, numpy, scipy, pyserial, pillow
-#  import matplotlib
-#  import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as sio
 import serial
 from PIL import Image
 
-# from ./
-from common import time_stamp, check_input, find_layouts
-from IO import Serial_Screen_commander, command_dict_uart_screen_v1
-from IO import SPI_Screen_commander
-
-
-if '../src' not in sys.path:
-    sys.path.append('../src')
-
-# from ../src
-from preprocessing import Signal_Info
+from .common import time_stamp, find_layouts
+from .IO import Serial_Screen_commander, command_dict_uart_screen_v1
+from .IO import SPI_Screen_commander
+from .preprocessing import Signal_Info
+from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
@@ -49,7 +41,7 @@ class Plotter():
             Default None to create a new figure and split it into n_channels
             window, one for each window
         '''
-        if where_to_plot == None:
+        if where_to_plot is None:
             self.figure = plt.figure()
             for i in range(n_channel):
                 self.figure.add_axes((0, i*(1.0/n_channel),
@@ -106,7 +98,8 @@ class Plotter():
 
 
 def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
-    import matplotlib.pyplot as plt; plt.ion()
+    import matplotlib.pyplot as plt
+    plt.ion()
     if not isinstance(data, np.ndarray):
         data = np.array(data)
     if len(data.shape) != 2:
@@ -143,14 +136,17 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.subplot(344)
         plt.title('Three Max Amptitude'.format(t[highest_col]))
         for i in highest_col:
-            plt.plot(amp[:, i], label='time: {:.2f}s'.format(t[i]), linewidth=0.5)
+            plt.plot(amp[:, i], linewidth=0.5,
+                     label='time: {:.2f}s'.format(t[i]))
         plt.legend()
 
         plt.subplot(324)
         t = time.time()
-        plt.psd(p.remove_DC(p.notch(d))[0], Fs=250, label='filtered', linewidth=0.5)
+        plt.psd(p.remove_DC(p.notch(d))[0], Fs=250,
+                label='filtered', linewidth=0.5)
         plt.legend()
-        plt.title('normal PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+        used_time = 1000 * (time.time() - t)
+        plt.title('normal PSD -- used time: %.3fms' % used_time)
 
         d = p.remove_DC(p.notch(d))[0]
         plt.subplot(326)
@@ -158,7 +154,8 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         amp = 2 * abs(np.fft.rfft(d)) / float(len(d))
         # amp[0] *= 1e13
         plt.plot(10*np.log10(amp*amp)[::12], linewidth=0.5, label='unfiltered')
-        plt.title('optimized PSD -- used time: %.3fms' % (1000*(time.time()-t)))
+        used_time = 1000 * (time.time() - t)
+        plt.title('optimized PSD -- used time: %.3fms' % used_time)
         plt.legend()
         plt.grid()
         plt.xlabel('Frequency')
@@ -200,8 +197,8 @@ def _pre_draw_check(name):
             `name` temporarily.
             '''
             static = name + ('f' if ('fill' in k and k['fill']) else '')
-            num = 0 if not len(self.widget[static]) \
-                    else (self.widget[static][-1]['id'] + 1)
+            num = (0 if not len(self.widget[static])
+                   else (self.widget[static][-1]['id'] + 1))
             k['name'] = static
             k['id'] = num
             # transfer params from user and name & num
@@ -222,8 +219,8 @@ def _pre_draw_check(name):
 class element_dict(dict):
     def __getitem__(self, items):
         if not isinstance(items, tuple):
-            if items is None or \
-                (items not in self and not items.startswith('_') and self):
+            if items is None or items not in self \
+               and not items.startswith('_') and self:
                 keys = list(self.keys())
                 print('choose one from `%s`' % '` | `'.join(map(str, keys)))
                 return None
@@ -278,17 +275,19 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     '''
     GUI of UART controlled 2.3' LCD screen
     '''
-    _element_color = {'bg': 'white', 'press': ['red', 'cyan'],
+    _element_color = {
+        'bg': 'white', 'press': ['red', 'cyan'],
         'point': 'blue', 'line': 'red', 'circle': 'red', 'circlef': 'red',
         'round': 'yellow', 'roundf': 'cyan', 'rect': 'pink', 'rectf': 'orange',
-        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black',}
-    widget = element_dict({'point': element_list(),
-        'text': element_list(), 'img': element_list(),
+        'round_rect': 'purple', 'round_rectf': 'purple', 'text': 'black'}
+    widget = element_dict({
+        'point': element_list(), 'text': element_list(), 'img': element_list(),
         'button': element_list(), 'line': element_list(),
         'circle': element_list(), 'circlef': element_list(),
         'round': element_list(), 'roundf': element_list(),
         'rect': element_list(), 'rectf': element_list(),
         'round_rect': element_list(), 'round_rectf': element_list()})
+
     def __init__(self, port='/dev/ttyS2', baud=115200, width=220, height=176,
                  command_dict=command_dict_uart_screen_v1, *args, **kwargs):
         super(Serial_Screen_GUI, self).__init__(baud, command_dict)
@@ -323,7 +322,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         self._read_lock = threading.Lock()
         self._read_epoll = select.epoll()
         self._read_epoll.register(self._touch, select.EPOLLIN)
-        self._last_touch_time = time.time()
+        self._last_touch = time.time()
         self._callback_threads = []
         self._touch_thread = threading.Thread(target=self._handle_touch)
         self._touch_thread.setDaemon(True)
@@ -340,11 +339,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if not isinstance(img, np.ndarray):
             img = np.array(img, np.uint8)
         if len(img.shape) == 2:
-            img = np.repeat(img[:,:,np.newaxis], 3, axis=2)
+            img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
         assert len(img.shape) == 3, 'Invalid image shape {}!'.format(img.shape)
-        self.widget['img'].append(element_dict({'id': k['id'], 'bg': bg,
-            'x': x, 'y': y, 'img': img, 'x1': x, 'y1': y,
-            'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
+        self.widget['img'].append(element_dict({
+            'id': k['id'], 'bg': bg, 'x': x, 'y': y, 'img': img,
+            'x1': x, 'y1': y, 'x2': x + img.shape[1], 'y2': y + img.shape[0]}))
 
     @_pre_draw_check('button')
     def draw_button(self, x, y, s, size=16, font=None, callback=None,
@@ -375,21 +374,21 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     @_pre_draw_check('point')
     def draw_point(self, x, y, c=None, **k):
-        self.widget['point'].append(element_dict({'id': k['id'],
+        self.widget['point'].append(element_dict({
             'x1': x, 'y1': y, 'x2': x, 'y2': y, 'x': x, 'y': y,
-            'c': c or self._element_color['point']}))
+            'id': k['id'], 'c': c or self._element_color['point']}))
 
     @_pre_draw_check('line')
     def draw_line(self, x1, y1, x2, y2, c=None, **k):
-        self.widget['line'].append(element_dict({'id': k['id'],
+        self.widget['line'].append(element_dict({
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color['line']}))
+            'id': k['id'], 'c': c or self._element_color['line']}))
 
     @_pre_draw_check('rect')
     def draw_rect(self, x1, y1, x2, y2, c=None, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['id'],
+        self.widget[k['name']].append(element_dict({
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color[k['name']]}))
+            'id': k['id'], 'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('round')
     def draw_round(self, x, y, r, m, c=None, fill=False, **k):
@@ -401,23 +400,23 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             x1, y1, x2, y2 = x - r, y - r, x, y
         elif m == 3:
             x1, y1, x2, y2 = x, y - r, x + r, y
-        self.widget[k['name']].append(element_dict({'id': k['id'],
+        self.widget[k['name']].append(element_dict({
             'x': x, 'y': y, 'r': r, 'm': m,
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-            'c': c or self._element_color[k['name']]}))
+            'id': k['id'], 'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('round_rect')
     def draw_round_rect(self, x1, y1, x2, y2, r, c=None, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['id'],
+        self.widget[k['name']].append(element_dict({
             'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'r': r,
-            'c': c or self._element_color[k['name']]}))
+            'id': k['id'], 'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('circle')
     def draw_circle(self, x, y, r, c=None, s=0, e=360, fill=False, **k):
-        self.widget[k['name']].append(element_dict({'id': k['id'],
+        self.widget[k['name']].append(element_dict({
             'x1': x - r, 'y1': y - r, 'x2': x + r, 'y2': y + r,
             'x': x, 'y': y, 'r': r, 's': s, 'e': e,
-            'c': c or self._element_color[k['name']]}))
+            'id': k['id'], 'c': c or self._element_color[k['name']]}))
 
     @_pre_draw_check('text')
     def draw_text(self, x, y, s, c=None, size=16, font=None, **k):
@@ -426,12 +425,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             s = s.decode('utf8')
             if self._encoding != 'utf8':
                 s = s.encode(self._encoding)
-        self.widget['text'].append(element_dict({'id': k['id'],
+        self.widget['text'].append(element_dict({
             'x': x, 'y': y, 's': s, 'size': size,
             'x1': x, 'y1': y, 'font': font,
             'x2': min(x + w, self.width - 1),
             'y2': min(y + h, self.height - 1),
-            'c': c or self._element_color['text']}))
+            'id': k['id'], 'c': c or self._element_color['text']}))
 
     def _get_element_from_name_and_id(self, element=None, id=None):
         elements = [key for key in self.widget.keys() if self.widget[key]]
@@ -456,9 +455,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if e is None:
             return
         if 'x' in e:
-            e['x'] += x; e['y'] += y
+            e['x'] += x
+            e['y'] += y
         if 'x1' in e:
-            e['x1'] += x; e['x2'] += x; e['y1'] += y; e['y2'] += y
+            e['x1'] += x
+            e['x2'] += x
+            e['y1'] += y
+            e['y2'] += y
         self.render()
 
     def save_layout(self, dir_or_file, *a, **k):
@@ -467,7 +470,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         '''
         if os.path.exists(dir_or_file):
             if os.path.isdir(dir_or_file):
-                name = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
+                name = os.path.join(dir_or_file,
+                                    'layout-%s.pcl' % time_stamp())
             elif os.path.isfile(dir_or_file):
                 name = dir_or_file
         else:
@@ -490,7 +494,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def load_layout(self, dir_or_file, extend=True, render=True, *a, **k):
         '''
-        read in a layout from file, `extend` means to extend current layout by
+        Read in a layout from file
+        Param `extend` determines whether to extend current layout by
         loaded layout, or to replace current layout with loaded layout
         '''
         if not os.path.exists(dir_or_file):
@@ -538,32 +543,37 @@ class Serial_Screen_GUI(Serial_Screen_commander):
     @staticmethod
     def _default_callback(x, y, bt):
         '''default button callback'''
-        print('[Touch Screen] touch button %d - %s at %d, %d at %.3f' \
-                  % (bt['id'], bt['s'], x, y, time.time()))
+        print('[Touch Screen] touch button {} - `{}` at ({}, {}) at {}'.format(
+            bt['id'], bt['s'], x, y, time_stamp()))
 
     def render(self, element=None, id=None, *a, **k):
+        '''Render all elements stored in self.widget to screen'''
         try:
             # render one element
             if None not in [element, id]:
                 e = self.widget[element, id]
                 if e is None:
                     return
-                self.clear(**e)
+                self.clear(**e)  # clear specific element
                 if element == 'button':
-                    e['c'] = e['ct']; self.send('text', **e)
+                    e['c'] = e['ct']
+                    self.send('text', **e)
                     if e['cr'] != 'None':
-                        e['c'] = e['cr']; self.send('rect', **e)
+                        e['c'] = e['cr']
+                        self.send('rect', **e)
                 else:
                     self.send(element, **e)
             # render all
             else:
-                self.clear() # clear all
+                self.clear()  # clear all
                 for element in self.widget.keys():
                     if element == 'button':
                         for bt in self.widget[element]:
-                            bt['c'] = bt['ct']; self.send('text', **bt)
+                            bt['c'] = bt['ct']
+                            self.send('text', **bt)
                             if bt['cr'] != 'None':
-                                bt['c'] = bt['cr']; self.send('rect', **bt)
+                                bt['c'] = bt['cr']
+                                self.send('rect', **bt)
                     else:
                         for e in self.widget[element]:
                             self.send(element, **e)
@@ -574,13 +584,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if not self._touch_started:
             print('[Screen GUI] touch screen not initialized yet!')
             return
-        self._flag_pause.clear() # pause _handle_touch thread
+        self._flag_pause.clear()  # pause _handle_touch thread
         self.freeze_frame()
         self.touch_sensibility = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
-        s = '屏幕校准'
+        s = 'touch calibration'
         w, h = self.getsize(s, size=20)
-        self.draw_text((self.width-w)/2, (self.height-h)/2, s, c='green')
+        self.draw_text((self.width - w)/2, (self.height - h)/2, s, c='green')
         # points where to be touched
         pts = np.array([[20, 20],
                         [self.width-20, 20],
@@ -596,8 +606,8 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 print('[Calibration] touch at {}, {}'.format(*ptt[i]))
                 self.draw_circle(pts[i][0], pts[i][1], 2, 'green', fill=True)
             self._cali_matrix = np.array([
-                    np.polyfit(ptt[:, 0], pts[:, 0], 1),
-                    np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
+                np.polyfit(ptt[:, 0], pts[:, 0], 1),
+                np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
             print(('[Screen GUI] calibration done!\nTarget point:\n{}\n'
                    'Touched point:\n{}\ncalibration result matrix:\n{}\n'
                    '').format(ptt, pts, self._cali_matrix))
@@ -605,7 +615,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             print(e)
         finally:
             self.recover_frame()
-            self._flag_pause.set() # resume _handle_touch thread
+            self._flag_pause.set()  # resume _handle_touch thread
 
     def display_img(self, filename_or_img, *a, **k):
         if isinstance(filename_or_img, str):
@@ -627,7 +637,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         w, h = img.size
         self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
         # add guide text
-        s1 = '任意点击开始'
+        s1 = u'\u4efb\u610f\u70b9\u51fb\u5f00\u59cb'
         w, h = self.getsize(s1, size=18)[0]
         w, h = (self.width-w)/2, self.height - 2*h - 2
         self.draw_text(w, h, s1, 'red', 18)
@@ -656,13 +666,13 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                 self._touch.flushInput()
                 self._read_epoll.poll()
                 raw = self._touch.read_until().strip()
-            if (time.time() - self._last_touch_time) > 1.0/self.touch_sensibility:
-                self._last_touch_time = time.time()
+            if (time.time() - self._last_touch) > 1.0 / self.touch_sensibility:
+                self._last_touch = time.time()
                 try:
                     yxp = raw.split(',')
                     if len(yxp) == 3:
                         pt = self._cali_matrix[1] + \
-                             [int(yxp[1]), int(yxp[0])] * self._cali_matrix[0]
+                            [int(yxp[1]), int(yxp[0])] * self._cali_matrix[0]
                         # print('[Touch Screen] touch at {}, {}'.format(*pt))
                         return abs(pt)
                     else:
@@ -676,16 +686,19 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self._flag_pause.wait()
             x, y = self._get_touch_point()
             for bt in self.widget['button']:
-                if x>bt['x1'] and x<bt['x2'] and y>bt['y1'] and y<bt['y2']:
+                if x > bt['x1'] and x < bt['x2'] and \
+                   y > bt['y1'] and y < bt['y2']:
                     if bt['ct'] != self._element_color['press'][0]:
                         c = self._element_color['press'][0]
                     else:
                         c = self._element_color['press'][1]
-                    bt['c'] = c; self.send('text', **bt)
+                    bt['c'] = c
+                    self.send('text', **bt)
                     if bt['cr'] != 'None':
                         self.send('rect', **bt)
                     time.sleep(0.3)
-                    bt['c'] = bt['ct']; self.send('text', **bt)
+                    bt['c'] = bt['ct']
+                    self.send('text', **bt)
                     if bt['cr'] != 'None':
                         bt['c'] = bt['cr']
                         self.send('rect', **bt)
@@ -699,9 +712,9 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
     def clear(self, x1=None, y1=None, x2=None, y2=None, bg=None, *a, **k):
         if None in [x1, y1, x2, y2]:
-            self.send('clear', c=( bg or self._element_color['bg'] ))
+            self.send('clear', c=(bg or self._element_color['bg']))
         else:
-            self.send('rectf', c=( bg or self._element_color['bg'] ),
+            self.send('rectf', c=(bg or self._element_color['bg']),
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
 
@@ -715,7 +728,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         if self._touch_started:
             self._flag_close.set()
             try:
-                self._touch.write('\xaa\xaa\xaa\xaa') # send close signal
+                self._touch.write('\xaa\xaa\xaa\xaa')  # send close signal
                 time.sleep(0.5)
             except:
                 pass
@@ -745,8 +758,8 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             freeze_frame, recover_frame,
             remove_element, move_element,
         Inherit from `Serial_Screen_commander`:
-            start(overload), send(overload), close(overload), getsize(overload),
-            check_key(useless)
+            start, send, close, getsize --> all overloaded
+            check_key --> useless
     '''
     def __init__(self, spi_device=(0, 1), *a, **k):
         super(SPI_Screen_GUI, self).__init__(spi_device)
@@ -761,46 +774,39 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
     def close(self):
         super(SPI_Screen_GUI, self).close()
         if self._touch_started:
-            # `_flag_close` and `_flag_pause` are defined in `start_touch_screen`
+            # `_flag_close` and `_flag_pause` are
+            # defined in `start_touch_screen`
             self._flag_close.set()
             self._touch.close()
         time.sleep(1)
 
 
-
-
 if __name__ == '__main__':
-#    plt.ion()
-#    fake_data = np.random.random((1, 8, 1000))
-#    print(fake_data.shape)
-#    p = Plotter(window_size = 1000, n_channel=8)
-#    p.plot(fake_data)
-# =============================================================================
-#
-# =============================================================================
-    filename = '../data/test/left-1.mat'
+    #  plt.ion()
+    #  fake_data = np.random.random((1, 8, 1000))
+    #  print(fake_data.shape)
+    #  p = Plotter(window_size = 1000, n_channel=8)
+    #  p.plot(fake_data)
+
+    filename = os.path.join(BASEDIR, 'data', 'test/left-1.mat')
     actionname = os.path.basename(filename)
     data = sio.loadmat(filename)[actionname.split('-')[0]][0]
-    sample_rate=500; sample_time=6
+    sample_rate = 500
+    sample_time = 6
     view_data_with_matplotlib(data, sample_rate, sample_time, actionname)
-# =============================================================================
-#
-# =============================================================================
-#    c = Screen_commander(command_dict=command_dict_uart_screen_v1)
-#    c.start()
-#    time.sleep(1)
-#    print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
-#
-#    data = np.sin(np.linspace(0, 6*np.pi, 600))
-#    data = np.repeat(data.reshape(1, 600), 8, axis=0)
-#    try:
-#        while 1:
-#            screen_plot_one_channel(c, data, width=220, height=76)
-#            screen_plot_multichannels(c, data, range(8))
-#            print('new screen!')
-#    except KeyboardInterrupt:
-#        c.close()
-# =============================================================================
-#
-# =============================================================================
+
+    #  c = Screen_commander(command_dict=command_dict_uart_screen_v1)
+    #  c.start()
+    #  time.sleep(1)
+    #  print( 'setting screen vertical: {}'.format(c.send('dir', 1)) )
+    #
+    #  data = np.sin(np.linspace(0, 6*np.pi, 600))
+    #  data = np.repeat(data.reshape(1, 600), 8, axis=0)
+    #  try:
+    #      while 1:
+    #          screen_plot_one_channel(c, data, width=220, height=76)
+    #          screen_plot_multichannels(c, data, range(8))
+    #          print('new screen!')
+    #  except KeyboardInterrupt:
+    #      c.close()
     pass

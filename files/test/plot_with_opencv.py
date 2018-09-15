@@ -1,6 +1,6 @@
 '''
 Ploting elements
-Hank within MyBCI
+Hank within EmBCI
 '''
 
 import matplotlib.pyplot as plt
@@ -11,9 +11,7 @@ import time
 
 def cv2_plot_raw(x, y, sample_rate=256, win_width=400,
                  imgsize=(200, 400), color=(255, 180, 120)):
-    if len(x) != len(y) \
-        or not isinstance(x, (list, np.ndarray)) \
-        or not isinstance(y, (list, np.ndarray)):
+    if len(x) != len(y):
         raise RuntimeError('x and y must be 1-D list or numpy.array'
                            ' with same length!')
     if imgsize[1] < win_width:
@@ -24,7 +22,7 @@ def cv2_plot_raw(x, y, sample_rate=256, win_width=400,
         y = np.pad(h/2.0 - np.array(y)/float(max(y))*(h/2.0*0.95),
                    (0, win_width+1-len(y) if len(y) <= win_width else 0),
                    'constant', constant_values=(0, 0))
-        for i in xrange(len(y)-win_width):
+        for i in range(len(y) - win_width):
             t = np.array(x)[i:i+win_width] - x[i]
             t = t/float(max(t))*(w*0.95) + w*0.025
             img = cv2.polylines(np.zeros(imgsize).astype(np.int8),
@@ -60,10 +58,10 @@ if __name__ == '__main__':
     csv = np.loadtxt(filepath, delimiter=',')
     try:
         cv2_plot_raw(csv[:, 0][:], csv[:, 1][:])
-        #plt.ion()
-        #time.sleep(1)
-        #for i in range(csv.shape[0]-100):
-        #    plot_raw(csv[i:i+100, 0], csv[i:i+100, 1])
-        #plt.close()
+        #  plt.ion()
+        #  time.sleep(1)
+        #  for i in range(csv.shape[0]-100):
+        #      plot_raw(csv[i:i+100, 0], csv[i:i+100, 1])
+        #  plt.close()
     except Exception as e:
         print(e)

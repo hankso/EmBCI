@@ -11,14 +11,6 @@ Created on Wed Feb 28 10:56:36 2018
 """
 # built-in
 import os
-import sys
-
-
-if '../utils' not in sys.path:
-    sys.path.append('../utils')
-# from ../utils
-import IO
-
 
 # pip install numpy, scipy, pywavelets, pyhht
 # apt install python-tk
@@ -29,15 +21,15 @@ import IO
 # note2:
 #     pyhht relies on python-tk(as well as other dependences), so install it
 #     by apt install or pip install
-import numpy as np
 import pywt
-import scipy
-from scipy import signal, sparse, interpolate as ip
 import pyhht
+import numpy as np
+from scipy import signal, sparse, interpolate as ip
+
+from . import IO
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
-
 
 
 class Signal_Info(object):
@@ -89,7 +81,7 @@ class Signal_Info(object):
             # Input:  n_sample x n_channel x window_size
             # Output: n_sample x result_shape
             elif len(X.shape) == 3:
-                return np.array([func(self, sample, *args, **kwargs) \
+                return np.array([func(self, sample, *args, **kwargs)
                                  for sample in X])
 
             # 3D+
@@ -104,10 +96,10 @@ class Signal_Info(object):
         param_collector.__name__ = func.__name__
         return param_collector
 
+    #
+    # Time domain features
+    #
 
-    '''
-    Time domain features
-    '''
     @_check_shape
     def Average(self, X):
         '''The most simple feature: average of each channel'''
@@ -230,7 +222,7 @@ class Signal_Info(object):
         '''
         rst = []
         L = X.shape[1]
-        D = sparse.diags([1,-2,1],[0,-1,-2], shape=(L , L-2))
+        D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
         tmp = smooth * D.dot(D.transpose())
         for ch in X:
             w = np.ones(L)
@@ -265,14 +257,14 @@ class Signal_Info(object):
         elif method == 2:
             nch, wsize = X.shape
             t = np.arange(wsize)
-            maxs = [np.concatenate(([0], signal.argrelmax(ch)[-1], [wsize-1])) \
+            maxs = [np.concatenate(([0], signal.argrelmax(ch)[-1], [wsize-1]))
                     for ch in X]
-            mins = [np.concatenate(([0], signal.argrelmin(ch)[-1], [wsize-1])) \
+            mins = [np.concatenate(([0], signal.argrelmin(ch)[-1], [wsize-1]))
                     for ch in X]
             rst = np.array(
-                    [[ip.splev(t, ip.splrep(t[maxs[ch]], X[ch][maxs[ch]])),
-                      ip.splev(t, ip.splrep(t[mins[ch]], X[ch][mins[ch]]))]
-                     for ch in np.arange(nch)])
+                [[ip.splev(t, ip.splrep(t[maxs[ch]], X[ch][maxs[ch]])),
+                  ip.splev(t, ip.splrep(t[mins[ch]], X[ch][mins[ch]]))]
+                 for ch in np.arange(nch)])
             return rst
 
     @_check_shape
@@ -301,10 +293,10 @@ class Signal_Info(object):
         amp = amp[:, int(low/dt):int(high/dt)]**2
         return np.array([np.argmax(amp, 1) * dt + low, np.max(amp, 1)])
 
+    #
+    # Preprocessing methods
+    #
 
-    '''
-    Preprocessing methods
-    '''
     @_check_shape
     def detrend(self, X, method=1):
         '''
@@ -317,7 +309,8 @@ class Signal_Info(object):
             return X - self.baseline(X)
 
     @_check_shape
-    def bandpass(self, X, low, high, order=5, sample_rate=None, register=False):
+    def bandpass(self, X, low, high, order=5,
+                 sample_rate=None, register=False):
         nyq = float(sample_rate or self._fs) / 2
         b, a = signal.butter(order, (low / nyq, high / nyq), 'band')
         if register:
@@ -350,7 +343,7 @@ class Signal_Info(object):
         nyq = float(sample_rate or self._fs) / 2
         if register:
             self._b['notch'], self._a['notch'], self._zi['notch'] = [], [], []
-            for b, a in [signal.iirnotch( freq / nyq, Q ) \
+            for b, a in [signal.iirnotch(freq / nyq, Q)
                          for freq in np.arange(Hz, nyq, Hz)]:
                 self._b['notch'].append(b)
                 self._a['notch'].append(a)
@@ -359,7 +352,7 @@ class Signal_Info(object):
                 X = signal.lfilter(b, a, X, axis=-1)
             return X
         else:
-            for b, a in [signal.iirnotch( freq / nyq, Q ) \
+            for b, a in [signal.iirnotch(freq / nyq, Q)
                          for freq in np.arange(Hz, nyq, Hz)]:
                 X = signal.lfilter(b, a, X, axis=-1)
             return X
@@ -429,10 +422,10 @@ class Signal_Info(object):
         '''
         pass
 
+    #
+    # Frequency domain features
+    #
 
-    '''
-    Frequency domain features
-    '''
     @_check_shape
     def Fast_Fourier_Transform(self, X, sample_rate=None, resolution=1):
         '''
@@ -624,18 +617,18 @@ class Signal_Info(object):
 
         # prepare wavelets
         if use_scipy_signal:
-            wavelets = [wavelet(min(10 * scale, X.shape[1]), scale) \
+            wavelets = [wavelet(min(10 * scale, X.shape[1]), scale)
                         for scale in scales]
         else:
             int_psi, x = pywt.integrate_wavelet(wavelet, precision=10)
             wavelets = []
             for scale in scales:
-                j = np.floor(
-                        np.arange(scale*(x[-1]-x[0])+1) / scale / (x[1]-x[0]))
-                wavelets += [int_psi[ j[j < len(int_psi)].astype(int) ][::-1]]
+                j = np.arange(scale * (x[-1] - x[0]) + 1)
+                j = np.floor(j / scale / (x[1] - x[0]))
+                wavelets.append(int_psi[np.int32(j[j < len(int_psi)])][::-1])
 
         # convolve
-        coef = np.array([[np.convolve(ch, w, mode='same') for w in wavelets] \
+        coef = np.array([[np.convolve(ch, w, mode='same') for w in wavelets]
                          for ch in X])
         if use_scipy_signal:
             freq = None
@@ -721,7 +714,7 @@ class Signal_Info(object):
         return rst
 
     @_check_shape
-    def power_spectrum(self, X, sample_rate=None, method = 2):
+    def power_spectrum(self, X, sample_rate=None, method=2):
         '''
         There are two kinds of defination of power spectrum(PS hereafter).
         1. PS = fft(autocorrelation(X))
@@ -750,10 +743,6 @@ class Signal_Info(object):
         elif method == 2:
             freq, amp = self.fft(X, sample_rate)
             return freq, amp**2 / (freq[1] - freq[0])
-
-
-
-
 
 
 if __name__ == '__main__':

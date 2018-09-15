@@ -18,8 +18,9 @@ import spidev
 import numpy as np
 from gpio4 import SysfsGPIO
 
-# from ./
-from common import time_stamp
+from ..common import time_stamp
+from ..utils.HTMLTestRunner import HTMLTestRunner
+from embci import BASEDIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __filename__ = os.path.basename(__file__)
@@ -178,7 +179,7 @@ class ADS1299_API(spidev.SpiDev):
 
         self._DRDY.edge = 'falling'
         self._epoll = select.epoll()
-        self._epoll.register(self._DRDY, select.EPOLLET|select.EPOLLPRI)
+        self._epoll.register(self._DRDY, select.EPOLLET | select.EPOLLPRI)
         self._opened = True
 
     def start(self, sample_rate):
@@ -190,12 +191,13 @@ class ADS1299_API(spidev.SpiDev):
         assert self._opened, 'you need to open a spi device first'
         if self._started:
             return
-        #======================================================================
-        # power up
-        #======================================================================
-        # self._PWRDN.value=1 # we pull it up to high
 
-        #self._RESET.value=1
+        #
+        # power up
+        #
+
+        # self._PWRDN.value=1 # we pull it up to high
+        # self._RESET.value=1
         self.write(RESET)
 
         # wait for tPOR(2**18*666.0/1e9 = 0.1746) and tBG(assume 0.83)
@@ -205,9 +207,10 @@ class ADS1299_API(spidev.SpiDev):
         # command so registers can be written
         self.write(SDATAC)
 
-        #======================================================================
+        #
         # configure_registers_before_streaming
-        #======================================================================
+        #
+
         # common setting
         self.write_register(REG_CONFIG1, 0b10010000 | SAMPLE_RATE[sample_rate])
         self.write_register(REG_CONFIG2, 0b11010000)
@@ -219,11 +222,11 @@ class ADS1299_API(spidev.SpiDev):
         self.write(START)
         time.sleep(1)
 
-        #======================================================================
+        #
         # start streaming data
-        #======================================================================
-        self.write(RDATAC)
+        #
 
+        self.write(RDATAC)
         self._started = True
 
     def close(self):
@@ -248,6 +251,7 @@ class ADS1299_API(spidev.SpiDev):
         v = self.read_register(REG_CONFIG1)
         self.write_register(REG_CONFIG1, v & ~0b111 | rate)
         self.write(RDATAC)
+        return rate
 
     def set_input_source(self, src):
         assert self._started
@@ -263,11 +267,11 @@ class ADS1299_API(spidev.SpiDev):
         self.write(RDATAC)
 
     @property
-    def do_enable_bias(self):
+    def enable_bias(self):
         return self._enable_bias
 
-    @do_enable_bias.setter
-    def do_enable_bias(self, boolean):
+    @enable_bias.setter
+    def enable_bias(self, boolean):
         assert self._started
         self.write(SDATAC)
         if boolean is True:
@@ -282,11 +286,11 @@ class ADS1299_API(spidev.SpiDev):
         self.write(RDATAC)
 
     @property
-    def do_measure_impedance(self):
+    def measure_impedance(self):
         return self._measure_impedance
 
-    @do_measure_impedance.setter
-    def do_measure_impedance(self, boolean):
+    @measure_impedance.setter
+    def measure_impedance(self, boolean):
         assert self._started
         self.write(SDATAC)
         vs = self.read_registers(REG_CHnSET_BASE, 8)
@@ -381,8 +385,9 @@ REG_INPEDANCE   = 0x56  # measure_impedance
 
 class ESP32_API(ADS1299_API):
     '''
-    Because we only use ESP32 as SPI buffer, its SPI interface is implemented
-    similar with ADS1299. So define this API class in submodule `ads1299_api.py`
+    Because we only use ESP32 as SPI buffer, its SPI interface
+    is implemented similar with ADS1299.
+    So define this API class in submodule `ads1299_api.py`
     '''
     def __init__(self, n_batch=32, scale=4.5/24/2**24):
         self.n_batch = n_batch
@@ -468,7 +473,7 @@ class ESP32_API(ADS1299_API):
             print(' | '.join(SAMPLE_RATE.keys()))
             return
         self.write_register(REG_SR, SAMPLE_RATE[rate])
-        self._sample_rate = rate
+        return rate
 
     def set_input_source(self, src):
         assert self._started
@@ -479,25 +484,29 @@ class ESP32_API(ADS1299_API):
         self.write_register(REG_IS, INPUT_SOURCE[src])
 
     @property
-    def do_enable_bias(self):
+    def enable_bias(self):
         return self._enable_bias
 
-    @do_enable_bias.setter
-    def do_enable_bias(self, boolean):
+    @enable_bias.setter
+    def enable_bias(self, boolean):
         assert self._started
         self.write_register(REG_BIAS, int(boolean))
         self._enable_bias = boolean
 
     @property
-    def do_measure_impedance(self):
+    def measure_impedance(self):
         return self._measure_impedance
 
-    @do_measure_impedance.setter
-    def do_measure_impedance(self, boolean):
+    @measure_impedance.setter
+    def measure_impedance(self, boolean):
         assert self._started
         self.write_register(REG_INPEDANCE, int(boolean))
         self._measure_impedance = boolean
 
+
+#
+# testing
+#
 
 
 class _testADS(unittest.TestCase):
@@ -545,7 +554,6 @@ class _testADS(unittest.TestCase):
         self._ads.do_measure_impedance = tmp
 
 
-
 class _testESP(_testADS):
     def setUp(self):
         from common import Serial_ESP32_commander
@@ -561,14 +569,13 @@ class _testESP(_testADS):
         self._esp.close()
 
 
-
 if __name__ == '__main__':
-    from HTMLTestRunner import HTMLTestRunner
     suite = unittest.TestSuite()
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testADS))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testESP))
-    with open('../test/test.ads1299_api.html', 'w') as f:
+    filename = os.path.join(BASEDIR, 'files/test/test-%s.html' % __file__)
+    with open(filename, 'w') as f:
         HTMLTestRunner(stream=f,
-                       title='ADS1299_API Test Report',
+                       title='%s Test Report' % __name__,
                        description='generated at ' + time_stamp(),
                        verbosity=2).run(suite)

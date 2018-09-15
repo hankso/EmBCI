@@ -12,65 +12,47 @@ import time
 import json
 import sys
 
-
-# pip install numpy
+# pip install numpy matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 
+from .common import time_stamp, check_input, first_use, record_animate
+from .IO import load_data, save_action
+from .preprocessing import Signal_Info
 
-if '../utils' not in sys.path:
-    sys.path.append('../utils')
-# from ../utils
-from common import time_stamp, check_input, first_use, record_animate
-from common import Signal_Info
-from IO import load_data, save_action
-from preprocessing import Processer
-
-
-# TODO: put this in __init__.py
-# =============================================================================
-# __all__ = ['sEMG_Recognition', 'Display_Signal_Info', 'P300', 'SSVEP',
-#            'TGAM_relax', 'MotorImaginary']
-# =============================================================================
+__all__ = [
+    'sEMG_Recognition',
+    'Matplotlib_Plot_Info',
+    'P300',
+    'SSVEP',
+    'TGAM_relax',
+    'MotorImaginary']
 
 
 def sEMG_Recognition(username, reader, model, commander):
     # =========================================================================
     # user initializition
     # =========================================================================
-    if not os.path.exists('./model/' + username):
-        # no this user before
-        try:
-            os.mkdir('./model/' + username)
-            os.mkdir('./data/' + username)
-        except:
-            pass
-        model_flag = True
-    elif os.listdir('./model/' + username):
+    if os.listdir('./model/' + username):
         # there is trained model
-        print('found saved model:', end='')
-        model = [i for i in sorted(os.listdir('./model/' + username))[::-1]
-                 if not i.endswith('.json')]
-        prompt = ('choose one to use:\n    %s\n    0\trecord '
-                  'action data and train a new model\nnum: ') % \
-                  '\n    '.join('%d\t%s' % (n + 1, m)
-                                for n, m in enumerate(model))
-        answer = {str(i+1): model[i] for i in range(len(model))}
-        answer.update({'0': True})
-        model_flag = check_input(prompt, answer)
-        model = prompt = answer = None
+        models = [i for i in sorted(os.listdir('./model/' + username))[::-1]
+                  if not i.endswith('.json')]
+        models.insert(0, 'new model')
+        prompt = ('Please choose one to use:\n    ' +
+                  '\n    '.join(['%d %s' % (n + 1, m)
+                                 for n, m in enumerate(models)]) +
+                  '\nmodel num(default 0): ')
+        answer = {str(i): model for i, model in enumerate(models)}
+        answer[''] = models[0]
+        model = check_input(prompt, answer)
     else:
         # no model, then collect data and train a new one!
-        model_flag = True
-
-    # we must clear workspace frequently on orangepi, which only has 512MB RAM
-    # variables existing:
-    #     'model_flag', 'username', 'reader', 'model', 'commander'
+        model = 'new model'
 
     # =========================================================================
     # record data and train classifier
     # =========================================================================
-    if model_flag is True:
+    if model == 'new model':
         # no pre-saved model
         if not first_use():
             sys.exit('terminated')
@@ -163,8 +145,7 @@ def sEMG_Recognition(username, reader, model, commander):
 
 
 def Matplotlib_Plot_Info(reader, commander):
-    si = Signal_Info()
-    p = Processer(reader.sample_rate, reader.sample_time)
+    si = Signal_Info(reader.sample_rate)
     display_ch = 'channel0'
     try:
         fig, axes = plt.subplots(nrows=3, ncols=2)
@@ -174,20 +155,20 @@ def Matplotlib_Plot_Info(reader, commander):
         axes[0, 0].set_title('Raw data')
         line_raw = axes[0, 0].lines[0]
         # display time series data after notch and remove_DC
-        data = p.remove_DC(p.notch(data))
+        data = si.detrend(si.notch(data))
         axes[0, 1].plot(data[0])
         axes[0, 1].set_title('after notch and remove DC')
         line_wave = axes[0, 1].lines[0]
         # display amp-freq data after fft
-        axes[1, 0].plot(np.log10(p.fft(data)[0]))
+        axes[1, 0].plot(np.log10(si.fft_amp_only(data)[0]))
         axes[1, 0].set_title('channel data after FFT')
         line_fft = axes[1, 0].lines[0]
         # display PSD
-        axes[1, 1].plot(np.log10(p.psd(data)[0]))
+        axes[1, 1].plot(np.log10(si.power_spectrum(data)[0]))
         axes[1, 1].set_title('Power Spectrum Density')
         line_psd = axes[1, 1].lines[0]
         # display 2D array after stft
-        axes[2, 0].imshow(np.log10(p.stft(data)[0]))
+        axes[2, 0].imshow(np.log10(si.stft_amp_only(data)[0]))
         axes[2, 0].set_title('after STFT')
         img_stft = axes[2, 0].images[0]
         # display signal info
@@ -204,15 +185,13 @@ def Matplotlib_Plot_Info(reader, commander):
         while 1:
             data = reader.buffer[display_ch]
             line_raw.set_ydata(data)
-            data = p.remove_DC(p.notch(data))
+            data = si.detrend(si.notch(data))
             line_wave.set_ydata(data[0])
-            line_fft.set_ydata(np.log10(p.fft(data)[0]))
-            line_psd.set_ydata(np.log10(p.psd(data)[0]))
-            img_stft.set_data(np.log10(p.stft(data)[0]))
-            #  e = si.energy(data, 4, 10, fs)[0]
-            #  max_freq, max_amp = si.peek_extract(data, 4, 6, fs)[0]
+            line_fft.set_ydata(np.log10(si.fft_amp_only(data)[0]))
+            line_psd.set_ydata(np.log10(si.power_spetrum(data)[0]))
+            img_stft.set_data(np.log10(si.stft_amp_only(data)[0]))
             text_p.set_text('4-6Hz has max energy %f at %fHz' %
-                            si.peek_extract(data, 4, 6, fs)[0][::-1])
+                            si.find_max_amp(data, 4, 6, fs)[0][::-1])
             text_s.set_text('4-10Hz sum of energy is %f' %
                             si.energy(data, 4, 10, fs)[0])
             plt.show()

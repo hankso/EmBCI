@@ -26,23 +26,18 @@ import serial
 import pylsl
 import mne
 
-# from ./
-from common import mkuserdir, check_input, get_label_list, Timer
-from common import record_animate, time_stamp, virtual_serial
-from common import find_ports, find_outlets, find_spi_devices
-from gyms import TorcsEnv
-from gyms import PlaneClient
-from ads1299_api import ADS1299_API, ESP32_API
-from ili9341_api import ILI9341_API, rgb24to565
-
-if '../src' not in sys.path:
-    sys.path.append('../src')
-
-# from ../src
-import preprocessing as pp
+from .common import mkuserdir, check_input, get_label_list, Timer
+from .common import record_animate, time_stamp, virtual_serial
+from .common import find_ports, find_outlets, find_spi_devices
+from .gyms import TorcsEnv
+from .gyms import PlaneClient
+from .utils.ads1299_api import ADS1299_API, ESP32_API
+from .utils.ili9341_api import ILI9341_API, rgb24to565
+from .utils.HTMLTestRunner import HTMLTestRunner
+from embci import preprocessing as pp, BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 @mkuserdir
@@ -70,22 +65,21 @@ def save_data(username, data, label, sample_rate,
     label_list = get_label_list(username)[0]
     num = '1' if label not in label_list else str(label_list[label] + 1)
 
-    fn = './data/%s/%s.mat'%(username, '-'.join([label, num]))
-    sio.savemat(fn, {label: data, 'sample_rate': sample_rate}, do_compression=True)
+    fn = os.path.join(BASEDIR, 'data', username, '%s-%s.mat' % (label, num))
+    sio.savemat(fn,
+                {label: data, 'sample_rate': sample_rate},
+                do_compression=True)
     print('{} data saved to {}'.format(data.shape, fn))
 
-    if save_fif:
-        if not os.path.exists('./data/fif'):
-            os.mkdir('./data/fif')
-        if not os.path.exists('./data/fif/' + username):
-            os.mkdir('./data/fif/' + username)
-        for sample in data:
-            fn = './data/fif/%s/%s-raw.fif.gz' % (username,
-                                                  '-'.join([label, num]))
-            num += 1
-            info = mne.create_info(ch_names=sample.shape[0], sfreq=sample_rate)
-            mne.io.RawArray(sample, info).save(fn, verbose=0)
-            print('{} data save to {}'.format(sample.shape, fn))
+    #  if save_fif:
+    #      for sample in data:
+    #          fn = './data/fif/%s/%s-raw.fif.gz' % (username,
+    #                                                '-'.join([label, num]))
+    #          num += 1
+    #          info = mne.create_info(ch_names=sample.shape[0],
+    #                                 sfreq=sample_rate)
+    #          mne.io.RawArray(sample, info).save(fn, verbose=0)
+    #          print('{} data save to {}'.format(sample.shape, fn))
 
     if print_summary:
         print(get_label_list(username)[1])
@@ -98,7 +92,8 @@ def load_data(username, print_summary=True):
 
     Output shape: n_samples x n_channel x window_size
     '''
-    if not os.listdir('./data/' + username):
+    userpath = os.path.join(BASEDIR, 'data', username)
+    if not os.listdir(userpath):
         check_input(('There is no data available for this user, please save '
                      'some first, continue? '))
         return np.array([]), np.array([]), {}
@@ -115,9 +110,9 @@ def load_data(username, print_summary=True):
     data = []
     label = []
     for n, action_name in enumerate(label_list):  # n_action
-        for fn in os.listdir('./data/' + username):  # action_num
+        for fn in os.listdir(userpath):  # action_num
             if fn.startswith(action_name) and fn.endswith('.mat'):
-                file_path = './data/%s/%s' % (username, fn)
+                file_path = os.path.join(userpath, fn)
                 dat = sio.loadmat(file_path)[action_name]
                 if len(dat.shape) != 3:
                     print('Invalid data shape{}, '
@@ -160,21 +155,15 @@ def save_action(username, reader, action_list=['relax', 'grab']):
         try:
             if action_name and '-' not in action_name:
                 # input shape: 1 x n_channel x window_size
-
-                #==========================================================
                 save_data(username, reader.data_frame, action_name,
                           reader.sample_rate, print_summary=True)
-                #==========================================================
-
                 # update label_list
                 if action_name in label_list:
                     label_list[action_name] += 1
                 else:
                     label_list[action_name] = 1
-
             print('')
             time.sleep(2)
-
         except AssertionError:
             sys.exit('initialization failed')
         except Exception as e:
@@ -203,15 +192,12 @@ class _basic_reader(object):
         self._started = False
 
         # use these flags to controll the data streaming thread
-        # ======================================================================
         self._flag_pause = multiprocessing.Event()
         self._flag_close = multiprocessing.Event()
-        # ======================================================================
         # self._flag_pause = threading.Event()
         # self._flag_close = threading.Event()
-        # ======================================================================
 
-    def start(self):
+    def start(self, block=False):
         self._flag_pause.set()
         self._flag_close.clear()
         self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
@@ -222,26 +208,27 @@ class _basic_reader(object):
         self._data = np.ndarray(shape=(self.n_channel + 1, self.window_size),
                                 dtype=np.float32, buffer=self._m)
         self._start_time = time.time()
-
-        # ======================================================================
-        self._process = multiprocessing.Process(target=self._stream_data)
-        self._process.daemon = True
-        self._process.start()
-        # ======================================================================
-        # self._thread = threading.Thread(target=self._stream_data)
-        # self._thread.setDaemon(True)
-        # self._thread.start()
-        # ======================================================================
-
-        # block current main thread to fill as last one frame of data
-        time.sleep(self.sample_time)
         self._started = True
+        if block:
+            self._stream_data()
+            return
+        else:
+            self._process = multiprocessing.Process(target=self._stream_data)
+            self._process.daemon = True
+            self._process.start()
+            # self._thread = threading.Thread(target=self._stream_data)
+            # self._thread.setDaemon(True)
+            # self._thread.start()
 
     def _stream_data(self):
         try:
             while not self._flag_close.is_set():
                 self._flag_pause.wait()
                 self._save_data_in_buffer()
+        except KeyboardInterrupt:
+            print(self._name + 'keyboard interrupt')
+        except NotImplementedError:
+            print(self._name + 'cannot use this class directly')
         except Exception as e:
             print(self._name + '{}: {}'.format(type(e), e))
             self.close()
@@ -256,17 +243,16 @@ class _basic_reader(object):
         assert self._started, 'Not started yet!'
         self._flag_close.set()
         time.sleep(0.5)
-        if hasattr(self, '_process') and self._process.is_alive():
-            self._process.terminate()
         self._data = self._data.copy()  # remove reference to old data buffer
         self._m.close()
         self._f.close()
-        os.remove(self._data_file)
+        if os.path.exists(self._data_file):
+            os.remove(self._data_file)
         self._started = False  # you can re-start this reader now, enjoy~~
 
     def restart(self):
         if self._started:
-            return
+            self.close()
         self._flag_close.clear()
         self._flag_pause.set()
         self.start()
@@ -342,6 +328,7 @@ class _basic_reader(object):
 class Fake_data_generator(_basic_reader):
     '''Generate random data, same as any Reader defined in IO.py'''
     _num = 1
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  send_to_pylsl=False, *a, **k):
         super(Fake_data_generator, self).__init__(sample_rate,
@@ -378,6 +365,7 @@ class Files_reader(_basic_reader):
     Read data from mat, fif, csv... file and simulate as a common data reader
     '''
     _num = 1
+
     def __init__(self, filename, sample_rate=250, sample_time=2, n_channel=1,
                  *a, **k):
         super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
@@ -449,6 +437,7 @@ class Pylsl_reader(_basic_reader):
     There should be at least one stream available.
     '''
     _num = 1
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
         super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
         self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
@@ -474,13 +463,13 @@ class Pylsl_reader(_basic_reader):
         print('`%s` opened' % info.source_id)
         n = info.channel_count()
         if n < self.n_channel:
-            print(('{}You want {} channel data but only {} channels is offered '
-                   'by pylsl stream outlet you select. Change n_channel to {}'
+            print(('{}You want {} channel data but only {} channels is offered'
+                   ' by pylsl stream outlet you select. Change n_channel to {}'
                    '').format(self._name, self.n_channel, n, n))
             self.n_channel = n
             self._data = self._data[:(n + 1)]
-        max_buflen = self.sample_time if info.nominal_srate() != 0 \
-                     else int(self.window_size / 100) + 1
+        max_buflen = (self.sample_time if info.nominal_srate() != 0
+                      else int(self.window_size / 100) + 1)
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
@@ -504,9 +493,12 @@ class Serial_reader(_basic_reader):
     There should be at least one port available.
     '''
     _num = 1
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  baudrate=115200, send_to_pylsl=False, *a, **k):
-        super(Serial_reader, self).__init__(sample_rate, sample_time, n_channel)
+        super(Serial_reader, self).__init__(sample_rate,
+                                            sample_time,
+                                            n_channel)
         self._serial = serial.Serial(baudrate=baudrate)
         self._name = '[Serial reader %d] ' % Serial_reader._num
         self._send_to_pylsl = send_to_pylsl
@@ -524,8 +516,8 @@ class Serial_reader(_basic_reader):
         print('`%s` opened.' % port)
         n = len(self._serial.read_until().strip().split(','))
         if n < self.n_channel:
-            print(('{}You want {} channel data but only {} channels is offered '
-                   'by serial port you select. Change n_channel to {}'
+            print(('{}You want {} channel data but only {} channels is offered'
+                   ' by serial port you select. Change n_channel to {}'
                    '').format(self._name, self.n_channel, n, n))
             self.n_channel = n
             self._data = self._data[:(n + 1)]
@@ -558,17 +550,37 @@ class ADS1299_reader(_basic_reader):
     This class is only used on ARM. It depends on class ADS1299_API
     '''
     _singleton = True
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  send_to_pylsl=False, *a, **k):
-        if ADS1299_reader._singleton == False:
+        if ADS1299_reader._singleton is False:
             raise RuntimeError('There is already one ADS1299 reader.')
         super(ADS1299_reader, self).__init__(sample_rate,
                                              sample_time,
                                              n_channel)
         self._name = '[ADS1299 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
-        self._ads = ADS1299_API(sample_rate, bias_enabled, test_mode)
+        self._ads = ADS1299_API(sample_rate)
+
+        self.set_input_source = self._ads.set_input_source
+        self.enable_bias = self._ads.enable_bias
+        self.measure_inpedance = self._ads.measure_impedance
+
         ADS1299_reader._singleton = False
+
+    def __del__(self):
+        ADS1299_reader._singleton = True
+        del self
+
+    def set_sample_rate(self, rate):
+        rst = self._ads.set_sample_rate(rate)
+        if rst is not None:
+            self.sample_rate = rate
+            self.window_size = self.sample_rate * self.sample_time
+            print(self._name + ('sample rate set to {}, you may want to '
+                                'restart reader now').format(rst))
+            return
+        print(self._name + 'invalid sample rate {}'.format(rate))
 
     def start(self, device=(0, 0)):
         if self._started:
@@ -607,9 +619,10 @@ class ESP32_SPI_reader(ADS1299_reader):
     This class is only used on ARM.
     '''
     _singleton = True
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  send_to_pylsl=False, *a, **k):
-        if ESP32_SPI_reader._singleton == False:
+        if ESP32_SPI_reader._singleton is False:
             raise RuntimeError('There is already one ESP32 SPI reader.')
         super(ADS1299_reader, self).__init__(sample_rate,
                                              sample_time,
@@ -617,13 +630,15 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
+
         self.set_input_source = self._esp.set_input_source
-        self.do_enable_bias = self._esp.do_enable_bias
-        self.do_measure_impedance = self._esp.do_measure_impedance
+        self.enable_bias = self._esp.enable_bias
+        self.measure_impedance = self._esp.measure_impedance
         ESP32_SPI_reader._singleton = False
 
-    def start(self, spi_device=(0, 0)):
-        super(ESP32_SPI_reader, self).start(spi_device)
+    def __del__(self):
+        ESP32_SPI_reader._singleton = True
+        del self
 
 
 class Socket_reader(_basic_reader):
@@ -632,6 +647,7 @@ class Socket_reader(_basic_reader):
     understand. Read data from socket.
     '''
     _num = 1
+
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
         super(Socket_reader, self).__init__(sample_rate,
                                             sample_time,
@@ -683,6 +699,7 @@ class Socket_server(object):
     Broadcast data to socket host:port, default to 0.0.0.0:9999
     '''
     _num = 1
+
     def __init__(self, host='0.0.0.0', port=9999):
         # if host is None:
         #     host = get_self_ip_addr()
@@ -707,10 +724,10 @@ class Socket_server(object):
     def _manage_connections(self):
         while not self._flag_close.is_set():
             # manage all connections and wait for new client
-            rdable = select.select([self._server] + self._connections, [], [], 1)
-            if not rdable[0]:
+            rst = select.select([self._server] + self._connections, [], [], 1)
+            if not rst[0]:
                 continue
-            s = rdable[0][0]
+            s = rst[0][0]
             # new connection
             if s is self._server:
                 con, addr = self._server.accept()
@@ -728,7 +745,7 @@ class Socket_server(object):
                     self._connections.remove(s)
                 # client sent some data
                 else:
-                    print('{}recv `{}` from {}:{}'.format(self._name, t, *addr))
+                    print('{}recv {} from {}:{}'.format(self._name, t, *addr))
         print(self._name + 'socket manager say goodbye to you ;-)')
 
     def send(self, data):
@@ -748,99 +765,99 @@ class Socket_server(object):
 
 
 command_dict_plane = {
-        'left':       ['3', 0.5],
-        'right':      ['4', 0.5],
-        'up':         ['1', 0.5],
-        'down':       ['2', 0.5],
-        'disconnect': ['9', 0.5],
-        '_desc': ("plane war game support command : "
+    'left':       ['3', 0.5],
+    'right':      ['4', 0.5],
+    'up':         ['1', 0.5],
+    'down':       ['2', 0.5],
+    'disconnect': ['9', 0.5],
+    '_desc':     ("plane war game support command : "
                   "left, right, up, down, disconnect")}
 
 command_dict_glove_box = {
-        'thumb':        ['1', 0.5],
-        'index':        ['2', 0.5],
-        'middle':       ['3', 0.5],
-        'ring':         ['5', 0.5],
-        'little':       ['4', 0.5],
-        'grab-all':     ['6', 0.5],
-        'relax':        ['7', 0.5],
-        'grab':         ['8', 0.5],
-        'thumb-index':  ['A', 0.5],
-        'thumb-middle': ['B', 0.5],
-        'thumb-ring':   ['C', 0.5],
-        'thumb-little': ['D', 0.5],
-        '_desc':       ("This is a dict for glove box version 1.0.\n"
-                        "Support command:\n\t"
-                        "thumb, index, middle, ring\n\t"
-                        "little, grab-all, relax, grab\n")}
+    'thumb':        ['1', 0.5],
+    'index':        ['2', 0.5],
+    'middle':       ['3', 0.5],
+    'ring':         ['5', 0.5],
+    'little':       ['4', 0.5],
+    'grab-all':     ['6', 0.5],
+    'relax':        ['7', 0.5],
+    'grab':         ['8', 0.5],
+    'thumb-index':  ['A', 0.5],
+    'thumb-middle': ['B', 0.5],
+    'thumb-ring':   ['C', 0.5],
+    'thumb-little': ['D', 0.5],
+    '_desc':       ("This is a dict for glove box version 1.0.\n"
+                    "Support command:\n\t"
+                    "thumb, index, middle, ring\n\t"
+                    "little, grab-all, relax, grab\n")}
 
 command_dict_arduino_screen_v1 = {
-        'point':  ['#0\r\n{x},{y}\r\n', 0.5],
-        'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-        'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
-        'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-        'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
-        'clear':  ['#5\r\n', 1.0],
-        '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
-                  "you need to pass in args as `key`=`value`(dict)\n\n"
-                  "Commands | args\n"
-                  "point    | x, y\n"
-                  "line     | x1, y1, x2, y2\n"
-                  "circle   | x, y, r\n"
-                  "rect     | x1, y1, x2, y2\n"
-                  "text     | x, y, s\n")}
+    'point':  ['#0\r\n{x},{y}\r\n', 0.5],
+    'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+    'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
+    'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
+    'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
+    'clear':  ['#5\r\n', 1.0],
+    '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
+              "you need to pass in args as `key`=`value`(dict)\n\n"
+              "Commands | args\n"
+              "point    | x, y\n"
+              "line     | x1, y1, x2, y2\n"
+              "circle   | x, y, r\n"
+              "rect     | x1, y1, x2, y2\n"
+              "text     | x, y, s\n")}
 
 command_dict_arduino_screen_v2 = {
-        'points': ['P{:c}{}', 0.1],
-        'point':  ['D{:c}{}', 0.05],
-        'text':   ['S{:c}{:s}', 0.1],
-        'clear':  ['C', 0.5],
-        '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
-                  "Commands | Args\n"
-                  "points   | len(pts), bytearray([y for x, y in pts])\n"
-                  "point    | len(pts), bytearray(np.array(pts, np.uint8).reshape(-1))\n"
-                  "text     | len(str), str\n"
-                  "clear    | no args, clear screen\n")}
+    'points': ['P{:c}{}', 0.1],
+    'point':  ['D{:c}{}', 0.05],
+    'text':   ['S{:c}{:s}', 0.1],
+    'clear':  ['C', 0.5],
+    '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
+              "Commands | Args\n"
+              "points   | len(pts), bytearray([y for x, y in pts])\n"
+              "point    | len(pts), bytearray(np.uint8(pts).reshape(-1))\n"
+              "text     | len(str), str\n"
+              "clear    | no args, clear screen\n")}
 
 command_dict_uart_screen_v1 = {
-        'point':  ['PS({x},{y},{c});\r\n', 0.38/220],
-        'line':   ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
-        'circle': ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
-        'circlef':['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
-        'rect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-        'rrect':  ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-        'rectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-        'rrectf': ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-        'text':   ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
-        'dir':    ['DIR({:d});\r\n', 3.0/220],
-        'clear':  ['CLR(0);\r\n', 10.0/220],
-        '_desc': ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
-                  "Commands | Args\n"
-                  "point    | x, y, c\n"
-                  "line     | x1, y1, x2, y2, c\n"
-                  "circle   | x, y, r, c\n"
-                  "circlef  | x, y, r, c, filled circle\n"
-                  "rect     | x1, y1, x2, y2, c\n"
-                  "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
-                  "text     | x, y, s(string), c(color)\n"
-                  "dir      | one num, 0 means vertical, 1 means horizental\n"
-                  "clear    | clear screen will black\n")}
+    'point':   ['PS({x},{y},{c});\r\n', 0.38/220],
+    'line':    ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
+    'circle':  ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
+    'circlef': ['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
+    'rect':    ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
+    'rrect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
+    'rectf':   ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
+    'rrectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
+    'text':    ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
+    'dir':     ['DIR({:d});\r\n', 3.0/220],
+    'clear':   ['CLR(0);\r\n', 10.0/220],
+    '_desc':  ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
+               "Commands | Args\n"
+               "point    | x, y, c\n"
+               "line     | x1, y1, x2, y2, c\n"
+               "circle   | x, y, r, c\n"
+               "circlef  | x, y, r, c, filled circle\n"
+               "rect     | x1, y1, x2, y2, c\n"
+               "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
+               "text     | x, y, s(string), c(color)\n"
+               "dir      | one num, 0 means vertical, 1 means horizental\n"
+               "clear    | clear screen will black\n")}
 
 command_dict_esp32 = {
-        'start':     ['', 0.2],
-        'write':     ['', 0.3],
-        'writereg':  ['', 0.5],
-        'writeregs': ['', 0.5],
-        'readreg':   ['', 0.5],
-        'readregs':  ['', 0.5],
-        '_desc':    ("This dict is used to commucate with onboard ESP32.\n"
-                     "Supported command:\n\t"
-                     "start: init ads1299 and start RDATAC mode\n\t"
-                     "write: nothing\n\t"
-                     "writereg: write single register\n\t"
-                     "writeregs: write a list of registers\n\t"
-                     "readreg: read single register\n\t"
-                     "readregs: read a list of registers\n\t")}
+    'start':     ['', 0.2],
+    'write':     ['', 0.3],
+    'writereg':  ['', 0.5],
+    'writeregs': ['', 0.5],
+    'readreg':   ['', 0.5],
+    'readregs':  ['', 0.5],
+    '_desc':    ("This dict is used to commucate with onboard ESP32.\n"
+                 "Supported command:\n\t"
+                 "start: init ads1299 and start RDATAC mode\n\t"
+                 "write: nothing\n\t"
+                 "writereg: write single register\n\t"
+                 "writeregs: write a list of registers\n\t"
+                 "readreg: read single register\n\t"
+                 "readregs: read a list of registers\n\t")}
 
 
 class _basic_commander(object):
@@ -877,6 +894,7 @@ class Torcs_commander(_basic_commander):
     game to control race car(left, right, throttle, brake...)
     '''
     _num = 1
+
     def __init__(self, command_dict={}, *args, **kwargs):
         super(Torcs_commander, self).__init__(command_dict)
         self._name = '[Torcs commander %d] ' % Torcs_commander._num
@@ -904,8 +922,9 @@ class Plane_commander(_basic_commander):
     Controlling plane with `left`, `right`, `up` and `down`.
     '''
     _singleton = True
+
     def __init__(self, command_dict=command_dict_plane):
-        if Plane_commander._singleton == False:
+        if Plane_commander._singleton is False:
             raise RuntimeError('There is already one Plane Commander.')
         super(Plane_commander, self).__init__(command_dict)
         self._name = '[Plane commander] '
@@ -931,7 +950,8 @@ class Pylsl_commander(_basic_commander):
     Send predict result to pylsl as an online command stream
     '''
     _num = 1
-    def __init__(self, command_dict={'_desc':'send command to pylsl'}):
+
+    def __init__(self, command_dict={'_desc': 'send command to pylsl'}):
         super(Pylsl_commander, self).__init__(command_dict)
         self._name = '[Pylsl commander %d] ' % Pylsl_commander._num
         Pylsl_commander._num += 1
@@ -944,10 +964,11 @@ class Pylsl_commander(_basic_commander):
 
     @Timer.duration('Pylsl commander', 0)
     def send(self, key, *args, **kwargs):
-        if not isinstance(key, str):
-            raise RuntimeError(self._name + ( 'only accept str but got type {}'
-                                              .format(type(key)) ) )
-        self._outlet.push_sample([key])
+        if isinstance(key, str):
+            self._outlet.push_sample([key])
+            return
+        raise RuntimeError(self._name +
+                           'only accept str but got {}'.format(type(key)))
 
     def close(self):
         pass
@@ -955,10 +976,11 @@ class Pylsl_commander(_basic_commander):
 
 class Serial_commander(_basic_commander):
     _lock = threading.Lock()
-    _num =  1
+    _num = 1
+
     def __init__(self, baudrate=9600,
                  command_dict=command_dict_glove_box,
-                 CR = True, LF = True):
+                 CR=True, LF=True):
         super(Serial_commander, self).__init__(command_dict)
         self._serial = serial.Serial(baudrate=baudrate)
         self._CR = CR
@@ -1005,13 +1027,15 @@ class _convert_24bit_to_15():
             return int(float(v) / 0xFFFFFF * 15)
         raise KeyError('')
 
+
 class Serial_Screen_commander(Serial_commander):
     _color_map = {
         str: {
-            'black':0, 'red':1, 'green':2, 'blue':3, 'yellow':4, 'cyan':5,
-            'purple':6, 'gray':7, 'grey':8, 'brown':9, 'orange':13, 'pink':14,
-            'white':15},
-        int:{}}
+            'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
+            'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
+            'orange': 13, 'pink': 14, 'white': 15},
+        int: {}}
+
     def __init__(self, baud=115200, command_dict=command_dict_uart_screen_v1):
         super(Serial_Screen_commander, self).__init__(baud, command_dict)
         self._name = self._name[:-2] + ' for screen' + self._name[-2:]
@@ -1031,8 +1055,8 @@ class Serial_Screen_commander(Serial_commander):
         try:
             cmd = cmd.format(*a, **k)
         except IndexError:
-            print(self._name + 'unmatch key {} - {} and params {}!'.format(
-                    key, cmd, a))
+            print(self._name +
+                  'unmatch key {} - {} and params {}!'.format(key, cmd, a))
         with self._lock:
             self._serial.write(cmd)
         time.sleep(delay)
@@ -1042,7 +1066,7 @@ class Serial_Screen_commander(Serial_commander):
         img = e['img'].copy()
         x1, y1, x2, y2 = e['x1'], e['y1'], e['x2'], e['y2']
         if len(img.shape) == 3:
-            img = img[:,:,0]
+            img = img[:, :, 0]
         cmd, delay = self._command_dict['point']
         with self._lock:
             for x, y in [(x, y) for x in range(x2-x1) for y in range(y2-y1)]:
@@ -1086,20 +1110,22 @@ class _convert_24bit_to_565():
             return rgb24to565(v)
         raise KeyError('')
 
+
 class SPI_Screen_commander(_basic_commander):
     _color_map = {
         str: {
             'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'purple': [0x41, 0x2B],
             'green': [0x07, 0xE0], 'cyan': [0x07, 0xFF], 'yellow': [0xFF, 0xE0],
             'white': [0xFF, 0xFF], 'pink': [0xF8, 0x1F], 'orange': [0xEC, 0xAF],
-            'red': [0xF8, 0x00],},
+            'red': [0xF8, 0x00]},
         int: _convert_24bit_to_565()}
     _singleton = True
+
     def __init__(self, spi_device, width=None, height=None):
-        if SPI_Screen_commander._singleton == False:
+        if SPI_Screen_commander._singleton is False:
             raise RuntimeError('There is already one SPI Screen Commander.')
         self._ili = ILI9341_API(spi_device, width=width, height=height)
-        self._ili.setfont(__dir__ + '/../files/fonts/yahei_mono.ttf')
+        self._ili.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
         self._name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
@@ -1139,8 +1165,9 @@ class SPI_Screen_commander(_basic_commander):
 
     def send(self, key, *a, **k):
         '''
-        Never inherit API class, just use it. Because funcitons with same names
-        may conflict with each other! super(aaa, self).bbb() is not a good idea.
+        Never inherit API class, just use it. Because funcitons with same
+        names may conflict with each other!
+        super(aaa, self).bbb() is not a good idea.
         '''
         if 'c' in k:
             assert type(k['c']) in self._color_map, 'c only can be str or int'
@@ -1149,7 +1176,7 @@ class SPI_Screen_commander(_basic_commander):
             except KeyError:
                 raise ValueError('Unsupported color: {}'.format(k['c']))
         # if 'bg' in k and k['bg'] is not None:
-        #     assert type(k['bg']) in self._color_map, 'bg only can be str or int'
+        #     assert type(k['bg']) in self._color_map, 'bg can be str or int'
         #     try:
         #         k['bg'] = self._color_map[type(k['bg'])][k['bg']]
         #         k['bg'] = list(ILI9341_API.rgb565to888(*k['bg']))
@@ -1170,7 +1197,9 @@ class _testReader(unittest.TestCase):
     def setUp(self):
         print('=' * 80)
         self.username = 'test'
-        self._r = Fake_data_generator(sample_rate=10, sample_time=2, n_channel=8)
+        self._r = Fake_data_generator(sample_rate=10,
+                                      sample_time=2,
+                                      n_channel=8)
         self._r.start()
         print('=' * 80)
 
@@ -1198,7 +1227,6 @@ class _testReader(unittest.TestCase):
         try to load all data of user `test`
         '''
         print('=' * 80)
-        os.chdir('../')
         data, label, action_dict = load_data(self.username)
         print('load data with shape of {}'.format(data.shape))
         print('label: {}'.format(label))
@@ -1211,7 +1239,8 @@ class _testReader(unittest.TestCase):
         print('=' * 80)
         data = np.zeros((1, 8, 250))
         save_data(self.username, data, 'aabbcc', 250, print_summary=True)
-        os.system('rm ./data/%s/aabbcc*' % self.username)
+        datafile = os.path.join(BASEDIR, 'data', self.username, 'aabbcc*')
+        os.system('rm ' + datafile)
         print('=' * 80)
 
 
@@ -1230,11 +1259,12 @@ class _testCommander(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    from HTMLTestRunner import HTMLTestRunner
     suite = unittest.TestSuite()
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testReader))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testCommander))
-    with open('../test/test.{}.html'.format(__filename__), 'w') as f:
-        HTMLTestRunner(
-            stream=f, title='File {} Test Report'.format(__filename__),
-            description='generated at ' + time_stamp(), verbosity=2).run(suite)
+    filename = os.path.join(BASEDIR, 'files/test/test-%s.html' % __file__)
+    with open(filename, 'w') as f:
+        HTMLTestRunner(stream=f,
+                       title='%s Test Report' % __name__,
+                       description='generated at ' + time_stamp(),
+                       verbosity=2).run(suite)
