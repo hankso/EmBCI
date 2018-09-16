@@ -1,9 +1,12 @@
 #!/usr/bin env python
 # -*- coding: utf8 -*-
-
+import os
 import time
 
-# from ./
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+__file__ = os.path.basename(__file__)
+os.chdir(__dir__)
+
 from bottle import route, request, response, default_app
 
 

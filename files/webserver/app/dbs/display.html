@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <title>Display</title>
+    <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
+    <link rel="stylesheet" href="css/index.css"/>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/display.css">
+    <script src="js/echarts.common.min.js"></script>
+    <script src="js/macarons.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="top">
+    <img src="images/logo.jpg" alt="logo" id="logo">
+    <div class="top-bar">
+        <form class="form-inline content-center">
+            <div class="odd">
+                <div class=from-group">
+                    <label for="name">姓名</label>
+                    <input type="text" placeholder="请输入姓名" class="form-control list" id="name" >
+                </div>
+            </div>
+
+            <div class="even">
+                <div class="from-group">
+                    <label for="gender">性别</label>
+                    <select  id="gender" class="from-control list" style="background-color: #02b2b5;">
+                        <option style="display: none">请选择性别</option>
+                        <option>男</option>
+                        <option>女</option>
+                    </select>
+                </div>
+            </div>
+            <div class="odd">
+                <div class="form-group">
+                    <label for="age">年龄</label>
+                    <input type="number" placeholder="请输入年龄" class="form-control list" id="age">
+                </div>
+            </div>
+            <div class="even">
+                <div class="form-group">
+                    <label for="id">ID</label>
+                    <input type="number" placeholder="请输入id" class="form-control list" id="id">
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="plane">
+    <div class="display">
+        <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
+            <!-- 默认标签 -->
+            <li role="presentation" id="ch1" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
+            <li role="presentation" id="ch2" ><a href="" role="tab" data-toggle="tab">CH2</a></li>
+            <li role="presentation" id="ch3"><a href="" role="tab" data-toggle="tab">CH3</a></li>
+            <li role="presentation" id="ch4"><a href="" role="tab" data-toggle="tab">CH4</a></li>
+            <li role="presentation" id="ch5"><a href="" role="tab" data-toggle="tab">CH5</a></li>
+            <li role="presentation" id="ch6"><a href="" role="tab" data-toggle="tab">CH6</a></li>
+            <li role="presentation" id="ch7"><a href="" role="tab" data-toggle="tab">CH7</a></li>
+            <li role="presentation" id="ch8"><a href="" role="tab" data-toggle="tab">CH8</a></li>
+        </ul>
+        <div class="graph-display1" id="chart1">
+        </div>
+
+        <div class="graph-display2" id="chart2">
+        </div>
+        <div class="data-display">
+            <ul>
+                <li>
+                    <div class="digital term tleft ttop invisible"></div>
+                    <div class="digital term ttop">术前</div>
+                    <div class="digital term ttop">术后</div>
+                    <div class="digital term ttop">改善率</div>
+                </li>
+                <li>
+                    <div class="digital term tleft">震颤</div>
+                    <button class="btn btn-primary digital col1" id="bt">test</button>
+                    <button class="btn btn-info digital col2" id="at">test</button>
+                    <button class="btn btn-success digital col3" id="t">10%</button>
+                </li>
+                <li>
+                    <div class="digital term tleft">僵直</div>
+                    <button class="btn btn-primary digital col1" id="bs">test</button>
+                    <button class="btn btn-info digital col2" id="as">test</button>
+                    <button class="btn btn-success digital col3" id="s">%</button>
+                </li>
+                <li>
+                    <div class="digital term tleft">运动</div>
+                    <button class="btn btn-primary digital col1" id="bm">test</button>
+                    <button class="btn btn-info digital col2" id="am">test</button>
+                    <button class="btn btn-success digital col3" id="m">%</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="bottom-bar">
+        <a href="/index.html" class="btn btn-info back digital">返回主页</a>
+        <a class="btn btn-info report digital" id="submit">生成报告</a>
+    </div>
+</div>
+<div class="bottom">
+    &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
+</div>
+<script type="text/javascript">
+
+    function update(before, after, rate){
+        var bef = before.html();
+        var aft = after.html();
+        if(!isNaN(bef)&&!isNaN(aft)) {
+            var res = (bef-aft)/bef*100;
+            res = res.toFixed(2);
+            rate.html(res+'%');
+        }
+    }
+
+    $(function () {
+        var colors = ['#000000','#5dd39e','#028090','#00a896','#05668d','#02c39a','#457b9d','#525174','#513b56'];
+        var nowColor = colors[1];
+        var x=0;
+        function randomData1() {
+            var y = (Math.random()*20-10)/25;
+            var sample=[x/500,y];
+            x++;
+            if (x >= 500) {
+                x=0;
+            }
+            return sample;
+        }
+
+        var myChart1 = echarts.init(document.getElementById('chart1'),'macarons');
+
+        var data1 = [];
+
+        var option1 = {
+            grid: {
+                top:50,
+                bottom:60
+            },
+            xAxis:{
+                type: 'value',
+                name: 'Time/s',
+                nameLocation: 'middle',
+                nameTextStyle: {
+                    padding:[5,0,0,0]
+                },
+                max: 1,
+                min: 0,
+                splitLine: {
+                    show: false
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#333'
+                    },
+                    onZero:false
+                }
+            },
+            yAxis:{
+                type:'value',
+                name: 'Voltage/V',
+                nameLocation: 'end',
+                axisLine: {
+                    lineStyle: {
+                        color: '#333'
+                    }
+                },
+                splitLine: {
+                    show: false
+                },
+                boundaryGap:['10%','10%'],
+                max: 0.5,
+                min: -0.5
+
+            },
+            dataZoom:[
+                {
+                    id:'dataZoomX',
+                    type:'slider',
+                    xAxisIndex: [0],
+                },{
+                    id:'dataZoomY',
+                    type:'inside',
+                    yAxisIndex: [0],
+                }
+            ],
+            series:[{
+                name:'test',
+                type:'line',
+                showSymbol:false,
+                hoverAnimation: false,
+                smooth:false,
+                data:data1,
+                itemStyle: {
+                    normal: {
+                        lineStyle:{
+                            color: nowColor,
+                            width:1
+                        }
+                    }
+                }
+            }]
+        };
+
+        myChart1.setOption(option1);
+
+        // setInterval(function () {
+        //     if (x == 0) {
+        //         data1=[];
+        //         myChart1.setOption({
+        //             series:{
+        //                 data: []
+        //             }
+        //         })
+        //     }
+        //
+        //     myChart1.appendData({
+        //         seriesIndex:0,
+        //         data: [randomData1()]
+        //     })
+        // }, 2);
+
+
+        // 替换上面的setInterval
+
+        var ws = new WebSocket("ws://10.42.0.1:9999");//填写websocket服务器url
+        ws.open = function () {
+            ws.binaryType = 'arraybuffer';
+            console.log('success');
+        };
+
+        ws.onclose = function () {
+            console.log('close');
+        };
+
+        ws.onerror = function() {
+            alert('网络错误，请检查网络后刷新重试')
+        };
+
+        ws.onbeforeunload = function(){
+            ws.close();
+        };
+
+        ws.onmessage = function (msg) {
+
+            console.log(msg.data.byteLength);
+            var list = new Float32Array(msg.data);
+            for (var i=0;i<list.length;i++,x++) {
+                if (x >= 500) {
+                    x=0;
+                    myChart1.setOption({series:{data: []}})
+                }
+                myChart1.appendData({
+                    seriesIndex:0,
+                    data:[x, list[i]]
+                });
+            }
+            // if(x>=500) {
+            //     x=0;
+            //     myChart1.setOption({series:{data: []}})
+            // }
+            // var inf = $.parseJSON(msg.data);
+            // myChart1.appendData({
+            //     seriesIndex:0,
+            //     data:[[inf.x], [inf.y]]
+            // })
+        };
+
+
+        function randomData2() {
+            var x=0;
+            var sample=[];
+            for(;x<100;x++) {
+                var y = Math.random()*10;
+                sample.push([x/4,y]);
+            }
+            return sample;
+        }
+
+        var myChart2 = echarts.init(document.getElementById('chart2'),'macarons');
+
+        var data2 = randomData2();
+
+        var option2 = {
+            grid: {
+                top:10,
+                bottom:40
+            },
+            xAxis:{
+                type: 'value',
+                name: 'Frequency/Hz',
+                nameLocation: 'middle',
+                min: 0,
+                max: 25,
+                nameTextStyle: {
+                    padding:[5,0,0,0]
+                },
+                axisLine: {
+                    lineStyle: {
+                        color: '#333'
+                    }
+                }
+            },
+            yAxis:{
+                type:'value',
+                name: 'Amp/V',
+                nameLocation: 'middle',
+                nameTextStyle: {
+                    padding:[0,0,10,0]
+                },
+                boundaryGap: ['0%', '20%'],
+                axisLine: {
+                    lineStyle: {
+                        color: '#333'
+                    }
+                }
+            },
+            dataZoom:[
+                {
+                    id:'dataZoomX',
+                    type:'slider',
+                    xAxisIndex: [0],
+                },{
+                    id:'dataZoomY',
+                    type:'inside',
+                    yAxisIndex: [0]
+                }
+            ],
+
+            series:[{
+                name:'test',
+                type:'line',
+                showSymbol:false,
+                hoverAnimation: true,
+                smooth: false,
+                data:data2,
+                itemStyle: {
+                    normal: {
+                        lineStyle:{
+                            color: nowColor,
+                            width:1
+                        }
+                    }
+                }
+            }],
+        };
+
+        myChart2.setOption(option2);
+
+        // setInterval(function () {
+        //     option2.series={
+        //         name:'test',
+        //         type:'line',
+        //         showSymbol:false,
+        //         hoverAnimation: true,
+        //         smooth:false,
+        //         data:randomData2()
+        //     };
+        //
+        //     myChart2.setOption(option2);
+        // }, 1000);
+
+
+        setInterval(function () {
+            $.ajax({
+                method: 'GET',
+                url: "data/freq", //获取频域波形数据的url地址
+                dataType: 'json',
+                success: function (msg) { //从服务器返回一个json对象，格式为{data:[[]]}，例如{data:[[0.1,2.0],[0.2,2.1]..,[x,y],..]}，其中共包含500个二元数组，请确保数组中元素排列顺序按x递增
+                    console.log(msg.data);
+                    console.log('succeed');
+                    option2.series={
+                        name:'test',
+                        type:'line',
+                        showSymbol:false,
+                        hoverAnimation: true,
+                        smooth:false,
+                        data:msg.data
+                };
+                    myChart2.setOption(option2);
+                }
+            })
+        },1000);
+
+
+        $('#checkboard>li').click(function () {
+            var id = this.id;
+            nowColor = colors[id[2]];
+            x=0;
+            data1=[];
+            myChart1.setOption({
+                series:{
+                    data: data1,
+                    itemStyle: {
+                        normal: {
+                            lineStyle:{
+                                color: nowColor,
+                            }
+                        }
+                    }
+                },
+            });
+            option2.series.lineStyle = {color: nowColor};
+            myChart2.setOption(option2);
+            $.ajax({
+                method: "GET",
+                url: "/app/dbs/data/"+id, //改为切换数据源的url
+                success: function (data) {
+
+                },
+                error: function (xhr) {
+                    alert('网络错误，请检查网络连接后刷新重试');
+                }
+            })
+        });
+
+        var upColor = '#333333';
+        var be = [$('#bt'), $('#bs'), $('#bm')];
+        var af = [$('#at'), $('#as'), $('#am')];
+        var bFlag = {
+            0: false,
+            1: false,
+            2: false
+        };
+        var aFlag = {
+            0: false,
+            1: false,
+            2: false
+        };
+        var bTime = {
+            0: '',
+            1: '',
+            2: ''
+        };
+        var aTime = {
+            0: '',
+            1: '',
+            2: ''
+        };
+        var rate = [$('#t'), $('#s'), $('#m')];
+
+        function updateButton (flag, num, ba, interval, flush){
+            console.log(flag);
+            if (flag[num]==false) {
+                flag[num] = true;
+                console.log(flag);
+                ba[num].css('color', '#ffffff');
+                interval[num] = setInterval(function () {
+                    $.ajax({
+                        method: "GET",
+                        url: "/app/dbs/data/coef", //改为获取术前震颤特征值数据的地址
+                        dataType: 'json',
+                        success: function (data) { //data即为获取到的特征值，为纯文本格式即字符串，例如"15.2"
+                            var n = parseFloat(data[num]).toFixed(4);
+                            ba[num].text(n);
+                            if(flush)
+                                update( be[num], af[num], rate[num]);
+                        }
+                });
+                }, 1000);
+            }
+            else {
+                flag[num] = false;
+                clearInterval(interval[num]);
+                ba[num].css('color', upColor);
+            }
+        }
+
+        be[0].click(function () {
+            updateButton(bFlag, 0, be, bTime, false)
+        });
+
+        af[0].click(function () {
+            updateButton(aFlag, 0, af, aTime, true)
+        });
+
+        be[1].click(function () {
+            updateButton(bFlag, 1, be, bTime, false)
+        });
+
+        af[1].click(function () {
+            updateButton(aFlag, 1, af, aTime, true)
+        });
+
+        be[2].click(function () {
+            updateButton(bFlag, 2, be, bTime, false)
+        });
+
+        af[2].click(function () {
+            updateButton(aFlag, 2, af, aTime, true)
+        });
+
+        $('.col3').click(function () {
+            $(this).text('%');
+        });
+        //提交病人数据
+
+        $('#submit').click(function () {
+            var subData = {
+                name: $('#name').val(),
+                gender: $('#gender').val(),
+                age: $('#age').val(),
+                id: $('#id').val(),
+            };
+            if(subData.name==''||subData.gender=='请选择性别'||subData.age==''||subData.age<0||subData.id==''){
+                alert('您填写的数据有误，请检查后重新提交');
+                return;
+            }
+            $.ajax({
+                method: 'GET',
+                url:'/app/dbs/report', //改为服务器对应地址
+                data: subData,
+                success: function () {
+                    alert('数据提交成功,即将跳转到报告界面');
+                    window.location.href='report.html';//目前为了调试先用此值，后期根据服务器文件结构调整
+                }
+            })
+        });
+    });
+</script>
+</body>
+</html>

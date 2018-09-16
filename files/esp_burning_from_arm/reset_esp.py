@@ -10,7 +10,9 @@ Time: Thu 02 Aug 2018 10:21:59 AM UTC
 import os
 import sys
 
-os.chdir(os.path.join(os.path.abspath(__file__), '../../'))
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+BASEDIR = os.path.abspath(os.path.join(__dir__, '../../'))
+sys.path.append(BASEDIR)
 from embci.common import reset_esp
 
 if __name__ == '__main__':

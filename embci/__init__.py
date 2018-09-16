@@ -12,15 +12,16 @@ project page: https://gitlab.com/hankso/pyemg
 import os
 import sys
 
-__all__ = []
-
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
 BASEDIR = os.path.abspath(os.path.join(__dir__, '../'))
 
 if sys.version_info.major == 2:
-    input == raw_input
+    input = raw_input
+    unicode = unicode
+    reduce = reduce
 elif sys.version_info.major == 3:
+    input = input
     unicode = None
     from functools import reduce

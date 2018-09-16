@@ -17,19 +17,27 @@ import threading
 # pip install spidev, pillow, numpy, gpio4
 import spidev
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 from gpio4 import SysfsGPIO
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    _NO_PIL_ = False
+except:
+    _NO_PIL_ = True
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 # ILI9341 Pin mapping
+# This pin mapping is only used on Orange Pi Zero Plus[2]
+# Adjust it to proper pin number on your platform before runnning
 PIN_DC              = 2
 PIN_RST             = 3
+
 # constants
 WIDTH               = 320
 HEIGHT              = 240
+
 # ILI9341 registers
 ILI9341_NOP         = 0x00
 ILI9341_SWRESET     = 0x01
@@ -75,6 +83,7 @@ ILI9341_RDID4       = 0xDD
 ILI9341_GMCTRP1     = 0xE0
 ILI9341_GMCTRN1     = 0xE1
 ILI9341_PWCTR6      = 0xFC
+
 # colors                                R   G   B
 ILI9341_BLACK       = [0x00, 0x00]  #   0   0   0
 ILI9341_BLUE        = [0x00, 0x1F]  #   0   0 255
@@ -87,6 +96,7 @@ ILI9341_WHITE       = [0xFF, 0xFF]  # 255 255 255
 ILI9341_PURPLE      = [0x41, 0x2B]  # 128   0 128
 ILI9341_ORANGE      = [0xFD, 0xC0]  # 255 160  10
 ILI9341_GREY        = [0x84, 0x10]  # 128 128 128
+
 # rotation definition
 ILI9341_MADCTL_MY   = 0x80
 ILI9341_MADCTL_MX   = 0x40
@@ -261,11 +271,11 @@ class ILI9341_API(spidev.SpiDev):
         self._command(0xE1); self._data([0x00, 0x0E, 0x14, 0x03, 0x11,
                                          0x07, 0x31, 0xC1, 0x48, 0x08,
                                          0x0F, 0x0C, 0x31, 0x36, 0x0F])
-        self._command(0x11)    # Exit Sleep
+        self._command(0x11)   # Exit Sleep
         time.sleep(0.12)
-        self._command(0x29)    # Display on
+        self._command(0x29)   # Display on
         time.sleep(0.2)
-        self.set_rotation(3)
+        self.set_rotation(3)  # Set screen direction
         self.clear()
 
     def close(self, *a, **k):
@@ -444,6 +454,8 @@ class ILI9341_API(spidev.SpiDev):
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
+        if _NO_PIL_:
+            return
         if self.font is None:
             print('[ILI9341 API] font not set yet!')
             return

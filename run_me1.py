@@ -8,7 +8,6 @@ Created on Thu Apr 26 19:27:13 2018
 # built-in
 from __future__ import print_function
 import os
-import sys
 import time
 import threading
 import subprocess
@@ -22,19 +21,14 @@ from PIL import Image, ImageDraw
 from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.pdfgen import canvas
 
-for path in ['./src', './utils']:
-    if path not in sys.path:
-        sys.path.append(path)
-
-# from ./utils
-from common import check_input, reset_esp, time_stamp
-from preprocessing import Signal_Info
-from visualization import SPI_Screen_GUI as Screen_GUI
-from IO import ESP32_SPI_reader as Reader, Socket_server
+from embci.common import check_input, reset_esp, time_stamp
+from embci.preprocessing import Signal_Info
+from embci.visualization import SPI_Screen_GUI as Screen_GUI
+from embci.IO import ESP32_SPI_reader as Reader, Socket_TCP_server
 
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 ILI9341_BLUE        = [0x00, 0x1F]  #   0   0 255
@@ -96,7 +90,7 @@ def reboot(*a, **k):
     os.system('reboot')
 
 
-def generate_pdf(*a, username=u'test', gender=u'\u7537', id=0, age=20,
+def generate_pdf(username='test', gender=u'男', id=0, age=20,
                  fontname='Mono', fontpath='files/fonts/yahei_mono.ttf',
                  **k):
     if fontname not in pdfmetrics.getRegisteredFontNames():
@@ -110,9 +104,9 @@ def generate_pdf(*a, username=u'test', gender=u'\u7537', id=0, age=20,
     c.line(30, 120, 580, 120)
     c.drawString(35, 150,
                  (u'姓名：   {}    '
-                  '性别：   {}    '
-                  '年龄：   {}    '
-                  '病号ID： {}    ').format(username, gender, age, id))
+                  u'性别：   {}    '
+                  u'年龄：   {}    '
+                  u'病号ID： {}    ').format(username, gender, age, id))
     c.line(30, 165, 580, 165)
     c.line(30, 710, 580, 710)
     c.drawString(35, 740, u'改善率    震颤： 80%    僵直： 80%    运动： 80%')
@@ -489,10 +483,10 @@ if __name__ == '__main__':
 
     reader = Reader(sample_rate=500, sample_time=2, n_channel=8)
     reader.start()
-    server = Socket_server()
+    server = Socket_TCP_server()
     server.start()
     si = Signal_Info(500)
     s = Screen_GUI()
     change_page()
-    s.start_touch_screen('/dev/ttyS1', block=True)
-    #  IPython.embed()
+    s.start_touch_screen('/dev/ttyS1', block=False)
+    IPython.embed()

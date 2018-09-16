@@ -23,7 +23,7 @@ from ..utils.HTMLTestRunner import HTMLTestRunner
 from embci import BASEDIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 # ADS1299 Pin mapping

@@ -26,7 +26,7 @@ from gpio4 import SysfsGPIO
 from embci import BASEDIR, input, reduce
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
@@ -277,6 +277,8 @@ def reset_esp(flash=False):
     boot.export = False
     rst.export = False
 
+    time.sleep(0.5)
+
 
 def virtual_serial():
     '''
@@ -380,16 +382,18 @@ def get_self_ip_addr():
     '''
     Create a UDP socket which can broadcast data packages even there is no
     listeners. So this socket can actually connect to any hosts you offer
-    even they are unreachable. Here use '8.8.8.8' google public DNS addr.
+    even they are unreachable. Here connect to '8.8.8.8' google public DNS
+    server addr.
     '''
     try:
-        tmp_s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        tmp_s.connect(('8.8.8.8', 1))
-        host, port = tmp_s.getsockname()
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 8))
+        host, port = s.getsockname()
     except:
-        host = '127.0.0.1'
+        host = socket.gethostbyname(socket.gethostname())
     finally:
-        tmp_s.close()
+        s.shutdown(socket.SHUT_RDWR)
+        s.close()
         return host
 
 

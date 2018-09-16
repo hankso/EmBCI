@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+import os
+#  import sys
 
-# from ./
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+__file__ = os.path.basename(__file__)
+os.chdir(__dir__)
+
+#  sys.path.append(os.path.abspath(os.path.join(__dir__, '../../')))
 from bottle import get, post, request, default_app
 
 

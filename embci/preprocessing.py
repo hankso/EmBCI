@@ -26,10 +26,10 @@ import pyhht
 import numpy as np
 from scipy import signal, sparse, interpolate as ip
 
-from . import IO
+import embci
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 class Signal_Info(object):
@@ -67,7 +67,7 @@ class Signal_Info(object):
         def param_collector(self, X, *args, **kwargs):
             if isinstance(X, tuple):
                 return func(self, X, *args, **kwargs)
-            if isinstance(X, IO._basic_reader):
+            if isinstance(X, embci.IO._basic_reader):
                 X._data = param_collector(self, X._data, *args, **kwargs)
                 return X
             X = np.atleast_2d(X)
@@ -744,6 +744,8 @@ class Signal_Info(object):
             freq, amp = self.fft(X, sample_rate)
             return freq, amp**2 / (freq[1] - freq[0])
 
+
+__all__ = ['Signal_Info']
 
 if __name__ == '__main__':
     s = Signal_Info(500)

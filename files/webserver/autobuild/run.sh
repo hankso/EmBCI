@@ -22,7 +22,10 @@ fi
 
 # sites conf
 SITE=/etc/apache2/sites-available/000-default.conf
-mv $SITE $SITE.$(date +"%Y%m%d")
+SITE_T=$SITE.$(date +"%Y%m%d")
+echo "moving $SITE to $SITE_T"
+mv $SITE $SITE_T
+echo "copying 0-sites.conf as $SITE\n$(cat 0-sites.conf)"
 cp 0-sites.conf $SITE
 
 # wsgi for python

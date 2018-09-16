@@ -11,6 +11,7 @@ import os
 import sys
 import time
 import mmap
+import signal
 import socket
 import select
 import unittest
@@ -19,22 +20,22 @@ import multiprocessing
 from ctypes import c_uint16
 
 # pip install numpy, scipy, serial, mne, spidev, pylsl
-from scipy import io as sio
-from scipy import signal
+import scipy
 import numpy as np
 import serial
 import pylsl
-import mne
+#  import mne
 
 from .common import mkuserdir, check_input, get_label_list, Timer
-from .common import record_animate, time_stamp, virtual_serial
+from .common import time_stamp, virtual_serial
 from .common import find_ports, find_outlets, find_spi_devices
 from .gyms import TorcsEnv
 from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
 from .utils.ili9341_api import ILI9341_API, rgb24to565
 from .utils.HTMLTestRunner import HTMLTestRunner
-from embci import preprocessing as pp, BASEDIR, unicode
+from .preprocessing import Signal_Info
+from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -66,9 +67,9 @@ def save_data(username, data, label, sample_rate,
     num = '1' if label not in label_list else str(label_list[label] + 1)
 
     fn = os.path.join(BASEDIR, 'data', username, '%s-%s.mat' % (label, num))
-    sio.savemat(fn,
-                {label: data, 'sample_rate': sample_rate},
-                do_compression=True)
+    scipy.io.savemat(fn,
+                     {label: data, 'sample_rate': sample_rate},
+                     do_compression=True)
     print('{} data saved to {}'.format(data.shape, fn))
 
     #  if save_fif:
@@ -113,7 +114,7 @@ def load_data(username, print_summary=True):
         for fn in os.listdir(userpath):  # action_num
             if fn.startswith(action_name) and fn.endswith('.mat'):
                 file_path = os.path.join(userpath, fn)
-                dat = sio.loadmat(file_path)[action_name]
+                dat = scipy.io.loadmat(file_path)[action_name]
                 if len(dat.shape) != 3:
                     print('Invalid data shape{}, '
                           'n_sample x n_channel x window_size is recommended! '
@@ -151,7 +152,6 @@ def save_action(username, reader, action_list=['relax', 'grab']):
         action_name = name_list.pop()
         print('action name: %s, start recording in 2s' % action_name)
         time.sleep(2)
-        record_animate(reader.sample_time)
         try:
             if action_name and '-' not in action_name:
                 # input shape: 1 x n_channel x window_size
@@ -197,7 +197,7 @@ class _basic_reader(object):
         # self._flag_pause = threading.Event()
         # self._flag_close = threading.Event()
 
-    def start(self, block=False):
+    def start(self, block=False, method='process'):
         self._flag_pause.set()
         self._flag_close.clear()
         self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
@@ -212,21 +212,23 @@ class _basic_reader(object):
         if block:
             self._stream_data()
             return
-        else:
+        elif method == 'process':
             self._process = multiprocessing.Process(target=self._stream_data)
             self._process.daemon = True
             self._process.start()
-            # self._thread = threading.Thread(target=self._stream_data)
-            # self._thread.setDaemon(True)
-            # self._thread.start()
+        elif method == 'thread':
+            self._thread = threading.Thread(target=self._stream_data)
+            self._thread.setDaemon(True)
+            self._thread.start()
+        else:
+            raise RuntimeError('unknown method {}'.format(method))
 
     def _stream_data(self):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         try:
             while not self._flag_close.is_set():
                 self._flag_pause.wait()
                 self._save_data_in_buffer()
-        except KeyboardInterrupt:
-            print(self._name + 'keyboard interrupt')
         except NotImplementedError:
             print(self._name + 'cannot use this class directly')
         except Exception as e:
@@ -292,7 +294,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._ch_last_index == self._index:
-                if (time.time() - t) > (2.0 / self.sample_rate):
+                if (time.time() - t) > (10.0 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._ch_last_index = self._index
@@ -316,8 +318,8 @@ class _basic_reader(object):
             for item in items:
                 self = self.__getitem__(item)
             return self
-        if isinstance(items, str) and items in vars(pp.Signal_Info):
-            return getattr(pp.Signal_Info(self.sample_rate), items)(self)
+        if isinstance(items, str) and items in vars(Signal_Info):
+            return getattr(Signal_Info(self.sample_rate), items)(self)
         if isinstance(items, (slice, int)):
             return self._data[items]
         else:
@@ -338,7 +340,7 @@ class Fake_data_generator(_basic_reader):
         self._send_to_pylsl = send_to_pylsl
         Fake_data_generator._num += 1
 
-    def start(self):
+    def start(self, *a, **k):
         if self._started:
             self.resume()
             return
@@ -348,7 +350,7 @@ class Fake_data_generator(_basic_reader):
                 pylsl.StreamInfo(
                     'fake_data_generator', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'used for debugging'))
-        super(Fake_data_generator, self).start()
+        super(Fake_data_generator, self).start(*a, **k)
 
     def _save_data_in_buffer(self):
         time.sleep(1.0 / self.sample_rate)
@@ -373,7 +375,7 @@ class Files_reader(_basic_reader):
         self._name = '[Files reader %d] ' % Files_reader._num
         Files_reader._num += 1
 
-    def start(self):
+    def start(self, *a, **k):
         if self._started:
             self.resume()
             return
@@ -385,7 +387,7 @@ class Files_reader(_basic_reader):
         try:
             if self.filename.endswith('.mat'):
                 actionname = os.path.basename(self.filename).split('-')[0]
-                mat = sio.loadmat(self.filename)
+                mat = scipy.io.loadmat(self.filename)
                 data = mat[actionname][0]
                 sample_rate = mat.get('sample_rate', None)
                 print(self._name + 'load data with shape of {} @ {}Hz'.format(
@@ -399,7 +401,7 @@ class Files_reader(_basic_reader):
                 if sample_rate and sample_rate != self.sample_rate:
                     print('{}resample source data to {}Hz'.format(
                         self._name, self.sample_rate))
-                    data = signal.resample(data, self.sample_rate)
+                    data = scipy.signal.resample(data, self.sample_rate)
                 self._get_data = self._get_data_g(data.T)
                 self._get_data.next()
             elif self.filename.endswith('.fif'):
@@ -416,7 +418,7 @@ class Files_reader(_basic_reader):
             return
 
         # 2. get ready to stream data
-        super(Files_reader, self).start()
+        super(Files_reader, self).start(*a, **k)
 
     def _get_data_g(self, data):
         for line in data:
@@ -443,7 +445,7 @@ class Pylsl_reader(_basic_reader):
         self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
         Pylsl_reader._num += 1
 
-    def start(self, servername=None):
+    def start(self, servername=None, *a, **k):
         '''
         Here we take window_size(sample_rate x sample_time) as max_buflen
         In doc of pylsl.StreamInlet:
@@ -474,7 +476,7 @@ class Pylsl_reader(_basic_reader):
 
         # 2. start streaming process to fetch data into buffer continuously
         self._start_time = info.created_at()
-        super(Pylsl_reader, self).start()
+        super(Pylsl_reader, self).start(*a, **k)
 
     def close(self):
         self._inlet.close_stream()
@@ -504,7 +506,7 @@ class Serial_reader(_basic_reader):
         self._send_to_pylsl = send_to_pylsl
         Serial_reader._num += 1
 
-    def start(self, port=None):
+    def start(self, port=None, *a, **k):
         if self._started:
             self.resume()
             return
@@ -529,7 +531,7 @@ class Serial_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'Serial_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
-        super(Serial_reader, self).start()
+        super(Serial_reader, self).start(*a, **k)
 
     def close(self):
         self._serial.close()
@@ -582,7 +584,7 @@ class ADS1299_reader(_basic_reader):
             return
         print(self._name + 'invalid sample rate {}'.format(rate))
 
-    def start(self, device=(0, 0)):
+    def start(self, device=(0, 0), *a, **k):
         if self._started:
             self.resume()
             return
@@ -598,7 +600,7 @@ class ADS1299_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'SPI_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
-        super(ADS1299_reader, self).start()
+        super(ADS1299_reader, self).start(*a, **k)
 
     def close(self):
         self._ads.close()
@@ -641,21 +643,20 @@ class ESP32_SPI_reader(ADS1299_reader):
         del self
 
 
-class Socket_reader(_basic_reader):
+class Socket_TCP_reader(_basic_reader):
     '''
-    Maybe socket client is a more proper name but this is also easy to
-    understand. Read data from socket.
+    Socket TCP client, data reciever.
     '''
     _num = 1
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Socket_reader, self).__init__(sample_rate,
-                                            sample_time,
-                                            n_channel)
-        self._name = '[Socket reader %d] ' % Socket_reader._num
-        Socket_reader._num += 1
+        super(Socket_TCP_reader, self).__init__(sample_rate,
+                                                sample_time,
+                                                n_channel)
+        self._name = '[Socket TCP reader %d] ' % Socket_TCP_reader._num
+        Socket_TCP_reader._num += 1
 
-    def start(self):
+    def start(self, *a, **k):
         if self._started:
             self.resume()
             return
@@ -679,11 +680,25 @@ class Socket_reader(_basic_reader):
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
         # 2. read data in another thread
-        super(Socket_reader, self).start()
+        super(Socket_TCP_reader, self).start(*a, **k)
 
     def close(self):
-        # self._client.close()
-        super(Socket_reader, self).close()
+        '''
+        Keep in mind that socket `client` is continously receiving from server
+        in other process/thread, so directly close client is dangerous because
+        client may be blocking that process/thread by client.recv(n). We need
+        to let server socket close the connection.
+        '''
+        # stop data streaming process/thread
+        super(Socket_TCP_reader, self).close()
+        # notice server to shutdown
+        self._client.send('shutdown')
+        # wait for msg, server will sendback `shutdown` twice to
+        # ensure stop process/thread securely
+        self._client.recv(10)
+        # send shutdown signal to release system resource and close socket
+        self._client.shutdown(socket.SHUT_RDWR)
+        self._client.close()
 
     def _save_data_in_buffer(self):
         # 8-channel float32 data = 8*32bits = 32bytes
@@ -694,18 +709,48 @@ class Socket_reader(_basic_reader):
         self._index = (self._index + 1) % self.window_size
 
 
-class Socket_server(object):
+class Socket_UDP_reader(_basic_reader):
     '''
-    Broadcast data to socket host:port, default to 0.0.0.0:9999
+    Socket UDP client, data receiver.
+    '''
+    _num = 1
+
+    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
+        super(Socket_UDP_reader, self).__init__(sample_rate,
+                                                sample_time,
+                                                n_channel)
+        self._name = '[Socket UDP reader %d] ' % Socket_UDP_reader._num
+        Socket_UDP_reader._num += 1
+
+    def start(self, *a, **k):
+        pass
+
+    def close(self):
+        pass
+
+    def _save_data_in_buffer(self):
+        # 8-channel float32 data = 8*32bits = 32bytes
+        # d is np.ndarray with a shape of (8, 1)
+        d = np.frombuffer(self._client.recv(32), np.float32)
+        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[-1, self._index] = time.time() - self._start_time
+        self._index = (self._index + 1) % self.window_size
+
+
+class Socket_TCP_server(object):
+    '''
+    Socket TCP server on host:port, default to 0.0.0.0:9999
+    Data sender.
     '''
     _num = 1
 
     def __init__(self, host='0.0.0.0', port=9999):
         # if host is None:
         #     host = get_self_ip_addr()
-        self._name = '[Socket server %d] ' % Socket_server._num
-        self._connections = []
-        Socket_server._num += 1
+        self._name = '[Socket server %d] ' % Socket_TCP_server._num
+        self._conns = []
+        self._addrs = []
+        Socket_TCP_server._num += 1
         # TCP IPv4 socket connection
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind((host, port))
@@ -724,7 +769,7 @@ class Socket_server(object):
     def _manage_connections(self):
         while not self._flag_close.is_set():
             # manage all connections and wait for new client
-            rst = select.select([self._server] + self._connections, [], [], 1)
+            rst = select.select([self._server] + self._conns, [], [], 3)
             if not rst[0]:
                 continue
             s = rst[0][0]
@@ -733,35 +778,44 @@ class Socket_server(object):
                 con, addr = self._server.accept()
                 con.settimeout(0.5)
                 print('{}accept client from {}:{}'.format(self._name, *addr))
-                self._connections.append(con)
+                self._conns.append(con)
+                self._addrs.append(addr)
             # some client maybe closed
-            elif s in self._connections:
-                addr = s.getpeername()
-                t = s.recv(1024)
+            elif s in self._conns:
+                t = s.recv(4096)
+                addr = self._addrs[self._conns.index(s)]
                 # client shutdown and we should clear correspond server
-                if t == '':
+                if t in ['shutdown', '']:
+                    s.sendall('shutdown')
+                    s.sendall('shutdown')
+                    s.shutdown(socket.SHUT_RDWR)
                     s.close()
+                    self._conns.remove(s)
+                    self._addrs.remove(addr)
                     print('{}lost client from {}:{}'.format(self._name, *addr))
-                    self._connections.remove(s)
                 # client sent some data
                 else:
                     print('{}recv {} from {}:{}'.format(self._name, t, *addr))
         print(self._name + 'socket manager say goodbye to you ;-)')
 
     def send(self, data):
-        for con in self._connections:
-            con.sendall(data.tobytes())
+        data = data.tobytes()
+        try:
+            for con in self._conns:
+                con.sendall(data)
+        except:
+            pass
 
     def close(self):
         self._flag_close.set()
         print(self._name + 'stop broadcasting data...')
-        for con in self._connections:
+        for con in self._conns:
             con.close()
         # self._server.close()
         print(self._name + 'Socket server shut down.')
 
     def has_listeners(self):
-        return len(self._connections)
+        return len(self._conns)
 
 
 command_dict_plane = {

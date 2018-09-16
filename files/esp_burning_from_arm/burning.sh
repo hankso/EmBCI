@@ -1,10 +1,10 @@
-if (( $EUID !=0  )); then
+if (( $EUID != 0 )); then
     echo "run as root please"
     exit
 fi
 
 # reset esp to flash mode, waiting for burning
-./reset-esp.py flash
+./reset_esp.py flash
 
 # burn firmware by esptool.py ( offered by Espressif Pte. Ltd. )
 cd firmware
@@ -25,4 +25,4 @@ cd firmware
 cd ../
 
 # reset esp to normal mode
-./reset-esp.py
+./reset_esp.py

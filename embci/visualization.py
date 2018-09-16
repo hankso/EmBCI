@@ -28,7 +28,7 @@ from .preprocessing import Signal_Info
 from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__filename__ = os.path.basename(__file__)
+__file__ = os.path.basename(__file__)
 
 
 class Plotter():
