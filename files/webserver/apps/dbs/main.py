@@ -3,7 +3,6 @@
 
 import os
 import sys
-import time
 import threading
 
 import numpy as np
@@ -12,16 +11,16 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 os.chdir(__dir__)
 
-from bottle import route, request, response, redirect, static_file, default_app
+from bottle import route, request, redirect, static_file, default_app
 
 sys.path.append(os.path.abspath(os.path.join(__dir__, '../../../../')))
 from embci import BASEDIR
-from embci.IO import Fake_data_generator, Socket_server
+from embci.IO import Fake_data_generator, Socket_TCP_server
 from embci.common import time_stamp
 
 reader = Fake_data_generator(sample_rate=500, n_channel=8)
 reader.start(method='thread')
-server = Socket_server()
+server = Socket_TCP_server()
 server.start()
 
 
@@ -64,13 +63,6 @@ def main():
 def display(filename):
     return static_file(filename,
                        root=os.path.join(BASEDIR, 'files/webserver/app/dbs'))
-
-
-@route('/debug')
-def debug():
-    response.set_cookie(
-        'last_debug', time.strftime('%a,%b %d %H:%M:%S %Y', time.localtime()))
-    redirect('http://hankso.com:9999')
 
 
 # generate report

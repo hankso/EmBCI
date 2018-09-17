@@ -224,7 +224,7 @@ class _basic_reader(object):
             raise RuntimeError('unknown method {}'.format(method))
 
     def _stream_data(self):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        #  signal.signal(signal.SIGINT, signal.SIG_IGN)
         try:
             while not self._flag_close.is_set():
                 self._flag_pause.wait()
@@ -786,10 +786,14 @@ class Socket_TCP_server(object):
                 addr = self._addrs[self._conns.index(s)]
                 # client shutdown and we should clear correspond server
                 if t in ['shutdown', '']:
-                    s.sendall('shutdown')
-                    s.sendall('shutdown')
-                    s.shutdown(socket.SHUT_RDWR)
-                    s.close()
+                    try:
+                        s.sendall('shutdown')
+                        s.shutdown(socket.SHUT_RDWR)
+                        s.close()
+                    except:
+                        s.close()
+                    finally:
+                        pass
                     self._conns.remove(s)
                     self._addrs.remove(addr)
                     print('{}lost client from {}:{}'.format(self._name, *addr))
