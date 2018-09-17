@@ -277,7 +277,7 @@ def reset_esp(flash=False):
     boot.export = False
     rst.export = False
 
-    time.sleep(0.5)
+    time.sleep(2.5)
 
 
 def virtual_serial():

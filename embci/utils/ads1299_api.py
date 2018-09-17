@@ -473,6 +473,7 @@ class ESP32_API(ADS1299_API):
             print(' | '.join(SAMPLE_RATE.keys()))
             return
         self.write_register(REG_SR, SAMPLE_RATE[rate])
+        self._sample_rate = rate
         return rate
 
     def set_input_source(self, src):
