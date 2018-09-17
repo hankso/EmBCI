@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="/css/index.css">
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-    <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min./js"></script>
+    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
     <style>
         #wifilist {
             padding: 0;
@@ -95,7 +95,7 @@
 <div class="mask" style="display: none">
     <div class="login">
         <h3 id="wifiname"></h3>
-        <form action="/app/wifi" method="post">
+        <form action="/apps/wifi" method="post">
             <div class="input-group in" style="display:none;">
                 <span class="input-group-addon">name</span>
                 <input type="text" name="name" class="form-control list" id="name">
@@ -110,7 +110,7 @@
     </div>
 </div>
 <div class="top">
-    <img src="images/logo.jpg" alt="logo" id="logo">
+    <img src="/images/logo.jpg" alt="logo" id="logo">
     <div class="top-bar">
         <h1>帕金森调参仪</h1>
         <h6>Parkinson adjustment instrument</h6>
@@ -119,8 +119,8 @@
 <div class="console">
     <h3>WIFI列表</h3>
     <ul id="wifilist">
-        <li><button class="btn btn-default wifi"><img src="images/wifi.png" alt="wifi">wifi1</button></li>
-        <li><button class="btn btn-default wifi"><img src="images/wifi.png" alt="wifi">wifi3</button></li>
+        <li><button class="btn btn-default wifi"><img src="/images/wifi.png" alt="wifi">wifi1</button></li>
+        <li><button class="btn btn-default wifi"><img src="/images/wifi.png" alt="wifi">wifi3</button></li>
     </ul>
     <button class="refresh btn btn-default" id="refresh"><span class="glyphicon glyphicon-refresh"></span></button>
 </div>
@@ -149,12 +149,12 @@
             $('#wifilist').empty();
             $.ajax({
                 method: 'GET',
-                url: '/app/wifi',
+                url: '/apps/wifi',
                 dataType: 'json',
                 success: function (data) { //data为获取到的wifi名称列表,例如{list:['wifi1','wifi2',...]}
                     var list = data.list;
                     for(var i=0;i<list.length;i++) {
-                        $('#wifilist').append('<li><button class="btn btn-default wifi"><img src="images/wifi.png" alt="wifi">"+list[i]+"</button></li>')
+                        $('#wifilist').append('<li><button class="btn btn-default wifi"><img src="/images/wifi.png" alt="wifi">"+list[i]+"</button></li>')
                     }
                 }
             });

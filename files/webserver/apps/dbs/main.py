@@ -57,13 +57,12 @@ def generate_pdf():
 
 @dbs.route('/')
 def main():
-    redirect('/app/dbs/display.html')
+    redirect('display.html')
 
 
 @dbs.route('/<filename:path>')
 def display(filename):
-    return static_file(filename,
-                       root=os.path.join(BASEDIR, 'files/webserver/app/dbs'))
+    return static_file(filename, root=__dir__)
 
 
 # generate report

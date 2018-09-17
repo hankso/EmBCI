@@ -7,16 +7,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
     <title>Display</title>
     <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
-    <link rel="stylesheet" href="css/index.css"/>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="css/display.css">
-    <script src="js/echarts.common.min.js"></script>
-    <script src="js/macarons.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/css/index.css"/>
+    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/css/display.css">
+    <script src="/js/echarts.common.min.js"></script>
+    <script src="/js/macarons.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
 </head>
 <body>
 <div class="top">
-    <img src="images/logo.jpg" alt="logo" id="logo">
+    <img src="/images/logo.jpg" alt="logo" id="logo">
     <div class="top-bar">
         <form class="form-inline content-center">
             <div class="odd">
@@ -408,7 +408,7 @@
             myChart2.setOption(option2);
             $.ajax({
                 method: "GET",
-                url: "/app/dbs/data/"+id, //改为切换数据源的url
+                url: "data/"+id, //改为切换数据源的url
                 success: function (data) {
 
                 },
@@ -452,7 +452,7 @@
                 interval[num] = setInterval(function () {
                     $.ajax({
                         method: "GET",
-                        url: "/app/dbs/data/coef", //改为获取术前震颤特征值数据的地址
+                        url: "data/coef", //改为获取术前震颤特征值数据的地址
                         dataType: 'json',
                         success: function (data) { //data即为获取到的特征值，为纯文本格式即字符串，例如"15.2"
                             var n = parseFloat(data[num]).toFixed(4);
@@ -512,7 +512,7 @@
             }
             $.ajax({
                 method: 'GET',
-                url:'/app/dbs/report', //改为服务器对应地址
+                url:'report', //改为服务器对应地址
                 data: subData,
                 success: function () {
                     alert('数据提交成功,即将跳转到报告界面');

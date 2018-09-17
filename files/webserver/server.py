@@ -20,9 +20,10 @@ root = Bottle()
 # mount sub-applications
 os.chdir(os.path.join(__dir__, 'apps'))
 for app_name in os.listdir('.'):
-    root.mount('/apps/{}'.format(app_name),
-               importlib.import_module('{}.main'.format(app_name)).application)
-    print('mount /apps/{} to {}/main.py:app'.format(app_name, app_name))
+    os.chdir(os.path.join(__dir__, 'apps'))
+    application = importlib.import_module(app_name).application
+    root.mount('/apps/{}/'.format(app_name), application)
+    print('links /apps/{}/* to sub-route @ {}'.format(app_name, application))
     os.chdir(os.path.join(__dir__, 'apps'))
 os.chdir(__dir__)
 
