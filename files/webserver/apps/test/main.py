@@ -7,10 +7,11 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 os.chdir(__dir__)
 
-from bottle import route, request, response, default_app
+from bottle import request, response, Bottle
+test = Bottle()
 
 
-@route('/')
+@test.route('/')
 def hello():
     last_time = request.get_cookie('time')
     response.set_cookie(
@@ -20,6 +21,6 @@ def hello():
     else:
         return 'I am NOT dead~'
 
-application = default_app()
+application = test
 
 #  vim: set ts=4 sw=4 tw=79 et ft=python :

@@ -8,15 +8,16 @@ __file__ = os.path.basename(__file__)
 os.chdir(__dir__)
 
 #  sys.path.append(os.path.abspath(os.path.join(__dir__, '../../')))
-from bottle import get, post, request, default_app
+from bottle import request, Bottle
+wifi = Bottle()
 
 
-@get('/')
+@wifi.get('/')
 def get_wifi_list():
     return {'list': ['wifi1', 'wifi2', 'wifi3']}
 
 
-@post('/')
+@wifi.post('/')
 def try_connect_wifi():
     # TODO: connect to a wifi
     ssid = request.forms.ssid
@@ -24,6 +25,6 @@ def try_connect_wifi():
     print('connecting to hotspot {} with {}'.format(ssid, psk))
     return
 
-application = default_app()
+application = wifi
 
 #  vim: set ts=4 sw=4 tw=0 et ft=python :

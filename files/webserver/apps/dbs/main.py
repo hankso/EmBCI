@@ -11,7 +11,8 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 os.chdir(__dir__)
 
-from bottle import route, request, redirect, static_file, default_app
+from bottle import request, redirect, static_file, Bottle
+dbs = Bottle()
 
 sys.path.append(os.path.abspath(os.path.join(__dir__, '../../../../')))
 from embci import BASEDIR
@@ -54,19 +55,19 @@ def generate_pdf():
 # General API
 #
 
-@route('/')
+@dbs.route('/')
 def main():
     redirect('/app/dbs/display.html')
 
 
-@route('/<filename:path>')
+@dbs.route('/<filename:path>')
 def display(filename):
     return static_file(filename,
                        root=os.path.join(BASEDIR, 'files/webserver/app/dbs'))
 
 
 # generate report
-@route('/report')
+@dbs.route('/report')
 def report():
     global username
     username = request.query.name
@@ -74,7 +75,7 @@ def report():
     return 'report content: asdf && /path/to/pdf/to/download'
 
 
-@route('/report/download/<pdfname>')
+@dbs.route('/report/download/<pdfname>')
 def download(pdfname):
     return static_file(pdfname,
                        root=os.path.join(BASEDIR, 'data'),
@@ -86,22 +87,22 @@ def download(pdfname):
 #
 
 
-@route('/data/stop')
+@dbs.route('/data/stop')
 def stop_streaming():
     flag_stop.set()
 
 
-@route('/data/pause')
+@dbs.route('/data/pause')
 def data_stream_pause():
     flag_pause.clear()
 
 
-@route('/data/resume')
+@dbs.route('/data/resume')
 def data_stream_resume():
     flag_pause.set()
 
 
-@route('/data/freq')
+@dbs.route('/data/freq')
 def data_get_freq():
     #  ch = 0
     #  data = reader.data_frame[ch]
@@ -110,14 +111,14 @@ def data_get_freq():
                                             np.random.random(100))]}
 
 
-@route('/data/freq/<num>')
+@dbs.route('/data/freq/<num>')
 def data_set_freq(num):
     if num in [250, 500, 1000]:
         #  reader.set_sample_rate(num)
         pass
 
 
-@route('/data/coef')
+@dbs.route('/data/coef')
 def data_get_coef():
     # TODO: embed coef algorithm
     return {'0': np.random.random(),  # tremor
@@ -125,29 +126,29 @@ def data_get_coef():
             '2': np.random.random()}  # movement
 
 
-@route('/data/channel')
+@dbs.route('/data/channel')
 def data_get_channel():
     return
 
 
-@route('/data/channel/<num>')
+@dbs.route('/data/channel/<num>')
 def data_set_channel(num):
     #  channel
     return
 
 
-@route('/data/scale')
+@dbs.route('/data/scale')
 def data_get_scale():
     return
 
 
-@route('/data/scale/<num>')
+@dbs.route('/data/scale/<num>')
 def data_set_scale(num):
     #  scale
     return
 
 
 # offer application object
-application = default_app()
+application = dbs
 
 #  vim: set ts=4 sw=4 tw=79 et ft=python :
