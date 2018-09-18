@@ -208,49 +208,36 @@
 
         myChart1.setOption(option1);
 
-        // setInterval(function () {
-        //     if (x == 0) {
-        //         data1=[];
-        //         myChart1.setOption({
-        //             series:{
-        //                 data: []
-        //             }
-        //         })
-        //     }
-        //
-        //     myChart1.appendData({
-        //         seriesIndex:0,
-        //         data: [randomData1()]
-        //     })
-        // }, 2);
+        if(!window.WebSocket) {
+            alert('您的浏览器不支持websocket，请更换更高级的浏览器')
+        }
 
-
-        // 替换上面的setInterval
-
-        var ws = new WebSocket("ws://10.42.0.1:9999");//填写websocket服务器url
-        ws.open = function () {
-            ws.binaryType = 'arraybuffer';
+        var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data");
+        ws.binaryType = 'arraybuffer';
+        
+        ws.onopen = function () {
             console.log('success');
         };
 
         ws.onclose = function () {
             console.log('close');
+            ws.close()
         };
 
         ws.onerror = function() {
             alert('网络错误，请检查网络后刷新重试')
         };
 
-        ws.onbeforeunload = function(){
-            ws.close();
-        };
+        // ws.onbeforeunload = function(){
+        //     ws.close();
+        // };
 
         ws.onmessage = function (msg) {
 
             console.log(msg.data.byteLength);
             var list = new Float32Array(msg.data);
-            for (var i=0;i<list.length;i++,x++) {
-                if (x >= 500) {
+            for (var i=0;i<list.length;i++,x+=0.002) {
+                if (x >= 1) {
                     x=0;
                     myChart1.setOption({series:{data: []}})
                 }
@@ -259,15 +246,6 @@
                     data:[x, list[i]]
                 });
             }
-            // if(x>=500) {
-            //     x=0;
-            //     myChart1.setOption({series:{data: []}})
-            // }
-            // var inf = $.parseJSON(msg.data);
-            // myChart1.appendData({
-            //     seriesIndex:0,
-            //     data:[[inf.x], [inf.y]]
-            // })
         };
 
 
@@ -351,26 +329,13 @@
 
         myChart2.setOption(option2);
 
-        // setInterval(function () {
-        //     option2.series={
-        //         name:'test',
-        //         type:'line',
-        //         showSymbol:false,
-        //         hoverAnimation: true,
-        //         smooth:false,
-        //         data:randomData2()
-        //     };
-        //
-        //     myChart2.setOption(option2);
-        // }, 1000);
-
 
         setInterval(function () {
             $.ajax({
                 method: 'GET',
-                url: "data/freq", //获取频域波形数据的url地址
+                url: "data/freq",
                 dataType: 'json',
-                success: function (msg) { //从服务器返回一个json对象，格式为{data:[[]]}，例如{data:[[0.1,2.0],[0.2,2.1]..,[x,y],..]}，其中共包含500个二元数组，请确保数组中元素排列顺序按x递增
+                success: function (msg) {
                     console.log(msg.data);
                     console.log('succeed');
                     option2.series={
@@ -384,7 +349,7 @@
                     myChart2.setOption(option2);
                 }
             })
-        },1000);
+        },1500);
 
 
         $('#checkboard>li').click(function () {
@@ -408,7 +373,7 @@
             myChart2.setOption(option2);
             $.ajax({
                 method: "GET",
-                url: "data/"+id, //改为切换数据源的url
+                url: "data/"+id,
                 success: function (data) {
 
                 },
@@ -452,16 +417,16 @@
                 interval[num] = setInterval(function () {
                     $.ajax({
                         method: "GET",
-                        url: "data/coef", //改为获取术前震颤特征值数据的地址
+                        url: "data/coef",
                         dataType: 'json',
-                        success: function (data) { //data即为获取到的特征值，为纯文本格式即字符串，例如"15.2"
+                        success: function (data) {
                             var n = parseFloat(data[num]).toFixed(4);
                             ba[num].text(n);
                             if(flush)
                                 update( be[num], af[num], rate[num]);
                         }
                 });
-                }, 1000);
+                }, 1500);
             }
             else {
                 flag[num] = false;
@@ -497,7 +462,7 @@
         $('.col3').click(function () {
             $(this).text('%');
         });
-        //提交病人数据
+
 
         $('#submit').click(function () {
             var subData = {
@@ -512,11 +477,11 @@
             }
             $.ajax({
                 method: 'GET',
-                url:'report', //改为服务器对应地址
+                url:'report',
                 data: subData,
                 success: function () {
                     alert('数据提交成功,即将跳转到报告界面');
-                    window.location.href='report.html';//目前为了调试先用此值，后期根据服务器文件结构调整
+                    window.location.href='report.html';
                 }
             })
         });

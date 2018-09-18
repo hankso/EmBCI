@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.pdfgen import canvas
 
-from embci.common import check_input, reset_esp, time_stamp
+from embci.common import check_input, reset_esp, time_stamp, mkuserdir
 from embci.preprocessing import Signal_Info
 from embci.visualization import SPI_Screen_GUI as Screen_GUI
 from embci.IO import ESP32_SPI_reader as Reader, Socket_TCP_server
@@ -90,23 +90,25 @@ def reboot(*a, **k):
     os.system('reboot')
 
 
-def generate_pdf(username='test', gender=u'男', id=0, age=20,
+@mkuserdir
+def generate_pdf(username=u'三到四字', gender=u'男', id=0, age=20,
                  fontname='Mono', fontpath='files/fonts/yahei_mono.ttf',
                  **k):
     if fontname not in pdfmetrics.getRegisteredFontNames():
         font = ttfonts.TTFont(fontname, fontpath)
         pdfmetrics.registerFont(font)
-    userpath = os.path.join(__dir__, 'data', username)
-    c = canvas.Canvas('%s/%s.pdf' % (userpath, time_stamp()), bottomup=0)
+    pdfname = os.path.join(__dir__, 'data', username,
+                           k.get('filename', time_stamp() + '.pdf'))
+    c = canvas.Canvas(pdfname, bottomup=0)
     c.setFont(fontname, 30)
     c.drawString(65, 80, u'天坛医院DBS术后调控肌电报告单')
     c.setFontSize(20)
     c.line(30, 120, 580, 120)
     c.drawString(35, 150,
-                 (u'姓名：   {}    '
-                  u'性别：   {}    '
-                  u'年龄：   {}    '
-                  u'病号ID： {}    ').format(username, gender, age, id))
+                 (u'姓名:  {}  '
+                  u'性别:  {}  '
+                  u'年龄:  {:3d}  '
+                  u'病号ID:  {:5d}  ').format(username, gender, age, id))
     c.line(30, 165, 580, 165)
     c.line(30, 710, 580, 710)
     c.drawString(35, 740, u'改善率    震颤： 80%    僵直： 80%    运动： 80%')
@@ -125,7 +127,7 @@ def generate_pdf(username='test', gender=u'男', id=0, age=20,
     c.drawString(380, 610, u'运动： 10.0s')
     c.drawString(35, 795, u'医师签字：                     Powered by Cheitech')
     c.save()
-    print('pdf saved!')
+    print('pdf %s saved!' % pdfname)
 
 
 def update(*a, **k):

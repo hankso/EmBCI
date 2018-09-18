@@ -45,8 +45,8 @@ service apache2 restart
 INTF=/etc/network/interfaces
 mv $INTF $INTF.$(date +"%Y%m%d")
 cp 1-interfaces $INTF
-service networking restart
 # ifdown wlan0 && ifup wlan0
+# service networking restart
 
 
 

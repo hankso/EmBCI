@@ -23,7 +23,7 @@ from serial.tools.list_ports import comports
 import numpy as np
 from gpio4 import SysfsGPIO
 
-from embci import BASEDIR, input, reduce
+from embci import BASEDIR, input, reduce, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -61,17 +61,22 @@ def mkuserdir(func):
     check if user folder exist before saving data etc.
     '''
     def wrapper(*a, **k):
-        if a and isinstance(a[0], str):
+        if a and isinstance(a[0], (str, unicode)):
             username = a[0]
-            if os.path.exists(BASEDIR, 'data', username):
-                return
-            try:
-                os.mkdir(os.path.join(BASEDIR, 'data', username))
-                os.mkdir(os.path.join(BASEDIR, 'model', username))
-            except:
-                pass
+        elif 'username' in k:
+            username = k.get('username')
         else:
-            print('This wrapper may be used in wrong place.')
+            print('Decorator may be used in wrong place.')
+            print('args: {}, kwargs: {}'.format(a, k))
+            return func(*a, **k)
+        for path in [os.path.join(BASEDIR, subfolder, username)
+                     for subfolder in ['data', 'model']]:
+            if not os.path.exists(path):
+                try:
+                    os.mkdir(path)
+                    print('mkdir ' + path)
+                except:
+                    pass
         return func(*a, **k)
     return wrapper
 
