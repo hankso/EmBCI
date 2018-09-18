@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
     <title>Display</title>
-    <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
+    <script src="/js/jquery-2.0.2.min.js"></script>
     <link rel="stylesheet" href="/css/index.css"/>
     <link rel="stylesheet" href="/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="/css/display.css">
@@ -122,6 +122,7 @@
         var colors = ['#000000','#5dd39e','#028090','#00a896','#05668d','#02c39a','#457b9d','#525174','#513b56'];
         var nowColor = colors[1];
         var x=0;
+
         function randomData1() {
             var y = (Math.random()*20-10)/25;
             var sample=[x/500,y];
@@ -208,13 +209,30 @@
 
         myChart1.setOption(option1);
 
+ setInterval(function () {
+     if (x == 0) {
+         data1=[];
+         myChart1.setOption({
+             series:{
+                 data: []
+             }
+         })
+     }
+
+     myChart1.appendData({
+         seriesIndex:0,
+         data: [randomData1()]
+     })
+ }, 1);
+
+/*
         if(!window.WebSocket) {
             alert('您的浏览器不支持websocket，请更换更高级的浏览器')
         }
 
         var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data");
         ws.binaryType = 'arraybuffer';
-        
+
         ws.onopen = function () {
             console.log('success');
         };
@@ -234,7 +252,8 @@
 
         ws.onmessage = function (msg) {
 
-            console.log(msg.data.byteLength);
+            console.log(msg.data);
+            console.log(msg);
             var list = new Float32Array(msg.data);
             for (var i=0;i<list.length;i++,x+=0.002) {
                 if (x >= 1) {
@@ -248,7 +267,7 @@
             }
         };
 
-
+*/
         function randomData2() {
             var x=0;
             var sample=[];

@@ -12,34 +12,19 @@ __file__ = os.path.basename(__file__)
 os.chdir(__dir__)
 
 from bottle import request, redirect, static_file, Bottle
+from bottle.ext.websocket import websocket
 dbs = Bottle()
 
 sys.path.append(os.path.abspath(os.path.join(__dir__, '../../../../')))
 from embci import BASEDIR
-from embci.IO import Fake_data_generator, Socket_TCP_server
-from embci.common import time_stamp
+from embci.IO import ESP32_SPI_reader as Reader
 
-reader = Fake_data_generator(sample_rate=500, n_channel=8)
+reader = Reader(sample_rate=500, n_channel=8)
 reader.start(method='thread')
-server = Socket_TCP_server()
-server.start()
 
-
-def echo(flag_pause, flag_stop):
-    with open('python.log', 'a') as f:
-        f.write(time_stamp() + 'start thread\n')
-    while not flag_stop.isSet():
-        flag_pause.wait()
-        server.send(reader.data_channel)
-    flag_stop.clear()
-    flag_pause.set()
-    server.close()
-    with open('python.log', 'a') as f:
-        f.write(time_stamp() + 'echo done!\n')
 flag_stop = threading.Event()
 flag_pause = threading.Event()
 flag_pause.set()
-threading.Thread(target=echo, args=(flag_pause, flag_stop,)).start()
 
 
 #
@@ -60,12 +45,18 @@ def main():
     redirect('display.html')
 
 
+@dbs.route('/data', apply=[websocket])
+def handler(ws):
+    while 1:
+        ws.send(reader.data_channel)
+    print('lost connection')
+
+
 @dbs.route('/<filename:path>')
 def display(filename):
     return static_file(filename, root=__dir__)
 
 
-# generate report
 @dbs.route('/report')
 def report():
     global username
@@ -113,13 +104,12 @@ def data_get_freq():
 @dbs.route('/data/freq/<num>')
 def data_set_freq(num):
     if num in [250, 500, 1000]:
-        #  reader.set_sample_rate(num)
-        pass
+        reader.set_sample_rate(num)
+        reader.restart()
 
 
 @dbs.route('/data/coef')
 def data_get_coef():
-    # TODO: embed coef algorithm
     return {'0': np.random.random(),  # tremor
             '1': np.random.random(),  # stiffness
             '2': np.random.random()}  # movement
@@ -149,5 +139,10 @@ def data_set_scale(num):
 
 # offer application object
 application = dbs
+
+if __name__ == '__main__':
+    #  server = WSGIServer(('0.0.0.0', 80), dbs, handler_class=WebSocketHandler)
+    #  server.serve_forever()
+    pass
 
 #  vim: set ts=4 sw=4 tw=79 et ft=python :
