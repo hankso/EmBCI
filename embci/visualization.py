@@ -13,18 +13,24 @@ import threading
 import pickle
 import select
 
-# pip install matplotlib, numpy, scipy, pyserial, pillow
-import matplotlib
-import matplotlib.pyplot as plt
+# requirements.txt: necessary: numpy, scipy, pyserial, pillow, decorator
+# requirements.txt: optional: matplotlib
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    _NO_PLT_ = False
+except:
+    _NO_PLT_ = True
 import numpy as np
 import scipy.io as sio
 import serial
 from PIL import Image
+from decorator import decorator
 
 from .common import time_stamp, find_layouts
 from .IO import Serial_Screen_commander, command_dict_uart_screen_v1
 from .IO import SPI_Screen_commander
-from .preprocessing import Signal_Info
+from .preprocess import Signal_Info
 from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
@@ -41,6 +47,7 @@ class Plotter():
             Default None to create a new figure and split it into n_channels
             window, one for each window
         '''
+        assert not _NO_PLT_
         if where_to_plot is None:
             self.figure = plt.figure()
             for i in range(n_channel):
@@ -98,7 +105,8 @@ class Plotter():
 
 
 def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
-    import matplotlib.pyplot as plt
+    if _NO_PLT_:
+        return
     plt.ion()
     if not isinstance(data, np.ndarray):
         data = np.array(data)
@@ -163,57 +171,62 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
 
 
 def _pre_draw_check(name):
-    '''This decorator can not be used directly'''
-    def func_collector(func):
-        '''This will get function to be executed'''
-        def param_collector(self, *a, **k):
-            '''This will get params from user'''
-            a = list(a)
-            if name in ['point', 'text', 'img', 'button']:
-                a[0] = max(min(a[0], self.width - 1), 0)
-                a[1] = max(min(a[1], self.height - 1), 0)
-            elif name in ['circle', 'round']:
-                a[0] = max(min(a[0], self.width - 2), 1)
-                a[1] = max(min(a[1], self.height - 2), 1)
-                right, down = self.width - 1 - a[0], self.height - 1 - a[1]
-                a[2] = max(min(a[0], a[1], right, down, a[2]), 0)
-            elif name in ['rect', 'round_rect']:
-                a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
-                a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
-                a[0] = max(min(a[0], self.width - 1), 0)
-                a[1] = max(min(a[1], self.height - 1), 0)
-                a[2] = max(min(a[2], self.width - 1), a[0])
-                a[3] = max(min(a[3], self.height - 1), a[1])
-            elif name in ['line']:
-                a[0] = max(min(a[0], self.width - 1), 0)
-                a[1] = max(min(a[1], self.height - 1), 0)
-                a[2] = max(min(a[2], self.width - 1), 0)
-                a[3] = max(min(a[3], self.height - 1), 0)
-            '''
-            # TODO: fix this question
-            You cannot modify variable `name` from `_pre_draw_check` inside
-            this function! It will warn that local variable `name` is not
-            defined yet. I still dont know why. So I use `static` to store
-            `name` temporarily.
-            '''
-            static = name + ('f' if ('fill' in k and k['fill']) else '')
-            num = (0 if not len(self.widget[static])
-                   else (self.widget[static][-1]['id'] + 1))
-            k['name'] = static
-            k['id'] = num
-            # transfer params from user and name & num
-            # it will overload name=None and num=None(default)
-            # in conclusion:
-            #     user provide param *a and **k
-            #     this wrapper modify them and generate new *a, **k
-            #     real function finally recieve new *a, **k, and defaults
-            func(self, *a, **k)
-            if 'render' not in k or ('render' in k and k['render']):
-                self.render(element=static, id=num)
-        param_collector.__doc__ = func.__doc__
-        param_collector.__name__ = func.__name__
-        return param_collector
-    return func_collector
+    '''This function is a decorator factory that return a decorator'''
+    #
+    #  def func_collector(func):
+    #      '''This will get function to be executed'''
+    #      def param_collector(self, *a, **k):
+    #          '''This will get params from user'''
+    #          # some code here
+    #      param_collector.__doc__ = func.__doc__
+    #      param_collector.__name__ = func.__name__
+    #      return param_collector
+    #  return func_collector
+    #
+
+    @decorator
+    def caller(func, self, *a, **k):
+        a = list(a)
+        if name in ['point', 'text', 'img', 'button']:
+            a[0] = max(min(a[0], self.width - 1), 0)
+            a[1] = max(min(a[1], self.height - 1), 0)
+        elif name in ['circle', 'round']:
+            a[0] = max(min(a[0], self.width - 2), 1)
+            a[1] = max(min(a[1], self.height - 2), 1)
+            right, down = self.width - 1 - a[0], self.height - 1 - a[1]
+            a[2] = max(min(a[0], a[1], right, down, a[2]), 0)
+        elif name in ['rect', 'round_rect']:
+            a[0], a[2] = min(a[0], a[2]), max(a[0], a[2])
+            a[1], a[3] = min(a[1], a[3]), max(a[1], a[3])
+            a[0] = max(min(a[0], self.width - 1), 0)
+            a[1] = max(min(a[1], self.height - 1), 0)
+            a[2] = max(min(a[2], self.width - 1), a[0])
+            a[3] = max(min(a[3], self.height - 1), a[1])
+        elif name in ['line']:
+            a[0] = max(min(a[0], self.width - 1), 0)
+            a[1] = max(min(a[1], self.height - 1), 0)
+            a[2] = max(min(a[2], self.width - 1), 0)
+            a[3] = max(min(a[3], self.height - 1), 0)
+
+        # FIXME: You cannot modify variable `name` from `_pre_draw_check`
+        # inside this function! It will warn that local variable `name` is
+        # not defined yet. I still dont know why. So I use `static` to
+        # store `name` temporarily.
+        static = name + ('f' if ('fill' in k and k['fill']) else '')
+        num = (0 if not len(self.widget[static])
+               else (self.widget[static][-1]['id'] + 1))
+        k['name'] = static
+        k['id'] = num
+        # transfer params from user and name & num
+        # it will overload name=None and num=None(default)
+        # in conclusion:
+        #     user provide param *a and **k
+        #     this wrapper modify them and generate new *a, **k
+        #     real function finally recieve new *a, **k, and defaults
+        func(self, *a, **k)
+        if 'render' not in k or ('render' in k and k['render']):
+            self.render(element=static, id=num)
+    return caller
 
 
 class element_dict(dict):
@@ -334,6 +347,43 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             while not self._flag_close.isSet():
                 time.sleep(5)
 
+    def calibration_touch_screen(self, *a, **k):
+        if not self._touch_started:
+            print('[Screen GUI] touch screen not initialized yet!')
+            return
+        self._flag_pause.clear()  # pause _handle_touch thread
+        self.freeze_frame()
+        self.touch_sensibility = 1
+        self._cali_matrix = np.array([[1, 1], [0, 0]])
+        s = 'touch calibration'
+        w, h = self.getsize(s, size=20)
+        self.draw_text((self.width - w)/2, (self.height - h)/2, s, c='green')
+        # points where to be touched
+        pts = np.array([[20, 20],
+                        [self.width-20, 20],
+                        [20, self.height-20],
+                        [self.width-20, self.height-20]])
+        # points where user touched
+        ptt = np.zeros((4, 2))
+        try:
+            for i in range(4):
+                print('[Calibration] this will be %d/4 points' % (i+1))
+                self.draw_circle(pts[i][0], pts[i][1], 4, 'blue')
+                ptt[i] = self._get_touch_point()
+                print('[Calibration] touch at {}, {}'.format(*ptt[i]))
+                self.draw_circle(pts[i][0], pts[i][1], 2, 'green', fill=True)
+            self._cali_matrix = np.array([
+                np.polyfit(ptt[:, 0], pts[:, 0], 1),
+                np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
+            print(('[Screen GUI] calibration done!\nTarget point:\n{}\n'
+                   'Touched point:\n{}\ncalibration result matrix:\n{}\n'
+                   '').format(ptt, pts, self._cali_matrix))
+        except Exception as e:
+            print(e)
+        finally:
+            self.recover_frame()
+            self._flag_pause.set()  # resume _handle_touch thread
+
     @_pre_draw_check('img')
     def draw_img(self, x, y, img, bg=None, **k):
         if not isinstance(img, np.ndarray):
@@ -432,23 +482,79 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             'y2': min(y + h, self.height - 1),
             'id': k['id'], 'c': c or self._element_color['text']}))
 
-    def _get_element_from_name_and_id(self, element=None, id=None):
-        elements = [key for key in self.widget.keys() if self.widget[key]]
-        if len(elements) == 0:
-            print('Empty widget bucket now. Nothing to remove!')
-            return
-        if element not in elements:
-            print('Choose one from `%s`' % '` | `'.join(map(str, elements)))
-            return
-        return self.widget[element, id]
+    def render(self, element=None, id=None, *a, **k):
+        '''Render elements stored in self.widget to screen'''
+        try:
+            # render one element
+            if None not in [element, id]:
+                e = self.widget[element, id]
+                if e is None:
+                    return
+                self.clear(**e)  # clear specific element
+                if element == 'button':
+                    e['c'] = e['ct']
+                    self.send('text', **e)
+                    if e['cr'] != 'None':
+                        e['c'] = e['cr']
+                        self.send('rect', **e)
+                else:
+                    self.send(element, **e)
+            # render all
+            else:
+                self.clear()  # clear all
+                for element in self.widget.keys():
+                    if element == 'button':
+                        for bt in self.widget[element]:
+                            bt['c'] = bt['ct']
+                            self.send('text', **bt)
+                            if bt['cr'] != 'None':
+                                bt['c'] = bt['cr']
+                                self.send('rect', **bt)
+                    else:
+                        for e in self.widget[element]:
+                            self.send(element, **e)
+        except Exception as e:
+            print(self._name + 'render error: {}'.format(e))
 
-    def remove_element(self, element=None, id=None, render=True, *a, **k):
-        e = self._get_element_from_name_and_id(element, id)
-        if e is None:
+    def display_img(self, filename_or_img, *a, **k):
+        if isinstance(filename_or_img, str):
+            img = Image.open(filename_or_img)
+        elif isinstance(filename_or_img, np.ndarray):
+            img = Image.fromarray(filename_or_img)
+        elif Image.isImageType(filename_or_img):
+            img = filename_or_img
+        else:
             return
-        self.widget[element].remove(e)
-        if render:
-            self.render()
+        self.freeze_frame()
+        # adjust img size
+        w, h = img.size
+        if float(w) / h >= float(self.width) / self.height:
+            img = img.resize((self.width, int(float(self.width)/w*h)))
+        else:
+            img = img.resize((int(float(self.height)/h*w), self.height))
+        # place it on center of the frame
+        w, h = img.size
+        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
+        # add guide text
+        s1 = u'\u4efb\u610f\u70b9\u51fb\u5f00\u59cb'
+        w, h = self.getsize(s1, size=18)[0]
+        w, h = (self.width-w)/2, self.height - 2*h - 2
+        self.draw_text(w, h, s1, 'red', 18)
+        s2 = 'click to start'
+        w, h = self.getsize(s2, size=18)[0]
+        w, h = (self.width-w)/2, self.height - 1*h - 1
+        self.draw_text(w, h, s2, 'red', 18)
+        # touch screen to continue
+        if self._touch_started:
+            self._flag_pause.clear()
+            with self._read_lock:
+                self._touch.flushInput()
+                self._read_epoll.poll()
+                self._touch.read_all()
+            self._flag_pause.set()
+        else:
+            time.sleep(2)
+        self.recover_frame()
 
     def move_element(self, element=None, id=None, x=0, y=0, *a, **k):
         e = self._get_element_from_name_and_id(element, id)
@@ -463,6 +569,14 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             e['y1'] += y
             e['y2'] += y
         self.render()
+
+    def remove_element(self, element=None, id=None, render=True, *a, **k):
+        e = self._get_element_from_name_and_id(element, id)
+        if e is None:
+            return
+        self.widget[element].remove(e)
+        if render:
+            self.render()
 
     def save_layout(self, dir_or_file, *a, **k):
         '''
@@ -546,116 +660,15 @@ class Serial_Screen_GUI(Serial_Screen_commander):
         print('[Touch Screen] touch button {} - `{}` at ({}, {}) at {}'.format(
             bt['id'], bt['s'], x, y, time_stamp()))
 
-    def render(self, element=None, id=None, *a, **k):
-        '''Render all elements stored in self.widget to screen'''
-        try:
-            # render one element
-            if None not in [element, id]:
-                e = self.widget[element, id]
-                if e is None:
-                    return
-                self.clear(**e)  # clear specific element
-                if element == 'button':
-                    e['c'] = e['ct']
-                    self.send('text', **e)
-                    if e['cr'] != 'None':
-                        e['c'] = e['cr']
-                        self.send('rect', **e)
-                else:
-                    self.send(element, **e)
-            # render all
-            else:
-                self.clear()  # clear all
-                for element in self.widget.keys():
-                    if element == 'button':
-                        for bt in self.widget[element]:
-                            bt['c'] = bt['ct']
-                            self.send('text', **bt)
-                            if bt['cr'] != 'None':
-                                bt['c'] = bt['cr']
-                                self.send('rect', **bt)
-                    else:
-                        for e in self.widget[element]:
-                            self.send(element, **e)
-        except Exception as e:
-            print(self._name + 'render error: {}'.format(e))
-
-    def calibration_touch_screen(self, *a, **k):
-        if not self._touch_started:
-            print('[Screen GUI] touch screen not initialized yet!')
+    def _get_element_from_name_and_id(self, element=None, id=None):
+        elements = [key for key in self.widget.keys() if self.widget[key]]
+        if len(elements) == 0:
+            print('Empty widget bucket now. Nothing to remove!')
             return
-        self._flag_pause.clear()  # pause _handle_touch thread
-        self.freeze_frame()
-        self.touch_sensibility = 1
-        self._cali_matrix = np.array([[1, 1], [0, 0]])
-        s = 'touch calibration'
-        w, h = self.getsize(s, size=20)
-        self.draw_text((self.width - w)/2, (self.height - h)/2, s, c='green')
-        # points where to be touched
-        pts = np.array([[20, 20],
-                        [self.width-20, 20],
-                        [20, self.height-20],
-                        [self.width-20, self.height-20]])
-        # points where user touched
-        ptt = np.zeros((4, 2))
-        try:
-            for i in range(4):
-                print('[Calibration] this will be %d/4 points' % (i+1))
-                self.draw_circle(pts[i][0], pts[i][1], 4, 'blue')
-                ptt[i] = self._get_touch_point()
-                print('[Calibration] touch at {}, {}'.format(*ptt[i]))
-                self.draw_circle(pts[i][0], pts[i][1], 2, 'green', fill=True)
-            self._cali_matrix = np.array([
-                np.polyfit(ptt[:, 0], pts[:, 0], 1),
-                np.polyfit(ptt[:, 1], pts[:, 1], 1)]).T
-            print(('[Screen GUI] calibration done!\nTarget point:\n{}\n'
-                   'Touched point:\n{}\ncalibration result matrix:\n{}\n'
-                   '').format(ptt, pts, self._cali_matrix))
-        except Exception as e:
-            print(e)
-        finally:
-            self.recover_frame()
-            self._flag_pause.set()  # resume _handle_touch thread
-
-    def display_img(self, filename_or_img, *a, **k):
-        if isinstance(filename_or_img, str):
-            img = Image.open(filename_or_img)
-        elif isinstance(filename_or_img, np.ndarray):
-            img = Image.fromarray(filename_or_img)
-        elif Image.isImageType(filename_or_img):
-            img = filename_or_img
-        else:
+        if element not in elements:
+            print('Choose one from `%s`' % '` | `'.join(map(str, elements)))
             return
-        self.freeze_frame()
-        # adjust img size
-        w, h = img.size
-        if float(w) / h >= float(self.width) / self.height:
-            img = img.resize((self.width, int(float(self.width)/w*h)))
-        else:
-            img = img.resize((int(float(self.height)/h*w), self.height))
-        # place it on center of the frame
-        w, h = img.size
-        self.draw_img((self.width-w)/2, (self.height-h)/2, np.uint8(img))
-        # add guide text
-        s1 = u'\u4efb\u610f\u70b9\u51fb\u5f00\u59cb'
-        w, h = self.getsize(s1, size=18)[0]
-        w, h = (self.width-w)/2, self.height - 2*h - 2
-        self.draw_text(w, h, s1, 'red', 18)
-        s2 = 'click to start'
-        w, h = self.getsize(s2, size=18)[0]
-        w, h = (self.width-w)/2, self.height - 1*h - 1
-        self.draw_text(w, h, s2, 'red', 18)
-        # touch screen to continue
-        if self._touch_started:
-            self._flag_pause.clear()
-            with self._read_lock:
-                self._touch.flushInput()
-                self._read_epoll.poll()
-                self._touch.read_all()
-            self._flag_pause.set()
-        else:
-            time.sleep(2)
-        self.recover_frame()
+        return self.widget[element, id]
 
     def _get_touch_point(self):
         '''
@@ -710,6 +723,11 @@ class Serial_Screen_GUI(Serial_Screen_commander):
                         self._callback_threads.append(thread)
         print('[Touch Screen] exiting...')
 
+    def empty_widget(self, *a, **k):
+        for key in self.widget:
+            self.widget[key] = element_list([])
+        self.clear()
+
     def clear(self, x1=None, y1=None, x2=None, y2=None, bg=None, *a, **k):
         if None in [x1, y1, x2, y2]:
             self.send('clear', c=(bg or self._element_color['bg']))
@@ -717,11 +735,6 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             self.send('rectf', c=(bg or self._element_color['bg']),
                       x1=min(x1, x2), y1=min(y1, y2),
                       x2=max(x1, x2), y2=max(y1, y2))
-
-    def empty_widget(self, *a, **k):
-        for key in self.widget:
-            self.widget[key] = element_list([])
-        self.clear()
 
     def close(self, *a, **k):
         super(Serial_Screen_GUI, self).close()
@@ -739,13 +752,12 @@ class Serial_Screen_GUI(Serial_Screen_commander):
 
 class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
     '''
-    Because I don't want to write additional samiliar functions with
-    `Serial_Screen_GUI` for `SPI_Screen_GUI`, `SPI_Screen_GUI` inherits
-    `SPI_Screen_commander` and `Serial_Screen_GUI`.
-    It will construct spi connection by initing `SPI_Screen_commander`.
-    Although we don't initialize `Serial_Screen_GUI`(i.e. no serial connection
-    will be built) when instantiating an object of `SPI_Screen_GUI`, it can get
-    access to GUI control functions offered by `Serial_Screen_GUI`.
+    SPI_Screen_GUI` inherits `SPI_Screen_commander` and `Serial_Screen_GUI`.
+    It will establish SPI connection by initing `SPI_Screen_commander`.
+    We don't initialize `Serial_Screen_GUI`(i.e. no serial connection will
+    be built) but instance of `SPI_Screen_commander` will has GUI control
+    methods offered by `Serial_Screen_GUI`. Some of functions is device
+    independent.
 
     Methods Outline:
         Inherit from `SPI_Screen_commander`:
@@ -754,8 +766,7 @@ class SPI_Screen_GUI(SPI_Screen_commander, Serial_Screen_GUI):
             draw_img, draw_buttom, draw_point, draw_line, draw_rect,
             draw_round, draw_round_rect, draw_circle, draw_text,
             render, display_img, calibration_touch_screen, clear,
-            save_layout, load_layout,
-            freeze_frame, recover_frame,
+            save_layout, load_layout, freeze_frame, recover_frame,
             remove_element, move_element,
         Inherit from `Serial_Screen_commander`:
             start, send, close, getsize --> all overloaded

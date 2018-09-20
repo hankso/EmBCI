@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 from .common import time_stamp, check_input, first_use, record_animate
 from .IO import load_data, save_action
-from .preprocessing import Signal_Info
+from .preprocess import Signal_Info
 
 __all__ = [
     'sEMG_Recognition',

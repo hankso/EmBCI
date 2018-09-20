@@ -8,6 +8,7 @@ Created on Tue Feb 27 16:03:02 2018
 # built-in
 from __future__ import print_function
 import time
+import re
 import os
 import sys
 import glob
@@ -16,17 +17,53 @@ import socket
 import platform
 import StringIO
 import threading
+import traceback
 
-# pip install pyserial, pylsl, numpy, scipy
+# requirements.txt: necessary: pyserial, pylsl, numpy, scipy, wifi
 import pylsl
 from serial.tools.list_ports import comports
 import numpy as np
 from gpio4 import SysfsGPIO
+import wifi
 
 from embci import BASEDIR, input, reduce, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
+
+
+class abyi_dict(dict):
+    '''
+    Get attributes like JavaScript way, i.e. by keys
+    e.g:
+        >>> d = {'name': 'bob', 'age': 20, 'gender': 'male'}
+        >>> d.name, d.age, d.weight
+        ('bob', 20, None)
+    '''
+    def __getattr__(self, attr):
+        try:
+            return dict.__getattribute__(self, attr)
+        except:
+            return self.get(attr)
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    __str__ = dict.__str__
+    __repr__ = dict.__repr__
+
+
+class ibya_list(list):
+    '''
+    Get items in list by attributes of them
+    e.g.:
+        >>> l = [{'name': 'bob'}, {'name': 'alice'}, {'name': 'tim'}]
+        >>> l.name
+        ['bob', 'alice', 'tim']
+    '''
+    def __getattr__(self, attr):
+        try:
+            return list.__getattr__(self, attr)
+        except AttributeError:
+            return map(lambda i: getattr(i, attr), self)
 
 
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
@@ -247,6 +284,38 @@ def find_layouts(dir):
             return
     print('Select layout `{}`'.format(layout))
     return layout
+
+
+def find_wifi_hotspots():
+    '''
+    scan wifi hotspots with specific interface and return results as list of
+    JS dict, if interface doesn't exists or scan failed(permission denied),
+    return empty list [].
+    '''
+    try:
+        with open('/proc/net/wireless', 'r') as f:
+            rsts = [re.findall('wl\w+', line)
+                    for line in f.readlines() if '|' not in line]
+    except:
+        traceback.print_exc()
+        with open('/proc/net/dev', 'r') as f:
+            rsts = [re.findall('wl\w+', line)
+                    for line in f.readlines() if '|' not in line]
+    interfaces = [rst[0] for rst in rsts if rst]
+    cells = ibya_list()
+    for interface in interfaces:
+        try:
+            _cells = filter(lambda cell: cell.address not in cells.address,
+                            wifi.Cell.all(interface))
+            print(_cells)
+            cells.extend(_cells)
+            print(cells)
+        except wifi.exceptions.InterfaceError:
+            pass
+    cells.sort(key=lambda cell: cell.signal, reverse=True)
+    # `return ibya_list(map(abyi_dict, cells.__dict__))` will not work
+    # because cells.__dict__ IS ITS __dict__ but not cells' __dict__
+    return ibya_list(map(abyi_dict, map(vars, cells)))
 
 
 def reset_esp(flash=False):

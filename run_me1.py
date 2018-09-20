@@ -13,16 +13,22 @@ import threading
 import subprocess
 from functools import partial
 
-# pip install ipython, numpy, scipy, pillow, reportlab, gpio4
-import IPython
+# requiremnts.txt: necessary: numpy, scipy, pillow, reportlab, gpio4
+# requiremnts.txt: optional: ipython
+try:
+    import IPython
+    _NO_IPYTHON_ = False
+except:
+    _NO_IPYTHON_ = True
 import numpy as np
 from scipy import signal
 from PIL import Image, ImageDraw
 from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.pdfgen import canvas
 
+# from ./
 from embci.common import check_input, reset_esp, time_stamp, mkuserdir
-from embci.preprocessing import Signal_Info
+from embci.preprocess import Signal_Info
 from embci.visualization import SPI_Screen_GUI as Screen_GUI
 from embci.IO import ESP32_SPI_reader as Reader, Socket_TCP_server
 
@@ -361,7 +367,7 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
         d = reader.data_frame
         server.send(d)
         d = si.notch(d[ch])
-        s.widget['text', 23]['s'] = '%.2f' % move_coefficient(d)
+        s.widget['text', 23]['s'] = '%.2f' % movement_coef(d)
         s.render('text', 23)
         d = si.detrend(d)
         amp = si.fft(sin_sig + d, resolution=4)[1][:, :127]
@@ -371,9 +377,9 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
         ImageDraw.Draw(img).polygon(map(tuple, amp), outline=c)
         s._ili.draw_rectf(*area, c=ILI9341_WHITE)
         s._ili.draw_img(area[0], area[1], np.uint8(img))
-        s.widget['text', 21]['s'] = '%.2f' % tremor_coefficient(d)[0]
+        s.widget['text', 21]['s'] = '%.2f' % tremor_coef(d)[0]
         s.render('text', 21)
-        s.widget['text', 22]['s'] = '%.2f' % stiff_coefficient(d)
+        s.widget['text', 22]['s'] = '%.2f' % stiffness_coef(d)
         s.render('text', 22)
     print('leave page3')
 
@@ -392,11 +398,11 @@ def page4_daemon(flag_pause, flag_close, fps=0.8):
         for i in np.arange(2, 8):
             if test_dict[(4, i)]:
                 if i % 3 == 2:
-                    freq = tremor_coefficient(d)[0]
+                    freq = tremor_coef(d)[0]
                     s.widget['button', i]['s'] = '  %5.1f ' % freq
                     s.render('button', i)
                 elif i % 3 == 0:
-                    stiff = stiff_coefficient(d)
+                    stiff = stiffness_coef(d)
                     s.widget['button', i]['s'] = '  %5.1f ' % stiff
                     s.render('button', i)
                 else:
@@ -422,55 +428,22 @@ def page4_daemon(flag_pause, flag_close, fps=0.8):
     print('leave page4')
 
 
-def tremor_coefficient(data, ch=0, distance=25):
+def tremor_coef(data, ch=0, distance=25):
     data = si.smooth(si.envelop(data), 15)[0]
     data[data < data.max() / 4] = 0
     peaks, heights = signal.find_peaks(data, 0, distance=si.sample_rate/10)
     peaks = np.concatenate(([0], peaks))
     return (si.sample_rate / (np.average(np.diff(peaks)) + 1),
             1000 * np.average(heights['peak_heights']))
-    # # preprocessing
-    # data = si.notch(si.detrend(data[ch]))[0]
-    #
-    # # peaks on raw data
-    # #===========================================================================
-    # # upper, lower = data.copy(), -data.copy()
-    # # upper[data < 0] = lower[data > 0] = 0
-    # #===========================================================================
-    # # peaks on envelops
-    # #===========================================================================
-    # data = si.envelop(data, method=1)[0]  # method 1: combine upper&lower edge
-    # #===========================================================================
-    #
-    # # smooth
-    # data = si.smooth(data, 15, method=1)[0]  # combine neighboor peaks
-    #
-    # # peaks of upper and lower seperately
-    # #===========================================================================
-    # # upper_peaks, upper_h = signal.find_peaks(data, (0, None), distance=distance)
-    # # lower_peaks, lower_h = signal.find_peaks(data, (None, 0), distance=distance)
-    # # intervals = np.hstack((np.diff(upper_peaks), np.diff(lower_peaks)))
-    # # heights = np.hstack((upper_h['peak_heights'], lower_h['peak_heights']))
-    # #===========================================================================
-    # # peaks of both upper and lower
-    # #===========================================================================
-    # data[data < data.max() / 4] = 0  # filter misleading extramax peaks
-    # peaks, heights = signal.find_peaks(data, 0, distance=distance or si.sample_rate/10)
-    # intervals = np.diff(peaks)
-    # heights = heights['peak_heights']
-    # #===========================================================================
-    #
-    # return si.sample_rate / np.average(intervals), 1000 * np.average(heights)
 
 
-def stiff_coefficient(data, ch=0):
+def stiffness_coef(data, ch=0):
     b, a = signal.butter(4, 10.0/si.sample_rate, btype='lowpass')
     return 1000 * si.rms(signal.lfilter(b, a, data, -1))
 
 
-def move_coefficient(data, ch=0):
-    data = si.notch(data)
-    data = si.smooth(si.envelop(data, method=1), 10)[0]
+def movement_coef(data, ch=0):
+    data = si.smooth(si.envelop(data), 10)[0]
     return 1000 * np.average(data)
 
 
@@ -490,5 +463,8 @@ if __name__ == '__main__':
     si = Signal_Info(500)
     s = Screen_GUI()
     change_page()
-    s.start_touch_screen('/dev/ttyS1', block=False)
-    IPython.embed()
+    if _NO_IPYTHON_:
+        s.start_touch_screen('/dev/ttyS1')
+    else:
+        s.start_touch_screen('/dev/ttyS1', block=False)
+        IPython.embed()

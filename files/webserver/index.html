@@ -8,25 +8,29 @@
     <title>主页</title>
     <script src="/js/jquery-2.0.2.min.js">
     </script>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/css/index.css">
     <script src="/js/bootstrap.min.js"></script>
 </head>
 <body>
     <div class="top">
-        <img src="images/logo.jpg" alt="logo" id="logo">
+        <img src="/images/logo.jpg" alt="logo" id="logo">
         <div class="top-bar">
-            <h1>帕金森调参仪</h1>
-            <h6>Parkinson adjustment instrument</h6>
+            <h1>Embedded BCI</h1>
         </div>
     </div>
     <div class="console">
         <div class="content">
             <div class="content-left">
-                <img src="images/icon.png" alt="icon" class="icon">
+                <img src="/images/icon.png" alt="icon" class="icon">
             </div>
             <div class="content-right ">
-                <a class="btn btn-info btn-lg center-block" href="/apps/dbs/">开始应用</a>
+                <ul class="app">
+                    <li><a class="btn btn-default app-btn" href="/apps/dbs"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">帕金森调参仪</span></a></li>
+                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">应用2</span></a></li>
+                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">应用3</span></a></li>
+                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="images/icon2.svg"></span> <span class="tip">应用4</span></a></li>
+                </ul>
             </div>
         </div>
     </div>

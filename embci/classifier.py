@@ -17,7 +17,7 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical
 
-from .preprocessing import Signal_Info
+from .preprocess import Signal_Info
 
 
 class Models():

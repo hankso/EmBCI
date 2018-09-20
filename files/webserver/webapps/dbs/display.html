@@ -6,17 +6,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
     <title>Display</title>
-    <script src="/js/jquery-2.0.2.min.js"></script>
-    <link rel="stylesheet" href="/css/index.css"/>
-    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="/css/display.css">
-    <script src="/js/echarts.common.min.js"></script>
-    <script src="/js/macarons.js"></script>
-    <script src="/js/bootstrap.min.js"></script>
+    <script src="js/jquery-2.0.2.min.js"></script>
+    <link rel="stylesheet" href="css/index.css"/>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/display.css">
+    <script src="js/echarts.common.min.js"></script>
+    <script src="js/macarons.js"></script>
+    <script src="js/bootstrap.min.js"></script>
 </head>
 <body>
 <div class="top">
-    <img src="/images/logo.jpg" alt="logo" id="logo">
+    <img src="images/logo.jpg" alt="logo" id="logo">
     <div class="top-bar">
         <form class="form-inline content-center">
             <div class="odd">
@@ -124,13 +124,13 @@
         var x=0;
 
         function randomData1() {
-            var y = (Math.random()*20-10)/25;
-            var sample=[x/500,y];
-            x++;
-            if (x >= 500) {
-                x=0;
+            var list = [];
+            for (var i=0;i<100;i++) {
+                var y = (Math.random()*20-10)/25;
+                list.push([x/500,y]);
+                x++;
             }
-            return sample;
+            return list;
         }
 
         var myChart1 = echarts.init(document.getElementById('chart1'),'macarons');
@@ -142,6 +142,7 @@
                 top:50,
                 bottom:60
             },
+            animationDurationUpdate: 1,
             xAxis:{
                 type: 'value',
                 name: 'Time/s',
@@ -195,7 +196,8 @@
                 showSymbol:false,
                 hoverAnimation: false,
                 smooth:false,
-                data:data1,
+                data: [],
+                animationDurationUpdate: 1000,
                 itemStyle: {
                     normal: {
                         lineStyle:{
@@ -203,42 +205,51 @@
                             width:1
                         }
                     }
-                }
+                },
             }]
         };
 
         myChart1.setOption(option1);
 
- setInterval(function () {
-     if (x == 0) {
-         data1=[];
-         myChart1.setOption({
-             series:{
-                 data: []
-             }
-         })
-     }
+        function animate(list, time) {
+            if (list.length < 4)
+                return;
+            myChart1.appendData({
+                seriesIndex:0,
+                data: list.splice(0,5)
+            });
+            setTimeout(function () {animate(list, time)});
+        }
 
-     myChart1.appendData({
-         seriesIndex:0,
-         data: [randomData1()]
-     })
- }, 1);
+        /*
+        setInterval(function () {
+            if (x == 500) {
+                x = 0;
+                myChart1.setOption({
+                    series:{
+                        data: []
+                    }
+                });
+            }
+            animate(randomData1(), 5)
+        }, 200);
+        */
 
-/*
         if(!window.WebSocket) {
             alert('您的浏览器不支持websocket，请更换更高级的浏览器')
         }
 
         var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data");
+        //var ws = new WebSocket("ws://127.0.0.1:8080/websocket");
+
         ws.binaryType = 'arraybuffer';
 
         ws.onopen = function () {
-            console.log('success');
+            console.log('websocket success');
         };
 
         ws.onclose = function () {
-            console.log('close');
+            console.log('websocket close');
             ws.close()
         };
 
@@ -246,28 +257,24 @@
             alert('网络错误，请检查网络后刷新重试')
         };
 
-        // ws.onbeforeunload = function(){
-        //     ws.close();
-        // };
 
         ws.onmessage = function (msg) {
 
             console.log(msg.data);
-            console.log(msg);
             var list = new Float32Array(msg.data);
+            console.log(list);
+            var li =[];
             for (var i=0;i<list.length;i++,x+=0.002) {
                 if (x >= 1) {
                     x=0;
                     myChart1.setOption({series:{data: []}})
                 }
-                myChart1.appendData({
-                    seriesIndex:0,
-                    data:[x, list[i]]
-                });
+                li.push([x, list[i]])
             }
+            animate(li, 5);
         };
 
-*/
+
         function randomData2() {
             var x=0;
             var sample=[];
@@ -392,7 +399,7 @@
             myChart2.setOption(option2);
             $.ajax({
                 method: "GET",
-                url: "data/"+id,
+                url: "data/channel/" + id[2],
                 success: function (data) {
 
                 },

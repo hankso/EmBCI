@@ -34,7 +34,7 @@ from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
 from .utils.ili9341_api import ILI9341_API, rgb24to565
 from .utils.HTMLTestRunner import HTMLTestRunner
-from .preprocessing import Signal_Info
+from .preprocess import Signal_Info
 from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

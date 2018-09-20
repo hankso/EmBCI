@@ -11,9 +11,11 @@ Created on Wed Feb 28 10:56:36 2018
 """
 # built-in
 import os
+import traceback
 
-# pip install numpy, scipy, pywavelets, pyhht
-# apt install python-tk
+# requirements.txt: necessary: numpy, scipy, pywavelets, pyhht
+
+# apt-install.list: python-tk
 # note1:
 #     `apt install python-pywt` is recommended because pywavelets need to be
 #     compiled with gcc and so on. The package name may be `python-pywavelets`
@@ -24,6 +26,7 @@ import os
 import pywt
 import pyhht
 import numpy as np
+from decorator import decorator
 from scipy import signal, sparse, interpolate as ip
 
 import embci
@@ -448,23 +451,20 @@ class Signal_Info(object):
 
         Parameters
         ----------
-        X:           raw data with shape of n_channels x window_size
+        X: raw data with shape of n_channels x window_size
         sample_rate: sample rate of signal, always known as `fs`
-        resolution:  number of points that between two Hz, default 1 point/Hz.
-                     Assuming sample_rate is 300Hz, X.shape is (5, 1500),
-                     which means sample_time is 5s. If resolution is 3,
-                     the result of fft will be of shape (5, 450).
-                     rst = fft(X, 300, 3)
-                     rst[30] ==> amp of 10.0000Hz
-                     rst[31] ==> amp of 10.3333Hz
-                     rst[32] ==> amp of 10.6666Hz
-                     rst[33] ==> amp of 11.0000Hz
+        resolution: number of points to calculate within one Hz, default is
+            1 point/Hz. Assuming resolution is 3 and `rst = fft(X, None, 3)`,
+            then rst[30] is amp of 10.0000Hz
+                 rst[31] is amp of 10.3333Hz
+                 rst[32] is amp of 10.6666Hz
+                 rst[33] is amp of 11.0000Hz
 
         Returns
         -------
         freq: np.linspace(0, sample_rate/2, length)
         amp:  np.ndarray, n_channel x length
-        where length = sample_rate/2*resolution
+            where length = sample_rate/2*resolution
         '''
         sample_rate = sample_rate or self._fs
         n = sample_rate * resolution
@@ -476,7 +476,7 @@ class Signal_Info(object):
         return freq, amp[:, :-1]
 
     @_check_shape
-    def fft_amp_only(self, X, sample_rate, resolution=1, *a, **k):
+    def fft_amp_only(self, X, sample_rate=None, resolution=1, *a, **k):
         '''
         Fast Fourier Transform
         Input shape:  n_channel x window_size
@@ -745,7 +745,89 @@ class Signal_Info(object):
             return freq, amp**2 / (freq[1] - freq[0])
 
 
-__all__ = ['Signal_Info']
+class Features(object):
+    def __init__(self, sample_rate=500):
+        self.si = Signal_Info(sample_rate)
+
+    def preprocess(*methods):
+        '''
+        This is a decorator factory used to register preprocessing methods
+        to be executed before feature extraction functions.
+        '''
+        @decorator
+        def caller(func, self, *a, **k):
+            '''Decorator to execute all registered preprocess methods'''
+            if not hasattr(func, 'pre'):
+                func.pre = True
+            if not func.pre:
+                return func(self, *a, **k)
+            a = list(a)
+            for method in methods:
+                try:
+                    kw = None
+                    if isinstance(method, list):
+                        if len(method) == 1:
+                            method = method[0]
+                        elif len(method) == 2:
+                            method, kw = method
+                        else:
+                            raise RuntimeError('unknowen params' + str(method))
+                    a[0] = getattr(self.si, method)(a[0], **(kw or {}))
+                except:
+                    traceback.print_exc()
+            return func(self, *a, **k)
+        return caller
+
+    def disable_preprocess(self, funcname):
+        getattr(self, funcname).pre = False
+
+    def enable_preprocess(self, funcname):
+        getattr(self, funcname).pre = True
+
+    @preprocess('notch', 'detrend', 'envelop',
+                ['smooth', {'window_length': 15}])
+    def tremor(self, data, distance=25):
+        d = distance or (self.si.sample_rate / 10)
+
+        # # peaks on raw data
+        # upper, lower = data.copy(), -data.copy()
+        # upper[data < 0] = lower[data > 0] = 0
+
+        # peaks on envelops
+        #  data = self.si.envelop(data)
+
+        # smooth
+        #  data = self.si.smooth(data, 15)[0]  # combine neighboor peaks
+
+        # # peaks of upper and lower seperately
+        # u_peaks, u_height = signal.find_peaks(data, (0, None), distance=d)
+        # l_peaks, l_height = signal.find_peaks(data, (None, 0), distance=d)
+        # intervals = np.hstack((np.diff(u_peaks), np.diff(l_peaks)))
+        # heights = np.hstack((u_height['peak_heights'],
+        #                      l_height['peak_heights']))
+
+        # peaks of both upper and lower
+        data[data < data.max() / 4] = 0  # filter misleading extramax peaks
+        peaks, heights = signal.find_peaks(data, 0, distance=d)
+        intervals = np.diff(peaks)
+        heights = heights['peak_heights']
+
+        return (self.si.sample_rate / np.average(intervals),
+                1000 * np.average(heights))
+
+    @preprocess()
+    def stiffness(self, data, lowpass=10.0):
+        b, a = signal.butter(4, 10.0 / self.si.sample_rate, btype='lowpass')
+        return 1000 * self.si.rms(signal.lfilter(b, a, data, -1))
+
+    @preprocess(['notch'],
+                ['envelop', {'method': 1}],
+                ['smooth', {'window_length': 10}])
+    def movement(self, data):
+        return 1000 * np.average(data)
+
+
+__all__ = ['Signal_Info', 'Features']
 
 if __name__ == '__main__':
     s = Signal_Info(500)

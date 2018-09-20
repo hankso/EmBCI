@@ -20,20 +20,21 @@ from bottle.ext.websocket import GeventWebSocketServer
 root = Bottle()
 
 # mount sub-applications
-app_dir = os.path.join(__dir__, 'apps')
-sys.path.append(app_dir)
-for app_name in os.listdir(app_dir):
-    # chdir everytime before importing even sys.path contains target folder
-    # because some module may call `os.chdir` when imported
-    os.chdir(app_dir)
+if __dir__ not in sys.path:
+    sys.path.append(__dir__)
+app_dir = os.path.join(__dir__, 'webapps')
+for name in os.listdir(app_dir):
+    if os.path.isfile(os.path.join(app_dir, name)):
+        continue
     # In order to keep compatiable with Apache mod_wsgi module, offer an
     # bottle.Bottle instance named `application` in each python source file.
-    application = importlib.import_module(app_name).application
-    root.mount('/apps/{}'.format(app_name), application)
-    root.mount('/apps/{}/'.format(app_name), application)
-    print('links /apps/{}/* to sub-route {} @ {}'.format(
-        app_name, app_name, application))
-os.chdir(__dir__)
+    app = importlib.import_module('webapps.' + name).application
+    root.mount('/apps/{}'.format(name), app)
+    root.mount('/apps/{}/'.format(name), app)
+    print('links /apps/{}/* to sub-app {} @ {}'.format(name, name, app))
+    #  # chdir everytime before importing even sys.path contains target folder
+    #  # because some module may call `os.chdir` when imported
+    #  os.chdir(__dir__)
 
 
 @root.route('/')
