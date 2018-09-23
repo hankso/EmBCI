@@ -16,6 +16,7 @@ import socket
 import select
 import unittest
 import threading
+import traceback
 import multiprocessing
 from ctypes import c_uint16
 
@@ -197,7 +198,7 @@ class _basic_reader(object):
         # self._flag_pause = threading.Event()
         # self._flag_close = threading.Event()
 
-    def start(self, block=False, method='process'):
+    def start(self, method='process'):
         self._flag_pause.set()
         self._flag_close.clear()
         self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
@@ -209,7 +210,7 @@ class _basic_reader(object):
                                 dtype=np.float32, buffer=self._m)
         self._start_time = time.time()
         self._started = True
-        if block:
+        if method == 'block':
             self._stream_data()
             return
         elif method == 'process':
@@ -231,8 +232,8 @@ class _basic_reader(object):
                 self._save_data_in_buffer()
         except NotImplementedError:
             print(self._name + 'cannot use this class directly')
-        except Exception as e:
-            print(self._name + '{}: {}'.format(type(e), e))
+        except Exception:
+            traceback.print_exc()
             self.close()
         finally:
             print(self._name + 'stop streaming data...')
@@ -294,6 +295,7 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._ch_last_index == self._index:
+                time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
@@ -305,7 +307,8 @@ class _basic_reader(object):
         if self.is_streaming:
             t = time.time()
             while self._fr_last_index == self._index:
-                if (time.time() - t) > (2.0 / self.sample_rate):
+                time.sleep(0)
+                if (time.time() - t) > (10.0 / self.sample_rate):
                     print(self._name + 'there maybe error reading data')
                     break
             self._fr_last_index = self._index
@@ -328,7 +331,7 @@ class _basic_reader(object):
 
 
 class Fake_data_generator(_basic_reader):
-    '''Generate random data, same as any Reader defined in IO.py'''
+    '''Generate random data, same as any Reader defined in io.py'''
     _num = 1
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
@@ -353,7 +356,7 @@ class Fake_data_generator(_basic_reader):
         super(Fake_data_generator, self).start(*a, **k)
 
     def _save_data_in_buffer(self):
-        time.sleep(1.0 / self.sample_rate)
+        time.sleep(0.9 / self.sample_rate)
         d = np.random.rand(self.n_channel) / 10
         self._data[:-1, self._index] = d[:self.n_channel]
         self._data[-1, self._index] = time.time() - self._start_time
@@ -479,8 +482,9 @@ class Pylsl_reader(_basic_reader):
         super(Pylsl_reader, self).start(*a, **k)
 
     def close(self):
-        self._inlet.close_stream()
         super(Pylsl_reader, self).close()
+        time.sleep(0.2)
+        self._inlet.close_stream()
 
     def _save_data_in_buffer(self):
         d, t = self._inlet.pull_sample()
@@ -723,10 +727,10 @@ class Socket_UDP_reader(_basic_reader):
         Socket_UDP_reader._num += 1
 
     def start(self, *a, **k):
-        pass
+        raise
 
     def close(self):
-        pass
+        raise
 
     def _save_data_in_buffer(self):
         # 8-channel float32 data = 8*32bits = 32bytes
@@ -789,11 +793,10 @@ class Socket_TCP_server(object):
                     try:
                         s.sendall('shutdown')
                         s.shutdown(socket.SHUT_RDWR)
-                        s.close()
                     except:
-                        s.close()
+                        traceback.print_exc()
                     finally:
-                        pass
+                        s.close()
                     self._conns.remove(s)
                     self._addrs.remove(addr)
                     print('{}lost client from {}:{}'.format(self._name, *addr))

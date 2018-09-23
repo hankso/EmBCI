@@ -16,8 +16,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .common import time_stamp, check_input, first_use, record_animate
-from .IO import load_data, save_action
+from .common import time_stamp, check_input, first_use
+from .io import load_data, save_action
 from .preprocess import Signal_Info
 
 __all__ = [
@@ -57,7 +57,7 @@ def sEMG_Recognition(username, reader, model, commander):
         if not first_use():
             sys.exit('terminated')
         while not check_input('start record data?[Y/n] '):
-            pass
+            time.sleep(0)
 
         # ==============================================
         save_action(username, reader, ['left', 'right'])
@@ -125,7 +125,7 @@ def sEMG_Recognition(username, reader, model, commander):
                 break
             print('start recording in 2s')
             time.sleep(2)
-            record_animate(reader.sample_time)
+            #  record_animate(reader.sample_time)
             class_num, class_prob = model.predict(reader.frame_data)
             action_name = action_dict[class_num]
             print('[Predict action name] ' + action_name, end='')

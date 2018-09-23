@@ -26,7 +26,4 @@ elif sys.version_info.major == 3:
     unicode = None
     from functools import reduce
 
-from . import *
-
-__all__ = ['preprocess', 'IO', 'classifier', 'visualization', 'common',
-           'gyms', 'utils']
+#  __all__ = ['preprocess', 'io', 'classifier', 'visualization', 'common', 'gyms', 'utils']

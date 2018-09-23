@@ -55,4 +55,5 @@ def debug():
 
 
 if __name__ == '__main__':
+    print('links /* to main app root @ {}'.format(root))
     run(app=root, host='0.0.0.0', port=80, server=GeventWebSocketServer)

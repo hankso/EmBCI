@@ -1,517 +1,565 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8" />
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
     <title>Display</title>
-    <script src="js/jquery-2.0.2.min.js"></script>
-    <link rel="stylesheet" href="css/index.css"/>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="css/display.css">
-    <script src="js/echarts.common.min.js"></script>
-    <script src="js/macarons.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <script src="/js/jquery-2.0.2.min.js"></script>
+    <link rel="stylesheet" href="/css/index.css" />
+    <link rel="stylesheet" href="/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/display.css">
+    <script src="/js/echarts.common.min.js"></script>
+    <script src="/js/macarons.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
 </head>
-<body>
-<div class="top">
-    <img src="images/logo.jpg" alt="logo" id="logo">
-    <div class="top-bar">
-        <form class="form-inline content-center">
-            <div class="odd">
-                <div class=from-group">
-                    <label for="name">姓名</label>
-                    <input type="text" placeholder="请输入姓名" class="form-control list" id="name" >
-                </div>
-            </div>
 
-            <div class="even">
-                <div class="from-group">
-                    <label for="gender">性别</label>
-                    <select  id="gender" class="from-control list" style="background-color: #02b2b5;">
+<body>
+    <div class="top">
+        <img src="/images/logo.jpg" alt="logo" id="logo">
+        <div class="top-bar">
+            <form class="form-inline content-center">
+                <div class="odd">
+                    <div class="from-group">
+                        <label for="name">姓名</label>
+                        <input type="text" placeholder="请输入姓名" class="form-control list" id="name" >
+                </div>
+                    </div>
+                    <div class="even">
+                        <div class="from-group">
+                            <label for="gender">性别</label>
+                            <select  id="gender" class="from-control list" style="background-color: #02b2b5;">
                         <option style="display: none">请选择性别</option>
                         <option>男</option>
                         <option>女</option>
                     </select>
+                        </div>
+                    </div>
+                    <div class="odd">
+                        <div class="form-group">
+                            <label for="age">年龄</label>
+                            <input type="number" placeholder="请输入年龄" min="0" max="140" class="form-control list" id="age">
                 </div>
-            </div>
-            <div class="odd">
-                <div class="form-group">
-                    <label for="age">年龄</label>
-                    <input type="number" placeholder="请输入年龄" class="form-control list" id="age">
-                </div>
-            </div>
-            <div class="even">
-                <div class="form-group">
-                    <label for="id">ID</label>
-                    <input type="number" placeholder="请输入id" class="form-control list" id="id">
-                </div>
-            </div>
-        </form>
+                        </div>
+                        <div class="even">
+                            <div class="form-group">
+                                <label for="id">ID</label>
+                                <input type="text" placeholder="请输入id" class="form-control list" id="id">
+                            </div>
+                            </div>
+            </form>
+        </div>
     </div>
-</div>
-<div class="plane">
-    <div class="display">
-        <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
-            <!-- 默认标签 -->
-            <li role="presentation" id="ch1" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
-            <li role="presentation" id="ch2" ><a href="" role="tab" data-toggle="tab">CH2</a></li>
-            <li role="presentation" id="ch3"><a href="" role="tab" data-toggle="tab">CH3</a></li>
-            <li role="presentation" id="ch4"><a href="" role="tab" data-toggle="tab">CH4</a></li>
-            <li role="presentation" id="ch5"><a href="" role="tab" data-toggle="tab">CH5</a></li>
-            <li role="presentation" id="ch6"><a href="" role="tab" data-toggle="tab">CH6</a></li>
-            <li role="presentation" id="ch7"><a href="" role="tab" data-toggle="tab">CH7</a></li>
-            <li role="presentation" id="ch8"><a href="" role="tab" data-toggle="tab">CH8</a></li>
-        </ul>
-        <div class="graph-display1" id="chart1">
-        </div>
-
-        <div class="graph-display2" id="chart2">
-        </div>
-        <div class="data-display">
-            <ul>
-                <li>
-                    <div class="digital term tleft ttop invisible"></div>
-                    <div class="digital term ttop">术前</div>
-                    <div class="digital term ttop">术后</div>
-                    <div class="digital term ttop">改善率</div>
-                </li>
-                <li>
-                    <div class="digital term tleft">震颤</div>
-                    <button class="btn btn-primary digital col1" id="bt">test</button>
-                    <button class="btn btn-info digital col2" id="at">test</button>
-                    <button class="btn btn-success digital col3" id="t">10%</button>
-                </li>
-                <li>
-                    <div class="digital term tleft">僵直</div>
-                    <button class="btn btn-primary digital col1" id="bs">test</button>
-                    <button class="btn btn-info digital col2" id="as">test</button>
-                    <button class="btn btn-success digital col3" id="s">%</button>
-                </li>
-                <li>
-                    <div class="digital term tleft">运动</div>
-                    <button class="btn btn-primary digital col1" id="bm">test</button>
-                    <button class="btn btn-info digital col2" id="am">test</button>
-                    <button class="btn btn-success digital col3" id="m">%</button>
-                </li>
+    <div class="plane">
+        <div class="display">
+            <div class="control">
+                <form class="form-inline">
+                    <div class="form-group notchtab">
+                        <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="5"> <span class="des">Hz -</span>
+                        <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="10"> <span class="des">Hz</span>
+                        <button type="button" class="btn btn-default des" id="filter">带通滤波</button>
+                        <input type="checkbox" checked="checked" id="notch" class="form-control"> <span class="des">陷波</span>
+                        <span class="glyphicon glyphicon-zoom-in zoom" id="bigger"></span>
+                        <span class="glyphicon glyphicon-zoom-out zoom" id="smaller"></span>
+                    </div>
+                </form>
+            </div>
+            <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
+                <!-- 默认标签 -->
+                <li role="presentation" id="0" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
+                <li role="presentation" id="1"><a href="" role="tab" data-toggle="tab">CH2</a></li>
+                <li role="presentation" id="2"><a href="" role="tab" data-toggle="tab">CH3</a></li>
+                <li role="presentation" id="3"><a href="" role="tab" data-toggle="tab">CH4</a></li>
+                <li role="presentation" id="4"><a href="" role="tab" data-toggle="tab">CH5</a></li>
+                <li role="presentation" id="5"><a href="" role="tab" data-toggle="tab">CH6</a></li>
+                <li role="presentation" id="6"><a href="" role="tab" data-toggle="tab">CH7</a></li>
+                <li role="presentation" id="7"><a href="" role="tab" data-toggle="tab">CH8</a></li>
             </ul>
+            <div class="graph-display1" id="chart1">
+            </div>
+
+            <div class="graph-display2" id="chart2">
+            </div>
+            <div class="data-display">
+                <ul>
+                    <li>
+                        <div class="term tleft ttop digital invisible"></div>
+                        <div class="term ttop digital">术前</div>
+                        <div class="term ttop digital">术后</div>
+                        <div class="term ttop digital">改善率</div>
+                    </li>
+                    <li>
+                        <div class="digital term tleft">震颤</div>
+                        <button class="btn btn-primary digital col1" id="bt">test</button>
+                        <button class="btn btn-info digital col2" id="at">test</button>
+                        <button class="btn btn-success digital col3" id="t">%</button>
+                    </li>
+                    <li>
+                        <div class="digital term tleft">僵直</div>
+                        <button class="btn btn-primary digital col1" id="bs">test</button>
+                        <button class="btn btn-info digital col2" id="as">test</button>
+                        <button class="btn btn-success digital col3" id="s">%</button>
+                    </li>
+                    <li>
+                        <div class="digital term tleft">运动</div>
+                        <button class="btn btn-primary digital col1" id="bm">test</button>
+                        <button class="btn btn-info digital col2" id="am">test</button>
+                        <button class="btn btn-success digital col3" id="m">%</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="bottom-bar">
+            <a href="/index.html" class="btn btn-info back digital">返回主页</a>
+            <a class="btn btn-info report digital" id="submit">生成报告</a>
         </div>
     </div>
-    <div class="bottom-bar">
-        <a href="/index.html" class="btn btn-info back digital">返回主页</a>
-        <a class="btn btn-info report digital" id="submit">生成报告</a>
+    <div class="bottom">
+        &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
     </div>
-</div>
-<div class="bottom">
-    &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
-</div>
-<script type="text/javascript">
-
-    function update(before, after, rate){
-        var bef = before.html();
-        var aft = after.html();
-        if(!isNaN(bef)&&!isNaN(aft)) {
-            var res = (bef-aft)/bef*100;
-            res = res.toFixed(2);
-            rate.html(res+'%');
-        }
-    }
-
-    $(function () {
-        var colors = ['#000000','#5dd39e','#028090','#00a896','#05668d','#02c39a','#457b9d','#525174','#513b56'];
-        var nowColor = colors[1];
-        var x=0;
-
-        function randomData1() {
-            var list = [];
-            for (var i=0;i<100;i++) {
-                var y = (Math.random()*20-10)/25;
-                list.push([x/500,y]);
-                x++;
+    <script type="text/javascript">
+        function update(before, after, rate) {
+            var bef = before.html();
+            var aft = after.html();
+            if (!isNaN(bef) && !isNaN(aft)) {
+                var res = (bef - aft) / bef * 100;
+                res = res.toFixed(2);
+                rate.html(res + '%');
             }
-            return list;
         }
 
-        var myChart1 = echarts.init(document.getElementById('chart1'),'macarons');
+        $(function() {
+            // var colors = ['#000000','#5dd39e','#028090','#00a896','#05668d','#02c39a','#457b9d','#525174','#513b56'];
+            var colors = ['#0000FF', '#DEDE22', '#FF11FF', '#00FFFF', '#00FF00', '#FF0000', '#800080', '#FFA00A', '#808080'];
+            var nowColor = colors[0];
+            var x = 0;
 
-        var data1 = [];
-
-        var option1 = {
-            grid: {
-                top:50,
-                bottom:60
-            },
-            animationDurationUpdate: 1,
-            xAxis:{
-                type: 'value',
-                name: 'Time/s',
-                nameLocation: 'middle',
-                nameTextStyle: {
-                    padding:[5,0,0,0]
-                },
-                max: 1,
-                min: 0,
-                splitLine: {
-                    show: false
-                },
-                axisLine: {
-                    lineStyle: {
-                        color: '#333'
-                    },
-                    onZero:false
+            function randomData1() {
+                var list = [];
+                for (var i = 0; i < 100; i++) {
+                    var y = (Math.random() * 20 - 10) / 25;
+                    list.push([x / 500, y]);
+                    x++;
                 }
-            },
-            yAxis:{
-                type:'value',
-                name: 'Voltage/V',
-                nameLocation: 'end',
-                axisLine: {
-                    lineStyle: {
-                        color: '#333'
-                    }
-                },
-                splitLine: {
-                    show: false
-                },
-                boundaryGap:['10%','10%'],
-                max: 0.5,
-                min: -0.5
+                return list;
+            }
 
-            },
-            dataZoom:[
-                {
-                    id:'dataZoomX',
-                    type:'slider',
-                    xAxisIndex: [0],
-                },{
-                    id:'dataZoomY',
-                    type:'inside',
-                    yAxisIndex: [0],
+
+            $('#notch').click(function() {
+                var low = $('#low').val();
+                var high = $('#high').val();
+                if (low == '' || high == '') {
+                    alert('输入不能为空');
+                    return;
                 }
-            ],
-            series:[{
-                name:'test',
-                type:'line',
-                showSymbol:false,
-                hoverAnimation: false,
-                smooth:false,
-                data: [],
-                animationDurationUpdate: 1000,
-                itemStyle: {
-                    normal: {
-                        lineStyle:{
-                            color: nowColor,
-                            width:1
-                        }
+                low = parseFloat(low).toFixed(1);
+                high = parseFloat(high).toFixed(1);
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/filter',
+                    //url: 'http://localhost:8888',
+                    data: {
+                        notch: this.checked,
+                        low: low,
+                        high: high
                     }
-                },
-            }]
-        };
-
-        myChart1.setOption(option1);
-
-        function animate(list, time) {
-            if (list.length < 4)
-                return;
-            myChart1.appendData({
-                seriesIndex:0,
-                data: list.splice(0,5)
+                })
             });
-            setTimeout(function () {animate(list, time)});
-        }
 
-        /*
-        setInterval(function () {
-            if (x == 500) {
-                x = 0;
-                myChart1.setOption({
-                    series:{
-                        data: []
-                    }
-                });
-            }
-            animate(randomData1(), 5)
-        }, 200);
-        */
+            $('#filter').click(function() {
+                var low = $('#low').val();
+                var high = $('#high').val();
+                var checked = $('#notch').get(0).checked;
 
-        if(!window.WebSocket) {
-            alert('您的浏览器不支持websocket，请更换更高级的浏览器')
-        }
-
-        var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data");
-        //var ws = new WebSocket("ws://127.0.0.1:8080/websocket");
-
-        ws.binaryType = 'arraybuffer';
-
-        ws.onopen = function () {
-            console.log('websocket success');
-        };
-
-        ws.onclose = function () {
-            console.log('websocket close');
-            ws.close()
-        };
-
-        ws.onerror = function() {
-            alert('网络错误，请检查网络后刷新重试')
-        };
-
-
-        ws.onmessage = function (msg) {
-
-            console.log(msg.data);
-            var list = new Float32Array(msg.data);
-            console.log(list);
-            var li =[];
-            for (var i=0;i<list.length;i++,x+=0.002) {
-                if (x >= 1) {
-                    x=0;
-                    myChart1.setOption({series:{data: []}})
+                low = parseFloat(low).toFixed(1);
+                high = parseFloat(high).toFixed(1);
+                if (low == '' || high == '') {
+                    alert('输入不能为空');
+                    return;
                 }
-                li.push([x, list[i]])
-            }
-            animate(li, 5);
-        };
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/filter',
+                    //url: 'http://localhost:8888',
+                    data: {
+                        notch: checked,
+                        low: low,
+                        high: high
+                    }
+                })
+            });
+
+            $('#smaller').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/scale/minus',
+                    //url: 'http://localhost:8888'
+                })
+            });
+
+            $('#bigger').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/scale/plus',
+                    //url: 'http://localhost:8888
+                })
+            });
+
+            var myChart1 = echarts.init(document.getElementById('chart1'), 'macarons');
 
 
-        function randomData2() {
-            var x=0;
-            var sample=[];
-            for(;x<100;x++) {
-                var y = Math.random()*10;
-                sample.push([x/4,y]);
-            }
-            return sample;
-        }
-
-        var myChart2 = echarts.init(document.getElementById('chart2'),'macarons');
-
-        var data2 = randomData2();
-
-        var option2 = {
-            grid: {
-                top:10,
-                bottom:40
-            },
-            xAxis:{
-                type: 'value',
-                name: 'Frequency/Hz',
-                nameLocation: 'middle',
-                min: 0,
-                max: 25,
-                nameTextStyle: {
-                    padding:[5,0,0,0]
+            var option1 = {
+                grid: {
+                    top: 25,
+                    bottom: 50
                 },
-                axisLine: {
-                    lineStyle: {
-                        color: '#333'
+                animationDurationUpdate: 1,
+                xAxis: {
+                    type: 'value',
+                    name: 'Time/s',
+                    nameLocation: 'middle',
+                    nameTextStyle: {
+                        padding: [15, 0, 0, 0]
+                    },
+                    max: 1,
+                    min: 0,
+                    splitLine: {
+                        show: false
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#333'
+                        },
+                        onZero: false
                     }
-                }
-            },
-            yAxis:{
-                type:'value',
-                name: 'Amp/V',
-                nameLocation: 'middle',
-                nameTextStyle: {
-                    padding:[0,0,10,0]
                 },
-                boundaryGap: ['0%', '20%'],
-                axisLine: {
-                    lineStyle: {
-                        color: '#333'
-                    }
-                }
-            },
-            dataZoom:[
-                {
-                    id:'dataZoomX',
-                    type:'slider',
-                    xAxisIndex: [0],
-                },{
-                    id:'dataZoomY',
-                    type:'inside',
-                    yAxisIndex: [0]
-                }
-            ],
-
-            series:[{
-                name:'test',
-                type:'line',
-                showSymbol:false,
-                hoverAnimation: true,
-                smooth: false,
-                data:data2,
-                itemStyle: {
-                    normal: {
-                        lineStyle:{
-                            color: nowColor,
-                            width:1
+                yAxis: {
+                    type: 'value',
+                    name: 'Voltage/V',
+                    nameLocation: 'end',
+                    nameTextStyle: {
+                        padding: [0, 0, -10, 0]
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#333'
                         }
-                    }
-                }
-            }],
-        };
-
-        myChart2.setOption(option2);
-
-
-        setInterval(function () {
-            $.ajax({
-                method: 'GET',
-                url: "data/freq",
-                dataType: 'json',
-                success: function (msg) {
-                    console.log(msg.data);
-                    console.log('succeed');
-                    option2.series={
-                        name:'test',
-                        type:'line',
-                        showSymbol:false,
-                        hoverAnimation: true,
-                        smooth:false,
-                        data:msg.data
-                };
-                    myChart2.setOption(option2);
-                }
-            })
-        },1500);
-
-
-        $('#checkboard>li').click(function () {
-            var id = this.id;
-            nowColor = colors[id[2]];
-            x=0;
-            data1=[];
-            myChart1.setOption({
-                series:{
-                    data: data1,
+                    },
+                    splitLine: {
+                        show: false
+                    },
+                    boundaryGap: ['10%', '10%'],
+                    max: 0.5,
+                    min: -0.5
+                },
+                series: [{
+                    name: 'test',
+                    type: 'line',
+                    showSymbol: false,
+                    hoverAnimation: false,
+                    smooth: false,
+                    data: [],
+                    animationDurationUpdate: 10,
                     itemStyle: {
                         normal: {
-                            lineStyle:{
+                            lineStyle: {
                                 color: nowColor,
+                                width: 1
+                            }
+                        }
+                    },
+                }]
+            };
+
+            myChart1.setOption(option1);
+            window.addEventListener("resize", function() {
+                myChart1.resize();
+            });
+
+            var t = 0;
+
+            function animate(listY, time) {
+                if (listY.length < 4)
+                    return;
+                var li = [];
+                for (var i = 0; i < 5; i++, t += 0.002) {
+                    if (t >= 1) {
+                        t = 0;
+                        myChart1.setOption({
+                            series: {
+                                data: []
+                            }
+                        })
+                    }
+                    li.push([t, listY.splice(0, 1)]);
+                }
+                console.log(listY);
+                myChart1.appendData({
+                    seriesIndex: 0,
+                    data: li
+                });
+                setTimeout(function() {
+                    animate(listY, time)
+                }, time);
+            }
+
+
+            if (!window.WebSocket) {
+                alert('您的浏览器不支持websocket，请更换更高级的浏览器')
+            }
+
+            var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data/websocket");
+            // var ws = new WebSocket("ws://10.42.0.1:80/apps/dbs/data/websocket");
+            // var ws = new WebSocket("ws://127.0.0.1:8080/websocket");
+            // var ws = new WebSocket("ws://127.0.0.1:80/apps/dbs/data/websocket");
+
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = function() {
+                console.log('websocket success');
+            };
+
+            ws.onclose = function() {
+                console.log('websocket close');
+                ws.close()
+            };
+
+            ws.onerror = function() {
+                alert('网络错误，请检查网络后刷新重试')
+            };
+
+
+            ws.onmessage = function(msg) {
+                var list = new Float32Array(msg.data);
+                var li = [];
+                for (var i = 0; i < list.length; i++)
+                    li.push(list[i])
+                console.log(li);
+                animate(li, 10);
+            };
+
+
+            function randomData2() {
+                var x = 0;
+                var sample = [];
+                for (; x < 100; x++) {
+                    var y = Math.random() * 10;
+                    sample.push([x / 4, y]);
+                }
+                return sample;
+            }
+
+            var myChart2 = echarts.init(document.getElementById('chart2'), 'macarons');
+
+
+            var option2 = {
+                grid: {
+                    top: 15,
+                    bottom: 40
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'Frequency/Hz',
+                    nameLocation: 'middle',
+                    min: 0,
+                    max: 25,
+                    nameTextStyle: {
+                        padding: [15, 0, 0, 0]
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#333'
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Amp/V',
+                    nameLocation: 'end',
+                    nameTextStyle: {
+                        padding: [0, 0, -10, 0]
+                    },
+                    boundaryGap: ['0%', '20%'],
+                    axisLine: {
+                        lineStyle: {
+                            color: '#333'
+                        }
+                    }
+                },
+                series: [{
+                    name: 'test',
+                    type: 'line',
+                    showSymbol: false,
+                    hoverAnimation: true,
+                    smooth: false,
+                    data: [],
+                    itemStyle: {
+                        normal: {
+                            lineStyle: {
+                                color: nowColor,
+                                width: 1
                             }
                         }
                     }
-                },
-            });
-            option2.series.lineStyle = {color: nowColor};
-            myChart2.setOption(option2);
-            $.ajax({
-                method: "GET",
-                url: "data/channel/" + id[2],
-                success: function (data) {
-
-                },
-                error: function (xhr) {
-                    alert('网络错误，请检查网络连接后刷新重试');
-                }
-            })
-        });
-
-        var upColor = '#333333';
-        var be = [$('#bt'), $('#bs'), $('#bm')];
-        var af = [$('#at'), $('#as'), $('#am')];
-        var bFlag = {
-            0: false,
-            1: false,
-            2: false
-        };
-        var aFlag = {
-            0: false,
-            1: false,
-            2: false
-        };
-        var bTime = {
-            0: '',
-            1: '',
-            2: ''
-        };
-        var aTime = {
-            0: '',
-            1: '',
-            2: ''
-        };
-        var rate = [$('#t'), $('#s'), $('#m')];
-
-        function updateButton (flag, num, ba, interval, flush){
-            console.log(flag);
-            if (flag[num]==false) {
-                flag[num] = true;
-                console.log(flag);
-                ba[num].css('color', '#ffffff');
-                interval[num] = setInterval(function () {
-                    $.ajax({
-                        method: "GET",
-                        url: "data/coef",
-                        dataType: 'json',
-                        success: function (data) {
-                            var n = parseFloat(data[num]).toFixed(4);
-                            ba[num].text(n);
-                            if(flush)
-                                update( be[num], af[num], rate[num]);
-                        }
-                });
-                }, 1500);
-            }
-            else {
-                flag[num] = false;
-                clearInterval(interval[num]);
-                ba[num].css('color', upColor);
-            }
-        }
-
-        be[0].click(function () {
-            updateButton(bFlag, 0, be, bTime, false)
-        });
-
-        af[0].click(function () {
-            updateButton(aFlag, 0, af, aTime, true)
-        });
-
-        be[1].click(function () {
-            updateButton(bFlag, 1, be, bTime, false)
-        });
-
-        af[1].click(function () {
-            updateButton(aFlag, 1, af, aTime, true)
-        });
-
-        be[2].click(function () {
-            updateButton(bFlag, 2, be, bTime, false)
-        });
-
-        af[2].click(function () {
-            updateButton(aFlag, 2, af, aTime, true)
-        });
-
-        $('.col3').click(function () {
-            $(this).text('%');
-        });
-
-
-        $('#submit').click(function () {
-            var subData = {
-                name: $('#name').val(),
-                gender: $('#gender').val(),
-                age: $('#age').val(),
-                id: $('#id').val(),
+                }],
             };
-            if(subData.name==''||subData.gender=='请选择性别'||subData.age==''||subData.age<0||subData.id==''){
-                alert('您填写的数据有误，请检查后重新提交');
-                return;
-            }
-            $.ajax({
-                method: 'GET',
-                url:'report',
-                data: subData,
-                success: function () {
-                    alert('数据提交成功,即将跳转到报告界面');
-                    window.location.href='report.html';
+
+            myChart2.setOption(option2);
+            window.addEventListener("resize", function() {
+                myChart2.resize();
+            });
+
+            setInterval(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: "data/freq",
+                    dataType: 'json',
+                    success: function(msg) {
+                        option2.series = {
+                            name: 'test',
+                            type: 'line',
+                            showSymbol: false,
+                            hoverAnimation: true,
+                            smooth: false,
+                            data: msg.data
+                        };
+                        myChart2.setOption(option2);
+                    }
+                })
+            }, 2000);
+
+
+            $('#checkboard>li').click(function() {
+                nowColor = colors[this.id];
+                x = 0;
+                data1 = [];
+                myChart1.setOption({
+                    series: {
+                        data: data1,
+                        itemStyle: {
+                            normal: {
+                                lineStyle: {
+                                    color: nowColor,
+                                }
+                            }
+                        }
+                    },
+                });
+                option2.series.lineStyle = {
+                    color: nowColor
+                };
+                myChart2.setOption(option2);
+                $.ajax({
+                    method: "GET",
+                    url: "data/channel/" + this.id,
+                    success: function(data) {
+
+                    },
+                })
+            });
+
+            var upColor = '#333333';
+            var be = [$('#bt'), $('#bs'), $('#bm')];
+            var af = [$('#at'), $('#as'), $('#am')];
+            var bFlag = {
+                0: false,
+                1: false,
+                2: false
+            };
+            var aFlag = {
+                0: false,
+                1: false,
+                2: false
+            };
+
+
+            var rate = [$('#t'), $('#s'), $('#m')];
+            setInterval(function() {
+                $.ajax({
+                    method: "GET",
+                    url: "data/coef",
+                    dataType: 'json',
+                    success: function(data) {
+                        for (var i = 0; i < 3; i++) {
+                            if (bFlag[i]) {
+                                var n = parseFloat(data[i]).toFixed(4);
+                                be[i].text(n);
+                            }
+                            if (aFlag[i]) {
+                                var m = parseFloat(data[i]).toFixed(4);
+                                af[i].text(m);
+                                update(be[i], af[i], rate[i]);
+                            }
+                        }
+                    },
+                });
+            }, 2000);
+
+            function updateButton(flag, num, ba) {
+                console.log(flag);
+                if (flag[num] == false) {
+                    flag[num] = true;
+                    ba[num].css('color', '#ffffff');
+                } else {
+                    flag[num] = false;
+                    ba[num].css('color', upColor);
                 }
-            })
+            }
+
+            be[0].click(function() {
+                updateButton(bFlag, 0, be)
+            });
+
+            af[0].click(function() {
+                updateButton(aFlag, 0, af)
+            });
+
+            be[1].click(function() {
+                updateButton(bFlag, 1, be)
+            });
+
+            af[1].click(function() {
+                updateButton(aFlag, 1, af)
+            });
+
+            be[2].click(function() {
+                updateButton(bFlag, 2, be)
+            });
+
+            af[2].click(function() {
+                updateButton(aFlag, 2, af)
+            });
+
+            $('.col3').click(function() {
+                $(this).text('%');
+            });
+
+
+            $('#submit').click(function() {
+                var subData = {
+                    name: $('#name').val(),
+                    gender: $('#gender').val(),
+                    age: $('#age').val(),
+                    id: $('#id').val(),
+                };
+                if (subData.name == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
+                    alert('您填写的数据有误，请检查后重新提交');
+                    return;
+                }
+                $.ajax({
+                    method: 'GET',
+                    url: 'report',
+                    data: subData,
+                    success: function() {
+                        alert('数据提交成功,即将跳转到报告界面');
+                        window.location.href = 'report.html';
+                    }
+                })
+            });
         });
-    });
-</script>
+    </script>
 </body>
+
 </html>

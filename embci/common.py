@@ -35,16 +35,23 @@ __file__ = os.path.basename(__file__)
 class abyi_dict(dict):
     '''
     Get attributes like JavaScript way, i.e. by keys
-    e.g:
-        >>> d = {'name': 'bob', 'age': 20, 'gender': 'male'}
-        >>> d.name, d.age, d.weight
-        ('bob', 20, None)
+
+    Examples
+    --------
+    >>> d = {'name': 'bob', 'age': 20, 'gender': 'male'}
+    >>> d.keys  # calling d.__getattributes___('keys')
+    ['name', 'age', 'gender']
+
+    __getattributes__ is called everytime you want to get an attribute of
+    the instance, but when attribute doesn't actually exist, __getattributes__
+    failed and then __getattr__ is called. If __getattr__ is not defined,
+    python will raise AttributeError. Here we define __getattr__ = dict.get
+    >>> d.name  # call d.__getattr__('name'), i.e. d.get('name', None)
+    'bob'
+    >>> d.age, d.weight
+    (20, None)
     '''
-    def __getattr__(self, attr):
-        try:
-            return dict.__getattribute__(self, attr)
-        except:
-            return self.get(attr)
+    __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
     __str__ = dict.__str__
@@ -54,10 +61,11 @@ class abyi_dict(dict):
 class ibya_list(list):
     '''
     Get items in list by attributes of them
-    e.g.:
-        >>> l = [{'name': 'bob'}, {'name': 'alice'}, {'name': 'tim'}]
-        >>> l.name
-        ['bob', 'alice', 'tim']
+    Examples
+    --------
+    >>> l = [{'name': 'bob'}, {'name': 'alice'}, {'name': 'tim'}]
+    >>> l.name
+    ['bob', 'alice', 'tim']
     '''
     def __getattr__(self, attr):
         try:
@@ -286,36 +294,40 @@ def find_layouts(dir):
     return layout
 
 
-def find_wifi_hotspots():
+def find_wifi_hotspots(interface=None):
     '''
     scan wifi hotspots with specific interface and return results as list of
     JS dict, if interface doesn't exists or scan failed(permission denied),
     return empty list [].
     '''
-    try:
-        with open('/proc/net/wireless', 'r') as f:
-            rsts = [re.findall('wl\w+', line)
-                    for line in f.readlines() if '|' not in line]
-    except:
-        traceback.print_exc()
-        with open('/proc/net/dev', 'r') as f:
-            rsts = [re.findall('wl\w+', line)
-                    for line in f.readlines() if '|' not in line]
-    interfaces = [rst[0] for rst in rsts if rst]
+    if interface is not None:
+        interfaces = [interface]
+    else:
+        try:
+            with open('/proc/net/wireless', 'r') as f:
+                rsts = [re.findall('wl\w+', line)
+                        for line in f.readlines() if '|' not in line]
+        except:
+            traceback.print_exc()
+            with open('/proc/net/dev', 'r') as f:
+                rsts = [re.findall('wl\w+', line)
+                        for line in f.readlines() if '|' not in line]
+        interfaces = [rst[0] for rst in rsts if rst]
     cells = ibya_list()
     for interface in interfaces:
         try:
-            _cells = filter(lambda cell: cell.address not in cells.address,
-                            wifi.Cell.all(interface))
-            print(_cells)
-            cells.extend(_cells)
-            print(cells)
+            cells.extend(filter(lambda c: c.address not in cells.address,
+                                wifi.Cell.all(interface)))
         except wifi.exceptions.InterfaceError:
             pass
-    cells.sort(key=lambda cell: cell.signal, reverse=True)
+        except:
+            traceback.print_exc()
+    unique = reduce(lambda l, c: l if c.ssid in l.ssid else (l.append(c) or l),
+                    cells, ibya_list([]))
+    unique.sort(key=lambda cell: cell.signal, reverse=True)
     # `return ibya_list(map(abyi_dict, cells.__dict__))` will not work
     # because cells.__dict__ IS ITS __dict__ but not cells' __dict__
-    return ibya_list(map(abyi_dict, map(vars, cells)))
+    return ibya_list(map(abyi_dict, map(vars, unique)))
 
 
 def reset_esp(flash=False):

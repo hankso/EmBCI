@@ -27,11 +27,11 @@ __file__ = os.path.basename(__file__)
 
 
 # ADS1299 Pin mapping
-# PIN_PWRDN       = 2 # pin PA02
-# PIN_START       = 3 # pin PA03
-# PIN_DRDY        = 6 # pin PA06 only for ads1299 direct connection
-PIN_DRDY        = 7 # pin PA07 only for esp32 spi buffer
-# PIN_RESET       = 7 # pin PA07
+# PIN_PWRDN       = 2  # pin PA02
+# PIN_START       = 3  # pin PA03
+# PIN_DRDY        = 6  # pin PA06 only for ads1299 direct connection
+PIN_DRDY        = 7  # pin PA07 only for esp32 spi buffer
+# PIN_RESET       = 7  # pin PA07
 # ADS1299 Registers
 REG_CONFIG1     = 0x01
 REG_CONFIG2     = 0x02
@@ -77,7 +77,6 @@ SUGGESTED_MSH = np.int32([
     8e5, 5e5, 4e5, 3.33e5, 2.5e5, 2e5, 1e5])
 
 
-
 class ADS1299_API(spidev.SpiDev):
     '''
     There is a module named RaspberryPiADS1299 to communicate will ADS1299
@@ -89,55 +88,65 @@ class ADS1299_API(spidev.SpiDev):
 
     Methods
     -------
-        open: open device
-        start: start Read DATA Continuously mode, you must call open first
-        close: close device
-        read_raw: return raw 8-channel * 3 = 24 bytes data
-        read: return parsed np.ndarray data with shape of (8,)
-        write: transfer bytes list to ads1299
-        write_register: write one register with index and value
-        write_registers: write series registers with start index and values
-        set_input_source: choose one source from available:
-            normal: normal electrode input
-            shorted: input shorted, to measure noise
-            MVDD: supply measurement
-            temper: temperature sensor
-            test: test signal(internal or external generated test square wave)
-        do_measure_impedance: property, set it to True or False:
-            >>> ads = ADS1299_API()
-            >>> ads.open((0, 0))
-            >>> ads.do_measure_impedance = True
-            >>> ads.read() # this will return impedance value of each channel
-        do_enable_bias: property, set it to True or False
+    open: open device
+    start: start Read DATA Continuously mode, you must call open first
+    close: close device
+    read_raw: return raw 8-channel * 3 = 24 bytes data
+    read: return parsed np.ndarray data with shape of (8,)
+    write: transfer bytes list to ads1299
+    write_register: write one register with index and value
+    write_registers: write series registers with start index and values
+    set_input_source: choose one source from available:
+        normal: normal electrode input
+        shorted: input shorted, to measure noise
+        MVDD: supply measurement
+        temper: temperature sensor
+        test: test signal(internal or external generated test square wave)
+    set_sample_rate: 250 | 500 | 1k | 2k | 4k | 8k | 16k Hz
+    measure_impedance: property, set it to True or False
+    enable_bias: property, set it to True or False
+
+    Examples
+    --------
+    First establish connection to ADS1299 @ /dev/spi0.0, sample rate is 1kHz
+    >>> ads = ADS1299_API()
+    >>> ads.open((0, 0))
+    >>> ads.start(1000)
+    >>> ads.measure_impedance
+    False
+    >>> ads.read()
+    array([1.234e-3, ...])  # raw data
+
+    Then set to measure impedance mode.
+    >>> ads.measure_impedance = True
+    >>> ads.read()
+    array([1.234, ...])  # this will return impedance value of each channel
 
     Attention
     ---------
-    In spidev, SpiDev().mode indicate mode of device that it connect to(avr/ads1299),
-    NOT the mode of device where python code run(PC/Raspi/esp32/etc.)
-
-    So, ads1299 accept data from DIN at raising edge and transfer data out from DOUT
-    to OrangePi as falling edge. set mode to 0b10 (CPOL=1 & CPHA=0)
+    Ads1299 accept data from DIN at raising edge and transfer data out from
+    DOUT to OrangePi at falling edge. set mode to 0b10 (CPOL=1 & CPHA=0)
 
     Notes
     -----
     Because ADS1299_API inherits spidev.SpiDev, methods list of instance may be
     pretty confusing, you can compare them by following table:
-        ADS1299_API                       | spidev.SpiDev
-        ----------------------------------+-------------------------------------
-        open(device, max_speed_hz)        | open(bus, device)
-        start(sample_rate)                | max_speed_hz = 1e6
-        close()                           | close()
-        read()                            | readbytes(len)
-        write(byte_array)                 | writebytes(byte_array)
-        read_register(reg)                | bits_per_word = 8
-        read_registers(reg, num)          | mode = 0 # number in [0, 1, 2, 3]
-        write_register(reg, byte)         | xfer(byte_array)
-        write_registers(reg, byte_array)  | xfer2(byte_array)
-        set_sample_rate(rate)             | cshigh = True|False
-        set_input_source(src)             | threewire = True|False
-        do_enable_bias = True|False       | loop = True|False
-        do_measure_impedance = True|False | lsbfirst = True|False
-                                          | fileno
+        ADS1299_API                     | spidev.SpiDev
+        --------------------------------+-------------------------------------
+        open(device, max_speed_hz)      | open(bus, device)
+        start(sample_rate)              | max_speed_hz = 1e6
+        close()                         | close()
+        read()                          | readbytes(len)
+        write(byte_array)               | writebytes(byte_array)
+        read_register(reg)              | bits_per_word = 8
+        read_registers(reg, num)        | mode = 0 # number in [0, 1, 2, 3]
+        write_register(reg, byte)       | xfer(byte_array)
+        write_registers(reg, byte_array)| xfer2(byte_array)
+        set_sample_rate(rate)           | cshigh = True | False
+        set_input_source(src)           | threewire = True | False
+        enable_bias = True | False      | loop = True | False
+        measure_impedance = True | False| lsbfirst = True | False
+                                        | fileno
     '''
     def __init__(self, scale=4.5/24/2**24):
         self.scale = float(scale)
@@ -179,7 +188,7 @@ class ADS1299_API(spidev.SpiDev):
 
         self._DRDY.edge = 'falling'
         self._epoll = select.epoll()
-        self._epoll.register(self._DRDY, select.EPOLLET | select.EPOLLPRI)
+        self._epoll.register(self._DRDY, select.EPOLLET)
         self._opened = True
 
     def start(self, sample_rate):
@@ -313,14 +322,14 @@ class ADS1299_API(spidev.SpiDev):
         # method No.1
         # ======================================================================
         # while (time.time() - self.last_time) < 1.0 / self.sample_rate:
-        #     pass
+        #     time.sleep(0)
         # self.last_time = time.time()
 
         # ======================================================================
         # method No.2
         # ======================================================================
         # while self._DRDY.value == 1:
-        #     pass
+        #     time.sleep(0)
 
         # ======================================================================
         # mwthod No.3
@@ -330,8 +339,10 @@ class ADS1299_API(spidev.SpiDev):
         num = self.write([0x00] * 27)[3:]
         byte = ''
         for i in range(8):
-            # tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i]) # use time: 4.3us
-            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i]) # use time: 1.3us
+            # tmp = chr(num[3*i+2]) + chr(num[3*i+1]) + chr(num[3*i])
+            # use time: 4.3us
+            tmp = struct.pack('3B', num[3*i+2], num[3*i+1], num[3*i])
+            # use time: 1.3us
             byte += tmp + ('\xff' if num[3*i] > 127 else '\x00')
         return np.frombuffer(byte, np.int32) * self.scale
 
@@ -366,7 +377,6 @@ class ADS1299_API(spidev.SpiDev):
         value = self.write([RREG | reg, num - 1] + [0] * num)[2:]
         self.write(RDATAC)
         return value
-
 
 
 # ESP32_SPI_BUFFER Commands
@@ -434,15 +444,15 @@ class ESP32_API(ADS1299_API):
 
         if not len(self._data_buffer):
             # spidev lib is written in C language, where value of list will be
-            # changed in-situ. Because we want self._tosend keep as [0x00] *n,
-            # self._tosend cannot be used directly in self.xfer[2]. Here we pass
-            # a new list same as self._tosend created by slicing itself.
+            # changed in-situ. Because we want self._tosend keep as [0x00] * n,
+            # self._tosend cannot be directly used in self.xfer[2]. Here we
+            # send a new list same as self._tosend created by slicing itself.
             data = struct.pack(self._data_format, *self.write(self._tosend[:]))
             data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
-        while (time.time() - self._last_time) < (1.0 / self._sample_rate):
-            pass
+        while (time.time() - self._last_time) < (0.9 / self._sample_rate):
+            time.sleep(0)
         self._last_time = time.time()
         return self._data_buffer.pop(0)
 

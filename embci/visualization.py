@@ -28,8 +28,8 @@ from PIL import Image
 from decorator import decorator
 
 from .common import time_stamp, find_layouts
-from .IO import Serial_Screen_commander, command_dict_uart_screen_v1
-from .IO import SPI_Screen_commander
+from .io import Serial_Screen_commander, command_dict_uart_screen_v1
+from .io import SPI_Screen_commander
 from .preprocess import Signal_Info
 from embci import BASEDIR, unicode
 
@@ -820,4 +820,3 @@ if __name__ == '__main__':
     #          print('new screen!')
     #  except KeyboardInterrupt:
     #      c.close()
-    pass

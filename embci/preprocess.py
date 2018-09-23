@@ -66,38 +66,34 @@ class Signal_Info(object):
         self._a = {}
         self._zi = {}
 
-    def _check_shape(func):
-        def param_collector(self, X, *args, **kwargs):
-            if isinstance(X, tuple):
-                return func(self, X, *args, **kwargs)
-            if isinstance(X, embci.IO._basic_reader):
-                X._data = param_collector(self, X._data, *args, **kwargs)
-                return X
-            X = np.atleast_2d(X)
-            # 2D array
-            # Input:  n_channel x window_size
-            # Output: result_shape
-            if len(X.shape) == 2:
-                return func(self, X, *args, **kwargs)
+    @decorator
+    def _check_shape(func, self, X, *a, **k):
+        if isinstance(X, tuple):
+            return func(self, X, *a, **k)
+        if isinstance(X, embci.io._basic_reader):
+            X._data = func(self, X._data, *a, **k)
+            return X
+        X = np.atleast_2d(X)
+        # 2D array
+        # Input:  n_channel x window_size
+        # Output: result_shape
+        if len(X.shape) == 2:
+            return func(self, X, *a, **k)
 
-            # 3D array
-            # Input:  n_sample x n_channel x window_size
-            # Output: n_sample x result_shape
-            elif len(X.shape) == 3:
-                return np.array([func(self, sample, *args, **kwargs)
-                                 for sample in X])
+        # 3D array
+        # Input:  n_sample x n_channel x window_size
+        # Output: n_sample x result_shape
+        elif len(X.shape) == 3:
+            return np.array([func(self, sample, *a, **k) for sample in X])
 
-            # 3D+
-            # Input: ... x n_sample x n_channel x window_size
-            else:
-                raise RuntimeError(('Input data shape {} is not supported.\n'
-                                    'Please offer time series (window_size) 1D'
-                                    ' data, (n_channel x window_size) 2D data '
-                                    'or (n_sample x n_channel x window_size) '
-                                    '3D data.').format(X.shape))
-        param_collector.__doc__ = func.__doc__
-        param_collector.__name__ = func.__name__
-        return param_collector
+        # 3D+
+        # Input: ... x n_sample x n_channel x window_size
+        else:
+            raise RuntimeError(
+                'Input data shape {} is not supported.\n'.format(X.shape) +
+                'Please offer time series (window_size) 1D data, '
+                '(n_channel x window_size) 2D data or '
+                '(n_sample x n_channel x window_size) 3D data.')
 
     #
     # Time domain features
@@ -330,8 +326,8 @@ class Signal_Info(object):
         '''
         assert self._b.get('band') is not None, 'call `bandpass` first!'
         x = np.atleast_1d(x)
-        x, self._zi['band'] = signal.lfilter(self._b['band'], self._a['band'],
-                                             x, zi=self._zi['band'])
+        x, self._zi['band'] = signal.lfilter(
+            self._b['band'], self._a['band'], x, zi=self._zi['band'])
         return x
 
     @_check_shape
@@ -423,7 +419,7 @@ class Signal_Info(object):
         as Alzheimer's Disease. By comparing state vector we can tell how
         synchronous the subject's brain is.
         '''
-        pass
+        raise
 
     #
     # Frequency domain features
@@ -695,9 +691,8 @@ class Signal_Info(object):
     @_check_shape
     def energy_spectrum(self, X):
         '''
-
         '''
-        pass
+        raise
 
     @_check_shape
     def scalogram(self, X, sample_rate=None):
@@ -738,7 +733,7 @@ class Signal_Info(object):
         '''
         sample_rate = sample_rate or self._fs
         if method == 1:
-            pass
+            raise
 
         elif method == 2:
             freq, amp = self.fft(X, sample_rate)
@@ -763,15 +758,15 @@ class Features(object):
                 return func(self, *a, **k)
             a = list(a)
             for method in methods:
+                kw = None
+                if isinstance(method, list):
+                    if len(method) == 1:
+                        method = method[0]
+                    elif len(method) == 2:
+                        method, kw = method
+                    else:
+                        raise RuntimeError('unknowen params' + str(method))
                 try:
-                    kw = None
-                    if isinstance(method, list):
-                        if len(method) == 1:
-                            method = method[0]
-                        elif len(method) == 2:
-                            method, kw = method
-                        else:
-                            raise RuntimeError('unknowen params' + str(method))
                     a[0] = getattr(self.si, method)(a[0], **(kw or {}))
                 except:
                     traceback.print_exc()

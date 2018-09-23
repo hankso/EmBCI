@@ -175,7 +175,6 @@ class Models():
         self._preprocessers += [self._p.stft]
         self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
         # elif self.model.name in ['Double_Dense']:
-        #    pass
         self.built = True
 
     def train(self, data, label):
