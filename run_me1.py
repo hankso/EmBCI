@@ -30,7 +30,7 @@ from reportlab.pdfgen import canvas
 from embci.common import check_input, reset_esp, time_stamp, mkuserdir
 from embci.preprocess import Signal_Info
 from embci.visualization import SPI_Screen_GUI as Screen_GUI
-from embci.IO import ESP32_SPI_reader as Reader, Socket_TCP_server
+from embci.io import ESP32_SPI_reader as Reader, Socket_TCP_server
 
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

@@ -59,7 +59,7 @@
                     <div class="form-group notchtab">
                         <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="5"> <span class="des">Hz -</span>
                         <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="10"> <span class="des">Hz</span>
-                        <button type="button" class="btn btn-default des" id="filter">带通滤波</button>
+                        <button type="button" class="btn btn-default" id="filter">带通滤波</button>
                         <input type="checkbox" checked="checked" id="notch" class="form-control"> <span class="des">陷波</span>
                         <span class="glyphicon glyphicon-zoom-in zoom" id="bigger"></span>
                         <span class="glyphicon glyphicon-zoom-out zoom" id="smaller"></span>
@@ -108,6 +108,20 @@
                         <button class="btn btn-info digital col2" id="am">test</button>
                         <button class="btn btn-success digital col3" id="m">%</button>
                     </li>
+                    <li>
+                        <!--<div class="digital term tleft invisible">运动</div>-->
+                        <!--<button class="btn btn-primary  digital" id="save-before">保存</button>-->
+                        <!--<button class="btn btn-info digital" id="save-after">保存</button>-->
+                        <!--<button class="btn btn-success digital" >保存</button>-->
+                        <button class="btn btn-primary save" id="save-before">保存</button>
+                        <button class="btn btn-info save" id="save-after">保存</button>
+                    </li>
+                    <!-- <li>
+                        <div class="digital term tleft invisible"></div>
+                        <button class="btn btn-primary digital col1" id="save-before">保存</button>
+                        <button class="btn btn-info digital col2" id="save-after">保存</button>
+                        <button class="btn btn-info digital col2 invisible"></button>
+                    </li> -->
                 </ul>
             </div>
         </div>
@@ -295,7 +309,7 @@
                     }
                     li.push([t, listY.splice(0, 1)]);
                 }
-                console.log(listY);
+                // console.log(listY);
                 myChart1.appendData({
                     seriesIndex: 0,
                     data: li
@@ -336,7 +350,7 @@
                 var li = [];
                 for (var i = 0; i < list.length; i++)
                     li.push(list[i])
-                console.log(li);
+                // console.log(li);
                 animate(li, 10);
             };
 
@@ -428,7 +442,7 @@
                         myChart2.setOption(option2);
                     }
                 })
-            }, 2000);
+            }, 1000);
 
 
             $('#checkboard>li').click(function() {
@@ -473,37 +487,41 @@
                 1: false,
                 2: false
             };
-
+            var btnCount = 0;
 
             var rate = [$('#t'), $('#s'), $('#m')];
             setInterval(function() {
-                $.ajax({
-                    method: "GET",
-                    url: "data/coef",
-                    dataType: 'json',
-                    success: function(data) {
-                        for (var i = 0; i < 3; i++) {
-                            if (bFlag[i]) {
-                                var n = parseFloat(data[i]).toFixed(4);
-                                be[i].text(n);
+                if (btnCount) {
+                    $.ajax({
+                        method: "GET",
+                        url: "data/coef",
+                        dataType: 'json',
+                        success: function(data) {
+                            for (var i = 0; i < 3; i++) {
+                                if (bFlag[i]) {
+                                    var n = parseFloat(data[i]).toFixed(4);
+                                    be[i].text(n);
+                                }
+                                if (aFlag[i]) {
+                                    var m = parseFloat(data[i]).toFixed(4);
+                                    af[i].text(m);
+                                    update(be[i], af[i], rate[i]);
+                                }
                             }
-                            if (aFlag[i]) {
-                                var m = parseFloat(data[i]).toFixed(4);
-                                af[i].text(m);
-                                update(be[i], af[i], rate[i]);
-                            }
-                        }
-                    },
-                });
+                        },
+                    });
+                }
             }, 2000);
 
             function updateButton(flag, num, ba) {
                 console.log(flag);
                 if (flag[num] == false) {
                     flag[num] = true;
+                    btnCount++;
                     ba[num].css('color', '#ffffff');
                 } else {
                     flag[num] = false;
+                    btnCount--;
                     ba[num].css('color', upColor);
                 }
             }
@@ -539,12 +557,12 @@
 
             $('#submit').click(function() {
                 var subData = {
-                    name: $('#name').val(),
+                    username: $('#name').val(),
                     gender: $('#gender').val(),
                     age: $('#age').val(),
                     id: $('#id').val(),
                 };
-                if (subData.name == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
+                if (subData.username == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
                     alert('您填写的数据有误，请检查后重新提交');
                     return;
                 }
@@ -552,12 +570,36 @@
                     method: 'GET',
                     url: 'report',
                     data: subData,
-                    success: function() {
+                    success: function(data) {
                         alert('数据提交成功,即将跳转到报告界面');
-                        window.location.href = 'report.html';
+                        $('html').html(data);
                     }
                 })
             });
+            $('#save-before').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/save',
+                    data: {
+                        action: "before"
+                    },
+                    success: function() {
+                        console.log("术前信息保存成功");
+                    }
+                })
+            });
+            $('#save-after').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/save',
+                    data: {
+                        action: "after"
+                    },
+                    success: function() {
+                        console.log("术后信息保存成功");
+                    }
+                })
+            })
         });
     </script>
 </body>

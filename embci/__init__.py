@@ -16,6 +16,7 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
 BASEDIR = os.path.abspath(os.path.join(__dir__, '../'))
+DATADIR = os.path.join(BASEDIR, 'data')
 
 if sys.version_info.major == 2:
     input = raw_input
@@ -23,7 +24,7 @@ if sys.version_info.major == 2:
     reduce = reduce
 elif sys.version_info.major == 3:
     input = input
-    unicode = None
+    unicode = lambda x: x
     from functools import reduce
 
 #  __all__ = ['preprocess', 'io', 'classifier', 'visualization', 'common', 'gyms', 'utils']

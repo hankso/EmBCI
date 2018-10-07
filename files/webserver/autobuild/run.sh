@@ -32,16 +32,16 @@ files=(
     "5-dnsmasq.conf"
 )
 
-for index in "${!targets[*]}"
+for index in "${!targets[@]}"
 do
     target=${targets[$index]}
     target_t=$target.$(date +"%Y%m%d")
     file=${files[$index]}
 
-    echo "moving $target to $target_t... "
+    echo "move $target to $target_t "
     mv $target $target_t
 
-    echo "copying $file as $target... done\n"
+    echo -e "copy $file as $target... done\n"
     cp $file $target
 done
 
@@ -51,7 +51,7 @@ done
 # a2enmod macro wsgi
 # service apache2 restart
 
-ifdown wlan0 && ifup wlan0
+ifdown -v wlan0 && ifup -v wlan0
 
 service networking restart
 

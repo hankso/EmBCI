@@ -114,14 +114,15 @@ def mkuserdir(func):
             print('Decorator may be used in wrong place.')
             print('args: {}, kwargs: {}'.format(a, k))
             return func(*a, **k)
-        for path in [os.path.join(BASEDIR, subfolder, username)
-                     for subfolder in ['data', 'model']]:
+        #  for path in [os.path.join(BASEDIR, subfolder, username)
+        #               for subfolder in ['data', 'model']]:
+        for path in [os.path.join(BASEDIR, 'data', username)]:
             if not os.path.exists(path):
                 try:
                     os.mkdir(path)
                     print('mkdir ' + path)
                 except:
-                    pass
+                    traceback.print_exc()
         return func(*a, **k)
     return wrapper
 

@@ -568,14 +568,18 @@ class ADS1299_reader(_basic_reader):
         self._send_to_pylsl = send_to_pylsl
         self._ads = ADS1299_API(sample_rate)
 
-        self.set_input_source = self._ads.set_input_source
-        self.enable_bias = self._ads.enable_bias
-        self.measure_inpedance = self._ads.measure_impedance
+        self.enable_bias = property(
+            lambda  : getattr(self._ads, 'enable_bias'),
+            lambda v: setattr(self._ads, 'enable_bias', v))
+        self.measure_inpedance = property(
+            lambda  : getattr(self._ads, 'measure_inpedance'),
+            lambda v: setattr(self._ads, 'measure_inpedance', v))
 
         ADS1299_reader._singleton = False
 
     def __del__(self):
         ADS1299_reader._singleton = True
+        print(ADS1299_reader._singleton)
         del self
 
     def set_sample_rate(self, rate):
@@ -587,6 +591,9 @@ class ADS1299_reader(_basic_reader):
                                 'restart reader now').format(rst))
             return
         print(self._name + 'invalid sample rate {}'.format(rate))
+
+    def set_input_source(self, src):
+        self._ads.set_input_source(src)
 
     def start(self, device=(0, 0), *a, **k):
         if self._started:
@@ -637,9 +644,13 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
 
-        self.set_input_source = self._esp.set_input_source
-        self.enable_bias = self._esp.enable_bias
-        self.measure_impedance = self._esp.measure_impedance
+        self.enable_bias = property(
+            lambda  : getattr(self._esp, 'enable_bias'),
+            lambda v: setattr(self._esp, 'enable_bias', v))
+        self.measure_inpedance = property(
+            lambda  : getattr(self._esp, 'measure_inpedance'),
+            lambda v: setattr(self._esp, 'measure_inpedance', v))
+
         ESP32_SPI_reader._singleton = False
 
     def __del__(self):

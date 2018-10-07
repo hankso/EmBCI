@@ -92,16 +92,16 @@
             <div class="bar">
                 <hr/>
                 <p>姓名：
-                    <span id="name">test</span>
+                    <span id="name">{{username}}</span>
                 </p>
                 <p>性别：
-                    <span id="sex">男</span>
+                    <span id="sex">{{gender}}</span>
                 </p>
                 <p>年龄：
-                    <span id="age">20</span>
+                    <span id="age">{{age}}</span>
                 </p>
                 <p>病号ID：
-                    <span id="id">0000</span>
+                    <span id="id">{{id}}</span>
                 </p>
                 <hr/>
             </div>
@@ -109,40 +109,40 @@
         <div class="content">
             <div id="before">
                 <div class="graph">
-
+                    <img src="{{img_pre_url}}" alt="" id="img_pre">
                 </div>
                 <div class="data">
                     <h2>术前</h2>
                     <h3>
-                        震颤：
+                        震颤： {{tb}}Hz
                         <span id="bt"></span>
                     </h3>
                     <h3>
-                        僵直：
+                        僵直： {{sb}}
                         <span id="bs"></span>
                     </h3>
                     <h3>
-                        运动：
+                        运动： {{mb}}
                         <span id="bm"></span>
                     </h3>
                 </div>
             </div>
             <div id="after">
                 <div class="graph">
-
+                    <img src="{{img_post_url}}" alt="" id="img_post">
                 </div>
                 <div class="data">
                     <h2>术前</h2>
                     <h3>
-                        震颤：
+                        震颤： {{ta}}Hz
                         <span id="at"></span>
                     </h3>
                     <h3>
-                        僵直：
+                        僵直： {{sa}}
                         <span id="as"></span>
                     </h3>
                     <h3>
-                        运动：
+                        运动： {{ma}}
                         <span id="am"></span>
                     </h3>
                 </div>
@@ -154,13 +154,13 @@
                 <hr/>
                 <p>改善率</p>
                 <p>震颤：
-                    <span id="t">80%</span>
+                    <span id="t">{{tr}}%</span>
                 </p>
                 <p>僵直：
-                    <span id="s">80%</span>
+                    <span id="s">{{sr}}%</span>
                 </p>
                 <p>运动：
-                    <span id="m">80%</span>
+                    <span id="m">{{mr}}%</span>
                 </p>
                 <hr/>
             </div>
@@ -173,13 +173,8 @@
         </div>
     </div>
     <div>
-        <button class="btn btn-default download">下载pdf <span class="glyphicon glyphicon-download-alt"></span></button>
+        <a href="{{pdf_url}}" class="btn btn-default download" href>下载pdf <span class="glyphicon glyphicon-download-alt"></span></a>
         <a href="/index.html" class="btn btn-default download">返回首页 <span class="glyphicon glyphicon-log-out"></span></a>
     </div>
-    <script>
-        $.download=function () {
-            
-        }
-    </script>
 </body>
 </html>
