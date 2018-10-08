@@ -500,7 +500,7 @@ if __name__ == '__main__':
     from embci import BASEDIR
     ili = ILI9341_API((0, 1))
     ili.start()
-    ili.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
+    ili.setfont(os.path.join(BASEDIR, 'files', 'fonts', 'yahei_mono.ttf'))
     for i in range(240):
         ili.draw_point(i, i, [int(i/240.0*0xff)]*2)
     ili.draw_line(239, 0, 0, 239, ILI9341_WHITE)

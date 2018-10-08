@@ -583,7 +583,6 @@ class ADS1299_reader(_basic_reader):
 
     def __del__(self):
         ADS1299_reader._singleton = True
-        print(ADS1299_reader._singleton)
         del self
 
     def set_sample_rate(self, rate):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-File: reset-waiting-for-download.py
+File: reset_esp.py
 Author: Hankso
 Web: http://github.com/hankso
 Time: Thu 02 Aug 2018 10:21:59 AM UTC

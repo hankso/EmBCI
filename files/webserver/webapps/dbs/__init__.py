@@ -42,6 +42,7 @@ if platform.machine() in ['arm', 'aarch64']:
     from embci.io import ESP32_SPI_reader as Reader
 else:
     from embci.io import Fake_data_generator as Reader
+from embci.io import Socket_TCP_server as Server
 
 
 #
@@ -79,14 +80,17 @@ data_save = {
 dbs = Bottle()
 
 reader = Reader(sample_rate, sample_time=1, n_channel=8)
-reader.enable_bias = True
+#  reader.enable_bias = True
 reader.start()
+server = Server()
+server.start()
 feature = Features(sample_rate)
 bandpass_realtime = (4, 10)
 feature.si.bandpass(reader.data_frame, register=True,
                     low=bandpass_realtime[0], high=bandpass_realtime[1])
 notch_realtime = True
 feature.si.notch(reader.data_frame, register=True)
+detrend_realtime = True
 
 ws_lock = threading.Lock()
 
@@ -269,10 +273,11 @@ def ws_handler(ws):
                 data = feature.si.notch_realtime(data)
             if bandpass_realtime:
                 data = feature.si.bandpass_realtime(data)
+            server.send(np.array(data))
             data_list.append(data)
             if len(data_list) >= batch_size:
                 data = np.float32(data_list)[:, channel_range['n']]
-                if reader.input_source == 'normal':
+                if detrend_realtime and reader.input_source != 'test':
                     data = feature.si.detrend(data)[0]
                 data = data * scale_list['a'][scale_list['i']]
                 ws.send(bytearray(data))
@@ -422,6 +427,21 @@ def test_signal():
     src = request.query.get('input_source', 'normal')
     reader.set_input_source(src)
     return 'set input source to {}'.format(reader.input_source)
+
+
+@dbs.route('/data/config')
+def data_config():
+    global detrend_realtime
+    if 'detrend' in request.query:
+        detrend = request.query.get('detrend')
+        if detrend.lower() == 'true':
+            detrend_realtime = True
+        elif detrend.lower() == 'false':
+            detrend_realtime = False
+        else:
+            abort(500, ('Invalid param for `detrend`! Choose one '
+                        'from `True` | `False`.'))
+        return 'set detrend_realtime to {}'.format(detrend)
 
 
 # offer application object for Apache2
