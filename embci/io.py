@@ -558,7 +558,8 @@ class ADS1299_reader(_basic_reader):
     _singleton = True
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, *a, **k):
+                 send_to_pylsl=False, measure_inpedance=False,
+                 enable_bias=True, *a, **k):
         if ADS1299_reader._singleton is False:
             raise RuntimeError('There is already one ADS1299 reader.')
         super(ADS1299_reader, self).__init__(sample_rate,
@@ -569,11 +570,13 @@ class ADS1299_reader(_basic_reader):
         self._ads = ADS1299_API(sample_rate)
 
         self.enable_bias = property(
-            lambda  : getattr(self._ads, 'enable_bias'),
+            lambda: getattr(self._ads, 'enable_bias'),
             lambda v: setattr(self._ads, 'enable_bias', v))
         self.measure_inpedance = property(
-            lambda  : getattr(self._ads, 'measure_inpedance'),
+            lambda: getattr(self._ads, 'measure_inpedance'),
             lambda v: setattr(self._ads, 'measure_inpedance', v))
+        self.enable_bias = enable_bias
+        self.measure_inpedance = measure_inpedance
         self.input_source = 'normal'
 
         ADS1299_reader._singleton = False
@@ -640,7 +643,8 @@ class ESP32_SPI_reader(ADS1299_reader):
     _singleton = True
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, *a, **k):
+                 send_to_pylsl=False, measure_inpedance=False,
+                 enable_bias=True, *a, **k):
         if ESP32_SPI_reader._singleton is False:
             raise RuntimeError('There is already one ESP32 SPI reader.')
         super(ADS1299_reader, self).__init__(sample_rate,
@@ -651,11 +655,14 @@ class ESP32_SPI_reader(ADS1299_reader):
         self._ads = self._esp = ESP32_API()
 
         self.enable_bias = property(
-            lambda  : getattr(self._esp, 'enable_bias'),
-            lambda v: setattr(self._esp, 'enable_bias', v))
+            lambda: getattr(self._ads, 'enable_bias'),
+            lambda v: setattr(self._ads, 'enable_bias', v))
         self.measure_inpedance = property(
-            lambda  : getattr(self._esp, 'measure_inpedance'),
-            lambda v: setattr(self._esp, 'measure_inpedance', v))
+            lambda: getattr(self._ads, 'measure_inpedance'),
+            lambda v: setattr(self._ads, 'measure_inpedance', v))
+        self.enable_bias = enable_bias
+        self.measure_inpedance = measure_inpedance
+        self.input_source = 'normal'
 
         ESP32_SPI_reader._singleton = False
 

@@ -9,7 +9,6 @@ Time: Tue 18 Sep 2018 01:55:03 CST
 # built-in
 import os
 import sys
-import time
 import platform
 import threading
 import traceback
@@ -17,7 +16,7 @@ import traceback
 # requirements.txt: necessary: numpy, scipy, bottle, pylsl, pillow
 # requirements.txt: necessary: gevent, bottle-websocket, geventwebsocket
 from gevent import monkey
-monkey.patch_all(select=False)
+monkey.patch_all(select=False, thread=False)
 import scipy
 import numpy as np
 from bottle import abort, request, redirect, run, static_file, template, Bottle
