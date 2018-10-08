@@ -34,7 +34,7 @@ if path not in sys.path:
     sys.path.append(path)
 
 # from __dir__/../../../../
-from embci import BASEDIR, DATADIR, unicode
+from embci import BASEDIR, DATADIR
 from embci.common import mkuserdir, time_stamp
 from embci.preprocess import Features
 if platform.machine() in ['arm', 'aarch64']:
@@ -57,6 +57,16 @@ x_freq = np.arange(100.0).reshape(1, 100) / freq_resolution
 batch_size = 50
 channel_range = {'r': (0, 8), 'n': 0}
 scale_list = {'a': [pow(10, x) for x in range(10)], 'i': 2}
+rainbow = [
+    0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF,
+    0x00FF00, 0xFF0000, 0x800080, 0xFFA00A,
+    0x808080
+]
+data_save = {
+    'tremor_pre': [], 'tremor_post': [],
+    'stiff_pre': [], 'stiff_post': [],
+    'move_pre': [], 'move_post': []
+}
 
 
 #
@@ -70,12 +80,8 @@ scale_list = {'a': [pow(10, x) for x in range(10)], 'i': 2}
 dbs = Bottle()
 
 reader = Reader(sample_rate, sample_time=1, n_channel=8)
-reader.start(method='process')
 reader.enable_bias = True
-data_save = {'tremor_pre': [], 'tremor_post': [],
-             'stiff_pre': [], 'stiff_post': [],
-             'move_pre': [], 'move_post': []}
-
+reader.start()
 feature = Features(sample_rate)
 bandpass_realtime = (4, 10)
 feature.si.bandpass(reader.data_frame, register=True,
@@ -92,11 +98,9 @@ ws_lock = threading.Lock()
 
 @mkuserdir
 def generate_pdf(username, id=0, gender=u'男', age=20, length=500, channel=0,
-                 frame_pre=None, frame_post=None, font='Mono',
+                 frame_pre=None, frame_post=None, font='Mono', colors=rainbow,
                  fontname=os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'),
-                 img_size=(300, 200), colors=[0x0000FF, 0xFFFF00, 0xFF00FF,
-                 0x00FFFF, 0x00FF00, 0xFF0000, 0x800080, 0xFFA00A, 0x808080],
-                 **ka):
+                 img_size=(300, 200), **ka):
     k = {}
     k['username'] = username = username.decode('utf8')
     k['gender'] = gender = gender.decode('utf8')
@@ -126,8 +130,10 @@ def generate_pdf(username, id=0, gender=u'男', age=20, length=500, channel=0,
         d *= canvas_size[1] / 2  # resize to [-half_height, +half_height]
         d += canvas_size[1] / 2  # resize to [0, img_height]
         d[:, 0] = d[:, -1] = 0  # set first and end point to zero
-        # to_plot[i] = d  # save each channel(2018.9.30)
-        to_plot.append(channel * [None] + [d[channel]])  # save one channel(2018.10.2)
+        # to_plot[i] = d
+        # save each channel(2018.9.30)
+        to_plot.append(channel * [None] + [d[channel]])
+        # save one channel(2018.10.2)
     # generate pngs
     # for ch in range(reader.n_channel):  # plot each channel(2018.9.30)
     for ch in [channel]:  # plot specific channel(2018.10.2)
@@ -162,7 +168,7 @@ def generate_pdf(username, id=0, gender=u'男', age=20, length=500, channel=0,
     c.line(30, 710, 580, 710)
     c.drawString(
         35, 740, u'改善率   震颤： {:3d}%    僵直： {:3d}%    运动： {:3d}%'.format(
-            tr ,sr, mr))
+            tr, sr, mr))
     c.line(30, 755, 580, 755)
     c.drawImage(os.path.join(DATADIR, imgpre), 32, 190)
     c.drawImage(os.path.join(DATADIR, imgpost), 32, 450)
@@ -228,7 +234,7 @@ def report():
     for key in d:
         d[key] = d[key][-1]
     if 'frame_pre' not in data_save:
-        abort(500, 'You need to save a frame of data before generating report!')
+        abort(500, 'Save two frame of data before generating report!')
     d.update(data_save)
     kwargs = generate_pdf(**d)
     pdfname = kwargs.pop('pdfname', 'test/asdf.pdf')
@@ -267,8 +273,9 @@ def ws_handler(ws):
             data_list.append(data)
             if len(data_list) >= batch_size:
                 data = np.float32(data_list)[:, channel_range['n']]
+                if reader.input_source == 'normal':
+                    data = feature.si.detrend(data)[0]
                 data = data * scale_list['a'][scale_list['i']]
-                #  print(time.time())
                 ws.send(bytearray(data))
                 data_list = []
     except WebSocketError:
@@ -365,8 +372,8 @@ def data_save_frame():
         data_save['channel'] = channel_range['n']
     elif action == 'after':
         if data_save.get('frame_pre') is None:
-            abort(500, ('You must save data for action=before first. Only after'
-                        ' then you can save data for action=after'))
+            abort(500, ('Save data with `action=before` first! Only after '
+                        'then can you save data with `action=after`'))
         data_save['frame_post'] = reader.data_frame
     else:
         abort(500, 'Invalid param action! Choose one from `before` | `after`')
@@ -408,18 +415,14 @@ def data_set_scale(op):
             scale_list['i'] = (scale_list['i'] + 1) % r[1]
         else:
             abort(500, 'Invalid operation! Choose one of `minus` | `plus`')
-    return('set scale to {}'.format(scale_list['a'][scale_list['i']]))
+    return 'set scale to {}'.format(scale_list['a'][scale_list['i']])
 
 
-@dbs.route('/data/test')
+@dbs.route('/data/source')
 def test_signal():
-    reader.set_input_source('test')
-
-
-@dbs.route('/data/normal')
-def normal_signal():
-    reader.set_input_source('normal')
-
+    src = request.query.get('input_source', 'normal')
+    reader.set_input_source(src)
+    return 'set input source to {}'.format(reader.input_source)
 
 
 # offer application object for Apache2

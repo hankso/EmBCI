@@ -364,7 +364,7 @@ def reset_esp(flash=False):
     boot.export = False
     rst.export = False
 
-    time.sleep(2.5)
+    time.sleep(1.5)
 
 
 def virtual_serial():
@@ -453,16 +453,16 @@ class Timer(object):
         if name not in Timer.last_time_dict:
             Timer.last_time_dict[name] = time.time()
 
-        def decorator(func):
-            def wrapper(*args, **kwargs):
+        def func_collector(func):
+            def param_collector(*args, **kwargs):
                 if (time.time() - Timer.last_time_dict[name]) < time_in_sec:
                     print(warning, end='')
                     return None
                 else:
                     Timer.last_time_dict[name] = time.time()
                     return func(*args, **kwargs)
-            return wrapper
-        return decorator
+            return param_collector
+        return func_collector
 
 
 def get_self_ip_addr():

@@ -13,10 +13,11 @@ import select
 import unittest
 import multiprocessing
 
-# pip install numpy, spidev, gpio4
+# requirements.txt: necessary: numpy, spidev, gpio4, decorator
 import spidev
 import numpy as np
 from gpio4 import SysfsGPIO
+from decorator import decorator
 
 from ..common import time_stamp
 from ..utils.HTMLTestRunner import HTMLTestRunner
@@ -148,6 +149,11 @@ class ADS1299_API(spidev.SpiDev):
         measure_impedance = True | False| lsbfirst = True | False
                                         | fileno
     '''
+    @decorator
+    def ensure_start(func, self, *a, **k):
+        assert self._start
+        func(self, *a, **k)
+
     def __init__(self, scale=4.5/24/2**24):
         self.scale = float(scale)
         self._DRDY = SysfsGPIO(PIN_DRDY)
@@ -248,9 +254,10 @@ class ADS1299_API(spidev.SpiDev):
             # self._START.export = False
             # self._PWRDN.export = False
             # self._RESET.export = False
+            self._opened = False
 
+    @ensure_start
     def set_sample_rate(self, rate):
-        assert self._started
         if rate not in SAMPLE_RATE:
             print('[ADS1299 API] choose one from supported rate!')
             print(' | '.join(SAMPLE_RATE.keys()))
@@ -262,8 +269,8 @@ class ADS1299_API(spidev.SpiDev):
         self.write(RDATAC)
         return rate
 
+    @ensure_start
     def set_input_source(self, src):
-        assert self._started
         if src not in INPUT_SOURCE:
             print('[ADS1299 API] choose one from supported source!')
             print(' | '.join(INPUT_SOURCE.keys()))
@@ -274,14 +281,15 @@ class ADS1299_API(spidev.SpiDev):
         vs = [(v & ~0b111 | src) for v in vs]
         self.write_registers(REG_CHnSET_BASE, vs)
         self.write(RDATAC)
+        return src
 
     @property
     def enable_bias(self):
         return self._enable_bias
 
     @enable_bias.setter
+    @ensure_start
     def enable_bias(self, boolean):
-        assert self._started
         self.write(SDATAC)
         if boolean is True:
             self.write_register(REG_BIAS_SENSP, 0b11111111)
@@ -299,8 +307,8 @@ class ADS1299_API(spidev.SpiDev):
         return self._measure_impedance
 
     @measure_impedance.setter
+    @ensure_start
     def measure_impedance(self, boolean):
-        assert self._started
         self.write(SDATAC)
         vs = self.read_registers(REG_CHnSET_BASE, 8)
         vs = [v & ~(0b111 << 4) for v in vs]
@@ -313,11 +321,11 @@ class ADS1299_API(spidev.SpiDev):
         self._measure_impedance = boolean
         self.write(RDATAC)
 
+    @ensure_start
     def read(self, *args, **kwargs):
         '''
         Read chunk bytes from ADS1299 and decode them into `float32` number
         '''
-        assert self._started
         # ======================================================================
         # method No.1
         # ======================================================================
@@ -432,6 +440,7 @@ class ESP32_API(ADS1299_API):
             super(ADS1299_API, self).close()
             self._epoll.unregister(self._DRDY)
             self._DRDY.export = False
+            self._opened = False
 
     def read(self, *args, **kwargs):
         assert self._started
@@ -493,6 +502,7 @@ class ESP32_API(ADS1299_API):
             print(' | '.join(INPUT_SOURCE.keys()))
             return
         self.write_register(REG_IS, INPUT_SOURCE[src])
+        return src
 
     @property
     def enable_bias(self):

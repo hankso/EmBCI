@@ -574,6 +574,7 @@ class ADS1299_reader(_basic_reader):
         self.measure_inpedance = property(
             lambda  : getattr(self._ads, 'measure_inpedance'),
             lambda v: setattr(self._ads, 'measure_inpedance', v))
+        self.input_source = 'normal'
 
         ADS1299_reader._singleton = False
 
@@ -593,7 +594,12 @@ class ADS1299_reader(_basic_reader):
         print(self._name + 'invalid sample rate {}'.format(rate))
 
     def set_input_source(self, src):
-        self._ads.set_input_source(src)
+        rst = self._ads.set_input_source(src)
+        if rst is not None:
+            self.input_source = src
+            print(self._name + 'input source set to {}'.format(rst))
+            return
+        print(self._name + 'invalid input source {}'.fotmat(src))
 
     def start(self, device=(0, 0), *a, **k):
         if self._started:
