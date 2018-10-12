@@ -14,7 +14,7 @@ import os
 import traceback
 
 # requirements.txt: necessary: numpy, scipy, pywavelets, pyhht
-
+# requirements.txt: necessary: decorator
 # apt-install.list: python-tk
 # note1:
 #     `apt install python-pywt` is recommended because pywavelets need to be
@@ -29,7 +29,7 @@ import numpy as np
 from decorator import decorator
 from scipy import signal, sparse, interpolate as ip
 
-import embci
+from .io import _basic_reader
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -70,7 +70,7 @@ class Signal_Info(object):
     def _check_shape(func, self, X, *a, **k):
         if isinstance(X, tuple):
             return func(self, X, *a, **k)
-        if isinstance(X, embci.io._basic_reader):
+        if isinstance(X, _basic_reader):
             X._data = func(self, X._data, *a, **k)
             return X
         X = np.atleast_2d(X)

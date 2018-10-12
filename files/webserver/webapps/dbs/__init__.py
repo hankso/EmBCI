@@ -28,12 +28,13 @@ from reportlab.pdfgen import canvas
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
-path = os.path.abspath(os.path.join(__dir__, '../../../../'))
-if path not in sys.path:
-    sys.path.append(path)
+SERVER_PATH = os.path.abspath(os.path.join(__dir__, '../../'))
+EMBCI_PATH = os.path.abspath(os.path.join(SERVER_PATH, '../../'))
+if EMBCI_PATH not in sys.path:
+    sys.path.append(EMBCI_PATH)
 
-# from __dir__/../../../../
-from embci import BASEDIR, DATADIR
+# from EMBCI_PATH
+from embci import BASEDIR, DATADIR, unicode
 from embci.common import mkuserdir, time_stamp
 from embci.preprocess import Features
 if platform.machine() in ['arm', 'aarch64']:
@@ -78,10 +79,10 @@ data_save = {
 #  inlet = pylsl.StreamInlet(pylsl.resolve_stream()[0])
 #
 dbs = Bottle()
-
 reader = Reader(sample_rate, sample_time=1, n_channel=8)
-#  reader.enable_bias = True
 reader.start()
+with open(os.path.join(SERVER_PATH, 'run.pid'), 'a') as f:
+    f.write(' {}'.format(reader.pid))
 server = Server()
 server.start()
 feature = Features(sample_rate)
@@ -99,20 +100,31 @@ ws_lock = threading.Lock()
 # Functions
 #
 
+
+def ensure_unicode(*a):
+    rst = []
+    for i in a:
+        if not isinstance(i, unicode):
+            i = i.decode('utf8')
+        rst.append(i)
+    return rst
+
+
 @mkuserdir
-def generate_pdf(username, id=0, gender=u'男', age=20, length=500, channel=0,
+def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
                  frame_pre=None, frame_post=None, font='Mono', colors=rainbow,
                  fontname=os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'),
                  img_size=(300, 200), **ka):
     k = {}
-    k['username'] = username = username.decode('utf8')
-    k['gender'] = gender = gender.decode('utf8')
-    k['age'], k['id'] = age, id = int(age), id.decode('utf8')
+    k['username'], k['gender'], k['id'] = \
+        username, gender, id = \
+        ensure_unicode(username, gender, id)
     k['length'] = length = reader.window_size
+    k['age'] = age = int(age)
     if frame_pre is None or frame_post is None:
-        print('using random data ~')
-        frame_pre = np.random.rand(channel, length)
-        frame_post = np.random.rand(channel, length)
+        print('[Generate Report PDF] using random data ~')
+        frame_pre = np.random.rand(channel + 1, length)
+        frame_post = np.random.rand(channel + 1, length)
     k['tb'], k['sb'], k['mb'] = tb, sb, mb = calc_ch_coefs(frame_pre[channel])
     k['ta'], k['sa'], k['ma'] = ta, sa, ma = calc_ch_coefs(frame_post[channel])
     tr, sr, mr = abs(ta - tb) / ta, abs(sa - sb) / sa, abs(ma - mb) / ma
@@ -225,33 +237,35 @@ def static_html(filename):
     return static_file(filename, root=__dir__)
 
 
-@dbs.route('/report/download/<pdfpath:path>')
-def static_pdf(pdfpath):
-    filename = pdfpath.replace('/', '-')
-    return static_file(pdfpath, root=DATADIR, download=filename)
+@dbs.route('/report/download/<path:path>')
+def static_files(path):
+    if path.endswith('.pdf'):
+        return static_file(path, root=DATADIR, download=path.replace('/', '-'))
+    else:
+        return static_file(path, root=DATADIR)
 
 
 @dbs.route('/report')
 def report():
-    d = request.query.dict.copy()
-    for key in d:
-        d[key] = d[key][-1]
+    d = {}
+    for k in request.query:
+        d[k] = request.query.getunicode(k)
     if 'frame_pre' not in data_save:
         abort(500, 'Save two frame of data before generating report!')
     d.update(data_save)
     kwargs = generate_pdf(**d)
-    pdfname = kwargs.pop('pdfname', 'test/asdf.pdf')
-    imgpre = kwargs.pop('imgpre', 'test/pre.png')
-    imgpost = kwargs.pop('imgpost', 'test/post.png')
-    kwargs['pdf_url'] = 'report/download/{}'.format(pdfname.encode('utf8'))
-    kwargs['img_pre_url'] = os.path.join(DATADIR, imgpre)
-    kwargs['img_post_url'] = os.path.join(DATADIR, imgpost)
+    kwargs['pdf_url'] = 'report/download/{}'.format(
+        kwargs.pop('pdfname', 'test/asdf.pdf').encode('utf8'))
+    kwargs['img_pre_url'] = 'report/download/{}'.format(
+        kwargs.pop('imgpre', 'test/pre.png').encode('utf8'))
+    kwargs['img_post_url'] = 'report/download/{}'.format(
+        kwargs.pop('imgpost', 'test/post.png').encode('utf8'))
     with open(os.path.join(__dir__, 'report.html'), 'r') as f:
         return template(f.read(), **kwargs)
 
 
 #
-# Data control API
+# Data accessing API
 #
 
 
@@ -293,6 +307,26 @@ def ws_handler(ws):
     ws_lock.release()
 
 
+@dbs.route('/data/freq')
+def data_get_freq():
+    # y_amp: 1ch x length
+    y_amp = feature.si.fft_amp_only(
+        reader.data_frame[channel_range['n']],
+        resolution=freq_resolution)[:, :length]
+    return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
+
+
+@dbs.route('/data/coef')
+def data_get_coef():
+    t, s, m = calc_ch_coefs(reader.data_frame[channel_range['n']])
+    return {'0': t, '1': s, '2': m}  # js: use json to mimic a fake array
+
+
+#
+# Stream control API
+#
+
+
 @dbs.route('/data/stop')
 def data_stream_stop():
     reader.close()
@@ -315,13 +349,12 @@ def data_stream_resume():
 def data_stream_filter():
     global bandpass_realtime, notch_realtime
     low, high = request.query.get('low'), request.query.get('high')
-    notch = request.query.get('notch')
+    notch = request.query.get('notch').lower()
     rst = ''
     if notch is not None:
-        if notch.lower() == 'true':
+        if notch == 'true':
             notch_realtime = True
-            rst += '<p>Realtime notch filter state: ON</p>'
-        elif notch.lower() == 'false':
+        elif notch == 'false':
             notch_realtime = False
             rst += '<p>Realtime notch filter state: OFF</p>'
         else:
@@ -344,104 +377,124 @@ def data_stream_filter():
     return rst if rst else 'No changes is made'
 
 
-@dbs.route('/data/freq')
-def data_get_freq():
-    # y_amp: 1ch x length
-    y_amp = feature.si.fft_amp_only(
-        reader.data_frame[channel_range['n']],
-        resolution=freq_resolution)[:, :length]
-    return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
-
-
-@dbs.route('/data/freq/<num>')
-def data_set_freq(num):
-    if num in [250, 500, 1000]:
-        reader.set_sample_rate(num)
-        reader.restart()
-        return('set sample_rate to {}'.format(num))
-    return 'Invalid number! Set sample rate within (250, 500, 1000)'
-
-
-@dbs.route('/data/coef')
-def data_get_coef():
-    t, s, m = calc_ch_coefs(reader.data_frame[channel_range['n']])
-    return {'0': t, '1': s, '2': m}  # js: use json to mimic a fake array
-
-
-@dbs.route('/data/save')
-def data_save_frame():
-    action = request.query.get('action', 'before').lower()
-    if action == 'before':
-        data_save['frame_pre'] = reader.data_frame
-        data_save['channel'] = channel_range['n']
-    elif action == 'after':
-        if data_save.get('frame_pre') is None:
-            abort(500, ('Save data with `action=before` first! Only after '
-                        'then can you save data with `action=after`'))
-        data_save['frame_post'] = reader.data_frame
-    else:
-        abort(500, 'Invalid param action! Choose one from `before` | `after`')
-    return 'Data saved for action: ' + action
-
-
-@dbs.route('/data/channel')
-def data_get_channel():
-    return channel_range
-
-
-@dbs.route('/data/channel/<num:int>')
-def data_set_channel(num):
-    if num in range(*channel_range['r']):
-        channel_range['n'] = num
-        return 'set channel to CH{}'.format(num + 1)
-    abort(500, ('Invalid number! '
-                'Set channel within [{}, {}]'.format(*channel_range['r'])))
-
-
-@dbs.route('/data/scale')
-def data_get_scale():
-    return scale_list
-
-
-@dbs.route('/data/scale/<op>')
-def data_set_scale(op):
-    r = (0, len(scale_list['a']))
-    try:
-        num = int(op)
-        if num in range(len(scale_list['a'])):
-            scale_list['i'] = num
-        else:
-            abort(500, 'Invalid number! Set scale within [{}, {}]'.format(**r))
-    except:
-        if op == 'minus':
-            scale_list['i'] = (scale_list['i'] - 1) % r[1]
-        elif op == 'plus':
-            scale_list['i'] = (scale_list['i'] + 1) % r[1]
-        else:
-            abort(500, 'Invalid operation! Choose one of `minus` | `plus`')
-    return 'set scale to {}'.format(scale_list['a'][scale_list['i']])
-
-
-@dbs.route('/data/source')
-def test_signal():
-    src = request.query.get('input_source', 'normal')
-    reader.set_input_source(src)
-    return 'set input source to {}'.format(reader.input_source)
+@dbs.route('/data/status')
+def data_status():
+    summary = ''
+    summary += '<p>Realtime Detrend state: {}</p>'.format(
+        'ON' if detrend_realtime else 'OFF')
+    summary += '<p>Realtime Notch state: {}</p>'.format(
+        'ON' if notch_realtime else 'OFF')
+    summary += '<p>Realtime Bandpass state: {}</p>'.format(
+        '{}Hz-{}Hz'.format(*bandpass_realtime) if bandpass_realtime else 'OFF')
+    summary += '<p>Data saved for action: {}</p>'.format(
+        ', '.join(map(str, data_save.keys())) if data_save.keys() else None)
+    summary += '<p>Current input source: {}</p>'.format(
+        getattr(reader, 'input_source', 'None').title())
+    summary += '<p>Current amplify scale: {}x</p>'.format(
+        scale_list['a'][scale_list['i']])
+    summary += '<p>Current channel num: CH{}</p>'.format(
+        channel_range['n'] + 1)
+    summary += '<p>Current Sample rate: {}Hz</p>'.format(
+        reader.sample_rate)
+    summary += '<p>ADS1299 BIAS output state: {}</p>'.format(
+        getattr(reader, 'enable_bias', None))
+    summary += '<p>ADS1299 Measure Impedance: {}</p>'.format(
+        getattr(reader, 'measure_impedance', None))
+    return summary
 
 
 @dbs.route('/data/config')
 def data_config():
-    global detrend_realtime
+    error = ''
     if 'detrend' in request.query:
-        detrend = request.query.get('detrend')
-        if detrend.lower() == 'true':
+        global detrend_realtime
+        detrend = request.query.get('detrend').lower()
+        if detrend == 'true':
             detrend_realtime = True
-        elif detrend.lower() == 'false':
+        elif detrend == 'false':
             detrend_realtime = False
         else:
-            abort(500, ('Invalid param for `detrend`! Choose one '
-                        'from `True` | `False`.'))
-        return 'set detrend_realtime to {}'.format(detrend)
+            error += ('<p>Invalid detrend `{}`! Choose one from '
+                      '`True` | `False`</p>').format(detrend)
+    # Save a frame of data
+    if 'save' in request.query:
+        save = request.query.get('save').lower()
+        if save == 'before':
+            data_save['frame_pre'] = reader.data_frame
+            data_save['channel'] = channel_range['n']
+        elif save == 'after' and 'frame_pre' in data_save:
+            data_save['frame_post'] = reader.data_frame
+        elif save == 'after':
+            error += ('<p>Invalid process! Save data with param `before` '
+                      'first. Then save with param `after`</p>')
+        else:
+            error += ('<p>Invalid save param: `{}`! Choose one from '
+                      '`before` | `after`</p>').format(save)
+    # Change data stream input source
+    if 'source' in request.query:
+        source = request.query.get('source')
+        if not reader.set_input_source(source):
+            error += '<p>Invalid source `{}`!</p>'.format(source)
+    # Change amplify scale
+    if 'scale' in request.query:
+        scale = request.query.get('scale').lower()
+        if not scale:
+            return scale_list
+        l = len(scale_list['a'])
+        if scale.isdigit() and int(scale) in range(l):
+            scale_list['i'] = int(scale)
+        elif scale.isdigit():
+            error += ('<p>Invalid scale `{}`! Set scale within '
+                      '[{}, {})</p>').format(scale, 0, l)
+        elif scale == 'minus':
+            scale_list['i'] = (scale_list['i'] - 1) % l
+        elif scale == 'plus':
+            scale_list['i'] = (scale_list['i'] + 1) % l
+        else:
+            error += ('<p>Invalid operation `{}`! Choose one from '
+                      '`minus` | `plus`</p>').format(scale)
+    # Change display channel
+    if 'channel' in request.query:
+        channel = request.query.get('channel')
+        if not channel:
+            return channel_range
+        if channel.isdigit() and int(channel) in range(*channel_range['r']):
+            channel_range['n'] = int(channel)
+        else:
+            error += ('<p>Invalid channel `{}`! Must be int within '
+                      '[{}, {})</p>').format(channel, *channel_range['r'])
+    # Change sample rate
+    if 'freq' in request.query:
+        freq = request.query.get('freq')
+        if freq.isdigit() and int(freq) in [250, 500, 1000]:
+            reader.set_sample_rate(int(freq))
+            reader.restart()
+        else:
+            error += ('<p>Invalid sample rate `{}`! Choose one from '
+                      '`250` | `500` | `1000`</p>').format(int(freq))
+    # Enable BIAS of ADS1299
+    if 'bias' in request.query:
+        bias = request.query.get('bias').lower()
+        if bias == 'true':
+            reader.enable_bias = True
+        elif bias == 'False':
+            reader.enable_bias = False
+        else:
+            error += ('<p>Invalid bias `{}`! Choose one from '
+                      '`True` | `False`</p>').format(bias)
+    # Measure Impedance
+    if 'impedance' in request.query:
+        imp = request.query.get('impedance').lower()
+        if imp == 'true':
+            reader.measure_impedance = True
+        elif imp == 'false':
+            reader.measure_impedance = False
+        else:
+            error += ('<p>Invalid impedance: `{}`! Choose one from '
+                      '`True` | `False`</p>').format(imp)
+    if error:
+        abort(500, error)
+    redirect('data/status')
 
 
 # offer application object for Apache2

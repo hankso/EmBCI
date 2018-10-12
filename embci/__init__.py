@@ -27,4 +27,12 @@ elif sys.version_info.major == 3:
     unicode = lambda x: x
     from functools import reduce
 
-#  __all__ = ['preprocess', 'io', 'classifier', 'visualization', 'common', 'gyms', 'utils']
+import io
+import preprocess
+import visualization
+import common
+import frame
+import classifier
+
+#  __all__ = ['preprocess', 'io', 'classifier', 'visualization',
+#             'common', 'gyms', 'utils']

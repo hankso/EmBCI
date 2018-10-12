@@ -208,16 +208,22 @@
             $('#smaller').click(function() {
                 $.ajax({
                     method: 'GET',
-                    url: 'data/scale/minus',
+                    url: 'data/config',
                     //url: 'http://localhost:8888'
+                    data: {
+                        scale: 'minus'
+                    }
                 })
             });
 
             $('#bigger').click(function() {
                 $.ajax({
                     method: 'GET',
-                    url: 'data/scale/plus',
+                    url: 'data/config',
                     //url: 'http://localhost:8888
+                    data: {
+                        scale: 'plus'
+                    }
                 })
             });
 
@@ -467,9 +473,9 @@
                 myChart2.setOption(option2);
                 $.ajax({
                     method: "GET",
-                    url: "data/channel/" + this.id,
-                    success: function(data) {
-
+                    url: "data/config",
+                    data: {
+                        channel: this.id
                     },
                 })
             });
@@ -579,9 +585,9 @@
             $('#save-before').click(function() {
                 $.ajax({
                     method: 'GET',
-                    url: 'data/save',
+                    url: 'data/config',
                     data: {
-                        action: "before"
+                        save: "before"
                     },
                     success: function() {
                         console.log("术前信息保存成功");
@@ -591,9 +597,9 @@
             $('#save-after').click(function() {
                 $.ajax({
                     method: 'GET',
-                    url: 'data/save',
+                    url: 'data/config',
                     data: {
-                        action: "after"
+                        save: "after"
                     },
                     success: function() {
                         console.log("术后信息保存成功");

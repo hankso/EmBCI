@@ -398,7 +398,7 @@ WREG            = 0x40
 REG_SR          = 0x50  # sample_rate
 REG_IS          = 0x52  # input_source
 REG_BIAS        = 0x54  # enable_bias
-REG_INPEDANCE   = 0x56  # measure_impedance
+REG_IMPEDANCE   = 0x56  # measure_impedance
 
 
 class ESP32_API(ADS1299_API):
@@ -521,7 +521,7 @@ class ESP32_API(ADS1299_API):
     @measure_impedance.setter
     def measure_impedance(self, boolean):
         assert self._started
-        self.write_register(REG_INPEDANCE, int(boolean))
+        self.write_register(REG_IMPEDANCE, int(boolean))
         self._measure_impedance = boolean
 
 

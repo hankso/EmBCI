@@ -11,7 +11,6 @@ import os
 import sys
 import time
 import mmap
-import signal
 import socket
 import select
 import unittest
@@ -21,7 +20,8 @@ import multiprocessing
 from ctypes import c_uint16
 
 # pip install numpy, scipy, serial, mne, spidev, pylsl
-import scipy
+import scipy.io
+import scipy.signal
 import numpy as np
 import serial
 import pylsl
@@ -35,7 +35,6 @@ from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
 from .utils.ili9341_api import ILI9341_API, rgb24to565
 from .utils.HTMLTestRunner import HTMLTestRunner
-from .preprocess import Signal_Info
 from embci import BASEDIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
@@ -217,6 +216,7 @@ class _basic_reader(object):
             self._process = multiprocessing.Process(target=self._stream_data)
             self._process.daemon = True
             self._process.start()
+            self.pid = self._process.pid
         elif method == 'thread':
             self._thread = threading.Thread(target=self._stream_data)
             self._thread.setDaemon(True)
@@ -321,8 +321,6 @@ class _basic_reader(object):
             for item in items:
                 self = self.__getitem__(item)
             return self
-        if isinstance(items, str) and items in vars(Signal_Info):
-            return getattr(Signal_Info(self.sample_rate), items)(self)
         if isinstance(items, (slice, int)):
             return self._data[items]
         else:
@@ -419,13 +417,18 @@ class Files_reader(_basic_reader):
             print(self._name + '{}: {}'.format(type(e), e))
             print(self._name + 'Abort...')
             return
+        self._start_time = time.time()
 
         # 2. get ready to stream data
         super(Files_reader, self).start(*a, **k)
 
     def _get_data_g(self, data):
+        self._last_time = time.time()
+        d = 0.9 / self.sample_rate
         for line in data:
-            time.sleep(1.0 / self.sample_rate)
+            while (time.time() - self._last_time) < d:
+                time.sleep(0)
+            self._last_time = time.time()
             if (yield line) == 'quit':
                 break
 
@@ -558,7 +561,7 @@ class ADS1299_reader(_basic_reader):
     _singleton = True
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, measure_inpedance=False,
+                 send_to_pylsl=False, measure_impedance=False,
                  enable_bias=True, *a, **k):
         if ADS1299_reader._singleton is False:
             raise RuntimeError('There is already one ADS1299 reader.')
@@ -572,11 +575,11 @@ class ADS1299_reader(_basic_reader):
         self.enable_bias = property(
             lambda: getattr(self._ads, 'enable_bias'),
             lambda v: setattr(self._ads, 'enable_bias', v))
-        self.measure_inpedance = property(
-            lambda: getattr(self._ads, 'measure_inpedance'),
-            lambda v: setattr(self._ads, 'measure_inpedance', v))
+        self.measure_impedance = property(
+            lambda: getattr(self._ads, 'measure_impedance'),
+            lambda v: setattr(self._ads, 'measure_impedance', v))
         self.enable_bias = enable_bias
-        self.measure_inpedance = measure_inpedance
+        self.measure_impedance = measure_impedance
         self.input_source = 'normal'
 
         ADS1299_reader._singleton = False
@@ -592,16 +595,18 @@ class ADS1299_reader(_basic_reader):
             self.window_size = self.sample_rate * self.sample_time
             print(self._name + ('sample rate set to {}, you may want to '
                                 'restart reader now').format(rst))
-            return
+            return True
         print(self._name + 'invalid sample rate {}'.format(rate))
+        return False
 
     def set_input_source(self, src):
         rst = self._ads.set_input_source(src)
         if rst is not None:
             self.input_source = src
             print(self._name + 'input source set to {}'.format(rst))
-            return
+            return True
         print(self._name + 'invalid input source {}'.fotmat(src))
+        return False
 
     def start(self, device=(0, 0), *a, **k):
         if self._started:
@@ -642,7 +647,7 @@ class ESP32_SPI_reader(ADS1299_reader):
     _singleton = True
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, measure_inpedance=False,
+                 send_to_pylsl=False, measure_impedance=False,
                  enable_bias=True, *a, **k):
         if ESP32_SPI_reader._singleton is False:
             raise RuntimeError('There is already one ESP32 SPI reader.')
@@ -656,11 +661,11 @@ class ESP32_SPI_reader(ADS1299_reader):
         self.enable_bias = property(
             lambda: getattr(self._ads, 'enable_bias'),
             lambda v: setattr(self._ads, 'enable_bias', v))
-        self.measure_inpedance = property(
-            lambda: getattr(self._ads, 'measure_inpedance'),
-            lambda v: setattr(self._ads, 'measure_inpedance', v))
+        self.measure_impedance = property(
+            lambda: getattr(self._ads, 'measure_impedance'),
+            lambda v: setattr(self._ads, 'measure_impedance', v))
         self.enable_bias = enable_bias
-        self.measure_inpedance = measure_inpedance
+        self.measure_impedance = measure_impedance
         self.input_source = 'normal'
 
         ESP32_SPI_reader._singleton = False
@@ -1198,10 +1203,10 @@ class _convert_24bit_to_565():
 class SPI_Screen_commander(_basic_commander):
     _color_map = {
         str: {
-            'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'purple': [0x41, 0x2B],
-            'green': [0x07, 0xE0], 'cyan': [0x07, 0xFF], 'yellow': [0xFF, 0xE0],
-            'white': [0xFF, 0xFF], 'pink': [0xF8, 0x1F], 'orange': [0xEC, 0xAF],
-            'red': [0xF8, 0x00]},
+            'white': [0xFF, 0xFF], 'red': [0xF8, 0x00], 'orange': [0xEC, 0xAF],
+            'cyan': [0x07, 0xFF], 'pink': [0xF8, 0x1F], 'yellow': [0xFF, 0xE0],
+            'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'green': [0x07, 0xE0],
+            'purple': [0x41, 0x2B]},
         int: _convert_24bit_to_565()}
     _singleton = True
 
