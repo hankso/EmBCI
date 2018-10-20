@@ -331,10 +331,10 @@ def find_wifi_hotspots(interface=None):
     return ibya_list(map(abyi_dict, map(vars, unique)))
 
 
-def reset_esp(flash=False):
-    rst = SysfsGPIO(19)
+def reset_esp(flash=False, en_pin=19, boot_pin=18):
+    rst = SysfsGPIO(en_pin)
     rst.export = True
-    boot = SysfsGPIO(18)
+    boot = SysfsGPIO(boot_pin)
     boot.export = True
 
     # press reset

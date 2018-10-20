@@ -15,8 +15,13 @@ BASEDIR = os.path.abspath(os.path.join(__dir__, '../../'))
 sys.path.append(BASEDIR)
 from embci.common import reset_esp
 
+# OPi GPIO19
+en = 19
+# OPi GPIO18
+boot = 18
+
 if __name__ == '__main__':
-    if 'flash' in sys.argv:
-        reset_esp(flash=True)
-    else:
-        reset_esp()
+    reset_esp(
+        flash=('flash' in sys.argv),
+        en_pin=en,
+        boot_pin=boot)

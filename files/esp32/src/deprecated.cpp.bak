@@ -1,0 +1,105 @@
+
+
+const int TSXL = 34;
+const int TSXR = 32;
+const int TSYU = 35;
+const int TSYD = 33;
+const int TSYUO = 25;
+const int TSXLO = 26;
+
+#define TS_XLC ADC1_CHANNEL_6
+#define TS_XRC ADC1_CHANNEL_4
+#define TS_YUC ADC1_CHANNEL_7
+#define TS_YDC ADC1_CHANNEL_5
+
+
+void setpinstate(int pin, int state) {
+    gpio_config_t conf;
+    switch(pin) {
+        case TSXR:
+            conf.pin_bit_mask = 1ULL << GPIO_NUM_32;
+            break;
+        case TSYD:
+            conf.pin_bit_mask = 1ULL << GPIO_NUM_33;
+            break;
+        case TSYUO:
+            conf.pin_bit_mask = 1ULL << GPIO_NUM_25;
+            break;
+        case TSXLO:
+            conf.pin_bit_mask = 1ULL << GPIO_NUM_26;
+            break;
+    }
+    conf.mode = ((state==2) ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT);
+    conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    conf.intr_type = GPIO_INTR_DISABLE;
+    gpio_config(&conf);
+    if (state > 1) return;
+    switch(pin) {
+        case TSXR:
+            gpio_set_level(GPIO_NUM_32,state);
+            break;
+        case TSYD:
+            gpio_set_level(GPIO_NUM_33,state);
+            break;
+        case TSYUO:
+            gpio_set_level(GPIO_NUM_25,state);
+            break;
+        case TSXLO:
+            gpio_set_level(GPIO_NUM_26,state);
+            break;
+    }
+}
+
+void getTouchPoint(int* tsx, int* tsy, int* tsp) {
+    adc1_config_width(ADC_WIDTH_BIT_11);
+    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11);
+    adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_11);
+    gpio_pad_select_gpio(GPIO_NUM_32);
+    gpio_pad_select_gpio(GPIO_NUM_33);
+    rtc_gpio_deinit(GPIO_NUM_32);
+    rtc_gpio_deinit(GPIO_NUM_33);
+
+    setpinstate(TSXLO, 1);
+    setpinstate(TSXR, 0);
+    setpinstate(TSYUO, 2);
+    setpinstate(TSYD, 2);
+    *tsx = adc1_get_raw(ADC1_CHANNEL_7);
+
+    setpinstate(TSXLO, 2);
+    setpinstate(TSXR, 2);
+    setpinstate(TSYUO, 1);
+    setpinstate(TSYD, 0);
+    *tsy = adc1_get_raw(ADC1_CHANNEL_6);
+
+    setpinstate(TSXLO, 2);
+    setpinstate(TSXR, 1);
+    setpinstate(TSYUO, 2);
+    setpinstate(TSYD, 0);
+    *tsp = adc1_get_raw(ADC1_CHANNEL_6);
+
+    setpinstate(TSXLO, 2);
+    setpinstate(TSXR, 2);
+    setpinstate(TSYUO, 2);
+    setpinstate(TSYD, 2);
+
+    /*
+    if (logger.level >= 2){
+    Serial.print(tsx);
+    Serial.print(" ");
+    Serial.print(tsy);
+    Serial.print(" ");
+    Serial.print(tsp);
+    Serial.println(" ");
+    }
+
+    if (tsp <= 2000 && logger.level >= 0){
+    Serial.print(tsx);
+    Serial.print(",");
+    Serial.print(tsy);
+    Serial.print(",");
+    Serial.print(tsp);
+    Serial.print("\n");
+    }
+    */
+}

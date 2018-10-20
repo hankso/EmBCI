@@ -1,0 +1,245 @@
+#ifndef _ADS1299_ESP32_H_INCLUDED
+#define _ADS1299_ESP32_H_INCLUDED
+
+#include <SPI.h>
+#include "ADS1299_ESP32_REGS.h"
+
+class ADS1299{
+  private:
+  SPIClass *spi=NULL;
+  SPISettings *spiSetting=NULL;
+  uint8_t SSPin;
+  
+  public:
+  int gain;
+  ADS1299(int spitype,int sspin){ //initialization with spi type
+    spi=new SPIClass(spitype);
+    SSPin=sspin;
+  }
+  
+  ADS1299(SPIClass* spiclass,int sspin){  //initialization with spi class pointer
+    spi=spiclass;
+    SSPin=sspin;
+  }
+  
+  inline byte spiSend(const byte dat){
+    byte recv;
+    digitalWrite(SSPin,LOW);
+    spi->beginTransaction(*spiSetting);
+    recv=spi->transfer(dat);
+    spi->endTransaction();
+    digitalWrite(SSPin,HIGH);
+    return recv;
+  }
+  inline void spiSend(const byte dat[],const uint8_t num,byte recv[]){
+    digitalWrite(SSPin,LOW);
+    spi->beginTransaction(*spiSetting);
+    for(int i=0;i<num;i++){
+      recv[i]=spi->transfer(dat[i]);
+    }
+    spi->endTransaction();
+    digitalWrite(SSPin,HIGH);
+  }
+  
+  void begin(){
+    pinMode(SSPin,OUTPUT);
+    digitalWrite(SSPin,HIGH);
+    spi->begin();
+    spiSetting=new SPISettings(1000000, MSBFIRST, SPI_MODE2);
+  }
+  
+  void setSPISpeed(uint32_t spd){
+    delete(spiSetting);
+    spiSetting=new SPISettings(spd,MSBFIRST,SPI_MODE2);
+  }
+  
+  void reset(){
+    spiSend(ADS_RESET);
+    delay(1000);
+  }
+
+  void wakeup(){
+    spiSend(ADS_WAKEUP);
+    delay(10);
+  }
+
+  void standby(){
+    spiSend(ADS_STANDBY);
+  }
+
+  void start(){
+    spiSend(ADS_START);
+    delay(100);
+  }
+
+  void stop(){
+    spiSend(ADS_STOP);
+    delay(10);
+  }
+
+  void rdatac(){
+    spiSend(ADS_RDATAC);
+    delay(1);
+  }
+
+  void sdatac(){
+    spiSend(ADS_SDATAC);
+    delay(1);
+  }
+
+  byte rreg(byte addr){
+    byte tobesent[3]={0x00,0x00,0x00};
+    byte received[3];
+    tobesent[0]=ADS_RREG|addr;
+    spiSend(tobesent,3,received);
+    return received[2];
+  }
+
+  void wreg(byte addr,byte data){
+    byte tobesent[3]={0x00,0x00,0x00};
+    byte received[3];
+    tobesent[0]=ADS_WREG|addr;
+    tobesent[2]=data;
+    spiSend(tobesent,3,received);
+  }
+
+  byte init(){
+    byte id;
+    gain=24;
+    reset();
+    sdatac();
+    id=rreg(ADS_ID);
+    wreg(ADS_CONFIG3,0xE0);
+    wreg(ADS_MISC1,0x20);
+    wreg(ADS_CONFIG2,0xD0);
+    for(int i=0;i<8;i++){
+      wreg(ADS_CH1SET+i,0x60);
+    }
+    start();
+    rdatac();
+    return id;
+    
+  }
+
+  void setTestSignal(bool en){
+    sdatac();
+    wreg(ADS_CONFIG2,0xD0);
+    if(en){
+      wreg(ADS_CH1SET,0x65);
+      wreg(ADS_CH2SET,0x65);
+      wreg(ADS_CH3SET,0x65);
+      wreg(ADS_CH4SET,0x65);
+      wreg(ADS_CH5SET,0x65);
+      wreg(ADS_CH6SET,0x65);
+      wreg(ADS_CH7SET,0x65);
+      wreg(ADS_CH8SET,0x65);
+    }else{
+      for(int i=0;i<8;i++){
+        wreg(ADS_CH1SET+i,0x60);
+      }
+    }
+    rdatac();
+  }
+
+  void setBias(bool en){
+    sdatac();
+    if(en){
+      wreg(ADS_BIAS_SENSP,0xFF);
+      wreg(ADS_BIAS_SENSN,0xFF);
+      wreg(ADS_CONFIG3,0xEC);
+    }else{
+      wreg(ADS_BIAS_SENSP,0x00);
+      wreg(ADS_BIAS_SENSN,0x00);
+      wreg(ADS_CONFIG3,0xE0);
+    }
+    rdatac();
+  }
+
+  void setImpedance(bool en){
+    sdatac();
+    if(en){
+      wreg(ADS_LOFF_SENSP,0xFF);
+      wreg(ADS_CH1SET,0x00);
+      wreg(ADS_CH2SET,0x00);
+      wreg(ADS_CH3SET,0x00);
+      wreg(ADS_CH4SET,0x00);
+      wreg(ADS_CH5SET,0x00);
+      wreg(ADS_CH6SET,0x00);
+      wreg(ADS_CH7SET,0x00);
+      wreg(ADS_CH8SET,0x00);
+    }else{
+      wreg(ADS_LOFF_SENSP,0x00);
+      for(int i=0;i<8;i++){
+        wreg(ADS_CH1SET+i,0x60);
+      }
+    }
+    rdatac();
+  }
+
+  void setSampRate(uint16_t sr){
+    byte lowbyte;
+    switch(sr){
+      case 250:
+      lowbyte=0x06;
+      break;
+      case 500:
+      lowbyte=0x05;
+      break;
+      case 1000:
+      lowbyte=0x04;
+      break;
+      case 2000:
+      lowbyte=0x03;
+      break;
+      case 4000:
+      lowbyte=0x02;
+      break;
+      case 8000:
+      lowbyte=0x01;
+      break;
+      case 16000:
+      lowbyte=0x00;
+      break;
+      default:
+      lowbyte=0x06;
+      break;
+    }
+    sdatac();
+    wreg(ADS_CONFIG1,0x90|lowbyte);
+    rdatac();
+  }
+
+  inline uint32_t sign_extend_24_32(uint32_t x) {
+    const int bits = 24;
+    uint32_t m = 1u << (bits - 1);
+    return (x ^ m) - m;
+  }
+  
+  uint32_t readData(float res[]){
+    byte tobesent[27];
+    byte received[27];
+    uint32_t statusbit=0;
+    int32_t data[8];
+    for(int i=0;i<27;i++){
+      tobesent[i]=0x00;
+    }
+    spiSend(tobesent,27,received);
+    statusbit=(received[0]<<16)|(received[1]<<8)|(received[2]);
+    for(int i=0;i<8;i++){
+      uint32_t tempdat=0;
+      tempdat=(received[3+3*i]<<16)|(received[4+3*i]<<8)|(received[5+3*i]);
+      data[i]=sign_extend_24_32(tempdat);
+    }
+    
+    for(int i=0;i<8;i++){
+      //res[i]=((float)data[i])*2.0*4.5/gain/16777216.0;
+      res[i]=*((float*)(data+i));
+    }
+    return statusbit;
+  }
+  
+  ~ADS1299(){
+    
+  }
+};
+#endif

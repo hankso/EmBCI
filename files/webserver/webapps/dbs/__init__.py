@@ -291,7 +291,8 @@ def ws_handler(ws):
             data_list.append(data)
             if len(data_list) >= batch_size:
                 data = np.float32(data_list)[:, channel_range['n']]
-                if detrend_realtime and reader.input_source != 'test':
+                if detrend_realtime and \
+                   getattr(reader, 'input_source', 'None') != 'test':
                     data = feature.si.detrend(data)[0]
                 data = data * scale_list['a'][scale_list['i']]
                 ws.send(bytearray(data))
