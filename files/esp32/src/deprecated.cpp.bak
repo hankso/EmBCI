@@ -103,3 +103,36 @@ void getTouchPoint(int* tsx, int* tsy, int* tsp) {
     }
     */
 }
+
+
+
+// FIXME 0: Logging level macros added, change conresponding number to name
+#define MAXLEVEL 5
+#define FATAL 4
+#define ERROR 3
+#define WARN 2
+#define INFO 1
+#define DEBUG 0
+
+#ifdef DEBUGVERBOSE
+    // FIXME 1: change DebugLogger level number and println logic.
+    class DebugLogger {
+        public:
+            int level;
+            DebugLogger() {
+                level = FATAL;
+            }
+            ~DebugLogger() {}
+            void println(const char* str, int plevel) {
+                if (plevel >= level) {
+                    Serial.println(str);
+                }
+            }
+            void print(const char* str, int plevel) {
+                if (plevel >= level) {
+                    Serial.print(str);
+                }
+            }
+    };
+    DebugLogger logger;
+#endif

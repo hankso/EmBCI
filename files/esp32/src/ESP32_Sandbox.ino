@@ -30,18 +30,27 @@
  SOFTWARE.
 */
 
+/*
+ You need to configure `Arduino-Log` lib before compiling in directory
+ `${arduino-esp32}/libraries/Arduino-Log`. Lib page @
+ https://github.com/thijse/Arduino-Log
+*/
+
+#include "ADS1299_ESP32.h"
+
+#include <ArduinoLog.h>
 #include <SPI.h>
 #include "Arduino.h"
-#include "ADS1299_ESP32.h"
 #include "HardwareSerial.h"
-#include "esp_heap_alloc_caps.h"
+// #include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 #include "driver/spi_slave.h"
 #include "driver/adc.h"
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
 
-#define DEBUGVERBOSE
-#define WAIT_SERIAL while(!Serial.available())
+// Uncomment line below to disable logging.
+// #define DISABLE_LOGGING
 
 #define M_BUFFERSIZ 8192
 #define M_BUFFERSIZSPI 256
@@ -63,38 +72,6 @@
 #define GPIO_BIT_MASK_YD (1ULL<<GPIO_NUM_33)
 
 #define datatyp float
-
-// FIXME 0: Logging level macros added, change conresponding number to name
-#define FATAL 4
-#define ERROR 3
-#define WARN 2
-#define INFO 1
-#define DEBUG 0
-
-static const int spiClk = 1000000; // 1 MHz
-
-ADS1299 ads(HSPI, HSPI_SS);
-
-SPIClass * vspi = NULL;
-
-#ifdef DEBUGVERBOSE
-    // FIXME 1: change DebugLogger level number and println logic.
-    class DebugLogger {
-        public:
-            int level;
-            DebugLogger() {
-                level = 0;
-            }
-            ~DebugLogger() {}
-            void println(const char* str, int plevel) {
-                if (level >= plevel) {
-                    Serial.println(str);
-                }
-            }
-    };
-    DebugLogger logger;
-#endif
-
 
 template<typename T>
 class CyclicQueue {
@@ -172,8 +149,6 @@ enum SpiSlaveStatus{
     poll
 };
 
-char* spibufrecv;
-
 datatyp cqbuf[M_BUFFERSIZ];
 datatyp* spibuf;
 CyclicQueue<datatyp> *cq;
@@ -183,346 +158,247 @@ MillisClock clkslavetimeout;
 MillisClock clkblink;
 MillisClock clkts;
 
-int drdypulsetime = 10;
-bool blinkstat = false;
-
 uint32_t timeacc;
-uint32_t adsstatusbit;
+uint32_t adsStatusBit;
 uint32_t sampfps = 0;
 uint32_t sampfpsvi = 0;
 uint32_t sampfpsi = 0;
 uint32_t sampfpsv = 0;
 
-int tsx, tsy, tsp;
+ADS1299 ads(HSPI, HSPI_SS);
 
-int fakedata = 0;
+static const int spiClk = 1000000; // 1 MHz
 
-SpiSlaveStatus spislavestatus = idle;
+SPIClass * vspi = NULL;
+
+int drdypulsetime = 10;
+int transits = 0;
+int transitsps = 0;
+long wavei = 0;
+float lastreading;
+char* spibufrecv;
+bool blinkstat = false;
+
+int dataSrc = 0;
+const char* const dataSrcList[] = {
+    "ADS1299 Float32 Raw Wave",
+    "ESP Generated Square Wave",
+    "ESP Generated Sine Wave",
+    "Constant 1.0"
+};
+
+int logLevel = 4;
+int minLevel = 2;
+int maxLevel = 7;
+const char* const logLevelList[] = {
+    "SILENT",
+    "FATAL",
+    "ERROR",
+    "WARNING",
+    "NOTICE",
+    "TRACE",
+    "VERBOSE"
+};
+
+int fsList[7] = {250, 500, 1000, 2000, 4000, 8000, 16000};
+
+SpiSlaveStatus slaveStatus = idle;
+spi_slave_transaction_t* t;
+esp_err_t ret;
 
 void my_post_setup_cb (spi_slave_transaction_t *trans) {}
 
 void my_post_trans_cb (spi_slave_transaction_t *trans) {}
 
-spi_slave_transaction_t* t;
-esp_err_t ret;
-
-float lastreading;
-int transits = 0;
-int transitsps = 0;
-long wavei = 0;
-
-void getFakeData() {
-    //cq->push(sin(millis()/500.));
-    //cq->push((float)(millis()%1000));
-    //cq->push(0xAC);
-    if (digitalRead(ADS_DRDY_PIN) == LOW) {
-        float res[8];
-        // byte bar[4] = {0x81, 0xAA, 0xAC, 0x02};
-        adsstatusbit = ads.readData(res);
-        if ((adsstatusbit & 0xF00000) == 0xC00000) {
-            wavei++;
-            for (int i = 0; i < 8; i++) {
-                if (fakedata == 1) {
-                    cq->push((float)((wavei / 10) % 100));
-                } else if (fakedata == 2) {
-                    cq->push(sin(wavei / 10));
-                } else if(fakedata == 3) {
-                    cq->push(1.0);
-                } else {
-                    cq->push(res[i]);
-                }
-                //cq->push(*((float*)bar));
-            }
-            sampfpsvi++;
-            if (fabs(lastreading - res[0]) > 10000.) {
-                transits++;
-            }
-            lastreading = res[0];
+void sendToSPI() {
+    // wait until ADS1299 DRDY pin fall down, why not use interrupt?
+    if (digitalRead(ADS_DRDY_PIN) == HIGH) return;
+    float res[8];
+    adsStatusBit = ads.readData(res);
+    if ((adsStatusBit & 0xF00000) != 0xC00000) return;
+    wavei++;
+    for (int i = 0; i < 8; i++) {
+        if (dataSrc == 1) {
+            cq->push((float)((wavei / 10) % 100));
+        } else if (dataSrc == 2) {
+            cq->push(sin(wavei / 10));
+        } else if(dataSrc == 3) {
+            cq->push(1.0);
+        } else {
+            cq->push(res[i]);
         }
     }
+    sampfpsvi++;
+    if (fabs(lastreading - res[0]) > 10000.) {
+        transits++;
+    }
+    lastreading = res[0];
 }
 
 void handleSerialCommand() {
     if (!Serial.available()) return;
-    #ifdef DEBUGVERBOSE
-        logger.println("Begin processing serial port", 3);
-    #endif
+    Log.trace("Begin processing serial port\n");
     char inchar = Serial.read();
     if (inchar < 'a' || inchar > 'z') return;
     switch(inchar) {
         case 'c':
             cq->clear();
-            Serial.println("Queue empty now.");
+            Log.notice("Queue empty now\n");
             break;
         case 's':
-            Serial.print("ADS1299 Status Bit: ");
-            Serial.println(adsstatusbit, BIN);
-            Serial.print("ADS1299 packet header: ");
-            Serial.println(ads.init(), BIN);
-            Serial.print("Valid packets: ");
-            Serial.print(sampfps);
-            Serial.print("/");
-            Serial.println(sampfpsv);
+            Log.notice("ADS1299 packets header: %B\n", adsStatusBit);
+            Log.notice("ADS1299 first register: %B\n", ads.init());
+            Log.notice("Valid packets:          %d/%d Hz\n", sampfpsv, sampfps);
+            Log.notice("Current output data:    %s\n", dataSrcList[dataSrc]);
+            Log.notice("Current log level:      %s\n", logLevelList[logLevel]);
             break;
         case 't':
-            // TODO 1: add more output info here
-            fakedata = (fakedata - 1) % 4;
+            dataSrc = (dataSrc + 1) % 4;
+            Log.notice("Current output data: %s\n", dataSrcList[dataSrc]);
             break;
         case 'o':
-            // TODO 2: and here
-            Serial.println(transitsps);
+            // TODO 1: add more output info here, what's this `transitsps`?
+            Log.notice("Current transitsps: %d\n", transitsps);
             break;
-        #ifdef DEBUGVERBOSE
-            case 'v':
-                logger.level = (logger.level + 1) % 4;
-                break;
-        #endif
+        case 'm':
+            logLevel = max((logLevel - 1), minLevel);
+            Log.setLogLevel(logLevel);
+            Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
+            break;
+        case 'v':
+            logLevel = min((logLevel + 1), maxLevel);
+            Log.setLogLevel(logLevel);
+            Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
+            break;
         case 'h':
-            Serial.println("Supported commands:");
-            Serial.println("\tc - clear FIFO queue");
-            Serial.println("\th - print this help message");
-            Serial.println("\ts - print summary of current status");
-            Serial.println("\tt - change esp output data source [ads, square, sine, constant]");
-            Serial.println("\to - ???");
-            Serial.println("\tv - change verbose level [DEBUG, INFO, WARN, ERROR, FATAL, CRITICAL]");
+            Log.notice("Supported commands:\n");
+            Log.notice("\tc - clear FIFO queue\n");
+            Log.notice("\th - print this help message\n");
+            Log.notice("\ts - print summary of current status\n");
+            Log.notice("\tt - change esp output data source\n");
+            Log.notice("\to - ???\n");
+            Log.notice("\tv - be more verbose\n");
+            Log.notice("\tm - be less verbose(mute)\n");
+            break;
     }
-    #ifdef DEBUGVERBOSE
-        logger.println("End processing serial port", 3);
-    #endif
+    Log.trace("End processing serial port\n");
 }
 
 void handleSpiCommand() {
-    switch (spibufrecv[0]) {
-        case 0x40: // Write Register
-            #ifdef DEBUGVERBOSE
-                logger.println("INSTRUCTION: WREG", 1);
-            #endif
-            switch(spibufrecv[1]) {
-                case 0x50: // WREG sample rate
-                    #ifdef DEBUGVERBOSE
-                        logger.println("REGISTER: SAMPLE RATE", 1);
-                    #endif
-                    switch(spibufrecv[2]) {
-                        case 0x06:
-                            ads.setSampRate(250);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("SAMPLE RATE SET TO 250",1);
-                            #endif
-                            break;
-                        case 0x05:
-                            ads.setSampRate(500);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("SAMPLE RATE SET TO 500",1);
-                            #endif
-                            break;
-                        case 0x04:
-                            ads.setSampRate(1000);
-                            #ifdef DEBUGVERBOSE
-                            logger.println("SAMPLE RATE SET TO 1000",1);
-                            #endif
-                            break;
-                        case 0x03:
-                            ads.setSampRate(2000);
-                            #ifdef DEBUGVERBOSE
-                            logger.println("SAMPLE RATE SET TO 2000",1);
-                            #endif
-                            break;
-                        case 0x02:
-                            ads.setSampRate(4000);
-                            #ifdef DEBUGVERBOSE
-                            logger.println("SAMPLE RATE SET TO 4000",1);
-                            #endif
-                            break;
-                        case 0x01:
-                            ads.setSampRate(8000);
-                            #ifdef DEBUGVERBOSE
-                            logger.println("SAMPLE RATE SET TO 8000",1);
-                            #endif
-                            break;
-                        case 0x00:
-                            ads.setSampRate(16000);
-                            #ifdef DEBUGVERBOSE
-                            logger.println("SAMPLE RATE SET TO 16000",1);
-                            #endif
-                            break;
-                        default:
-                            #ifdef DEBUGVERBOSE
-                            logger.println("NOT IMPLEMENTED",1);
-                            #endif
-                            break;
-                    }
-                    break;
-                case 0x52: // WREG input source
-                    #ifdef DEBUGVERBOSE
-                        logger.println("REGISTER: INPUT SOURCE",1);
-                    #endif
-                    switch (spibufrecv[2]) {
-                        case 0x05: // input source: test signal
-                            ads.setTestSignal(true);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("TEST SIGNAL ENABLED",1);
-                            #endif
-                            break;
-                        case 0x00: // input source: normal signal
-                            ads.setTestSignal(false);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("NORMAL SIGNAL ENABLED",1);
-                            #endif
-                            break;
-                        default:
-                            #ifdef DEBUGVERBOSE
-                                logger.println("NOT IMPLEMENTED",1);
-                            #endif
-                    }
-                    break;
-                case 0x54: // WREG bias
-                    #ifdef DEBUGVERBOSE
-                        logger.println("REGISTER: BIAS",1);
-                    #endif
-                    switch(spibufrecv[2]) {
-                        case 0x01:
-                            ads.setBias(true);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("BIAS ENABLED",1);
-                            #endif
-                            break;
-                        case 0x00:
-                            ads.setBias(false);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("BIAS DISABLED",1);
-                            #endif
-                            break;
-                        default:
-                            #ifdef DEBUGVERBOSE
-                                logger.println("NOT IMPLEMENTED",1);
-                            #endif
-                    }
-                    break;
-                case 0x56: // WREG impedance
-                    #ifdef DEBUGVERBOSE
-                        logger.println("REGISTER: IMPEDANCE",1);
-                    #endif
-                    switch(spibufrecv[2]) {
-                        case 0x01:
-                            ads.setImpedance(true);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("IMPEDANCE ENABLED",1);
-                            #endif
-                            break;
-                        case 0x00:
-                            ads.setImpedance(false);
-                            #ifdef DEBUGVERBOSE
-                                logger.println("IMPEDANCE DISABLED",1);
-                            #endif
-                            break;
-                        default:
-                            #ifdef DEBUGVERBOSE
-                                logger.println("NOT IMPLEMENTED",1);
-                            #endif
-                    }
-                    break;
-            }
-            break;
-        default:
-            #ifdef DEBUGVERBOSE
-                if (spibufrecv[0] != 0x00) {
-                    logger.println("INSTRUCTION: NOT IMPLEMENTED", 1);
+    if (spibufrecv[0] == 0x40) {
+        Log.trace("INSTRUCTION: WREG\n");
+        switch(spibufrecv[1]) {
+            case 0x50:
+                Log.trace("REGISTER: SAMPLE RATE: ");
+                if (spibufrecv[2] <= 6) {
+                    int samplerate = fsList[(uint8_t)spibufrecv[2]];
+                    ads.setSampRate(samplerate);
+                    Log.trace("SAMPLE RATE SET TO %d\n", samplerate);
+                } else {
+                    Log.trace("NOT IMPLEMENTED SAMPLERATE %d\n", spibufrecv[2]);
                 }
-            #endif
-            break;
-    }
-}
-
-void handleSpiIdle() {
-    if (cq->len <= PACKETSIZ) return;
-
-    // SPI slave satatus reset to poll
-    spislavestatus = poll;
-
-    // buffer data in queue
-    digitalWrite(DRDY_PIN, LOW);
-    drdypulsetime = 10;
-    for (int i = 0; i < PACKETSIZ; i++) {
-        cq->pop(&(spibuf[i]));
-    }
-    spibufrecv[0] = '\0';
-    t->length = sizeof(datatyp) * PACKETSIZ * 8;
-    t->trans_len = t->length;
-    t->tx_buffer = (char*)spibuf;
-    t->rx_buffer = (char*)spibufrecv;
-    spi_slave_queue_trans(VSPI_HOST,t,portMAX_DELAY);
-    #ifdef DEBUGVERBOSE
-        if (logger.level >= 1) {
-            Serial.print("BUFFER USED: ");
-            Serial.println((float)((float)(cq->len)) / M_BUFFERSIZ);
-        }
-        if (cq->overriden) {
-            logger.println("BUFFER OVERFLOW", 1);
-            cq->overriden = false;
-        }
-    #endif
-    clkslavetimeout.reset();
-}
-
-void handleSpiPoll() {
-    // test timeout
-    if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
-        clkslavetimeout.reset();
-        digitalWrite(DRDY_PIN, LOW);
-        drdypulsetime = 10;
-        #ifdef DEBUGVERBOSE
-            logger.println("SPI TIMED OUT, RESENDING", 1);
-        #endif
-    }
-
-    if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) == ESP_ERR_TIMEOUT) {
-        return;
-    }
-    // SPI slave status set back to idle
-    spislavestatus = idle;
-
-    for (int i = 0; i < 128; i++) {
-        spibufrecv[i] /= 2;
-    }
-    #ifdef DEBUGVERBOSE
-        if(spibufrecv[0] != 0x00){
-            logger.println("SPI RECEIVED (first 3 bytes)", 1);
-            if (logger.level >= 1) {
-                for (int i = 0; i < 128; i++) {
-                    Serial.print((int)spibufrecv[i]);
-                    Serial.print(" ");
+                break;
+            case 0x52:
+                Log.trace("REGISTER: INPUT SOURCE: ");
+                if (spibufrecv[2] == 0x05) {
+                    ads.setTestSignal(true);
+                    Log.trace("TEST SIGNAL ENABLED\n");
+                } else if (spibufrecv[2] == 0x00) {
+                    ads.setTestSignal(false);
+                    Log.trace("NORMAL SIGNAL ENABLED\n");
+                } else {
+                    Log.trace("NOT IMPLEMENTED SIGNAL %d\n", spibufrecv[2]);
                 }
-                Serial.println(" ");
-            }
+                break;
+            case 0x54:
+                Log.trace("REGISTER: BIAS: ");
+                if (spibufrecv[2] == 0x01) {
+                    ads.setBias(true);
+                    Log.trace("BIAS OUTPUT ENABLED\n");
+                } else if (spibufrecv[2] == 0x00) {
+                    ads.setBias(false);
+                    Log.trace("BIAS OUTPUT DISABLED\n");
+                } else {
+                    Log.trace("NOT IMPLEMENTED BIAS CMD %d\n", spibufrecv[2]);
+                }
+                break;
+            case 0x56:
+                Log.trace("REGISTER: IMPEDANCE: ");
+                if (spibufrecv[2] == 0x01) {
+                    ads.setImpedance(true);
+                    Log.trace("IMPEDANCE ENABLED\n");
+                } else if (spibufrecv[2] == 0x00) {
+                    ads.setImpedance(false);
+                    Log.trace("IMPEDANCE DISABLED\n");
+                } else {
+                    Log.trace("NOT IMPLEMENTED IMPEDANCE CMD %d\n", spibufrecv[2]);
+                }
+                break;
         }
-        /*
-        logger.println("SPI RECEIVED", 1);
-        if (logger.level >= 1) {
-            Serial.println(spibufrecv);
-        }
-        */
-    #endif
+    } else {
+        Log.trace("INSTRUCTION: NOT IMPLEMENTED\n");
+    }
 }
 
 void handleSPI() {
-    #ifdef DEBUGVERBOSE
-        logger.println("Begin processing SPI", 3);
-    #endif
-    if (spislavestatus == idle) {
-        handleSpiIdle();
-    } else if (spislavestatus == poll) {
-        handleSpiPoll();
+    Log.trace("Begin processing SPI\n");
+    if (slaveStatus == idle) {
+        if (cq->len > PACKETSIZ) {
+            // SPI slave satatus reset to poll
+            slaveStatus = poll;
+            // buffer data in queue
+            digitalWrite(DRDY_PIN, LOW);
+            drdypulsetime = 10;
+            for (int i = 0; i < PACKETSIZ; i++) {
+                cq->pop(&(spibuf[i]));
+            }
+            spibufrecv[0] = '\0';
+            t->length = sizeof(datatyp) * PACKETSIZ * 8;
+            t->trans_len = t->length;
+            t->tx_buffer = (char*)spibuf;
+            t->rx_buffer = (char*)spibufrecv;
+            spi_slave_queue_trans(VSPI_HOST,t,portMAX_DELAY);
+            Log.trace("BUFFER USED: %F\n", (float)(cq->len) / M_BUFFERSIZ);
+            if (cq->overriden) {
+                Log.verbose("BUFFER OVERFLOW\n");
+                cq->overriden = false;
+            }
+            clkslavetimeout.reset();
+        }
+    } else if (slaveStatus == poll) {
+        // test timeout
+        if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
+            clkslavetimeout.reset();
+            digitalWrite(DRDY_PIN, LOW);
+            drdypulsetime = 10;
+            Log.trace("SPI TIMED OUT, RESENDING\n");
+        }
+        if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
+            // SPI slave status set back to idle
+            slaveStatus = idle;
+
+            // FIXME
+            // We HAVE TO add this because of spi transcation error between
+            // ESP32 and OrangePi. This maybe solved in future hardware design.
+            for (int i = 0; i < 128; i++) {
+                spibufrecv[i] /= 2;
+            }
+
+            if(spibufrecv[0] != 0x00){
+                Log.trace("SPI RECEIVED: ");
+                for (int i = 0; i < 128; i++) {
+                    Log.trace("%x ", spibufrecv[i]);
+                }
+                Log.trace("\n");
+            }
+        }
         handleSpiCommand();
     }
-    #ifdef DEBUGVERBOSE
-        logger.println("End processing SPI", 3);
-    #endif
+    Log.trace("End processing SPI\n");
 }
 
 void blinkTest() {
-    #ifdef DEBUGVERBOSE
-        logger.println("Begin blink test", 3);
-    #endif
+    Log.trace("Begin blink test\n");
     if (clkblink.getdiff() >= 1000) {
         clkblink.reset();
         if (blinkstat == true) {
@@ -533,32 +409,34 @@ void blinkTest() {
             blinkstat = true;
         }
     }
-    #ifdef DEBUGVERBOSE
-        logger.println("End blink test", 3);
-    #endif
+    Log.trace("End blink test\n");
 }
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("ESP32 Firmware 2018.10-EmBCI");
-    Serial.println("Board:\tOrangePi Zero Plus 2");
-    Serial.println("Shield:\tEmBCI Rev.A7 Oct 22 2018");
-    Serial.println("Booting...");
+    Log.begin(logLevel, &Serial, false);
+    Log.notice("ESP32 Firmware 2018.10-EmBCI\n");
+    Log.notice("Board:  OrangePi Zero Plus 2\n");
+    Log.notice("Shield: EmBCI Rev.A7 Oct 22 2018\n");
+    Log.notice("Booting...\n");
+
     pinMode(DRDY_PIN, OUTPUT);
     digitalWrite(DRDY_PIN, HIGH);
     pinMode(BLINK_PIN, OUTPUT);
     digitalWrite(BLINK_PIN, LOW);
     pinMode(ADS_DRDY_PIN, INPUT);
+
     vspi = new SPIClass(VSPI);
     vspi->begin();
     ads.begin();
     delay(10);
-    #ifdef DEBUGVERBOSE
-        logger.println("Begin setup", 3);
-    #endif
-    // FIXME 2: warning: 'void* pvPortMallocCaps(size_t, uint32_t)' is deprecated
-    spibuf = (datatyp*) pvPortMallocCaps(sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
-    spibufrecv = (char*) pvPortMallocCaps(sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
+
+    Log.trace("Begin setup\n");
+    // FIXME: warning: 'void* pvPortMallocCaps(size_t, uint32_t)' is deprecated
+    spibuf = (datatyp*) heap_caps_malloc(
+        sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
+    spibufrecv = (char*) heap_caps_malloc(
+        sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
     t = (spi_slave_transaction_t*) malloc(sizeof(spi_slave_transaction_t*));
     cq = new CyclicQueue<datatyp>(cqbuf,M_BUFFERSIZ);
     for (int i = 0; i < M_BUFFERSIZ; i++) {
@@ -571,6 +449,7 @@ void setup() {
     buscfg.mosi_io_num = GPIO_MOSI;
     buscfg.miso_io_num = GPIO_MISO;
     buscfg.sclk_io_num = GPIO_SCLK;
+
     spi_slave_interface_config_t slvcfg;
     slvcfg.mode = 0;
     slvcfg.spics_io_num = GPIO_CS;
@@ -578,16 +457,14 @@ void setup() {
     slvcfg.flags = 0;
     slvcfg.post_setup_cb = my_post_setup_cb;
     slvcfg.post_trans_cb = my_post_trans_cb;
+
     ret = spi_slave_initialize(VSPI_HOST, &buscfg, &slvcfg, 1);
-    //assert(ret==ESP_OK);
     if (ret != ESP_OK) {
-        Serial.println("ERROR: spi_slave_initialize FAILED!!!");
+        Log.error("spi_slave_initialize FAILED!!!\n");
     }
 
     clkblink.reset();
-    #ifdef DEBUGVERBOSE
-        logger.println("End setup", 3);
-    #endif
+    Log.trace("End setup\n");
 }
 
 void loop() {
@@ -613,21 +490,7 @@ void loop() {
         clkgen.reset();
     }
 
-    getFakeData();
+    sendToSPI();
 
     sampfpsi++;
 }
-
-// #ifdef DEBUGVERBOSE
-//   logger.println("Begin data generation",3);
-// #endif
-//   //generate fake data
-//   const int32_t sampdelta=4;
-//   timeacc+=clkgen.update();
-//   while(timeacc>=sampdelta){
-//     getFakeData();
-//     timeacc-=sampdelta;
-//   }
-// #ifdef DEBUGVERBOSE
-//   logger.println("End data generation",3);
-// #endif

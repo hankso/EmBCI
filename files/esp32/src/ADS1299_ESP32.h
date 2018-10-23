@@ -2,26 +2,64 @@
 #define _ADS1299_ESP32_H_INCLUDED
 
 #include <SPI.h>
-#include "ADS1299_ESP32_REGS.h"
+#include "Arduino.h"
+
+//Commands
+#define ADS_WAKEUP    0x02
+#define ADS_STANDBY   0x04
+#define ADS_RESET     0x06
+#define ADS_START     0x08
+#define ADS_STOP      0x0A
+#define ADS_RDATAC    0x10
+#define ADS_SDATAC    0x11
+#define ADS_RDATA     0x12
+#define ADS_RREG      0x20
+#define ADS_WREG      0x40
+
+//Registers
+#define ADS_ID        0x00
+#define ADS_CONFIG1   0x01
+#define ADS_CONFIG2   0x02
+#define ADS_CONFIG3   0x03
+#define ADS_CONFIG4   0x04
+#define ADS_CH1SET    0x05
+#define ADS_CH2SET    0x06
+#define ADS_CH3SET    0x07
+#define ADS_CH4SET    0x08
+#define ADS_CH5SET    0x09
+#define ADS_CH6SET    0x0A
+#define ADS_CH7SET    0x0B
+#define ADS_CH8SET    0x0C
+#define ADS_BIAS_SENSP  0x0D
+#define ADS_BIAS_SENSN  0x0E
+#define ADS_LOFF_SENSP  0x0F
+#define ADS_LOFF_SENSN  0x10
+#define ADS_LOFF_FLIP   0x11
+#define ADS_LOFF_STATP  0x12
+#define ADS_LOFF_STATN  0x13
+#define ADS_GPIO      0x14
+#define ADS_MISC1     0x15
+#define ADS_MISC2     0x16
+//#define ADS_CONFIG4   0x17
 
 class ADS1299{
   private:
   SPIClass *spi=NULL;
   SPISettings *spiSetting=NULL;
   uint8_t SSPin;
-  
+
   public:
   int gain;
   ADS1299(int spitype,int sspin){ //initialization with spi type
     spi=new SPIClass(spitype);
     SSPin=sspin;
   }
-  
+
   ADS1299(SPIClass* spiclass,int sspin){  //initialization with spi class pointer
     spi=spiclass;
     SSPin=sspin;
   }
-  
+
   inline byte spiSend(const byte dat){
     byte recv;
     digitalWrite(SSPin,LOW);
@@ -40,19 +78,19 @@ class ADS1299{
     spi->endTransaction();
     digitalWrite(SSPin,HIGH);
   }
-  
+
   void begin(){
     pinMode(SSPin,OUTPUT);
     digitalWrite(SSPin,HIGH);
     spi->begin();
     spiSetting=new SPISettings(1000000, MSBFIRST, SPI_MODE2);
   }
-  
+
   void setSPISpeed(uint32_t spd){
     delete(spiSetting);
     spiSetting=new SPISettings(spd,MSBFIRST,SPI_MODE2);
   }
-  
+
   void reset(){
     spiSend(ADS_RESET);
     delay(1000);
@@ -118,7 +156,7 @@ class ADS1299{
     start();
     rdatac();
     return id;
-    
+
   }
 
   void setTestSignal(bool en){
@@ -214,7 +252,7 @@ class ADS1299{
     uint32_t m = 1u << (bits - 1);
     return (x ^ m) - m;
   }
-  
+
   uint32_t readData(float res[]){
     byte tobesent[27];
     byte received[27];
@@ -230,16 +268,16 @@ class ADS1299{
       tempdat=(received[3+3*i]<<16)|(received[4+3*i]<<8)|(received[5+3*i]);
       data[i]=sign_extend_24_32(tempdat);
     }
-    
+
     for(int i=0;i<8;i++){
       //res[i]=((float)data[i])*2.0*4.5/gain/16777216.0;
       res[i]=*((float*)(data+i));
     }
     return statusbit;
   }
-  
+
   ~ADS1299(){
-    
+
   }
 };
 #endif
