@@ -40,8 +40,10 @@
 
 #include <ArduinoLog.h>
 #include <SPI.h>
-#include "Arduino.h"
-#include "HardwareSerial.h"
+#include <WiFi.h>
+#include <Arduino.h>
+#include <HardwareSerial.h>
+
 // #include "esp_heap_alloc_caps.h"
 #include "esp_heap_caps.h"
 #include "driver/spi_slave.h"
@@ -171,6 +173,8 @@ static const int spiClk = 1000000; // 1 MHz
 
 SPIClass * vspi = NULL;
 
+WiFiClient client;
+
 int drdypulsetime = 10;
 int transits = 0;
 int transitsps = 0;
@@ -178,6 +182,7 @@ long wavei = 0;
 float lastreading;
 char* spibufrecv;
 bool blinkstat = false;
+bool wifiEcho = true;
 
 int dataSrc = 0;
 const char* const dataSrcList[] = {
@@ -187,19 +192,15 @@ const char* const dataSrcList[] = {
     "Constant 1.0"
 };
 
+// default log level is NOTICE, here we only use ERROR - VERBOSE
 int logLevel = 4;
 int minLevel = 2;
 int maxLevel = 7;
 const char* const logLevelList[] = {
-    "SILENT",
-    "FATAL",
-    "ERROR",
-    "WARNING",
-    "NOTICE",
-    "TRACE",
-    "VERBOSE"
+    "SILENT", "FATAL", "ERROR", "WARNING", "NOTICE", "TRACE", "VERBOSE"
 };
 
+// Supported sample rates (Hz)
 int fsList[7] = {250, 500, 1000, 2000, 4000, 8000, 16000};
 
 SpiSlaveStatus slaveStatus = idle;
@@ -236,8 +237,6 @@ void sendToSPI() {
 }
 
 void handleSerialCommand() {
-    if (!Serial.available()) return;
-    Log.trace("Begin processing serial port\n");
     char inchar = Serial.read();
     if (inchar < 'a' || inchar > 'z') return;
     switch(inchar) {
@@ -245,14 +244,17 @@ void handleSerialCommand() {
             cq->clear();
             Log.notice("Queue empty now\n");
             break;
-        case 's':
-            Log.notice("ADS1299 packets header: %B\n", adsStatusBit);
-            Log.notice("ADS1299 first register: %B\n", ads.init());
-            Log.notice("Valid packets:          %d/%d Hz\n", sampfpsv, sampfps);
-            Log.notice("Current output data:    %s\n", dataSrcList[dataSrc]);
-            Log.notice("Current log level:      %s\n", logLevelList[logLevel]);
+        case 'r':
+            Log.notice("ADS first register value: %B\n", ads.init());
             break;
-        case 't':
+        case 's':
+            Log.notice("ADS data header: %B\n", adsStatusBit);
+            Log.notice("Valid packets:   %d/%d Hz\n", sampfpsv, sampfps);
+            Log.notice("Output data:     %s\n", dataSrcList[dataSrc]);
+            Log.notice("Logging level:   %s\n", logLevelList[logLevel]);
+            Log.notice("Serial to wifi:  %T\n", wifiEcho);
+            break;
+        case 'd':
             dataSrc = (dataSrc + 1) % 4;
             Log.notice("Current output data: %s\n", dataSrcList[dataSrc]);
             break;
@@ -270,18 +272,37 @@ void handleSerialCommand() {
             Log.setLogLevel(logLevel);
             Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
             break;
+        case 'w':
+            wifiEcho = ~wifiEcho;
+            Log.notice("Current serial-to-wifi redirection: %T\n", wifiEcho);
         case 'h':
             Log.notice("Supported commands:\n");
-            Log.notice("\tc - clear FIFO queue\n");
-            Log.notice("\th - print this help message\n");
-            Log.notice("\ts - print summary of current status\n");
-            Log.notice("\tt - change esp output data source\n");
+            Log.notice("\th - print this Help message\n");
+            Log.notice("\tc - Clear spi fifo queue\n");
+            Log.notice("\td - change esp output Data source\n");
+            Log.notice("\tm - be less verbose (Mute)\n");
             Log.notice("\to - ???\n");
-            Log.notice("\tv - be more verbose\n");
-            Log.notice("\tm - be less verbose(mute)\n");
+            Log.notice("\ts - print Summary of current status\n");
+            Log.notice("\tv - be more Verbose\n");
+            Log.notice("\tw - turn on/off serial-to-Wifi redirection\n");
             break;
     }
-    Log.trace("End processing serial port\n");
+}
+
+void handleSerial() {
+    Log.verbose("Begin processing serial cmd\n");
+    if (Serial.available()) {
+        handleSerialCommand();
+    }
+    if (wifiEcho && client.connected()) {
+        while (Serial1.available()) {
+            client.print(Serial1.readStringUntil('\n'));
+        }
+        while (client.available()) {
+            Serial1.print(client.readStringUntil('\n'));
+        }
+    }
+    Log.verbose("End processing serial cmd\n");
 }
 
 void handleSpiCommand() {
@@ -341,7 +362,7 @@ void handleSpiCommand() {
 }
 
 void handleSPI() {
-    Log.trace("Begin processing SPI\n");
+    Log.verbose("Begin processing SPI\n");
     if (slaveStatus == idle) {
         if (cq->len > PACKETSIZ) {
             // SPI slave satatus reset to poll
@@ -394,7 +415,7 @@ void handleSPI() {
         }
         handleSpiCommand();
     }
-    Log.trace("End processing SPI\n");
+    Log.verbose("End processing SPI\n");
 }
 
 void blinkTest() {
@@ -420,6 +441,13 @@ void setup() {
     Log.notice("Shield: EmBCI Rev.A7 Oct 22 2018\n");
     Log.notice("Booting...\n");
 
+    // In `uartSetBaudRate`:
+    //     CLK_DIV = (UART_CLK_FREQ(80MHz) << 4) / baudrate
+    //     therefore best baudrates:
+    //         [100000, 200000, 400000, 500000, 800000...]
+    Serial1.begin(500000);
+    WiFi.mode(WIFI_STA);
+
     pinMode(DRDY_PIN, OUTPUT);
     digitalWrite(DRDY_PIN, HIGH);
     pinMode(BLINK_PIN, OUTPUT);
@@ -432,7 +460,6 @@ void setup() {
     delay(10);
 
     Log.trace("Begin setup\n");
-    // FIXME: warning: 'void* pvPortMallocCaps(size_t, uint32_t)' is deprecated
     spibuf = (datatyp*) heap_caps_malloc(
         sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
     spibufrecv = (char*) heap_caps_malloc(
@@ -470,7 +497,7 @@ void setup() {
 void loop() {
     // blinkTest();
 
-    handleSerialCommand();
+    handleSerial();
 
     handleSPI();
 

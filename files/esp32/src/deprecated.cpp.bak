@@ -1,3 +1,178 @@
+class WiFi {
+    using WiFiGenericClass::channel;
+    using WiFiSTAClass::SSID;
+    using WiFiSTAClass::RSSI;
+    using WiFiSTAClass::BSSID;
+    using WiFiSTAClass::BSSIDstr;
+    using WiFiScanClass::SSID;
+    using WiFiScanClass::encryptionType;
+    using WiFiScanClass::RSSI;
+    using WiFiScanClass::BSSID;
+    using WiFiScanClass::BSSIDstr;
+    using WiFiScanClass::channel;
+    void printDiag(Print& dest);
+}
+
+class WiFiGeneric {
+    wifi_event_id_t onEvent(WiFiEventCb cbEvent, system_event_id_t event = SYSTEM_EVENT_MAX);
+    wifi_event_id_t onEvent(WiFiEventFuncCb cbEvent, system_event_id_t event = SYSTEM_EVENT_MAX);
+    wifi_event_id_t onEvent(WiFiEventSysCb cbEvent, system_event_id_t event = SYSTEM_EVENT_MAX);
+    void removeEvent(WiFiEventCb cbEvent, system_event_id_t event = SYSTEM_EVENT_MAX);
+    void removeEvent(WiFiEventSysCb cbEvent, system_event_id_t event = SYSTEM_EVENT_MAX);
+    void removeEvent(wifi_event_id_t id);
+    static int getStatusBits();
+    static int waitStatusBits(int bits, uint32_t timeout_ms);
+    static int hostByName(const char *aHostname, IPAddress &aResult);
+    int32_t channel(void);
+    void persistent(bool persistent);
+    static bool mode(wifi_mode_t);
+    static wifi_mode_t getMode();
+    bool enableSTA(bool enable);
+    bool enableAP(bool enable);
+    bool setSleep(bool enable);
+    bool getSleep();
+    bool setTxPower(wifi_power_t power);
+    wifi_power_t getTxPower();
+}
+
+class WiFiMulti {
+    bool addAP(const char* ssid, const char *passphrase = NULL);
+    uint8_t run(uint32_t connectTimeout=5000);
+}
+
+class WiFiClient {
+    int connect(IPAddress ip, uint16_t port);
+    int connect(const char *host, uint16_t port);
+    size_t write(uint8_t data);
+    size_t write(const uint8_t *buf, size_t size);
+    size_t write_P(PGM_P buf, size_t size);
+    size_t write(Stream &stream);
+    int available();
+    int read();
+    int read(uint8_t *buf, size_t size);
+    int peek();
+    void flush();
+    void stop();
+    uint8_t connected();
+    int fd() const;
+    int setSocketOption(int option, char* value, size_t len);
+    int setOption(int option, int *value);
+    int getOption(int option, int *value);
+    int setTimeout(uint32_t seconds);
+    int setNoDelay(bool nodelay);
+    bool getNoDelay();
+    IPAddress remoteIP() const;
+    IPAddress remoteIP(int fd) const;
+    uint16_t remotePort() const;
+    uint16_t remotePort(int fd) const;
+    IPAddress localIP() const;
+    IPAddress localIP(int fd) const;
+    uint16_t localPort() const;
+    uint16_t localPort(int fd) const;
+    using Print::write;
+}
+
+class WiFiScan {
+    int16_t scanNetworks(bool async = false, bool show_hidden = false, bool passive = false, uint32_t max_ms_per_chan = 300);
+    int16_t scanComplete();
+    void scanDelete();
+    bool getNetworkInfo(uint8_t networkItem, String &ssid, uint8_t &encryptionType, int32_t &RSSI, uint8_t* &BSSID, int32_t &channel);
+    String SSID(uint8_t networkItem);
+    wifi_auth_mode_t encryptionType(uint8_t networkItem);
+    int32_t RSSI(uint8_t networkItem);
+    uint8_t * BSSID(uint8_t networkItem);
+    String BSSIDstr(uint8_t networkItem);
+    int32_t channel(uint8_t networkItem);
+}
+
+class WiFiAP {
+    bool softAP(const char* ssid, const char* passphrase = NULL, int channel = 1, int ssid_hidden = 0, int max_connection = 4);
+    bool softAPConfig(IPAddress local_ip, IPAddress gateway, IPAddress subnet);
+    bool softAPdisconnect(bool wifioff = false);
+    uint8_t softAPgetStationNum();
+    IPAddress softAPIP();
+    const char * softAPgetHostname();
+    bool softAPsetHostname(const char * hostname);
+    uint8_t* softAPmacAddress(uint8_t* mac);
+    String softAPmacAddress(void);
+}
+
+class WiFiUDP {
+    uint8_t begin(IPAddress a, uint16_t p);
+    uint8_t begin(uint16_t p);
+    uint8_t beginMulticast(IPAddress a, uint16_t p);
+    void stop();
+    int beginMulticastPacket();
+    int beginPacket();
+    int beginPacket(IPAddress ip, uint16_t port);
+    int beginPacket(const char *host, uint16_t port);
+    int endPacket();
+    size_t write(uint8_t);
+    size_t write(const uint8_t *buffer, size_t size);
+    int parsePacket();
+    int available();
+    int read();
+    int read(unsigned char* buffer, size_t len);
+    int read(char* buffer, size_t len);
+    int peek();
+    void flush();
+    IPAddress remoteIP();
+    uint16_t remotePort();
+}
+
+class WiFiSTA {
+    bool beginSmartConfig();
+    bool stopSmartConfig();
+    bool smartConfigDone();
+    wl_status_t begin(const char* ssid, const char *passphrase = NULL, int32_t channel = 0, const uint8_t* bssid = NULL, bool connect = true);
+    wl_status_t begin(char* ssid, char *passphrase = NULL, int32_t channel = 0, const uint8_t* bssid = NULL, bool connect = true);
+    wl_status_t begin();
+    bool config(IPAddress local_ip, IPAddress gateway, IPAddress subnet, IPAddress dns1 = (uint32_t)0x00000000, IPAddress dns2 = (uint32_t)0x00000000);
+    bool reconnect();
+    bool disconnect(bool wifioff = false, bool eraseap = false);
+    bool isConnected();
+    bool setAutoConnect(bool autoConnect);
+    bool getAutoConnect();
+    bool setAutoReconnect(bool autoReconnect);
+    bool getAutoReconnect();
+    uint8_t waitForConnectResult();
+    IPAddress localIP();
+    uint8_t * macAddress(uint8_t* mac);
+    String macAddress();
+    IPAddress subnetMask();
+    IPAddress gatewayIP();
+    IPAddress dnsIP(uint8_t dns_no = 0);
+    bool enableIpV6();
+    IPv6Address localIPv6();
+    const char * getHostname();
+    bool setHostname(const char * hostname);
+    static wl_status_t status();
+    String SSID() const;
+    String psk() const;
+    uint8_t * BSSID();
+    String BSSIDstr();
+    int8_t RSSI();
+}
+
+class WiFiServer {
+    void listenOnLocalhost(){}
+    WiFiServer(uint16_t port=80, uint8_t max_clients=4)
+    WiFiClient available();
+    WiFiClient accept(){return available();}
+    void begin(uint16_t port=0);
+    void setNoDelay(bool nodelay);
+    bool getNoDelay();
+    bool hasClient();
+    size_t write(const uint8_t *data, size_t len);
+    size_t write(uint8_t data)
+    using Print::write;
+    void end();
+    void close();
+    void stop();
+    operator bool(){return _listening;}
+    int setTimeout(uint32_t seconds);
+    void stopAll();
+}
 
 
 const int TSXL = 34;
@@ -11,7 +186,6 @@ const int TSXLO = 26;
 #define TS_XRC ADC1_CHANNEL_4
 #define TS_YUC ADC1_CHANNEL_7
 #define TS_YDC ADC1_CHANNEL_5
-
 
 void setpinstate(int pin, int state) {
     gpio_config_t conf;
@@ -104,9 +278,6 @@ void getTouchPoint(int* tsx, int* tsy, int* tsp) {
     */
 }
 
-
-
-// FIXME 0: Logging level macros added, change conresponding number to name
 #define MAXLEVEL 5
 #define FATAL 4
 #define ERROR 3
@@ -114,25 +285,22 @@ void getTouchPoint(int* tsx, int* tsy, int* tsp) {
 #define INFO 1
 #define DEBUG 0
 
-#ifdef DEBUGVERBOSE
-    // FIXME 1: change DebugLogger level number and println logic.
-    class DebugLogger {
-        public:
-            int level;
-            DebugLogger() {
-                level = FATAL;
+class DebugLogger {
+    public:
+        int level;1
+        DebugLogger() {
+            level = FATAL;
+        }
+        ~DebugLogger() {}
+        void println(const char* str, int plevel) {
+            if (plevel >= level) {
+                Serial.println(str);
             }
-            ~DebugLogger() {}
-            void println(const char* str, int plevel) {
-                if (plevel >= level) {
-                    Serial.println(str);
-                }
+        }
+        void print(const char* str, int plevel) {
+            if (plevel >= level) {
+                Serial.print(str);
             }
-            void print(const char* str, int plevel) {
-                if (plevel >= level) {
-                    Serial.print(str);
-                }
-            }
-    };
-    DebugLogger logger;
-#endif
+        }
+};
+zDebugLogger logger;
