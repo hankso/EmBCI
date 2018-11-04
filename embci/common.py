@@ -23,7 +23,6 @@ import traceback
 import pylsl
 from serial.tools.list_ports import comports
 import numpy as np
-from gpio4 import SysfsGPIO
 import wifi
 
 from embci import BASEDIR, input, reduce, unicode
@@ -61,6 +60,7 @@ class abyi_dict(dict):
 class ibya_list(list):
     '''
     Get items in list by attributes of them
+
     Examples
     --------
     >>> l = [{'name': 'bob'}, {'name': 'alice'}, {'name': 'tim'}]
@@ -79,11 +79,11 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
     Mapping data to new array values all in duartion [low, high]
 
     Return
-    ======
+    ------
     np.array
 
     Example
-    =======
+    -------
     >>> a = [0, 1, 2.5, 4.9, 5]
     >>> b = mapping(a, 0, 5, 0, 1024)
     >>> a
@@ -129,8 +129,6 @@ def mkuserdir(func):
 
 def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
     '''
-    输出prompt，提示用户输入选择，并判断输入是否有效，比如运行一个命令之前
-
     This function is to guide user make choices.
 
     Example
@@ -166,9 +164,6 @@ def time_stamp(localtime=None, fm='%Y%m%d-%H:%M:%S'):
 
 
 def first_use():
-    '''
-    初次使用时的用户引导输出
-    '''
     print('Welcome!\nIt seems this is the first time you use this Bio-Signal '
           'recognizing program.\nYou need to record some action data first.\n'
           'Then next time you do that action again it will be recognized.\n'
@@ -329,42 +324,6 @@ def find_wifi_hotspots(interface=None):
     # `return ibya_list(map(abyi_dict, cells.__dict__))` will not work
     # because cells.__dict__ IS ITS __dict__ but not cells' __dict__
     return ibya_list(map(abyi_dict, map(vars, unique)))
-
-
-def reset_esp(flash=False, en_pin=19, boot_pin=18):
-    rst = SysfsGPIO(en_pin)
-    rst.export = True
-    boot = SysfsGPIO(boot_pin)
-    boot.export = True
-
-    # press reset
-    print('[ESP Reset] enable value = 0')
-    rst.direction = 'out'
-    rst.value = 0
-
-    if flash:
-        # press boot
-        print('[ESP Reset] boot value = 0')
-        boot.direction = 'out'
-        boot.value = 0
-
-    time.sleep(0.2)
-
-    # release reset
-    print('[ESP Reset] enable value = 1')
-    rst.value = 1
-    time.sleep(0.3)
-
-    if flash:
-        # release boot
-        print('[ESP Reset] boot value = 1')
-        boot.value = 1
-
-    print('[ESP Reset] soft reset done!')
-    boot.export = False
-    rst.export = False
-
-    time.sleep(1.5)
 
 
 def virtual_serial():

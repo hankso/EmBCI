@@ -13,218 +13,164 @@
 # Frederik Rouleau
 # Carlos Lamas
 #
+# Modified by:
+# Hankso
 #----------------------------------------------------------------------------
-# make (all) 编译项目
-#
-# make clean 清理所有编译产生的文件
-#
-# make program 使用 avrdude 下载.hex文件
-#
-# make filename.s 只将 filename.c 编译到汇编文件,不进行链接
-#
-# 需要重新编译的话,先 make clean 再 make all
+# Usage:
+#     make (all)
+#     make clean
+#     make program
+#     make filename.s
 #----------------------------------------------------------------------------
 
 
-#-----------------------------主要配置--------------------------
-
-# 1:必填,AVR芯片型号
+#----------------------------------------------------------------------------
+# MCU = atmega168p
 MCU = atmega328p
 
-# 2:必填,MCU时钟频率
-#F_CPU = 1000000
-#F_CPU = 1843200
-#F_CPU = 2000000
-#F_CPU = 3686400
-#F_CPU = 8000000
+# F_CPU = 1000000
+# F_CPU = 1843200
+# F_CPU = 2000000
+# F_CPU = 3686400
+# F_CPU = 8000000
 F_CPU = 16000000
-#F_CPU = 18432000
-#F_CPU = 20000000
+# F_CPU = 18432000
+# F_CPU = 20000000
 
-# 3.1:必填,最终生成文件为$(TARGET).hex,设为与包含main函数的文件同名比较方便
+# BAUD = 9600
+# BAUD = 19200
+# BAUD = 38400
+BAUD = 115200
+# BAUD = 250000
+
+# TARGET = project_name
 TARGET = main
 
-# 3.2:必填,列出所有的.c源文件
+# SRC = $(TARGET).c
 SRC = main.c
-#SRC = $(TARGET).c
+CPPSRC =
+ASRC =
 
-# 3.3:选填，如果你的avrdude可执行程序不在环境变量PATH中，需要手动指定全路径
-AVRDUDE = avrdude
-#AVRDUDE = /usr/local/bin/avrdude
-
-# 3.4:选填，如果想要使用指定版本的avr-gcc或者指定工具链的路径
+# CROSS_COMPILE = /opt/arduino/hardware/tools/avr/bin/avr-
 CROSS_COMPILE = avr-
-#CROSS_COMPILE = /opt/arduino/hardware/tools/avr/bin/avr-
 
-# 4:选填,你自己include的.h头文件所在目录,avr-gcc只在当前目录和标准目录寻找.h头文件
-# 如果在程序中include了自己的库,就需要手动指定位置,多个目录用空格隔开
-#EXTRAINCDIRS = ./inc
+# LIBDIR = /path/to/custom/library
+LIBDIR =
 
-# 5:必填,连接板子的串口,windows下用COM1|COM2...
+# AVRDUDE_PORT = COM0
+# AVRDUDE_PORT = /dev/ttyUSB0
 AVRDUDE_PORT = /dev/ttyS1
 
-# 6:选填,烧录工具
-#AVRDUDE_PROGRAMMER = alf
-#AVRDUDE_PROGRAMMER = avr910
-#AVRDUDE_PROGRAMMER = avrisp
-#AVRDUDE_PROGRAMMER = bascom
-#AVRDUDE_PROGRAMMER = bsd
-#AVRDUDE_PROGRAMMER = dt006
-#AVRDUDE_PROGRAMMER = pavr
-#AVRDUDE_PROGRAMMER = picoweb
-#AVRDUDE_PROGRAMMER = pony-stk200
-#AVRDUDE_PROGRAMMER = sp12
-#AVRDUDE_PROGRAMMER = stk200
-#AVRDUDE_PROGRAMMER = stk500
+# AVRDUDE_PROGRAMMER = alf
+# AVRDUDE_PROGRAMMER = avr910
+# AVRDUDE_PROGRAMMER = avrisp
+# AVRDUDE_PROGRAMMER = bascom
+# AVRDUDE_PROGRAMMER = bsd
+# AVRDUDE_PROGRAMMER = dt006
+# AVRDUDE_PROGRAMMER = pavr
+# AVRDUDE_PROGRAMMER = picoweb
+# AVRDUDE_PROGRAMMER = pony-stk200
+# AVRDUDE_PROGRAMMER = sp12
+# AVRDUDE_PROGRAMMER = stk200
+# AVRDUDE_PROGRAMMER = stk500
 AVRDUDE_PROGRAMMER = usbasp
+#----------------------------------------------------------------------------
 
-# 7:选填,烧入目标.hex文件名
-#    avrdude
-#       -C arduino-1.8.5/hardware/tools/avr/etc/avrdude.conf
-#       -p atmega328p
-#       -P /dev/ttyUSB0
-#       -c arduino
-#       -v -D
-#       -b 57600
-#       -U flash:w:main.hex:i
-AVRDUDE_FLAGS = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER) -v
-AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 
-# 8:选填,指定.eep文件
-#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
-AVRDUDE_WRITE_EEPROM =
+#----------------------------------------------------------------------------
+SHELL   = sh
+CC      = $(CROSS_COMPILE)gcc
+OBJCOPY = $(CROSS_COMPILE)objcopy
+OBJDUMP = $(CROSS_COMPILE)objdump
+AVRSIZE = $(CROSS_COMPILE)size
+AVRDUDE = avrdude
+NM      = $(CROSS_COMPILE)nm
+COPY    = cp
+REMOVE  = rm -f
+REMOVED = rm -rf
+#----------------------------------------------------------------------------
 
-#--------------------------其他配置-----------------------------
 
-# 输出更多调试信息
-#AVRDUDE_VERBOSE = -v -v
+#----------------------------------------------------------------------------
+OBJDIR = obj
 
-# 输出文件格式为.hex文件
+OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o)
+LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst)
+
 #FORMAT = srec
 FORMAT = ihex
 #FORMAT = binary
-# .hex文件的临时目录,自己定义
-OBJDIR = obj
 
-# 列出所有的.cpp源文件,用不到空着
-CPPSRC =
-
-# 列出所有.S汇编文件,用不到空着,注意用.S而不是.s,防止make clean把它当做自己编译产生的文件而删除
-ASRC =
-
-# AVR-GCC代码优化级别,级别越高,优化程度越大
-#OPT = 0
-#OPT = 1
-#OPT = 2
-#OPT = 3
-OPT = s
-
-# 编译标记,用来选标准C的级别
 # c89 = "ANSI" C
 # gnu89 = c89 plus GCC extensions
 # c99 = ISO C99 standard
 # gnu99 = c99 plus GCC extensions
 CSTANDARD = -std=gnu99
 
-# AVR Studio 4.10就用dwarf-2格式输出调试信息
-# AVR COFF就用stabs格式输出调试信息,需要配合avr-objcopy使用
-#DEBUG = dwarf-2
 DEBUG = stabs
+#----------------------------------------------------------------------------
 
 
-#-----------------------后面的可以不看了----------------------------
+#----------------------------------------------------------------------------
+AVRDUDE_FLAGS = -p $(MCU)
+AVRDUDE_FLAGS += -b $(BAUD)
+AVRDUDE_FLAGS += -C avrdude.conf
+AVRDUDE_FLAGS += -P $(AVRDUDE_PORT)
+AVRDUDE_FLAGS += -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS += -v -v -D
+AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex:i
+#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_EEPROM =
 
-#-----------------------C编译选项-------------------------------
-CFLAGS = -g$(DEBUG)                            # 调试信息格式
-CFLAGS += -DF_CPU=$(F_CPU)UL                   # CPU时钟频率
-CFLAGS += -O$(OPT)                             # 代码优化
-CFLAGS += -funsigned-char                      # 把char当成unsigned char
-CFLAGS += -funsigned-bitfields                 # 把位变量bit当成unsigned bitfields
-CFLAGS += -fpack-struct                        # 使结构体的每个元素在存储空间里连续存储,一个接一个存,中间没有存储间隔
-CFLAGS += -fshort-enums                        # 定义枚举类型的时候,使用里面存储空间最大的一个变量作为整个枚举变量的存储空间
-CFLAGS += -Wall                                # 输出所有警告信息
-CFLAGS += -Wstrict-prototypes                  # 如果函数的声明或定义没有指出参数类型就发出警告
-CFLAGS += -Wundef                              # 如果使用未定义宏就发出警告
-CFLAGS += -Wsign-compare                       # signed变量和unsigned变量进行值比较时可能导致错误,所以发出警告
-CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst) # 创建汇编列表文件,把OBJDIR目录下所有.c文件换成.lst文件,作为输出lst文件的文件名
-CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))    # 给$(EXTRAINCDIRS)定义的空格隔开的每一个目录前添加-I
-CFLAGS += $(CSTANDARD)                         # 标准C的级别
+CFLAGS = -g$(DEBUG)
+CFLAGS += -DF_CPU=$(F_CPU)UL
+CFLAGS += -Os
+CFLAGS += -funsigned-char
+CFLAGS += -funsigned-bitfields
+CFLAGS += -fpack-struct
+CFLAGS += -fshort-enums
+CFLAGS += -Wall
+CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wundef
+CFLAGS += -Wsign-compare
+CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
+CFLAGS += $(patsubst %,-I%,$(LIBDIR))
+CFLAGS += $(CSTANDARD)
 
-#-----------------------C++编译选项-----------------------------
 CPPFLAGS = -g$(DEBUG)
 CPPFLAGS += -DF_CPU=$(F_CPU)UL
-CPPFLAGS += -O$(OPT)
+CPPFLAGS += -Os
 CPPFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CPPFLAGS += -Wall -Wstrict-prototypes -Wundef -Wsign-compare
 CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
-CPPFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
+CPPFLAGS += $(patsubst %,-I%,$(LIBDIR))
 CPPFLAGS += $(CSTANDARD)
 
-#-----------------------汇编选项--------------------------------
-ASFLAGS = -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-gstabs
+ASFLAGS = -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-g$(DEBUG)
 
-#----------------------有关库的选项------------------------------
-# printf 函数最小的版本
 PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
-# 标准 printf 还加上 Floating point (requires MATH_LIB = -lm below)
 PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
-# 如果PRINTF_LIB不写为空,那么gcc-libc 就使用标准版的 printf 函数.
 PRINTF_LIB =
 #PRINTF_LIB = $(PRINTF_LIB_MIN)
 #PRINTF_LIB = $(PRINTF_LIB_FLOAT)
-# 最小的 scanf 函数的版本
 SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
-# Floating point + %[ scanf version (requires MATH_LIB = -lm below)
 SCANF_LIB_FLOAT = -Wl,-u,vfscanf -lscanf_flt
-# If this is left blank, then it will use the Standard scanf version.
 SCANF_LIB =
 #SCANF_LIB = $(SCANF_LIB_MIN)
 #SCANF_LIB = $(SCANF_LIB_FLOAT)
-# -l[lib-name] 库名去掉lib 和.a后缀 如 libm.a 则写成 -lm 如下所示：
 MATH_LIB = -lm
-
-#----------------------外部存储器选项 ---------------------------
-# 关于--defsym 的说明
-# --defsym symbol=expr #定义一个全局的标志,用expr作为symbol 的值.
-# -Tbss org
-# -Tdata org
-# -Ttext org
-# 64 KB of external RAM, starting after internal RAM (ATmega128!),
-# 64 KB的外部扩展的 RAM, 地址接在内部 RAM后面
-# used for variables (.data/.bss) and heap (malloc()).
-# 变量(.data/.bss）还有heap(malloc()),都使用这个区不用内部RAM
-# 前面加上0x800000 表示是RAM数据区,而不是程序区,因为AVR 是哈弗结构
-# EXTMEMOPTS = -Wl,-Tdata=0x801100,--defsym=__heap_end=0x80ffff
-# 64 KB of external RAM, starting after internal RAM (ATmega128!),
-# 外部RAM只用作 heap区,供malloc()分配的空间存储,变量(.data/.bss）仍在内部RAM.
-#EXTMEMOPTS = -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x80ffff
-EXTMEMOPTS = -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x807fff
-#显示地注明堆栈最高地址,也就是栈顶地址,C语言堆栈是向下生长,一般定义在RAM的尾部
-EXTMEMOPTS += -minit-stack=0x1100
-
-#---------------- 链接选项 LDFLAGS----------------
-# -Wl,...: 告诉GCC 传递后面的选项给liker链接器.
-# -Map: 创建 map 文件
-# --cref: 把对照信息加到 map 文件中
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
-LDFLAGS += $(EXTMEMOPTS)
+LDFLAGS += -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x807fff -minit-stack=0x1100
 LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
-#链接器使用linker_script.x脚本,avr-gcc自带脚本存在 WinAVR\avr\lib\ldscripts下
-#LDFLAGS += -T linker_script.x
 
-#---------------定义编译软件和命令的别名,便于移植--------------------
-SHELL = sh
-CC = $(CROSS_COMPILE)gcc
-OBJCOPY = $(CROSS_COMPILE)objcopy          # 由elf --> hex
-OBJDUMP = $(CROSS_COMPILE)objdump          # 反汇编，输出信息
-SIZE = $(CROSS_COMPILE)size                # 读取elf头部的各种信息然后打印出来
-NM = $(CROSS_COMPILE)nm                    # 打印elf的符号表
-REMOVE = rm -f
-REMOVEDIR = rm -rf
-COPY = cp
-WINSHELL = cmd
+GEN_DEP_FLAGS = -MD -MP -MF .dep/$(@F).d
+ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) $(GEN_DEP_FLAGS)
+ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GEN_DEP_FLAGS)
+ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
+#----------------------------------------------------------------------------
 
-#-------------------定义一些用于编译时显示的信息-------------------
+
+#----------------------------------------------------------------------------
 MSG_ERRORS_NONE = Errors: none
 MSG_BEGIN = -------- begin --------
 MSG_END = -------- end --------
@@ -242,26 +188,10 @@ MSG_COMPILING_CPP = Compiling C++:
 MSG_ASSEMBLING = Assembling:
 MSG_CLEANING = Cleaning project:
 MSG_CREATING_LIBRARY = Creating library:
-
-# 定义所有的目标文件.
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o)
-# 定义所有的 listing 文件.
-LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst)
-# 编译选项,用来生成所有的依赖文件. -MF 用于指定写入的.d的文件名,-MMD 不包系统头文件名
-GENDEPFLAGS = -MD -MP -MF .dep/$(@F).d
-
-# 合并所有需要的flags 和可选项的 flags
-# 并且把 MCU 型号加入到 flags 中.
-ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) $(GENDEPFLAGS)
-ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GENDEPFLAGS)
-ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
+#----------------------------------------------------------------------------
 
 
-# ==============================================================================
-# 开始列出make的目标
-# ==============================================================================
-
-
+#----------------------------------------------------------------------------
 all: begin gccversion sizebefore build sizeafter end
 
 begin:
@@ -272,8 +202,8 @@ gccversion:
     @$(CC) --version
 
 sizebefore:
-    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
-$(AVRMEM) 2>/dev/null; echo; fi
+    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); \
+	$(AVRSIZE) $(TARGET).elf; $(AVRMEM) 2>/dev/null; echo; fi
 
 build: elf hex eep lss sym
 elf: $(TARGET).elf
@@ -284,37 +214,40 @@ sym: $(TARGET).sym
 lib: lib$(TARGET).a
 
 sizeafter:
-    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
-    $(AVRMEM) 2>/dev/null; echo; fi
+    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); \
+	$(AVRSIZE) $(TARGET).elf; $(AVRMEM) 2>/dev/null; echo; fi
 
 end:
     @echo $(MSG_END)
     @echo
 
+flash: program
 
 program: $(TARGET).hex $(TARGET).eep
     $(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
-# 通过 ELF 文件创建最终的(.hex, .eep)文件.
 %.hex: %.elf
     @echo
     @echo $(MSG_FLASH) $@
-    $(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@ %.eep: %.elf @echo @echo $(MSG_EEPROM) $@ -$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
-     --change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+    $(OBJCOPY) -O $(FORMAT) -j .text -j .data -R .eeprom $< $@
 
-# 通过 ELF 文件创建扩展的列表文件.
+%.eep: %.elf
+    @echo
+    @echo $(MSG_EEPROM) $@
+    $(OBJCOPY) -j .eeprom \
+        --set-section-flags=.eeprom="alloc,load" \
+        --change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+
 %.lss: %.elf
     @echo
     @echo $(MSG_EXTENDED_LISTING) $@
     $(OBJDUMP) -h -S $< > $@
 
-# 通过 ELF 文件创建列表文件
 %.sym: %.elf
     @echo
     @echo $(MSG_SYMBOL_TABLE) $@
     $(NM) -n $< > $@
 
-# 通过.o目标文件创建.a 库文
 .SECONDARY : $(TARGET).a
 .PRECIOUS : $(OBJ)
 %.a: $(OBJ)
@@ -322,7 +255,6 @@ program: $(TARGET).hex $(TARGET).eep
     @echo $(MSG_CREATING_LIBRARY) $@
     $(AR) $@ $(OBJ)
 
-# 链接: 通过.o目标文件创建 ELF 文件
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
@@ -330,7 +262,6 @@ program: $(TARGET).hex $(TARGET).eep
     @echo $(MSG_LINKING) $@
     $(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
 
-# 编译: 编译 C/C++/S 源文件创建 .o 目标文件
 $(OBJDIR)/%.o : %.c
     @echo
     @echo $(MSG_COMPILING) $< $(CC) -c $(ALL_CFLAGS) $< -o $@
@@ -341,19 +272,16 @@ $(OBJDIR)/%.o : %.S
     @echo
     @echo $(MSG_ASSEMBLING) $< $(CC) -c $(ALL_ASFLAGS) $< -o $@
 
-# 编译: 编译 C/C++ 源文件创建 .s 汇编文件
 %.s : %.c
     $(CC) -S $(ALL_CFLAGS) $< -o $@
 %.s : %.cpp
     $(CC) -S $(ALL_CPPFLAGS) $< -o $@
 
-# 只对源文件进行预处理,查看是源文件是否有错
 %.i : %.c
     $(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@
 
-# 目 标: 清除整个工程,便于下次编译
 clean: begin clean_list end
-clean_list :
+clean_list:
     @echo
     @echo $(MSG_CLEANING)
     $(REMOVE) $(TARGET).hex
@@ -363,16 +291,14 @@ clean_list :
     $(REMOVE) $(TARGET).map
     $(REMOVE) $(TARGET).sym
     $(REMOVE) $(TARGET).lss
-    $(REMOVEDIR) $(OBJDIR)
+    $(REMOVED) $(OBJDIR)
     $(REMOVE) $(SRC:.c=.s)
     $(REMOVE) $(SRC:.c=.d)
-    $(REMOVEDIR) .dep
+    $(REMOVED) .dep
 
-# 创建用于存目标文件的目录 $(OBJDIR)
 $(shell mkdir -p $(OBJDIR))
-# 包含依赖文件
 -include $(shell mkdir -p .dep) $(wildcard .dep/*)
-# 把所有的目标都定义成伪目标,伪目标的特性总是被执行
-.PHONY : all begin end sizebefore sizeafter gccversion \
-build elf hex eep lss sym \
-clean clean_list program
+.PHONY:
+	all begin end sizebefore sizeafter gccversion \
+	build elf hex eep lss sym \
+	clean clean_list program

@@ -303,4 +303,4 @@ class DebugLogger {
             }
         }
 };
-zDebugLogger logger;
+DebugLogger logger;

@@ -27,7 +27,7 @@ from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.pdfgen import canvas
 
 # from ./
-from embci.common import check_input, reset_esp, time_stamp, mkuserdir
+from embci.common import check_input, time_stamp, mkuserdir
 from embci.preprocess import Signal_Info
 from embci.visualization import SPI_Screen_GUI as Screen_GUI
 from embci.io import ESP32_SPI_reader as Reader, Socket_TCP_server
@@ -454,7 +454,7 @@ if __name__ == '__main__':
     except NameError:
         username = check_input('Hi! Please offer your username: ', answer={})
 
-    reset_esp()
+    # reset_esp()
 
     reader = Reader(sample_rate=500, sample_time=2, n_channel=8)
     reader.start()

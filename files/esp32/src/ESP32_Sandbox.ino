@@ -398,7 +398,7 @@ void handleSPI() {
             // SPI slave status set back to idle
             slaveStatus = idle;
 
-            // FIXME
+            // FIXME 1:
             // We HAVE TO add this because of spi transcation error between
             // ESP32 and OrangePi. This maybe solved in future hardware design.
             for (int i = 0; i < 128; i++) {
@@ -491,7 +491,9 @@ void setup() {
     }
 
     clkblink.reset();
+
     Log.trace("End setup\n");
+    Log.notice("Press `h` for help message\n");
 }
 
 void loop() {
