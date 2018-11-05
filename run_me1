@@ -13,8 +13,8 @@ import threading
 import subprocess
 from functools import partial
 
-# requiremnts.txt: necessary: numpy, scipy, pillow, reportlab, gpio4
-# requiremnts.txt: optional: ipython
+# requirements.txt: necessary: numpy, scipy, pillow, reportlab, gpio4
+# requirements.txt: optional: ipython
 try:
     import IPython
     _NO_IPYTHON_ = False
