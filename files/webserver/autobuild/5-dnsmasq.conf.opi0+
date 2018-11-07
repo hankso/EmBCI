@@ -1,9 +1,10 @@
 #
-# /etc/dnsmasq.conf on armbian @ Orangepi Zero Plus
+# /etc/dnsmasq.conf for EmBCI
 #
-# hankso
-# email: 3080863354@qq.com
-# page: https://github.com/hankso
+# Board: OrangePi Zero Plus [2]
+# Author: Hankso
+# Email: 3080863354@qq.com
+# Page: https://github.com/hankso
 #
 
 #port=5353

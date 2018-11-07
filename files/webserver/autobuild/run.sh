@@ -1,9 +1,9 @@
 #
-# run this script to build server on Orange Pi Zero Plus(2)
+# This script is used to config network on Orange Pi Zero Plus [2]
 #
-# hankso
-# email: 3080863354@qq.com
-# page: https://github.com/hankso
+# Author: Hankso
+# Email: 3080863354@qq.com
+# Page: https://github.com/hankso
 #
 
 
@@ -12,9 +12,10 @@ if (( $EUID != 0  )); then
     exit
 fi
 
+BOARD=".opi0+2"
 
 targets=(
-    "/etc/apache2/sites-available/000-default.conf"
+    # "/etc/apache2/sites-available/000-default.conf"
     "/etc/network/interfaces"
     "/etc/hostapd.conf"
     # "/etc/hostapd.conf"
@@ -24,7 +25,7 @@ targets=(
 
 
 files=( 
-    "0-sites.conf"
+    # "0-sites.conf${BOARD}"
     "1-interfaces"
     "2-hostapd.conf"
     # "3-dhcpd.conf"
@@ -36,13 +37,14 @@ for index in "${!targets[@]}"
 do
     target=${targets[$index]}
     target_t=$target.$(date +"%Y%m%d")
-    file=${files[$index]}
+    file=${files[$index]}${BOARD}
+    if [ -e ${target} ]; then
+        mv $target $target_t 2> /dev/null
+        echo "move $target to $target_t "
 
-    echo "move $target to $target_t "
-    mv $target $target_t
-
-    echo -e "copy $file as $target... done\n"
-    cp $file $target
+        cp $file $target 2> /dev/null
+        echo "copy $file as $target"
+    fi
 done
 
 
