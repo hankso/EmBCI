@@ -13,7 +13,8 @@ Created on Wed Feb 28 10:56:36 2018
 import os
 import traceback
 
-# requirements.txt: necessary: numpy, scipy, pywavelets, pyhht
+# requirements.txt: data-processing: numpy, scipy
+# requirements.txt: necessary: pywavelets, pyhht
 # requirements.txt: necessary: decorator
 # apt-install.list: python-tk
 # note1:

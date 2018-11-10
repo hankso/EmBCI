@@ -13,7 +13,9 @@ import select
 import unittest
 import multiprocessing
 
-# requirements.txt: necessary: numpy, spidev, gpio4, decorator
+# requirements.txt: necessary: decorator
+# requirements.txt: data-processing: numpy
+# requirements.txt: drivers: spidev, gpio4
 import spidev
 import numpy as np
 from gpio4 import SysfsGPIO

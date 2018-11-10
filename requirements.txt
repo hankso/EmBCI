@@ -1,24 +1,78 @@
-# device drivers
-pyserial
-spidev
-gpio4
+#
+# EmBCI Python module requirements.txt
+#
+# Automatically generated file
+#
 
-# data & ML 
-mne
-pywavelets
-pyhht
-numpy
-sklearn
-scipy
-tensorflow
-keras
 
-# utils
-mod_wsgi
-pylsl
+
+#
+# [network]
+#
+geventwebsocket
+bottle-websocket
+gevent
 bottle
-matplotlib
-reportlab
+
+
+#
+# [drivers]
+#
+wifi
+pyserial
+gpio4
+spidev
+
+
+#
+# [machine-learning]
+#
+keras
+sklearn
+
+
+#
+# [necessary]
+#
 pillow
+decorator
+pyhht
+pywavelets
+
+
+#
+# [data-processing]
+#
+pylsl
+scipy
+numpy
 h5py
+
+
+#
+# [optional]
+#
+reportlab
 gym
+
+
+#
+# [bio-signal]
+#
+mne
+
+
+#
+# [conflicts]
+# You may manually solve them.
+#
+
+# From ./embci/frame.py
+# [visualization]
+matplotlib
+
+# From ./embci/visualization.py
+# [optional]
+matplotlib
+
+

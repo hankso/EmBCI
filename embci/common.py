@@ -19,7 +19,8 @@ import StringIO
 import threading
 import traceback
 
-# requirements.txt: necessary: pyserial, pylsl, numpy, scipy, wifi
+# requirements.txt: drivers: pyserial, wifi
+# requirements.txt: data-processing: pylsl, numpy, scipy
 import pylsl
 from serial.tools.list_ports import comports
 import numpy as np

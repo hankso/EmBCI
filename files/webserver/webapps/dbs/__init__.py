@@ -13,8 +13,10 @@ import platform
 import threading
 import traceback
 
-# requirements.txt: necessary: numpy, scipy, bottle, pylsl, pillow
-# requirements.txt: necessary: gevent, bottle-websocket, geventwebsocket
+# requirements.txt: data-processing: numpy, scipy, pylsl
+# requirements.txt: necessary: pillow
+# requirements.txt: network: bottle, gevent, bottle-websocket, geventwebsocket
+# requirements.txt: optional: reportlab
 from gevent import monkey
 monkey.patch_all(select=False, thread=False)
 import scipy
@@ -23,8 +25,12 @@ from bottle import abort, request, redirect, run, static_file, template, Bottle
 from bottle.ext.websocket import websocket, GeventWebSocketServer
 from geventwebsocket import WebSocketError
 from PIL import Image, ImageDraw
-from reportlab.pdfbase import ttfonts, pdfmetrics
-from reportlab.pdfgen import canvas
+try:
+    from reportlab.pdfbase import ttfonts, pdfmetrics
+    from reportlab.pdfgen import canvas
+    _reportlab_ = True
+except ImportError:
+    _reportlab_ = False
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -166,6 +172,9 @@ def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
     img_post = img_post.resize((img_size[0] + 4, img_size[1] + 4), 1)
     img_post = img_post.crop((2, 2, img_size[0] + 2, img_size[1] + 2))
     img_post.transpose(1).save(os.path.join(DATADIR, imgpost))
+    k['imgpre'], k['imgpost'] = imgpre, imgpost
+    if _reportlab_ is False:
+        return k
     # load font
     if font not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(ttfonts.TTFont(font, fontname))
@@ -202,7 +211,7 @@ def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
     c.drawString(450, 800, 'Powered by Cheitech')
     c.save()
     print('[Generate Report PDF] pdf %s saved!' % pdfname)
-    k['imgpre'], k['imgpost'], k['pdfname'] = imgpre, imgpost, pdfname
+    k['pdfname'] = pdfname
     return k
 
 

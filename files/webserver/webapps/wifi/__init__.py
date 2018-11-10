@@ -12,7 +12,7 @@ import os
 import sys
 import binascii
 
-# requirements.txt: necessary: wifi
+# requirements.txt: drivers: wifi
 from wifi import Scheme
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

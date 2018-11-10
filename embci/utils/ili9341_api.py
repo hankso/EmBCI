@@ -14,7 +14,9 @@ import os
 import time
 import threading
 
-# pip install spidev, pillow, numpy, gpio4
+# requirements.txt: necessary: pillow
+# requirements.txt: data-processing: numpy
+# requirements.txt: drivers: spidev, gpio4
 import spidev
 import numpy as np
 from gpio4 import SysfsGPIO

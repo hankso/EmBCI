@@ -1,90 +1,94 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
+from __future__ import print_function
+import os
+import sys
+import argparse
+
+HELP = '''
 This script will extract magic string of requirements.txt from each python
 source files found in a directory, and write modules into requirements.txt.
 Modules can be sorted into different classes, such as `built-in`, `necessary`,
 `replaceable` or `optional` etc. Line break is NOT allowed, multiple classes
 in one line as well.
-
+'''
+EXAMPLE = '''
 Magic string example:
 
 # requirements.txt: aaa, bbb, ccc
 # requirements.txt: foo: bar1, bar2
 # requirements.txt: foo: bar3
 # requirements.txt: optional: numpy, scipy
-"""
 
-from __future__ import print_function
-import os
-import sys
-
+Usage example:
+    genrequire.py ./ -v
+    genrequire.py src/ utils/ tools/ -o requirements.txt
+'''
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
-REQUIRE = 'requirements.txt'
 MAGICSTRING = 'requirements.txt:'
 
 
-def help():
-    print(__doc__)
-    print('\nDirectory is needed.\nUsage:\n\tgenrequire.py ./')
-    print('\tgenrequire.py . ../requirements.tmp')
-    sys.exit(0)
+class Module(str):
+    def __new__(cls, name, src, type=None):
+        obj = str.__new__(cls, name)
+        obj.name = name
+        obj.srcfile = src
+        obj.type = type
+        return obj
+
+    def __str__(self):
+        return '<module {}:{type} @ {srcfile}>'.format(
+            repr(self), **self.__dict__)
 
 
-class Module:
-    def __init__(self, name, src, c=None):
-        self.name = name
-        self.src = src
-        self.class_ = c
-
-
-def scandir(dir, filter=lambda x: x.endswith('.py'), indent=0):
-    print('│   ' * max(0, (indent - 1)) +
-          (indent != 0) * '├── ' +
-          os.path.basename(dir))
+def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
+    if VERBOSE:
+        print('│   ' * max(0, (indent - 1)) +
+              (indent != 0) * '├── ' +
+              os.path.basename(dir))
     srcfiles = []
     l = sorted(os.listdir(dir))
     while l:
         file = l.pop(0)
         filename = os.path.join(dir, file)
-        # if filename.endswith(__file__):
-        #     continue
+        if filename.endswith(__file__):
+            continue
         if os.path.isdir(filename):
             srcfiles += scandir(filename, indent=indent+1)
         elif os.path.isfile(filename):
-            if filter(filename):
-                print(('│   ' if len(l) else '│   ') * indent +
-                      ('├── ' if len(l) else '└── ') + file, end=' selected\n')
+            if cond(filename):
                 srcfiles.append(filename)
+                log = ' selected\n'
             else:
+                log = ' skip\n'
+            if VERBOSE:
                 print(('│   ' if len(l) else '│   ') * indent +
-                      ('├── ' if len(l) else '└── ') + file, end=' skip\n')
+                      ('├── ' if len(l) else '└── ') + file, end=log)
     return srcfiles
 
 
 def extmod(file):
-    print('extracting modules from {}: '.format(file), end='')
+    if VERBOSE:
+        print('extracting modules from {}: '.format(file), end='')
     modules = []
     with open(file, 'r') as f:
-        for line in f:
-            if not line.startswith('#'):
-                continue
-            if MAGICSTRING not in line:
-                continue
+        for line in [_ for _ in f if _.startswith('#') and MAGICSTRING in _]:
             line = line[line.index(MAGICSTRING) + len(MAGICSTRING):].strip()
             if ':' in line:
                 i = line.index(':')
                 c, line = line[:i].strip(), line[i+1:].strip()
             else:
                 c = None
-            ms = [Module(m.strip(), file, c) for m in line.split(',')]
+            ms = [Module(m.strip(), file, type=c) for m in line.split(',')]
             if len(ms):
-                print(' '.join(map(lambda m: m.name, ms)), end=' ')
                 modules += ms
-    print()
+            if VERBOSE:
+                print(' '.join(ms), end=' ')
+    if VERBOSE:
+        print('\n')
     return modules
 
 
@@ -92,38 +96,44 @@ def sortmod(modules):
     classes = {'_conflict': {}}
     while modules:
         m = modules.pop()
-        for module in modules:
-            if m.name != module.name:
-                continue
-            if m.class_ != module.class_:
-                if m.name not in classes['_conflict']:
-                    classes['_conflict'][m.name] = []
-                classes['_conflict'][m.name].append(module)
-            modules.remove(module)
-        if m.name in classes['_conflict']:
-            classes['_conflict'][m.name].append(m)
+        for sm in [_ for _ in modules if m == _]:
+            modules.remove(sm)
+            if m.type != sm.type:
+                if m not in classes['_conflict']:
+                    classes['_conflict'][m] = []
+                classes['_conflict'][m].append(sm)
+        if m in classes['_conflict']:
+            classes['_conflict'][m].append(m)
         else:
-            if m.class_ not in classes:
-                classes[m.class_] = []
-            classes[m.class_].append(m)
+            if m.type not in classes:
+                classes[m.type] = []
+            classes[m.type].append(m)
     return classes
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        help()
-    d = os.path.abspath(sys.argv[1])
-    if not os.path.exists(d) or not os.path.isdir(d):
-        help()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=HELP, epilog=EXAMPLE)
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='be more verbose')
+    parser.add_argument('dir', nargs='+',
+                        help='directory[s] to scan for python source files')
+    parser.add_argument('-o', '--output', default=sys.stdout,
+                        help='output filename, default stdout')
+    args = parser.parse_args()
 
-    if len(sys.argv) > 2:
-        REQUIRE = sys.argv[2]
+    OUTPUT = args.output
+    VERBOSE = args.verbose
 
-    srcfiles = scandir(d)
+    srcfiles = []
+    for d in args.dir:
+        if os.path.exists(d) and os.path.isdir(d):
+            srcfiles += scandir(d)
 
     modules = reduce(
-        lambda f1, f2: \
-            (f1 + extmod(f2)) if isinstance(f1, list) else \
+        lambda f1, f2:
+            (f1 + extmod(f2)) if isinstance(f1, list) else
             (extmod(f1) + extmod(f2)),
         srcfiles)
 
@@ -133,22 +143,27 @@ if __name__ == '__main__':
         '#\n# EmBCI Python module requirements.txt\n'
         '#\n# Automatically generated file\n#\n\n')
 
-    body = '\n'.join([m.name for m in classes.pop(None, [])]) + '\n\n'
+    body = '\n'.join(classes.pop(None, [])) + '\n\n'
 
     conflicts = ''
     if classes['_conflict']:
-        conflicts += '# [conflicts]\n\n' + '\n\n'.join([
-            '\n'.join(['# [{}] from {}\n{}'.format(m.class_, m.src, m.name)
-                       for m in l])
-            for l in classes['_conflict'].values()]) + '\n\n'
+        conflicts += '#\n# [conflicts]\n# You may manually solve them.\n#\n\n'
+        conflicts += '\n\n'.join([
+            '\n\n'.join([
+                '# From {}\n# [{}]\n'.format(m.srcfile, m.type) + m
+                for m in l])
+            for l in classes['_conflict'].values()])
+        conflicts += '\n\n'
     classes.pop('_conflict')
 
     for c in classes:
-        body += '# [{}]\n'.format(c)
-        body += '\n'.join([m.name for m in classes[c]])
-        body += '\n\n'
+        body += '#\n# [{}]\n#\n'.format(c)
+        body += '\n'.join(classes[c])
+        body += '\n\n\n'
 
-    if os.path.exists(REQUIRE):
-        os.rename(REQUIRE, REQUIRE + '.bak')
-    with open(REQUIRE, 'w') as f:
-        print(header + body + conflicts, file=f)
+    if isinstance(OUTPUT, str):
+        if os.path.exists(OUTPUT):
+            os.rename(OUTPUT, OUTPUT + '.old')
+        OUTPUT = open(OUTPUT, 'w')
+    print(header + body + conflicts, file=OUTPUT)
+    OUTPUT.flush()

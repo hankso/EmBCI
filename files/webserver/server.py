@@ -17,6 +17,8 @@ __file__ = os.path.basename(__file__)
 with open(os.path.join(__dir__, 'run.pid'), 'w') as f:
     f.write(' {}'.format(os.getpid()))
 
+# requirements.txt: network: bottle, bottle-websocket
+# deprecated: necessary: mod_wsgi(cooperate with Apache server)
 from bottle import Bottle, static_file, redirect, response, run
 from bottle.ext.websocket import GeventWebSocketServer
 root = Bottle()

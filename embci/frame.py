@@ -12,7 +12,8 @@ import time
 import json
 import sys
 
-# pip install numpy matplotlib
+# requirements.txt: data-processing: numpy
+# requirements.txt: visualization: matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 

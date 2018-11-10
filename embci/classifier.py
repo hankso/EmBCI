@@ -9,7 +9,8 @@ Created on Tue Feb 27 22:59:33 2018
 # built-in
 import math
 
-# pip install numpy, sklearn, keras
+# requirements.txt: machine-learning: sklearn, keras
+# requirements.txt: data-processing: numpy
 import numpy as np
 from sklearn import svm
 import keras

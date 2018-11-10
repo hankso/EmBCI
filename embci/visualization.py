@@ -13,7 +13,9 @@ import threading
 import pickle
 import select
 
-# requirements.txt: necessary: numpy, scipy, pyserial, pillow, decorator
+# requirements.txt: data-processing: numpy, scipy
+# requirements.txt: drivers: pyserial
+# requirements.txt: necessary: pillow, decorator
 # requirements.txt: optional: matplotlib
 try:
     import matplotlib

@@ -19,7 +19,10 @@ import traceback
 import multiprocessing
 from ctypes import c_uint16
 
-# pip install numpy, scipy, serial, mne, spidev, pylsl
+# requirements.txt: data-processing: numpy, scipy, pylsl, h5py
+# requirements.txt: bio-signal: mne
+# requirements.txt: drivers: pyserial
+# requirements.txt: optional: gym
 import scipy.io
 import scipy.signal
 import numpy as np
