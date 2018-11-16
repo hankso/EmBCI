@@ -26,7 +26,7 @@ from serial.tools.list_ports import comports
 import numpy as np
 import wifi
 
-from embci import BASEDIR, input, reduce, unicode
+from embci import BASEDIR, DATADIR, input, reduce, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -115,15 +115,12 @@ def mkuserdir(func):
             print('Decorator may be used in wrong place.')
             print('args: {}, kwargs: {}'.format(a, k))
             return func(*a, **k)
-        #  for path in [os.path.join(BASEDIR, subfolder, username)
-        #               for subfolder in ['data', 'model']]:
-        for path in [os.path.join(BASEDIR, 'data', username)]:
-            if not os.path.exists(path):
-                try:
-                    os.mkdir(path)
-                    print('mkdir ' + path)
-                except:
-                    traceback.print_exc()
+        path = os.path.join(DATADIR, username)
+        if not os.path.exists(path):
+            try:
+                os.makedirs(path)
+            except:
+                pass
         return func(*a, **k)
     return wrapper
 
@@ -463,8 +460,6 @@ def _combine_action(d1, d2):
 @mkuserdir
 def get_label_list(username):
     '''
-    扫描 $BASEDIR/data/{username}文件夹下的数据，列出存储的数据和数量
-
     This function is used to count all saved data.
     Return label_list, e.g.:
     {

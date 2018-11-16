@@ -1,9 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import os
 import sys
 import argparse
+import subprocess
+
+from functools import reduce
 
 HELP = '''
 This script will extract magic string of requirements.txt from each python
@@ -12,6 +15,7 @@ Modules can be sorted into different classes, such as `built-in`, `necessary`,
 `replaceable` or `optional` etc. Line break is NOT allowed, multiple classes
 in one line as well.
 '''
+
 EXAMPLE = '''
 Magic string example:
 
@@ -21,14 +25,16 @@ Magic string example:
 # requirements.txt: optional: numpy, scipy
 
 Usage example:
-    genrequire.py ./ -v
-    genrequire.py src/ utils/ tools/ -o requirements.txt
+    genrequire ./ -v
+    genrequire src/ utils/ tools/ -o requirements.txt
 '''
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
 MAGICSTRING = 'requirements.txt:'
+OUTPUT = sys.stdout
+VERBOSE = 0
 
 
 class Module(str):
@@ -42,6 +48,14 @@ class Module(str):
     def __str__(self):
         return '<module {}:{type} @ {srcfile}>'.format(
             repr(self), **self.__dict__)
+
+
+def python_filter(filename):
+    '''
+    Check if filename is python script file using linux/unix command `file`
+    '''
+    return 'text/x-python' in subprocess.check_output(['file', '-i', filename])
+    #  return 'Python script' in subprocess.check_output(['file', filename])
 
 
 def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
@@ -111,25 +125,11 @@ def sortmod(modules):
     return classes
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=HELP, epilog=EXAMPLE)
-    parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help='be more verbose')
-    parser.add_argument('dir', nargs='+',
-                        help='directory[s] to scan for python source files')
-    parser.add_argument('-o', '--output', default=sys.stdout,
-                        help='output filename, default stdout')
-    args = parser.parse_args()
-
-    OUTPUT = args.output
-    VERBOSE = args.verbose
-
+def main(dirs):
     srcfiles = []
-    for d in args.dir:
+    for d in dirs:
         if os.path.exists(d) and os.path.isdir(d):
-            srcfiles += scandir(d)
+            srcfiles += scandir(d, cond=python_filter)
 
     modules = reduce(
         lambda f1, f2:
@@ -164,6 +164,25 @@ if __name__ == '__main__':
     if isinstance(OUTPUT, str):
         if os.path.exists(OUTPUT):
             os.rename(OUTPUT, OUTPUT + '.old')
-        OUTPUT = open(OUTPUT, 'w')
+        globals()['OUTPUT'] = open(OUTPUT, 'w')
     print(header + body + conflicts, file=OUTPUT)
     OUTPUT.flush()
+    OUTPUT.close()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=HELP, epilog=EXAMPLE)
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='be more verbose')
+    parser.add_argument('dir', nargs='+',
+                        help='directory[s] to scan for python source files')
+    parser.add_argument('-o', '--output', default=sys.stdout,
+                        help='output filename, default stdout')
+    args = parser.parse_args()
+
+    globals()['OUTPUT'] = args.output
+    globals()['VERBOSE'] = args.verbose
+
+    sys.exit(main(args.dir))

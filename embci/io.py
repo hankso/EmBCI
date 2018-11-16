@@ -349,11 +349,11 @@ class Fake_data_generator(_basic_reader):
             self.resume()
             return
         if self._send_to_pylsl:
-            print(self._name + 'establishing pylsl outlet...')
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
                     'fake_data_generator', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'used for debugging'))
+            print(self._name + 'pylsl outlet established')
         super(Fake_data_generator, self).start(*a, **k)
 
     def _save_data_in_buffer(self):
@@ -541,6 +541,7 @@ class Serial_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'Serial_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
+            print(self._name + 'pylsl outlet established')
         super(Serial_reader, self).start(*a, **k)
 
     def close(self):
@@ -627,6 +628,7 @@ class ADS1299_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'SPI_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
+            print(self._name + 'pylsl outlet established')
         super(ADS1299_reader, self).start(*a, **k)
 
     def close(self):

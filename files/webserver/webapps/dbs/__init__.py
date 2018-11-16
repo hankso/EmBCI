@@ -44,8 +44,6 @@ from embci import BASEDIR, DATADIR, unicode
 from embci.common import mkuserdir, time_stamp
 from embci.preprocess import Features
 if platform.machine() in ['arm', 'aarch64']:
-    from embci.common import reset_esp
-    reset_esp()
     from embci.io import ESP32_SPI_reader as Reader
 else:
     from embci.io import Fake_data_generator as Reader
