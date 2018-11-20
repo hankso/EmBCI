@@ -9,7 +9,7 @@
 #
 # [network]
 #
-geventwebsocket
+gevent-websocket
 bottle-websocket
 gevent
 bottle
@@ -52,6 +52,7 @@ h5py
 #
 # [optional]
 #
+ipython
 reportlab
 gym
 

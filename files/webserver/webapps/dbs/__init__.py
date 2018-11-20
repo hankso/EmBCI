@@ -15,7 +15,7 @@ import traceback
 
 # requirements.txt: data-processing: numpy, scipy, pylsl
 # requirements.txt: necessary: pillow
-# requirements.txt: network: bottle, gevent, bottle-websocket, geventwebsocket
+# requirements.txt: network: bottle, gevent, bottle-websocket, gevent-websocket
 # requirements.txt: optional: reportlab
 from gevent import monkey
 monkey.patch_all(select=False, thread=False)

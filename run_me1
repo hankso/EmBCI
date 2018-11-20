@@ -13,7 +13,7 @@ import threading
 import subprocess
 from functools import partial
 
-# requirements.txt: optional: ipython
+# requirements.txt: optional: ipython==5.7.0
 try:
     import IPython
     _NO_IPYTHON_ = False

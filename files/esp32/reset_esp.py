@@ -9,6 +9,7 @@ Time: Thu 02 Aug 2018 10:21:59 AM UTC
 
 import os
 import sys
+import time
 
 from gpio4 import SysfsGPIO
 
