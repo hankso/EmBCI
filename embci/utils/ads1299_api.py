@@ -153,7 +153,7 @@ class ADS1299_API(spidev.SpiDev):
     '''
     @decorator
     def ensure_start(func, self, *a, **k):
-        assert self._start
+        assert self._started
         func(self, *a, **k)
 
     def __init__(self, scale=4.5/24/2**24):

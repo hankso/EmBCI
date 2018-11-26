@@ -67,7 +67,6 @@
                 </form>
             </div>
             <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
-                <!-- 默认标签 -->
                 <li role="presentation" id="0" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
                 <li role="presentation" id="1"><a href="" role="tab" data-toggle="tab">CH2</a></li>
                 <li role="presentation" id="2"><a href="" role="tab" data-toggle="tab">CH3</a></li>
@@ -109,19 +108,9 @@
                         <button class="btn btn-success digital col3" id="m">%</button>
                     </li>
                     <li>
-                        <!--<div class="digital term tleft invisible">运动</div>-->
-                        <!--<button class="btn btn-primary  digital" id="save-before">保存</button>-->
-                        <!--<button class="btn btn-info digital" id="save-after">保存</button>-->
-                        <!--<button class="btn btn-success digital" >保存</button>-->
                         <button class="btn btn-primary save" id="save-before">保存</button>
                         <button class="btn btn-info save" id="save-after">保存</button>
                     </li>
-                    <!-- <li>
-                        <div class="digital term tleft invisible"></div>
-                        <button class="btn btn-primary digital col1" id="save-before">保存</button>
-                        <button class="btn btn-info digital col2" id="save-after">保存</button>
-                        <button class="btn btn-info digital col2 invisible"></button>
-                    </li> -->
                 </ul>
             </div>
         </div>
@@ -159,7 +148,6 @@
                 }
                 return list;
             }
-
 
             $('#notch').click(function() {
                 var low = $('#low').val();
@@ -227,8 +215,88 @@
                 })
             });
 
-            var myChart1 = echarts.init(document.getElementById('chart1'), 'macarons');
+            $('#checkboard>li').click(function() {
+                nowColor = colors[this.id];
+                x = 0;
+                data1 = [];
+                myChart1.setOption({
+                    series: {
+                        data: data1,
+                        itemStyle: {
+                            normal: {
+                                lineStyle: {
+                                    color: nowColor,
+                                }
+                            }
+                        }
+                    },
+                });
+                option2.series.lineStyle = {
+                    color: nowColor
+                };
+                myChart2.setOption(option2);
+                $.ajax({
+                    method: "GET",
+                    url: "data/config",
+                    data: {
+                        channel: this.id
+                    },
+                })
+            });
+            
+            $('.col3').click(function() {
+                $(this).text('%');
+            });
 
+            $('#submit').click(function() {
+                var subData = {
+                    username: $('#name').val(),
+                    gender: $('#gender').val(),
+                    age: $('#age').val(),
+                    id: $('#id').val(),
+                };
+                if (subData.username == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
+                    alert('您填写的数据有误，请检查后重新提交');
+                    return;
+                }
+                $.ajax({
+                    method: 'GET',
+                    url: 'report',
+                    data: subData,
+                    success: function(data) {
+                        alert('数据提交成功,即将跳转到报告界面');
+                        $('html').html(data);
+                    }
+                })
+            });
+
+            $('#save-before').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/config',
+                    data: {
+                        save: "before"
+                    },
+                    success: function() {
+                        console.log("术前信息保存成功");
+                    }
+                })
+            });
+
+            $('#save-after').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'data/config',
+                    data: {
+                        save: "after"
+                    },
+                    success: function() {
+                        console.log("术后信息保存成功");
+                    }
+                })
+            })
+
+            var myChart1 = echarts.init(document.getElementById('chart1'), 'macarons');
 
             var option1 = {
                 grid: {
@@ -325,14 +393,11 @@
                 }, time);
             }
 
-
             if (!window.WebSocket) {
                 alert('您的浏览器不支持websocket，请更换更高级的浏览器')
             }
 
             // var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data/websocket");
-            // var ws = new WebSocket("ws://10.42.0.1:80/apps/dbs/data/websocket");
-            // var ws = new WebSocket("ws://127.0.0.1:8080/websocket");
             var ws = new WebSocket("ws://127.0.0.1:80/apps/dbs/data/websocket");
 
             ws.binaryType = 'arraybuffer';
@@ -350,7 +415,6 @@
                 alert('网络错误，请检查网络后刷新重试')
             };
 
-
             ws.onmessage = function(msg) {
                 var list = new Float32Array(msg.data);
                 var li = [];
@@ -359,7 +423,6 @@
                 // console.log(li);
                 animate(li, 10);
             };
-
 
             function randomData2() {
                 var x = 0;
@@ -372,7 +435,6 @@
             }
 
             var myChart2 = echarts.init(document.getElementById('chart2'), 'macarons');
-
 
             var option2 = {
                 grid: {
@@ -450,36 +512,6 @@
                 })
             }, 1500);
 
-
-            $('#checkboard>li').click(function() {
-                nowColor = colors[this.id];
-                x = 0;
-                data1 = [];
-                myChart1.setOption({
-                    series: {
-                        data: data1,
-                        itemStyle: {
-                            normal: {
-                                lineStyle: {
-                                    color: nowColor,
-                                }
-                            }
-                        }
-                    },
-                });
-                option2.series.lineStyle = {
-                    color: nowColor
-                };
-                myChart2.setOption(option2);
-                $.ajax({
-                    method: "GET",
-                    url: "data/config",
-                    data: {
-                        channel: this.id
-                    },
-                })
-            });
-
             var upColor = '#333333';
             var be = [$('#bt'), $('#bs'), $('#bm')];
             var af = [$('#at'), $('#as'), $('#am')];
@@ -555,57 +587,6 @@
             af[2].click(function() {
                 updateButton(aFlag, 2, af)
             });
-
-            $('.col3').click(function() {
-                $(this).text('%');
-            });
-
-
-            $('#submit').click(function() {
-                var subData = {
-                    username: $('#name').val(),
-                    gender: $('#gender').val(),
-                    age: $('#age').val(),
-                    id: $('#id').val(),
-                };
-                if (subData.username == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
-                    alert('您填写的数据有误，请检查后重新提交');
-                    return;
-                }
-                $.ajax({
-                    method: 'GET',
-                    url: 'report',
-                    data: subData,
-                    success: function(data) {
-                        alert('数据提交成功,即将跳转到报告界面');
-                        $('html').html(data);
-                    }
-                })
-            });
-            $('#save-before').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/config',
-                    data: {
-                        save: "before"
-                    },
-                    success: function() {
-                        console.log("术前信息保存成功");
-                    }
-                })
-            });
-            $('#save-after').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/config',
-                    data: {
-                        save: "after"
-                    },
-                    success: function() {
-                        console.log("术后信息保存成功");
-                    }
-                })
-            })
         });
     </script>
 </body>

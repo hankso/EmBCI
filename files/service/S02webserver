@@ -3,4 +3,4 @@
 PIDFILE=/run/embci/webserver.pid
 LOGFILE=/var/log/embci.webserver.log
 
-nohup python ../webserver/start_server.py --pid ${PIDFILE} > ${LOGFILE} &
+nohup python -m embci.webui --pid ${PIDFILE} > ${LOGFILE} &

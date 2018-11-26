@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-File: __init__.py
+File: EmBCI/embci/webui/webapps/dbs/__init__.py
 Author: Hankso
 Web: http://github.com/hankso
 Time: Tue 18 Sep 2018 01:55:03 CST
@@ -48,6 +48,7 @@ if platform.machine() in ['arm', 'aarch64']:
 else:
     from embci.io import Fake_data_generator as Reader
 from embci.io import Socket_TCP_server as Server
+from embci.webui import PIDFILE
 
 
 #
@@ -85,8 +86,10 @@ data_save = {
 dbs = Bottle()
 reader = Reader(sample_rate, sample_time=1, n_channel=8)
 reader.start()
-with open(os.path.join(SERVER_PATH, 'run.pid'), 'a') as f:
-    f.write(' {}'.format(reader.pid))
+
+with open(PIDFILE, 'a') as f:
+    f.write(' {} '.format(reader.pid))
+
 server = Server()
 server.start()
 feature = Features(sample_rate)
