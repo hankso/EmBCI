@@ -1,37 +1,25 @@
-## Welcome to GitHub Pages
+## EmBCI
+EmBCI is Embedded Brain Computer Interface, a bio-signal acquisition and processing platform.
 
-You can use the [editor on GitHub](https://github.com/hankso/EmBCI/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+It's composed of a **Hardware**, a **Python library** and a **Linux Service Interface**.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Hardware
 
-### Markdown
+## Python lib
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Service
 
-```markdown
-Syntax highlighted code block
+## TODOs
+### Documents
+- This page & README
+- embci lib docs
 
-# Header 1
-## Header 2
-### Header 3
+### Algorithums
+- SSVEP & P300
+- ERP/EDP
+- Motor Imagery
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/hankso/EmBCI/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+### Application
+- Parkinson DBS treatment recovery
+- Online SSVEP mind-typing
+- Sign language sEMG recognition

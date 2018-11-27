@@ -1,0 +1,45 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          EmBCI
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:	 2 3 4 5
+# Default-Stop:		 0 1 6
+# Short-Description: Embedded BCI service daemon
+### END INIT INFO
+
+set -e
+
+python -c 'import embci' || exit 0
+
+NAME=embci
+PIDFILE=/run/embci/embci.pid
+
+[ -f /etc/embci.conf ] && . /etc/embci.conf
+. /lib/lsb/init-functions
+
+case $1 in
+	start)
+		${DAEMON_SBIN} start
+		;;
+	stop)
+		${DAEMON_SBIN} stop
+		;;
+	reload)
+		${DAEMON_SBIN} reload
+		;;
+	restart|force-reload)
+		${DAEMON_SBIN} "$1"
+		;;
+	status)
+		status=0
+        ${DAEMON_SBIN} status || status=$?
+		exit $status
+		;;
+	*)
+		echo "Usage: /etc/init.d/embci {start|stop|reload|restart|force-reload|status}"
+		exit 1
+		;;
+esac
+

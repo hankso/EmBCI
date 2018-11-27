@@ -1,0 +1,8 @@
+#!/bin/bash
+
+PIDFILE=/run/embci/webui.pid
+LOGFILE=/var/log/embci/webui.log
+
+mkdir -p $(dirname ${PIDFILE} ${LOGFILE})
+
+nohup python -m embci.webui --pid ${PIDFILE} > ${LOGFILE} &
