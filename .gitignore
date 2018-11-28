@@ -1,12 +1,14 @@
 # user data no need to save
-data/*
-model/*
-#doc/*
+# data/*
+# model/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Runtime cache file
+*.pid
 
 # C extensions
 # *.so

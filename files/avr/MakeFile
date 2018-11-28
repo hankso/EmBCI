@@ -1,0 +1,304 @@
+#----------------------------------------------------------------------------
+# WinAVR Makefile Template written by Eric B. Weddington, Joerg Wunsch, et al.
+#
+# Released to the Public Domain
+#
+# Additional material for this makefile was written by:
+# Peter Fleury
+# Tim Henigan
+# Colin O'Flynn
+# Reiner Patommel
+# Markus Pfaff
+# Sander Pool
+# Frederik Rouleau
+# Carlos Lamas
+#
+# Modified by:
+# Hankso
+#----------------------------------------------------------------------------
+# Usage:
+#     make (all)
+#     make clean
+#     make program
+#     make filename.s
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+# MCU = atmega168p
+MCU = atmega328p
+
+# F_CPU = 1000000
+# F_CPU = 1843200
+# F_CPU = 2000000
+# F_CPU = 3686400
+# F_CPU = 8000000
+F_CPU = 16000000
+# F_CPU = 18432000
+# F_CPU = 20000000
+
+# BAUD = 9600
+# BAUD = 19200
+# BAUD = 38400
+BAUD = 115200
+# BAUD = 250000
+
+# TARGET = project_name
+TARGET = main
+
+# SRC = $(TARGET).c
+SRC = main.c
+CPPSRC =
+ASRC =
+
+# CROSS_COMPILE = /opt/arduino/hardware/tools/avr/bin/avr-
+CROSS_COMPILE = avr-
+
+# LIBDIR = /path/to/custom/library
+LIBDIR =
+
+# AVRDUDE_PORT = COM0
+# AVRDUDE_PORT = /dev/ttyUSB0
+AVRDUDE_PORT = /dev/ttyS1
+
+# AVRDUDE_PROGRAMMER = alf
+# AVRDUDE_PROGRAMMER = avr910
+# AVRDUDE_PROGRAMMER = avrisp
+# AVRDUDE_PROGRAMMER = bascom
+# AVRDUDE_PROGRAMMER = bsd
+# AVRDUDE_PROGRAMMER = dt006
+# AVRDUDE_PROGRAMMER = pavr
+# AVRDUDE_PROGRAMMER = picoweb
+# AVRDUDE_PROGRAMMER = pony-stk200
+# AVRDUDE_PROGRAMMER = sp12
+# AVRDUDE_PROGRAMMER = stk200
+# AVRDUDE_PROGRAMMER = stk500
+AVRDUDE_PROGRAMMER = usbasp
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+SHELL   = sh
+CC      = $(CROSS_COMPILE)gcc
+OBJCOPY = $(CROSS_COMPILE)objcopy
+OBJDUMP = $(CROSS_COMPILE)objdump
+AVRSIZE = $(CROSS_COMPILE)size
+AVRDUDE = avrdude
+NM      = $(CROSS_COMPILE)nm
+COPY    = cp
+REMOVE  = rm -f
+REMOVED = rm -rf
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+OBJDIR = obj
+
+OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o)
+LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst)
+
+#FORMAT = srec
+FORMAT = ihex
+#FORMAT = binary
+
+# c89 = "ANSI" C
+# gnu89 = c89 plus GCC extensions
+# c99 = ISO C99 standard
+# gnu99 = c99 plus GCC extensions
+CSTANDARD = -std=gnu99
+
+DEBUG = stabs
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+AVRDUDE_FLAGS = -p $(MCU)
+AVRDUDE_FLAGS += -b $(BAUD)
+AVRDUDE_FLAGS += -C avrdude.conf
+AVRDUDE_FLAGS += -P $(AVRDUDE_PORT)
+AVRDUDE_FLAGS += -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS += -v -v -D
+AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex:i
+#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_EEPROM =
+
+CFLAGS = -g$(DEBUG)
+CFLAGS += -DF_CPU=$(F_CPU)UL
+CFLAGS += -Os
+CFLAGS += -funsigned-char
+CFLAGS += -funsigned-bitfields
+CFLAGS += -fpack-struct
+CFLAGS += -fshort-enums
+CFLAGS += -Wall
+CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wundef
+CFLAGS += -Wsign-compare
+CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
+CFLAGS += $(patsubst %,-I%,$(LIBDIR))
+CFLAGS += $(CSTANDARD)
+
+CPPFLAGS = -g$(DEBUG)
+CPPFLAGS += -DF_CPU=$(F_CPU)UL
+CPPFLAGS += -Os
+CPPFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CPPFLAGS += -Wall -Wstrict-prototypes -Wundef -Wsign-compare
+CPPFLAGS += -Wa,-adhlns=$(<:%.cpp=$(OBJDIR)/%.lst)
+CPPFLAGS += $(patsubst %,-I%,$(LIBDIR))
+CPPFLAGS += $(CSTANDARD)
+
+ASFLAGS = -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-g$(DEBUG)
+
+PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
+PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
+PRINTF_LIB =
+#PRINTF_LIB = $(PRINTF_LIB_MIN)
+#PRINTF_LIB = $(PRINTF_LIB_FLOAT)
+SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
+SCANF_LIB_FLOAT = -Wl,-u,vfscanf -lscanf_flt
+SCANF_LIB =
+#SCANF_LIB = $(SCANF_LIB_MIN)
+#SCANF_LIB = $(SCANF_LIB_FLOAT)
+MATH_LIB = -lm
+LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
+LDFLAGS += -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x807fff -minit-stack=0x1100
+LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
+
+GEN_DEP_FLAGS = -MD -MP -MF .dep/$(@F).d
+ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) $(GEN_DEP_FLAGS)
+ALL_CPPFLAGS = -mmcu=$(MCU) -I. -x c++ $(CPPFLAGS) $(GEN_DEP_FLAGS)
+ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+MSG_ERRORS_NONE = Errors: none
+MSG_BEGIN = -------- begin --------
+MSG_END = -------- end --------
+MSG_SIZE_BEFORE = Size before:
+MSG_SIZE_AFTER = Size after:
+MSG_COFF = Converting to AVR COFF:
+MSG_EXTENDED_COFF = Converting to AVR Extended COFF:
+MSG_FLASH = Creating load file for Flash:
+MSG_EEPROM = Creating load file for EEPROM:
+MSG_EXTENDED_LISTING = Creating Extended Listing:
+MSG_SYMBOL_TABLE = Creating Symbol Table:
+MSG_LINKING = Linking:
+MSG_COMPILING = Compiling C:
+MSG_COMPILING_CPP = Compiling C++:
+MSG_ASSEMBLING = Assembling:
+MSG_CLEANING = Cleaning project:
+MSG_CREATING_LIBRARY = Creating library:
+#----------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------
+all: begin gccversion sizebefore build sizeafter end
+
+begin:
+    @echo
+    @echo $(MSG_BEGIN)
+
+gccversion:
+    @$(CC) --version
+
+sizebefore:
+    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); \
+	$(AVRSIZE) $(TARGET).elf; $(AVRMEM) 2>/dev/null; echo; fi
+
+build: elf hex eep lss sym
+elf: $(TARGET).elf
+hex: $(TARGET).hex
+eep: $(TARGET).eep
+lss: $(TARGET).lss
+sym: $(TARGET).sym
+lib: lib$(TARGET).a
+
+sizeafter:
+    @if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); \
+	$(AVRSIZE) $(TARGET).elf; $(AVRMEM) 2>/dev/null; echo; fi
+
+end:
+    @echo $(MSG_END)
+    @echo
+
+flash: program
+
+program: $(TARGET).hex $(TARGET).eep
+    $(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+
+%.hex: %.elf
+    @echo
+    @echo $(MSG_FLASH) $@
+    $(OBJCOPY) -O $(FORMAT) -j .text -j .data -R .eeprom $< $@
+
+%.eep: %.elf
+    @echo
+    @echo $(MSG_EEPROM) $@
+    $(OBJCOPY) -j .eeprom \
+        --set-section-flags=.eeprom="alloc,load" \
+        --change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+
+%.lss: %.elf
+    @echo
+    @echo $(MSG_EXTENDED_LISTING) $@
+    $(OBJDUMP) -h -S $< > $@
+
+%.sym: %.elf
+    @echo
+    @echo $(MSG_SYMBOL_TABLE) $@
+    $(NM) -n $< > $@
+
+.SECONDARY : $(TARGET).a
+.PRECIOUS : $(OBJ)
+%.a: $(OBJ)
+    @echo
+    @echo $(MSG_CREATING_LIBRARY) $@
+    $(AR) $@ $(OBJ)
+
+.SECONDARY : $(TARGET).elf
+.PRECIOUS : $(OBJ)
+%.elf: $(OBJ)
+    @echo
+    @echo $(MSG_LINKING) $@
+    $(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)
+
+$(OBJDIR)/%.o : %.c
+    @echo
+    @echo $(MSG_COMPILING) $< $(CC) -c $(ALL_CFLAGS) $< -o $@
+$(OBJDIR)/%.o : %.cpp
+    @echo
+    @echo $(MSG_COMPILING_CPP) $< $(CC) -c $(ALL_CPPFLAGS) $< -o $@
+$(OBJDIR)/%.o : %.S
+    @echo
+    @echo $(MSG_ASSEMBLING) $< $(CC) -c $(ALL_ASFLAGS) $< -o $@
+
+%.s : %.c
+    $(CC) -S $(ALL_CFLAGS) $< -o $@
+%.s : %.cpp
+    $(CC) -S $(ALL_CPPFLAGS) $< -o $@
+
+%.i : %.c
+    $(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@
+
+clean: begin clean_list end
+clean_list:
+    @echo
+    @echo $(MSG_CLEANING)
+    $(REMOVE) $(TARGET).hex
+    $(REMOVE) $(TARGET).eep
+    $(REMOVE) $(TARGET).cof
+    $(REMOVE) $(TARGET).elf
+    $(REMOVE) $(TARGET).map
+    $(REMOVE) $(TARGET).sym
+    $(REMOVE) $(TARGET).lss
+    $(REMOVED) $(OBJDIR)
+    $(REMOVE) $(SRC:.c=.s)
+    $(REMOVE) $(SRC:.c=.d)
+    $(REMOVED) .dep
+
+$(shell mkdir -p $(OBJDIR))
+-include $(shell mkdir -p .dep) $(wildcard .dep/*)
+.PHONY:
+	all begin end sizebefore sizeafter gccversion \
+	build elf hex eep lss sym \
+	clean clean_list program

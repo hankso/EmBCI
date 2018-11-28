@@ -1,0 +1,373 @@
+.top-bar label {
+    text-align: center;
+    margin: 0;
+    height: 32px;
+    line-height: 32px;
+    font-size: 16px;
+    width: 32px;
+    display: inline-block;
+}
+
+.top-bar .list {
+    display: inline-block;
+    height: 32px;
+    color: #fff;
+    font-size: 14px;
+    /* width: 120px !important; */
+    width: 120px;
+    background-color: transparent;
+    border: 0;
+    padding: 0 4px;
+    box-shadow: none;
+}
+
+.top {
+    height: 160px;
+}
+
+.bottom-bar {
+    padding-top: 10px;
+    width: 100%;
+    float: left;
+    height: 60px;
+}
+
+.bottom-bar .back {
+    width: 35%;
+    float: left;
+    position: relative;
+    left: 10%;
+}
+
+.bottom-bar .report {
+    width: 35%;
+    float: right;
+    position: relative;
+    right: 10%;
+}
+
+.display {
+    width: 100%;
+    height: 935px;
+    float: left;
+}
+
+.zoom {
+    float: left;
+    height: 30px;
+    ;
+    cursor: pointer;
+    font-size: 28px;
+    width: 30%;
+    margin-top: 5px;
+}
+
+.lh {
+    display: inline-block;
+    float: left;
+    width: 60px !important;
+    height: 30px;
+    padding: 3px;
+    font-size: 20px;
+    line-height: 20px;
+}
+
+.des {
+    float: left;
+    text-align: left;
+    width: 40px;
+    font-size: 20px;
+    height: 30px;
+    padding: 2px 0;
+    margin: 0 5px;
+}
+
+#filter {
+    width: 90px;
+    padding: 2px 4px;
+    height: 30px;
+    font-size: 20px;
+    float: left;
+}
+
+.notchtab {
+    width: 324px;
+    margin: 5px auto;
+    height: 60px;
+}
+
+#notch {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    line-height: 20px;
+    display: inline-block;
+    float: left;
+    margin-left: 10px;
+    margin-top: 6px;
+}
+
+#chart1 {
+    height: 400px;
+    width: 100%;
+    float: left;
+}
+
+#chart2 {
+    height: 140px;
+    width: 100%;
+    float: left;
+}
+
+.data-display {
+    text-align: center;
+    height: 300px;
+    width: 100%;
+    float: left;
+}
+
+.data-display ul {
+    padding: 0;
+}
+
+.data-display li {
+    list-style: none;
+    height: 60px;
+    padding: 10px 0;
+}
+
+.odd {
+    width: 160px;
+    height: 32px;
+    float: left;
+}
+
+.even {
+    width: 160px;
+    height: 32px;
+    float: right;
+}
+
+.top-bar form {
+    width: 320px;
+    margin: 0 auto;
+    height: 64px;
+}
+
+.list::-webkit-input-placeholder {
+    color: white;
+}
+
+.list:-moz-placeholder {
+    /* Firefox 18- */
+    color: white;
+}
+
+.list::-moz-placeholder {
+    /* Firefox 19+ */
+    color: white;
+}
+
+.list:-ms-input-placeholder {
+    color: white;
+}
+
+.top-bar {
+    height: 64px;
+    background-color: #02b2b5;
+    text-align: center;
+}
+
+.plane {
+    margin: 0 auto;
+    height: 1000px;
+    width: 100%;
+    text-align: center;
+}
+
+.digital {
+    width: 22%;
+    margin: 0 1%;
+    /* padding: 6px 0 !important; */
+    padding: 6px 0;
+    text-align: center;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.col1 {
+    background-color: rgba(51, 122, 183, 0.75);
+    color: #222222;
+}
+
+.col2 {
+    background-color: rgba(91, 192, 222, 0.75);
+    color: #222222;
+}
+
+.col3 {
+    background-color: rgba(92, 184, 92, 0.8);
+    color: #222222;
+}
+
+.save {
+    width: 25%;
+    height: 35px;
+    font-size: 15px;
+    font-weight: bold;
+    margin: 0 2%;
+    /* padding: 3px 0 !important; */
+    padding: 3px 0;
+}
+
+.term {
+    font-size: 18px;
+    display: inline-block;
+    color: #5bc0de;
+    border: none;
+    cursor: default;
+}
+
+.tleft {
+    width: 36px;
+    margin: 0;
+}
+
+.ttop {
+    margin-top: 15px;
+}
+
+.tab li {
+    width: 12.5%;
+    font-weight: bold;
+}
+
+.tab a {
+    font-size: 16px;
+    color: #02b2b5;
+    /* padding: 5px 1px !important; */
+    padding: 5px 1px;
+}
+
+@media screen and (min-width: 768px) {
+    .top {
+        height: 210px;
+    }
+
+    .even {
+        width: 260px;
+        padding: 9px;
+        height: 50px;
+    }
+
+    .odd {
+        width: 260px;
+        padding: 9px;
+        height: 50px;
+    }
+
+    .top-bar {
+        margin-top: 20px;
+        height: 100px;
+    }
+
+    .top-bar .list {
+        display: inline-block;
+        height: 32px;
+        color: #fff;
+        font-size: 20px;
+        /* width: 160px !important; */
+        width: 160px;
+        background-color: transparent;
+        padding: 0 5px;
+        border: 0;
+        box-shadow: none;
+        vertical-align: bottom;
+    }
+
+    .top-bar label {
+        text-align: center;
+        margin: 0;
+        height: 32px;
+        line-height: 32px;
+        font-size: 24px;
+        width: 56px;
+        display: inline-block;
+    }
+
+    .top-bar form {
+        width: 768px;
+        height: 100px;
+    }
+
+    .plane {
+        height: 1000px;
+        width: 768px;
+    }
+
+    .tab li {
+        width: 96px;
+        font-weight: bold;
+    }
+
+    .tab a {
+        font-size: 18px;
+        color: #02b2b5;
+    }
+
+    .digital {
+        width: 18%;
+        margin: 0 3%;
+        font-size: 18px;
+    }
+
+    .ttop {
+        margin-top: 15px;
+    }
+
+    .tleft {
+        width: 36px;
+        margin: 0;
+    }
+
+    .zoom {
+        display: inline-block;
+        float: left;
+        height: 30px;
+        cursor: pointer;
+        font-size: 28px;
+        width: 80px;
+        margin-top: 0;
+    }
+
+    .lh {
+        display: inline-block;
+        float: left;
+        width: 60px;
+        height: 30px;
+        padding: 3px;
+        font-size: 20px;
+        line-height: 20px;
+        margin-left: 15px;
+    }
+
+    .des {
+        float: left;
+        font-size: 20px;
+        height: 30px;
+        padding: 1px 5px;
+        margin: 0 5px;
+        width: 60px;
+    }
+
+    .notchtab {
+        height: 40px;
+        line-height: 30px;
+        width: 768px;
+    }
+
+    #notch {
+        float: left;
+        margin-left: 30px;
+    }
+}

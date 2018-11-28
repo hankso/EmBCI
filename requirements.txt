@@ -1,10 +1,79 @@
-numpy
-sklearn
-scipy
-tensorflow
-keras
-pylsl
+#
+# EmBCI Python module requirements.txt
+#
+# Automatically generated file
+#
+
+
+
+#
+# [network]
+#
+gevent-websocket
+bottle-websocket
+gevent
+bottle
+
+
+#
+# [drivers]
+#
+wifi
 pyserial
-matplotlib
+gpio4
+spidev
+
+
+#
+# [machine-learning]
+#
+keras
+sklearn
+
+
+#
+# [necessary]
+#
+pillow
+decorator
+pyhht
+pywavelets
+
+
+#
+# [data-processing]
+#
+pylsl
+scipy
+numpy
 h5py
+
+
+#
+# [optional]
+#
+ipython
+reportlab
 gym
+
+
+#
+# [bio-signal]
+#
+mne
+
+
+#
+# [conflicts]
+# You may manually solve them.
+#
+
+# From ./embci/frame.py
+# [visualization]
+matplotlib
+
+# From ./embci/visualization.py
+# [optional]
+matplotlib
+
+

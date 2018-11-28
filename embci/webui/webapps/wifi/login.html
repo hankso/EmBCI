@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <script src="/js/jquery-2.0.2.min.js"></script>
+    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        #wifilist {
+            padding: 0;
+            overflow: auto;
+            text-align: center;
+        }
+        #wifilist li{
+            list-style: none;
+            height: 50px;
+            width: 90%;
+            margin: 0 auto;
+        }
+        #wifilist li img{
+            width: 30px;
+        }
+        #wifilist .wifi{
+            height: 50px;
+            width: 100%;
+            font-size: 20px;
+        }
+        #wifilist .nwifi{
+            height: 50px;
+            width: 100%;
+            font-size: 20px;
+            background-color: #eeeeee;
+        }
+        .title {
+            display: inline-block;
+            line-height: 22px;
+            font-size: 22px;
+            width: 45%;
+            margin: 5px 0;
+        }
+        .mask {
+            position: fixed;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .login {
+            height: 310px;
+            width: 80%;
+            background-color: white;
+            border-radius: 10px;
+            margin: 30% auto;
+            text-align: center;
+        }
+        .login h3 {
+            height: 50px;
+            width: 100%;
+            font-size: 30px;
+            text-align: center;
+            padding-top: 20px;
+        }
+        .login .in {
+            margin: 10px auto;
+            padding: 8px 0;
+            height: 60px;
+            width: 90%;
+        }
+        .login .in input {
+            height: 44px !important;
+            width: 100%;
+        }
+        .login .in span {
+            width: 44px;
+            margin-top: 12px;
+            float: right;
+            z-index: 3;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .logbutton {
+            height: 42px;
+            width: 90%;
+            margin: 5px auto;
+        }
+        #refresh {
+            width: 45%;
+            height: 32px;
+            font-size: 22px;
+            text-align: center;
+            margin: 5px 0;
+            padding: 3px;
+            border: none;
+        }
+        .console {
+            text-align: center;
+        }
+        #back {
+            display: block;
+            margin: 10px auto;
+            height: 42px;
+            width: 100px;
+            font-size: 20px;
+            border: 0;
+        }
+        .tag {
+            color: #777777;
+            margin: 5px 1px;
+            padding: 2px;
+            height: 24px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid #777777;
+            border-radius: 4px;
+            float: right;
+            display: inline-block;
+        }
+        .connected {
+            color: deepskyblue;
+        }
+        .signal {
+            float: left;
+            margin-left: 10px;
+        }
+        .lock {
+            height: 16px;
+            float: right;
+            margin: 6px 0;
+            display: inline-block;
+        }
+        @media screen and (min-width:  768px) {
+            .console {
+                width: 768px;
+            }
+            .login {
+                width: 400px;
+                margin: 200px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="mask" style="display: none">
+    <div class="login">
+        <h3 id="wifiname"></h3>
+        <h6 id="ip"></h6>
+        <form>
+            <div class="input-group in" style="display:none;">
+                <span class="input-group-addon">name</span>
+                <input type="text" name="essid" class="form-control list" id="essid">
+            </div>
+            <div class="input-group in">
+                <input type="password" placeholder="请输入密码" name="psk" class="form-control list" id="psk">
+                <span class="glyphicon glyphicon-eye-close form-control-feedback eyeclose"></span>
+            </div>
+            <!--<input type="submit" class="form-control list logbutton" value="确认" id="login">-->
+            <button class="btn btn-default logbutton" id="login">确认</button>
+        </form>
+        <button class="btn btn-default logbutton" id="return">返回</button>
+        <button class="btn btn-default logbutton" id="forget">忘记</button>
+    </div>
+</div>
+<div class="top">
+    <img src="/images/logo.jpg" alt="logo" id="logo">
+    <div class="top-bar">
+        <h1>Embedded BCI</h1>
+    </div>
+</div>
+<div class="console">
+    <h3 class="title">WIFI列表</h3>
+    <button class="refresh btn btn-default" id="refresh"><span class="glyphicon glyphicon-refresh"></span></button>
+    <ul id="wifilist">
+        <li><button class="btn btn-default wifi"><img class="signal" src="/images/wifi1.png"/> <span class="ssid">wifi</span><img src="/images/lock.svg" alt="lock" class="lock"><span class="tag enc">WPA</span> <span class="tag fre">2.4GHz</span></button></li>
+    </ul>
+    <a class="btn btn-default" href="/index.html" id="back">回到主页</a>
+</div>
+<div class="bottom">
+    &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
+</div>
+<script>
+    $(function () {
+        $('#wifilist').on('click', '.wifi', function () {
+            var enc = $(this).children('span.enc');
+            if (enc.hasClass('invisible')) {
+                $.ajax({
+                    method: 'POST',
+                    url: 'hotspots',
+                    dataType: 'text',
+                    data: {
+                        essid: $(this).children('span.ssid').text(),
+                        psk: ''
+                    },
+                    success: function (msg) {
+                        refresh();
+                    },
+                    error: function () {
+                        refresh();
+                    }
+                });
+
+                return false;
+            }
+            var name = $(this).children('span.ssid').text();
+            var ip = $(this).children('span.address').text();
+            console.log(ip);
+            console.log(name);
+            $('.login>h3').text(name);
+            $('.login>h6').text(ip);
+            $('.mask').css('display','inline-block');
+            $('#essid').val(name);
+        });
+        $('#return').click(function () {
+            $('.mask').css('display','none');
+        });
+        $('#login').click(function () {
+            var password = $('#psk').val();
+            if(password=='') {
+                alert('请输入密码');
+                return false;
+            }
+            var inf = {
+                essid: $('#essid').val(),
+                psk: password.val()
+            };
+            $.ajax({
+                method: 'POST',
+                url: 'hotspots',
+                dataType: 'text',
+                data: inf,
+                success: function (msg) {
+                    if (msg.data == 'succeed') {
+                        refresh();
+                    }
+                    else {
+                        alert('密码有误，请重新连接');
+                    }
+                },
+                error: function () {
+                    alert('网络错误')
+                }
+            });
+            $('.mask').css('display','none');
+        });
+        $('#forget').click(function () {
+            $('#psk').val('');
+            $('.mask').css('display','none');
+        });
+        $('.in').on('click', '.eyeclose', function () {
+            $('#psk').attr('type', 'text');
+            $('.eyeclose').attr('class', 'glyphicon glyphicon-eye-open form-control-feedback eyeopen');
+        });
+        $('.in').on('click', '.eyeopen', function () {
+            $('#psk').attr('type', 'password');
+            $('.eyeopen').attr('class', 'glyphicon glyphicon-eye-close form-control-feedback eyeclose');
+        });
+
+
+        function update(list) {
+            for(var i=0;i<list.length;i++) {
+                var $signal = $('<img class="signal" src="/images/wifi4.png"/>');
+                var $ssid = $('<span class="ssid"></span>');
+                var $lock = $('<img src="/images/lock.svg" alt="lock" class="lock"/>');
+                var $enc = $('<span class="tag enc"></span>');
+                var $fre = $('<span class="tag fre"></span>');
+                var $address = $('<span class="address" style="display: none;"></span>');
+                var $btn = $('<button class="btn btn-default wifi"></button>');
+                var $li = $('<li></li>');
+                var tab = [0,1,2,3,3,4,4,4,4,4,4];
+                $signal.attr('src', '/images/wifi'+tab[list[i].signal]+'.png');
+                $ssid.text(list[i].ssid);
+                if (!list[i].encrypted) {
+                    $lock.addClass('invisible');
+                    $enc.addClass('invisible');
+                }
+                $enc.text(list[i].encryption_type);
+                if (list[i].frequency[0]=='2') {
+                    $fre.text('2.4 GHz');
+                } else {
+                    $fre.text('5 GHz');
+                    $btn.addClass('disabled nwifi');
+                    $btn.removeClass('wifi');
+                }
+                $address.text(list[i].address);
+                $btn.append($signal);
+                $btn.append($ssid);
+                $btn.append($lock);
+                $btn.append($enc);
+                $btn.append($fre);
+                $btn.append($address);
+                $li.append($btn);
+                $('#wifilist').append($li);
+            }
+        }
+
+        function refresh() {
+            var li = $('#wifilist');
+
+            ///////////////////
+            //var list = [{
+            //    ssid : 'buaa-wifi',
+            //    encryption_type : 'WPA',
+            //    frequency : '2.412GHz',
+            //    encrypted : true,
+            //    address : 'AB:15:4D:89:9C:1A',
+            //    signal : 4
+            //}];
+            //update(list);
+            ////////////////////
+            $.ajax({
+                method: 'GET',
+                url: 'hotspots',
+                dataType: 'json',
+                success: function (data) {
+                    li.empty();
+                    if(data.list.length==0) {
+                        li.append('<li><button class="btn btn-default nwifi">没有找到可用wifi</button></li>');
+                    } else {
+                        update(data.list);
+                    }
+                    console.log('fresh succeed');
+                },
+                error: function () {
+                    li.empty();
+                    li.append('<li><button class="btn btn-default nwifi">没有找到可用wifi</button></li>');
+                    console.log('error');
+                }
+            });
+        }
+        refresh();
+        setInterval(function () {
+            refresh();
+        }, 10000);
+
+        $('#refresh').click(function () {
+            refresh();
+        });
+    })
+</script>
+</body>
+</html>

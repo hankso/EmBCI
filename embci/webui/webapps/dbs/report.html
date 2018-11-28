@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>report</title>
+    <script src="/js/jquery-2.0.2.min.js"></script>
+    <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <style>
+        .report {
+            width: 820px;
+            height: 1160px;
+            margin: 0 auto;
+            border: 1px solid;
+        }
+        body {
+            text-align: center;
+        }
+        .head {
+            margin-top: 50px;
+        }
+        .head h1 {
+            font-size: 45px;
+            font-weight: bolder;
+        }
+        hr {
+            border: none;
+            border-top: 3px solid;
+            margin: 5px 20px;
+        }
+        .bar {
+            width: 100%;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        .bar p {
+            display: inline-block;
+            font-size: 28px;
+            font-weight: normal;
+            width: 190px;
+            margin-bottom: 0;
+        }
+        .content {
+            height: 720px;
+        }
+        .graph {
+            width: 500px;
+            height: 360px;
+            float: left;
+        }
+        .data {
+            padding-left: 20px;
+            width: 300px;
+            height: 360px;
+            float: right;
+            text-align: left;
+        }
+        .data h2 {
+            font-size: 35px;
+        }
+        .data h3{
+            font-size: 30px;
+            text-indent: 1em;
+            margin-top: 30px;
+        }
+        .foot{
+            width: 100%;
+            margin-top: 20px;
+            height: 100px;
+            font-size: 25px;
+        }
+        .sign {
+            display: inline-block;
+            float: left;
+            margin-left: 30px;
+        }
+        .power {
+            display: inline-block;
+            float: right;
+            margin-right: 30px;
+        }
+        .download {
+            font-size: 22px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report">
+        <div class="head">
+            <h1>天坛医院DBS术后调控肌电报告单</h1>
+
+            <div class="bar">
+                <hr/>
+                <p>姓名：
+                    <span id="name">{{username}}</span>
+                </p>
+                <p>性别：
+                    <span id="sex">{{gender}}</span>
+                </p>
+                <p>年龄：
+                    <span id="age">{{age}}</span>
+                </p>
+                <p>病号ID：
+                    <span id="id">{{id}}</span>
+                </p>
+                <hr/>
+            </div>
+        </div>
+        <div class="content">
+            <div id="before">
+                <div class="graph">
+                    <img src="{{img_pre_url}}" alt="" id="img_pre">
+                </div>
+                <div class="data">
+                    <h2>术前</h2>
+                    <h3>
+                        震颤： {{tb}}Hz
+                        <span id="bt"></span>
+                    </h3>
+                    <h3>
+                        僵直： {{sb}}
+                        <span id="bs"></span>
+                    </h3>
+                    <h3>
+                        运动： {{mb}}
+                        <span id="bm"></span>
+                    </h3>
+                </div>
+            </div>
+            <div id="after">
+                <div class="graph">
+                    <img src="{{img_post_url}}" alt="" id="img_post">
+                </div>
+                <div class="data">
+                    <h2>术前</h2>
+                    <h3>
+                        震颤： {{ta}}Hz
+                        <span id="at"></span>
+                    </h3>
+                    <h3>
+                        僵直： {{sa}}
+                        <span id="as"></span>
+                    </h3>
+                    <h3>
+                        运动： {{ma}}
+                        <span id="am"></span>
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="foot">
+            <div class="bar">
+                <hr/>
+                <p>改善率</p>
+                <p>震颤：
+                    <span id="t">{{tr}}%</span>
+                </p>
+                <p>僵直：
+                    <span id="s">{{sr}}%</span>
+                </p>
+                <p>运动：
+                    <span id="m">{{mr}}%</span>
+                </p>
+                <hr/>
+            </div>
+            <p class="sign">
+                医师签字：
+            </p>
+            <p class="power">
+                Powered by Cheitech
+            </p>
+        </div>
+    </div>
+    <div>
+        <a href="{{pdf_url}}" class="btn btn-default download" href>下载pdf <span class="glyphicon glyphicon-download-alt"></span></a>
+        <a href="/index.html" class="btn btn-default download">返回首页 <span class="glyphicon glyphicon-log-out"></span></a>
+    </div>
+</body>
+</html>

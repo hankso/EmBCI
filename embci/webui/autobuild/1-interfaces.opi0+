@@ -1,0 +1,25 @@
+#
+# /etc/network/interface for EmBCI
+#
+# Board: OrangePi Zero Plus
+# Author: Hankso
+# Email: 3080863354@qq.com
+# Page: https://github.com/hankso
+#
+
+source /etc/network/interfaces.d/*
+
+auto eth0
+iface eth0 inet static
+    address 192.168.2.100
+    netmask 255.255.255.0
+    gateway 192.168.2.100
+
+auto wlan0
+iface wlan0 inet static
+    address 10.0.0.1
+    netmask 255.255.255.0
+    # gateway 10.0.0.1
+
+auto lo
+iface lo inet loopback

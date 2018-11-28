@@ -1,0 +1,23 @@
+#
+# /etc/network/interface for EmBCI
+#
+# Board: OrangePi Zero Plus 2
+# Author: Hankso
+# Email: 3080863354@qq.com
+# Page: https://github.com/hankso
+#
+
+source /etc/network/interfaces.d/*
+
+auto ap0
+iface ap0 inet static
+    pre-up iw dev wlan0 interface add ap0 type __ap || true
+    address 10.0.0.1
+    netmask 255.255.255.0
+    broadcast 10.0.0.255
+    network 10.0.0.0
+    # gateway 10.0.0.1
+    post-down iw dev ap0 del || true
+
+auto lo
+iface lo inet loopback
