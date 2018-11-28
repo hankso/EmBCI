@@ -40,7 +40,7 @@
 
 #include <ArduinoLog.h>
 #include <SPI.h>
-#include <WiFi.h>
+// #include <WiFi.h>
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
@@ -69,9 +69,6 @@
 #define GPIO_MISO 19
 #define GPIO_SCLK 18
 #define GPIO_CS 5
-
-#define GPIO_BIT_MASK_XR (1ULL<<GPIO_NUM_32)
-#define GPIO_BIT_MASK_YD (1ULL<<GPIO_NUM_33)
 
 #define datatyp float
 
@@ -173,13 +170,10 @@ static const int spiClk = 1000000; // 1 MHz
 
 SPIClass * vspi = NULL;
 
-WiFiClient client;
+// WiFiClient client;
 
 int drdypulsetime = 10;
-int transits = 0;
-int transitsps = 0;
 long wavei = 0;
-float lastreading;
 char* spibufrecv;
 bool blinkstat = false;
 bool wifiEcho = true;
@@ -217,12 +211,13 @@ void sendToSPI() {
     float res[8];
     adsStatusBit = ads.readData(res);
     if ((adsStatusBit & 0xF00000) != 0xC00000) return;
-    wavei++;
     for (int i = 0; i < 8; i++) {
         if (dataSrc == 1) {
             cq->push((float)((wavei / 10) % 100));
+            wavei++;
         } else if (dataSrc == 2) {
             cq->push(sin(wavei / 10));
+            wavei++;
         } else if(dataSrc == 3) {
             cq->push(1.0);
         } else {
@@ -230,10 +225,6 @@ void sendToSPI() {
         }
     }
     sampfpsvi++;
-    if (fabs(lastreading - res[0]) > 10000.) {
-        transits++;
-    }
-    lastreading = res[0];
 }
 
 void handleSerialCommand() {
@@ -243,9 +234,6 @@ void handleSerialCommand() {
         case 'c':
             cq->clear();
             Log.notice("Queue empty now\n");
-            break;
-        case 'r':
-            Log.notice("ADS first register value: %B\n", ads.init());
             break;
         case 's':
             Log.notice("ADS data header: %B\n", adsStatusBit);
@@ -258,10 +246,6 @@ void handleSerialCommand() {
             dataSrc = (dataSrc + 1) % 4;
             Log.notice("Current output data: %s\n", dataSrcList[dataSrc]);
             break;
-        case 'o':
-            // TODO 1: add more output info here, what's this `transitsps`?
-            Log.notice("Current transitsps: %d\n", transitsps);
-            break;
         case 'm':
             logLevel = max((logLevel - 1), minLevel);
             Log.setLogLevel(logLevel);
@@ -273,18 +257,22 @@ void handleSerialCommand() {
             Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
             break;
         case 'w':
-            wifiEcho = ~wifiEcho;
+            wifiEcho = !wifiEcho;
             Log.notice("Current serial-to-wifi redirection: %T\n", wifiEcho);
+            break;
+        case 'r':
+            Log.notice("ADS first register value: %B\n", ads.init());
+            break;
         case 'h':
             Log.notice("Supported commands:\n");
             Log.notice("\th - print this Help message\n");
             Log.notice("\tc - Clear spi fifo queue\n");
             Log.notice("\td - change esp output Data source\n");
-            Log.notice("\tm - be less verbose (Mute)\n");
-            Log.notice("\to - ???\n");
             Log.notice("\ts - print Summary of current status\n");
+            Log.notice("\tm - be less verbose (Mute)\n");
             Log.notice("\tv - be more Verbose\n");
             Log.notice("\tw - turn on/off serial-to-Wifi redirection\n");
+            Log.notice("\tr - Read ads1299 id register (will reset ads!)\n");
             break;
     }
 }
@@ -294,18 +282,27 @@ void handleSerial() {
     if (Serial.available()) {
         handleSerialCommand();
     }
-    if (wifiEcho && client.connected()) {
-        while (Serial1.available()) {
-            client.print(Serial1.readStringUntil('\n'));
-        }
-        while (client.available()) {
-            Serial1.print(client.readStringUntil('\n'));
-        }
-    }
+    // if (wifiEcho && client.connected()) {
+    //     while (Serial1.available()) {
+    //         client.print(Serial1.readStringUntil('\n'));
+    //     }
+    //     while (client.available()) {
+    //         Serial1.print(client.readStringUntil('\n'));
+    //     }
+    // }
     Log.verbose("End processing serial cmd\n");
 }
 
 void handleSpiCommand() {
+    if(spibufrecv[0] == 0x00) {
+        return;
+    } else {
+        Log.trace("SPI RECEIVED: ");
+        for (int i = 0; i < 128; i++) {
+            Log.trace("%x ", spibufrecv[i]);
+        }
+        Log.trace("\n");
+    }
     if (spibufrecv[0] == 0x40) {
         Log.trace("INSTRUCTION: WREG\n");
         switch(spibufrecv[1]) {
@@ -364,6 +361,7 @@ void handleSpiCommand() {
 void handleSPI() {
     Log.verbose("Begin processing SPI\n");
     if (slaveStatus == idle) {
+        // Prepare and put data into spi_slave_queue, waiting spi_master to read
         if (cq->len > PACKETSIZ) {
             // SPI slave satatus reset to poll
             slaveStatus = poll;
@@ -378,7 +376,7 @@ void handleSPI() {
             t->trans_len = t->length;
             t->tx_buffer = (char*)spibuf;
             t->rx_buffer = (char*)spibufrecv;
-            spi_slave_queue_trans(VSPI_HOST,t,portMAX_DELAY);
+            spi_slave_queue_trans(VSPI_HOST, t, portMAX_DELAY);
             Log.trace("BUFFER USED: %F\n", (float)(cq->len) / M_BUFFERSIZ);
             if (cq->overriden) {
                 Log.verbose("BUFFER OVERFLOW\n");
@@ -387,7 +385,7 @@ void handleSPI() {
             clkslavetimeout.reset();
         }
     } else if (slaveStatus == poll) {
-        // test timeout
+        // Data has not been read by spi_master yet
         if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
             clkslavetimeout.reset();
             digitalWrite(DRDY_PIN, LOW);
@@ -395,7 +393,7 @@ void handleSPI() {
             Log.trace("SPI TIMED OUT, RESENDING\n");
         }
         if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
-            // SPI slave status set back to idle
+            // Spi_master read data, set spi_slave status back to idle
             slaveStatus = idle;
 
             // FIXME 1:
@@ -405,15 +403,8 @@ void handleSPI() {
                 spibufrecv[i] /= 2;
             }
 
-            if(spibufrecv[0] != 0x00){
-                Log.trace("SPI RECEIVED: ");
-                for (int i = 0; i < 128; i++) {
-                    Log.trace("%x ", spibufrecv[i]);
-                }
-                Log.trace("\n");
-            }
+            handleSpiCommand();
         }
-        handleSpiCommand();
     }
     Log.verbose("End processing SPI\n");
 }
@@ -446,7 +437,7 @@ void setup() {
     //     therefore best baudrates:
     //         [100000, 200000, 400000, 500000, 800000...]
     Serial1.begin(500000);
-    WiFi.mode(WIFI_STA);
+    // WiFi.mode(WIFI_STA);
 
     pinMode(DRDY_PIN, OUTPUT);
     digitalWrite(DRDY_PIN, HIGH);
@@ -454,10 +445,13 @@ void setup() {
     digitalWrite(BLINK_PIN, LOW);
     pinMode(ADS_DRDY_PIN, INPUT);
 
+    Log.trace("Init SPI & ADS... ");
     vspi = new SPIClass(VSPI);
     vspi->begin();
     ads.begin();
     delay(10);
+    ads.init();
+    Log.trace("done\n");
 
     Log.trace("Begin setup\n");
     spibuf = (datatyp*) heap_caps_malloc(
@@ -497,6 +491,9 @@ void setup() {
 }
 
 void loop() {
+    sendToSPI();
+    sampfpsi++;
+
     // blinkTest();
 
     handleSerial();
@@ -514,12 +511,6 @@ void loop() {
         sampfpsv = sampfpsvi;
         sampfpsi = 0;
         sampfpsvi = 0;
-        transitsps = transits;
-        transits = 0;
         clkgen.reset();
     }
-
-    sendToSPI();
-
-    sampfpsi++;
 }
