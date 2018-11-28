@@ -8,7 +8,6 @@ Time: Tue 18 Sep 2018 01:55:03 CST
 '''
 # built-in
 import os
-import sys
 import platform
 import threading
 import traceback
@@ -34,12 +33,7 @@ except ImportError:
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
-SERVER_PATH = os.path.abspath(os.path.join(__dir__, '../../'))
-EMBCI_PATH = os.path.abspath(os.path.join(SERVER_PATH, '../../'))
-if EMBCI_PATH not in sys.path:
-    sys.path.append(EMBCI_PATH)
 
-# from EMBCI_PATH
 from embci import BASEDIR, DATADIR, unicode
 from embci.common import mkuserdir, time_stamp
 from embci.preprocess import Features
@@ -411,7 +405,8 @@ def data_status():
         getattr(reader, 'enable_bias', None))
     summary += '<p>ADS1299 Measure Impedance: {}</p>'.format(
         getattr(reader, 'measure_impedance', None))
-    return summary
+    with open(os.path.join(__dir__, 'status.html'), 'r') as f:
+        return template(f.read(), {'body': summary})
 
 
 @dbs.route('/data/config')

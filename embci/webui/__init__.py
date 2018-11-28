@@ -11,7 +11,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import time
-import argparse
 import importlib
 import traceback
 
@@ -45,7 +44,7 @@ def debug():
     redirect('http://hankso.com:9999')
 
 
-def serve_forever():
+def serve_forever(port=PORT):
     # mount sub-applications
     if __dir__ not in sys.path:
         sys.path.append(__dir__)
@@ -62,45 +61,8 @@ def serve_forever():
     print('link /* to root-app main @ {}'.format(root))
 
     try:
-        run(app=root, host='0.0.0.0', port=PORT, server=GeventWebSocketServer)
+        run(app=root, host='0.0.0.0', port=port, server=GeventWebSocketServer)
     except KeyboardInterrupt:
         pass
     except:
         traceback.print_exc()
-
-
-def main():
-    global PIDFILE
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--pid', default=PIDFILE,
-                        help='pid file of embci-webserver process')
-    args = parser.parse_args()
-
-    # Create PIDFILE
-    PIDFILE = os.path.abspath(args.pid)
-    try:
-        os.makedirs(os.path.dirname(PIDFILE))
-        with open(PIDFILE, 'w') as f:
-            f.write(' {} '.format(os.getpid()))
-        print('Using PIDFILE: ' + PIDFILE)
-    except:
-        pass
-
-    # Open embci webpage
-    try:
-        from webbrowser import open_new_tab
-        open_new_tab("http://localhost:%d" % PORT)
-    except Exception:
-        pass
-
-    serve_forever()
-
-    # Remove PIDFILE
-    if os.path.exists(PIDFILE):
-        try:
-            os.system('rm {} 2>/dev/null'.format(PIDFILE))
-        except:
-            pass
-
-if __name__ == '__main__':
-    main()
