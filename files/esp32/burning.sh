@@ -19,10 +19,11 @@ fi
 ./reset_esp.py flash
 
 # select ESP32 serial port
+PORT=/dev/ttyS1
+
+[[ -f /etc/armbian-release ]] && source /etc/armbian-release
 if [[ `grep "Orange Pi Zero Plus 2" /etc/armbian-release` ]]; then
     PORT=/dev/ttyS2
-else
-    PORT=/dev/ttyS1
 fi
 
 # burn firmware with esptool.py ( offered by Espressif Pte. Ltd. )
