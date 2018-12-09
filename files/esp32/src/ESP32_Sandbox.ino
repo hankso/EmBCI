@@ -76,10 +76,16 @@
 
 #define btos(bool) (bool ? "True" : "False")
 
-// char* itobs(n, char* ret="") {
-//     if (!n) { return ret + "\0"; }
-//     return itobs(n >> 1, ret + (n & 1 ? "1" : "0"));
-// }
+// 170 --> 0b"10101010"
+char* itobs(int n, char *buff, int bits=8) {
+    buff += bits;
+    *buff-- = '\0';
+    while (bits--) {
+        *buff-- = (n & 1) + '0';
+        n >>= 1;
+    }
+    return buff;
+}
 
 template<typename T>
 class CyclicQueue {
@@ -179,7 +185,7 @@ const char* const dataSrcList[] = {
 };
 
 esp_log_level_t logLevel = ESP_LOG_INFO;
-int minLevel = 0, maxLevel = 6;
+int minLevel = 0, maxLevel = 5;
 const char* const logLevelList[] = {
     "SILENT", "ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE",
 };
@@ -238,7 +244,9 @@ void handleSerialCommand() {
             ESP_LOGD(NAME, "Queue empty now");
             break;
         case 's':
-            ESP_LOGI(NAME, "ADS data header: 0x%02X", adsStatusBit);
+            char tmps[8+1];
+            itoa(adsStatusBit, tmps, 2);
+            ESP_LOGI(NAME, "ADS data header: 0b%s", tmps);
             ESP_LOGI(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
             ESP_LOGI(NAME, "Output data:     %s", dataSrcList[dataSrc]);
             ESP_LOGI(NAME, "Logging level:   %s", logLevelList[logLevel]);
@@ -254,7 +262,7 @@ void handleSerialCommand() {
             ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
             break;
         case 'v':
-            logLevel = esp_log_level_t( max((logLevel + 1), minLevel) );
+            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
             esp_log_level_set(NAME, logLevel);
             ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
             break;
@@ -263,7 +271,9 @@ void handleSerialCommand() {
             ESP_LOGD(NAME, "Serial-to-wifi redirection: %s", btos(wifiEcho));
             break;
         case 'r':
-            ESP_LOGI(NAME, "ADS first register value: 0x%02X", ads.init());
+            char tmpr[24+1];
+            itoa(ads.init(), tmpr, 2);
+            ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
             break;
         case 'h':
             ESP_LOGW(NAME, "Supported commands:");

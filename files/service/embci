@@ -13,48 +13,33 @@ set -e
 
 python -c 'import embci' || exit 0
 
+NAME=embci
+PIDFILE=/run/embci/embci.pid
+
+[ -f /etc/embci.conf ] && . /etc/embci.conf
+. /lib/lsb/init-functions
+
 case $1 in
 	start)
-		/etc/init.d/nmbd start
-		/etc/init.d/smbd start
-		/etc/init.d/samba-ad-dc start
+		${DAEMON_SBIN} start
 		;;
 	stop)
-		/etc/init.d/samba-ad-dc stop
-		/etc/init.d/smbd stop
-		/etc/init.d/nmbd stop
+		${DAEMON_SBIN} stop
 		;;
 	reload)
-		/etc/init.d/smbd reload
+		${DAEMON_SBIN} reload
 		;;
 	restart|force-reload)
-		/etc/init.d/nmbd "$1"
-		/etc/init.d/smbd "$1"
-		/etc/init.d/samba-ad-dc "$1"
+		${DAEMON_SBIN} "$1"
 		;;
 	status)
 		status=0
-		NMBD_DISABLED=`testparm -s --parameter-name='disable netbios' 2>/dev/null || true`
-		SERVER_ROLE=`samba-tool testparm --parameter-name="server role"  2>/dev/null | tail -1 || true`
-		if [ "$SERVER_ROLE" != "active directory domain controller" ]; then
-			if [ "$NMBD_DISABLED" != "Yes" ]; then
-				/etc/init.d/nmbd status || status=$?
-			fi
-			/etc/init.d/smbd status || status=$?
-		else
-			/etc/init.d/samba-ad-dc status || status=$?
-		fi
+        ${DAEMON_SBIN} status || status=$?
 		exit $status
 		;;
 	*)
-		echo "Usage: /etc/init.d/samba {start|stop|reload|restart|force-reload|status}"
+		echo "Usage: /etc/init.d/embci {start|stop|reload|restart|force-reload|status}"
 		exit 1
 		;;
 esac
 
-
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON_SBIN=/usr/sbin/hostapd
-DAEMON_DEFS=/etc/default/hostapd
-NAME=hostapd
-PIDFILE=/run/hostapd.pid
