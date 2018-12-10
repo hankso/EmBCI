@@ -14,8 +14,6 @@ import sys
 import glob
 import select
 import socket
-import platform
-import StringIO
 import threading
 import traceback
 
@@ -170,7 +168,7 @@ def first_use():
                        'stable in right position, are they? ')
 
 
-def find_outlets(name=None, **kwargs):
+def find_pylsl_outlets(name=None, **kwargs):
     '''If no wanted pylsl stream outlets found, exit python'''
     if name is None:
         stream_list = pylsl.resolve_stream()
@@ -209,7 +207,7 @@ def find_outlets(name=None, **kwargs):
     sys.exit('No stream available! Abort.')
 
 
-def find_ports(timeout=3):
+def find_serial_ports(timeout=3):
     '''
     This fucntion will guide user to choose one port. Wait `timeout` seconds
     for devices to be detected. If no ports found, return None
@@ -265,7 +263,7 @@ def find_spi_devices():
     sys.exit('No divice available! Abort.')
 
 
-def find_layouts(dir):
+def find_gui_layouts(dir):
     '''If no layouts found, return None.'''
     layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
     layout_list.sort(reverse=True)
@@ -484,89 +482,6 @@ def get_label_list(username):
         '\n    '.join([k + '\t\t%d' % label_list[k] for k in label_list])
     )
     return label_list, summary
-
-
-# TODO 11: interesting function copied from package `mne`,
-# modify it for our usage
-def sys_info(fid=None, show_paths=False):
-    """Print the system information for debugging.
-
-    This function is useful for printing system information
-    to help triage bugs.
-
-    Parameters
-    ----------
-    fid : file-like | None
-        The file to write to. Will be passed to :func:`print()`.
-        Can be None to use :data:`sys.stdout`.
-    show_paths : bool
-        If True, print paths for each module.
-
-    Examples
-    --------
-    Running this function with no arguments prints an output that is
-    useful when submitting bug reports::
-
-    import mne
-    mne.sys_info() # doctest: +SKIP
-        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
-        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)
-                        [GCC 5.2.1 20151010]
-        Executable:    /usr/bin/python
-
-        mne:           0.12.dev0
-        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
-        scipy:         0.18.0.dev0+3deede3
-        matplotlib:    1.5.1+1107.g1fa2697
-
-        sklearn:       0.18.dev0
-        nibabel:       2.1.0dev
-        mayavi:        4.3.1
-        pycuda:        2015.1.3
-        skcuda:        0.5.2
-        pandas:        0.17.1+25.g547750a
-
-    """  # noqa: E501
-    raise RuntimeError('do not use me')
-    ljust = 15
-    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
-    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
-    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
-    old_stdout = sys.stdout
-    capture = StringIO()
-    try:
-        sys.stdout = capture
-        np.show_config()
-    finally:
-        sys.stdout = old_stdout
-    lines = capture.getvalue().split('\n')
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                libs += ['%s=' % key +
-                         lines[li + 1].split('[')[1].split("'")[1]]
-    libs = ', '.join(libs)
-    version_texts = dict(pycuda='VERSION_TEXT')
-    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
-                     'pandas'):
-        if mod_name == '':
-            out += '\n'
-            continue
-        out += ('%s:' % mod_name).ljust(ljust)
-        try:
-            mod = __import__(mod_name)
-        except Exception:
-            out += 'Not found\n'
-        else:
-            version = getattr(mod, version_texts.get(mod_name, '__version__'))
-            extra = ((' (%s)' % os.path.dirname(mod.__file__))
-                     if show_paths else '')
-            if mod_name == 'numpy':
-                extra = ' {%s}%s' % (libs, extra)
-            out += '%s%s\n' % (version, extra)
-    print(out, end='', file=fid)
 
 
 if __name__ == '__main__':

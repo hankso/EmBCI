@@ -36,9 +36,7 @@ from . import common
 from . import gyms
 from . import frame
 from . import webui
-
-# TODO: turn off logs when importing keras like `Using TensorFlow backend.`
-#  from . import classifier
+from . import classifier
 
 __title__ = 'EmBCI'
 __summary__ = 'EmBCI software Python packages'

@@ -32,7 +32,7 @@ import pylsl
 
 from .common import mkuserdir, check_input, get_label_list, Timer
 from .common import time_stamp, virtual_serial
-from .common import find_ports, find_outlets, find_spi_devices
+from .common import find_serial_ports, find_pylsl_outlets, find_spi_devices
 from .gyms import TorcsEnv
 from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
@@ -470,7 +470,7 @@ class Pylsl_reader(_basic_reader):
             return
         # 1. find available streaming info and build an inlet
         print(self._name + 'finding availabel outlets...  ', end='')
-        info = find_outlets(servername)
+        info = find_pylsl_outlets(servername)
         print('`%s` opened' % info.source_id)
         n = info.channel_count()
         if n < self.n_channel:
@@ -522,7 +522,7 @@ class Serial_reader(_basic_reader):
             return
         # 1. find serial port and connect to it
         print(self._name + 'finding availabel ports... ', end='')
-        port = port if port is not None else find_ports()
+        port = port if port is not None else find_serial_ports()
         self._serial.port = port
         self._serial.open()
         print('`%s` opened.' % port)
@@ -1084,7 +1084,7 @@ class Serial_commander(_basic_commander):
 
     def start(self, port=None):
         print(self._name + 'finding availabel ports... ', end='')
-        port = port if port else find_ports()
+        port = port if port else find_serial_ports()
         self._serial.port = port
         self._serial.open()
         print('`%s` opened.' % port)

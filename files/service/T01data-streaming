@@ -127,7 +127,7 @@ def get_param(cmd):
         return '{}: command not found'.format(cmd)
 
 
-def control():
+def repl():
     print(TASK + 'Listening on tcp://localhost:%d' % LISTEN_PORT)
     while not flag_term.isSet():
         try:
@@ -156,13 +156,20 @@ def exit(*a, **k):
     reader.close()
     print(TASK + 'Quit.')
 
-signal.signal(signal.SIGTERM, exit)
 
-reader = Reader(sample_rate, sample_time=1, n_channel=8, send_to_pylsl=True)
-thread = Thread(target=control)
+if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, exit)
 
-print('[S01data-streaming] Start streaming.')
-print(HELP)
-thread.start()
-reader.start(method='block')
-#  reader.start(method='thread')
+    print('[S01data-streaming] Start streaming.')
+    reader = Reader(sample_rate, sample_time=1,
+                    n_channel=8, send_to_pylsl=True)
+
+    print(HELP)
+
+    # let reader occupy main thread
+    Thread(target=repl).start()
+    reader.start(method='block')
+
+    # or let REPL occupy main thread
+    #  repl()
+    #  reader.start(method='thread')
