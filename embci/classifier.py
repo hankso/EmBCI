@@ -7,13 +7,23 @@ Created on Tue Feb 27 22:59:33 2018
 @author: hank
 """
 # built-in
+import os
+import sys
 import math
 
 # requirements.txt: machine-learning: sklearn, keras
 # requirements.txt: data-processing: numpy
 import numpy as np
 from sklearn import svm
-import keras
+
+# Redirect `Using X backend.` log to `/dev/null`.
+# See #1406 @ https://github.com/keras-team/keras/issues/1406
+stderr = sys.stderr
+with open(os.devnull, 'w') as sys.stderr:
+    import keras
+sys.stderr = stderr
+del stderr
+
 from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical

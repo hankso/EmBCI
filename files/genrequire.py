@@ -52,7 +52,7 @@ class Module(str):
 
 def python_filter(filename):
     '''
-    Check if filename is python script file using linux/unix command `file`
+    Check if file is python script by linux/unix command `file`
     '''
     return 'text/x-python' in subprocess.check_output(['file', '-i', filename])
     #  return 'Python script' in subprocess.check_output(['file', filename])

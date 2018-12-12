@@ -66,7 +66,7 @@ SAMPLE_RATE = {
     16000:      0b000,
 }
 # ADS1299 channel data input sources
-INPUT_SOURCE = {
+INPUT_SOURCES = {
     'normal':   0b000,
     'shorted':  0b001,
     'MVDD':     0b011,
@@ -273,11 +273,11 @@ class ADS1299_API(spidev.SpiDev):
 
     @ensure_start
     def set_input_source(self, src):
-        if src not in INPUT_SOURCE:
+        if src not in INPUT_SOURCES:
             print('[ADS1299 API] choose one from supported source!')
-            print(' | '.join(INPUT_SOURCE.keys()))
+            print(' | '.join(INPUT_SOURCES.keys()))
             return
-        src = INPUT_SOURCE[src]
+        src = INPUT_SOURCES[src]
         self.write(SDATAC)
         vs = self.read_registers(REG_CHnSET_BASE, 8)
         vs = [(v & ~0b111 | src) for v in vs]
@@ -499,11 +499,11 @@ class ESP32_API(ADS1299_API):
 
     def set_input_source(self, src):
         assert self._started
-        if src not in INPUT_SOURCE:
+        if src not in INPUT_SOURCES:
             print('[ESP32 API] choose one from supported source!')
-            print(' | '.join(INPUT_SOURCE.keys()))
+            print(' | '.join(INPUT_SOURCES.keys()))
             return
-        self.write_register(REG_IS, INPUT_SOURCE[src])
+        self.write_register(REG_IS, INPUT_SOURCES[src])
         return src
 
     @property

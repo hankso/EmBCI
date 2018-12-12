@@ -356,6 +356,13 @@ class Fake_data_generator(_basic_reader):
             print(self._name + 'pylsl outlet established')
         super(Fake_data_generator, self).start(*a, **k)
 
+    def set_sample_rate(self, rate):
+        self.sample_rate = rate
+        return True
+
+    def set_input_source(self, src):
+        return True
+
     def _save_data_in_buffer(self):
         time.sleep(0.9 / self.sample_rate)
         d = np.random.rand(self.n_channel) / 10

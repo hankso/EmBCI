@@ -18,7 +18,6 @@ import select
 # requirements.txt: necessary: pillow, decorator
 # requirements.txt: optional: matplotlib
 try:
-    import matplotlib
     import matplotlib.pyplot as plt
     _NO_PLT_ = False
 except:
@@ -29,81 +28,14 @@ import serial
 from PIL import Image
 from decorator import decorator
 
-from .common import time_stamp, find_layouts
+from .common import time_stamp, find_gui_layouts
 from .io import Serial_Screen_commander, command_dict_uart_screen_v1
 from .io import SPI_Screen_commander
 from .preprocess import Signal_Info
-from embci import BASEDIR, unicode
+from embci import DATADIR, unicode
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
-
-
-class Plotter():
-    def __init__(self, window_size, where_to_plot=None, n_channel=1):
-        '''
-        Plot multichannel streaming data on a figure ,
-        or in a window if it is offered.
-        Param:
-            where_to_plot can be a matplotlib figure or a list of axes.
-            Default None to create a new figure and split it into n_channels
-            window, one for each window
-        '''
-        assert not _NO_PLT_
-        if where_to_plot is None:
-            self.figure = plt.figure()
-            for i in range(n_channel):
-                self.figure.add_axes((0, i*(1.0/n_channel),
-                                      1, 1.0/n_channel),
-                                     facecolor='black')
-            self.axes = self.figure.axes
-
-        elif type(where_to_plot) == matplotlib.figure.Figure:
-            if not len(where_to_plot.axes):
-                for i in range(n_channel):
-                    where_to_plot.add_axes((0, i*(1.0/n_channel),
-                                            1, 1.0/n_channel),
-                                           facecolor='black')
-            self.figure, self.axes = where_to_plot, where_to_plot.axes
-
-        elif type(where_to_plot) in [matplotlib.axes.Axes,
-                                     matplotlib.axes.Subplot]:
-            self.figure, self.axes = where_to_plot.figure, [where_to_plot]
-
-        elif type(where_to_plot) == list and len(where_to_plot):
-            if type(where_to_plot[0]) in [matplotlib.axes.Axes,
-                                          matplotlib.axes.Subplot]:
-                self.figure = where_to_plot[0].figure
-                self.axes = where_to_plot
-
-        else:
-            raise RuntimeError(('Unknown type param where_to_plot: {}\n'
-                                'matplotlib.figure.Figure or list of axes'
-                                'is recommended.').format(type(where_to_plot)))
-        # clear all axes and create the line
-        for a in self.axes:
-            a.cla()
-            a.plot(np.zeros(window_size))
-
-    def plot(self, data):
-        '''
-        Axes are initialized in constructor.
-        This function only update line data, which is faster than plt.plot()
-        '''
-        shape = data.shape
-
-        # n_sample x n_channel x window_size
-        if len(shape) == 3:
-            for i, ch in enumerate(data[0]):
-                self.axes[i].lines[0].set_ydata(ch)
-
-        # n_sample x n_channel x freq x time
-        elif len(shape) == 4:
-            for i, img in enumerate(data[0]):
-                    self.axes[i].images[0].set_data(img)
-
-        # Return data in case of using Plotter.plot as callback function
-        return data
 
 
 def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
@@ -619,7 +551,7 @@ class Serial_Screen_GUI(Serial_Screen_commander):
             return
         layout = dir_or_file
         if os.path.isdir(dir_or_file):
-            layout = find_layouts(dir_or_file)
+            layout = find_gui_layouts(dir_or_file)
             if layout is None:
                 print(self._name + 'no available layout in ' + dir_or_file)
                 return
@@ -801,7 +733,7 @@ if __name__ == '__main__':
     #  p = Plotter(window_size = 1000, n_channel=8)
     #  p.plot(fake_data)
 
-    filename = os.path.join(BASEDIR, 'data', 'test/left-1.mat')
+    filename = os.path.join(DATADIR, 'test/left-1.mat')
     actionname = os.path.basename(filename)
     data = sio.loadmat(filename)[actionname.split('-')[0]][0]
     sample_rate = 500

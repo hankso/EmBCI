@@ -481,18 +481,17 @@ class ILI9341_API(spidev.SpiDev):
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
     def set_rotation(self, m):
-        self._command(0x36)
-        if (m % 4) == 0:
-            self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 1:
-            self._data([ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 2:
-            self._data([ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 3:
-            self._data([ILI9341_MADCTL_MX |
-                        ILI9341_MADCTL_MY |
-                        ILI9341_MADCTL_MV |
-                        ILI9341_MADCTL_BGR])
+        with self._lock:
+            self._command(0x36)
+            if (m % 4) == 0:
+                self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 1:
+                self._data([ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 2:
+                self._data([ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 3:
+                self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_MY |
+                            ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
 
     def clear(self, c=ILI9341_BLACK, *a, **k):
         self.draw_rectf(0, 0, self.width - 1, self.height - 1, c)
