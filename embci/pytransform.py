@@ -16,60 +16,16 @@ import struct
 _pytransform = None
 _get_error_msg = None
 
-#
-# Options
-#
-
-# How to show error message return from dynamic library _pytransform.
-#
-# Each time call a dll function, if something is wrong, _get_error_msg
-# will return the reason.
-#
-# Enable _verbose_mode will print the details got from _get_error_msg.
-# Disable this options will print only a short message.
-_verbose_mode = 1
-
-# In debug mode, print trace stack when raise exception.
-# Otherwise only show a short message.
-#
-# Run python with command option "-d", or set environment variable
-# PYTHONDEBUG. For example
-#
-#   python -d pyarmor.py xxxx
-#
-_debug_mode = sys.flags.debug
-
 class PytransformError(Exception):
-    def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
-        if _debug_mode:
-            self._print_stack()
-
-    @classmethod
-    def _print_stack(self):
-        try:
-            from traceback import print_stack
-        except Exception:
-            _debug_mode = 0
-            sys.stderr.write('Disabled debug mode.\n')
-        else:
-            print_stack()
+    pass
 
 def dllmethod(func):
-    def format_message(msg, *args, **kwargs):
-        if _verbose_mode:
-            s1 = str(args)[:-1]
-            s2 = ', '.join(['%s=%s' % (k, repr(v)) for k, v in kwargs.items()])
-            sep = ', ' if (s1 and s2) else ''
-            line = 'Call with arguments: %s%s%s)' % (s1, sep, s2)
-            return msg
-        return msg.split('\n')[-1]
     def wrap(*args, **kwargs):
         args = [(s.encode() if isinstance(s, str) else s) for s in args]
         result = func(*args, **kwargs)
         errmsg = _get_error_msg()
         if errmsg:
-            raise PytransformError(format_message(errmsg, *args, **kwargs))
+            raise PytransformError(errmsg)
         return result
     return wrap
 
@@ -91,21 +47,15 @@ def init_runtime(systrace=0, sysprofile=1, threadtrace=0, threadprofile=1):
 
 @dllmethod
 def import_module(modname, filename):
-    global _import_module
-    if _import_module is None:
-        prototype = PYFUNCTYPE(py_object, c_char_p, c_char_p)
-        _import_module = prototype(('import_module', _pytransform))
+    prototype = PYFUNCTYPE(py_object, c_char_p, c_char_p)
+    _import_module = prototype(('import_module', _pytransform))
     return _import_module(modname, filename)
-_import_module = None
 
 @dllmethod
 def exec_file(filename):
-    global _exec_file
-    if _exec_file is None:
-        prototype = PYFUNCTYPE(c_int, c_char_p)
-        _exec_file = prototype(('exec_file', _pytransform))
+    prototype = PYFUNCTYPE(c_int, c_char_p)
+    _exec_file = prototype(('exec_file', _pytransform))
     return _exec_file(filename)
-_exec_file = None
 
 @dllmethod
 def encrypt_project_files(proname, filelist, mode=0):
@@ -220,37 +170,50 @@ def get_license_info():
 
     return info
 
-# Load _pytransform library
-def _load_library(path=None):
-    if path is None:
-        path = os.path.dirname(__file__)
+def format_platname():
     plat = platform.system().lower()
     bitness = struct.calcsize('P'.encode()) * 8
-    libpath = os.path.join(path, 'platforms', '%s%s' % (plat, bitness))
-    if not os.path.isdir(libpath):
-        libpath = path
+    return '%s%s' % (plat, bitness)
+
+# Load _pytransform library
+def _load_library(path=None, is_runtime=0):
+    path = os.path.dirname(__file__) if path is None \
+        else os.path.normpath(path)
+
+    plat = platform.system().lower()
+    if plat == 'linux':
+        filename = os.path.abspath(os.path.join(path, '_pytransform.so'))
+    elif plat == 'darwin':
+        filename = os.path.join(path, '_pytransform.dylib')
+    elif plat == 'windows':
+        filename = os.path.join(path, '_pytransform.dll')
+    elif plat == 'freebsd':
+        filename = os.path.join(path, '_pytransform.so')
+    else:
+        raise PytransformError('Platform %s not supported' % plat)
+
+    if not os.path.exists(filename):
+        if is_runtime:
+            raise PytransformError('Could not find "%s"' % filename)
+        bitness = struct.calcsize('P'.encode()) * 8
+        libpath = os.path.join(path, 'platforms', format_platname())
+        filename = os.path.join(libpath, os.path.basename(filename))
+        if not os.path.exists(filename):
+            raise PytransformError('Could not find "%s"' % filename)
+
     try:
-        if plat == 'linux':
-            if libpath == '':
-                m = cdll.LoadLibrary(os.path.abspath('_pytransform.so'))
-            else:
-                m = cdll.LoadLibrary(os.path.join(libpath, '_pytransform.so'))
-            m.set_option('libc'.encode(), find_library('c').encode())
-        elif plat == 'darwin':
-            m = cdll.LoadLibrary(os.path.join(libpath, '_pytransform.dylib'))
-        elif plat == 'windows':
-            m = cdll.LoadLibrary(os.path.join(libpath, '_pytransform.dll'))
-        elif plat == 'freebsd':
-            m = cdll.LoadLibrary(os.path.join(libpath, '_pytransform.so'))
-        else:
-            raise RuntimeError('Platform not supported')
-    except Exception:
-        raise PytransformError('Could not load _pytransform from "%s"', libpath)
+        m = cdll.LoadLibrary(filename)
+    except Exception as e:
+        raise PytransformError('Load %s failed:\n%s' % (filename, e))
+
+    if plat == 'linux':
+        m.set_option('libc'.encode(), find_library('c').encode())
 
     # Required from Python3.6
     m.set_option('byteorder'.encode(), sys.byteorder.encode())
 
     # m.set_option('enable_trace_log'.encode(), c_char_p(1))
+    m.set_option('enable_trial_license'.encode(), c_char_p(not is_runtime))
 
     # # Deprecated from v3.4
     # m.set_option('enable_encrypt_generator'.encode(), c_char_p(1))
@@ -261,15 +224,19 @@ def _load_library(path=None):
         m.set_option('pyshield_path'.encode(), path.encode())
     return m
 
-def pyarmor_init(path=None):
+def pyarmor_init(path=None, is_runtime=0):
     global _pytransform
     global _get_error_msg
     if _pytransform is None:
-        _pytransform = _load_library(path)
+        _pytransform = _load_library(path, is_runtime)
         _get_error_msg = _pytransform.get_error_msg
         _get_error_msg.restype = c_char_p
         init_pytransform()
 
 def pyarmor_runtime(path=None):
-    pyarmor_init(path)
+    try:
+        pyarmor_init(path, is_runtime=1)
+    except PytransformError as e:
+        print(e)
+        sys.exit(1)
     init_runtime(0, 0, 0, 0)
