@@ -55,7 +55,7 @@ def get_wifi():
     wifi_list = find_wifi_hotspots(interface)
     for wifi in wifi_list:
         del wifi.bitrates, wifi.channel, wifi.mode, wifi.noise
-        l, h = map(float, wifi.pop('quality').split('/'))
+        l, h = [float(i) for i in wifi.pop('quality').split('/')]
         wifi.signal = int(l / h * 10)
         if wifi.encryption_type is not None:
             wifi.encryption_type = wifi.encryption_type.upper()

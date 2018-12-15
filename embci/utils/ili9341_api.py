@@ -206,7 +206,7 @@ class ILI9341_API(spidev.SpiDev):
         '''
         Write an array of bytes to screen as display data.
         '''
-        data = map(int, data)
+        data = list(map(int, data))
         if len(data):
             self._dc.value = 1
             for s in range(0, len(data), chunk):

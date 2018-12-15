@@ -32,7 +32,7 @@ from .common import time_stamp, find_gui_layouts
 from .io import Serial_Screen_commander, command_dict_uart_screen_v1
 from .io import SPI_Screen_commander
 from .preprocess import Signal_Info
-from embci import DATADIR, unicode
+from embci import DATADIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -104,6 +104,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.ylabel('dB/Hz')
 
 
+# TODO: use decorator to make it a real decorator
 def _pre_draw_check(name):
     '''This function is a decorator factory that return a decorator'''
     #

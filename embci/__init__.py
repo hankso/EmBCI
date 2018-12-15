@@ -6,10 +6,10 @@
 #  project page: https://gitlab.com/hankso/EmBCI
 #
 
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, unicode_literals
 import os
 import sys
-from functools import reduce
+import configparser
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -17,16 +17,24 @@ __file__ = os.path.basename(__file__)
 BASEDIR = os.path.abspath(os.path.join(__dir__, '../'))
 DATADIR = os.path.join(BASEDIR, 'data')
 
-if sys.version_info.major == 2:
-    input = raw_input
 
-    unicode = unicode
+def _load_config(file='/etc/embci.conf'):
+    file = str(file)
+    if not os.path.exists(file):
+        raise IOError("No such file: '%s'" % file)
+    config = configparser.ConfigParser()
+    config.optionxform = str
+    if config.read(file) != [file]:
+        raise IOError("Cannot open file: '%s'" % file)
+    return config
 
-elif sys.version_info.major == 3:
-    input = input
-
-    def unicode(*a, **k):
-        return a, k
+try:
+    _config = _load_config()
+    _NO_CONFIG_ = False
+    for section in _config:
+        globals().update(_config[section])
+except:
+    _NO_CONFIG_ = True
 
 
 from . import preprocess
@@ -51,7 +59,4 @@ __copyright__ = 'Copyright 2018 Hankso and individual contributors'
 
 __all__ = (
     'preprocess', 'io', 'visualization', 'common', 'gyms', 'utils', 'frame',
-    'webui', 'classifier', 'input', 'unicode', 'reduce',
-    '__title__', '__summary__', '__url__', '__author__', '__email__',
-    '__version__', '__license__', '__copyright__',
-)
+    'webui', 'classifier')

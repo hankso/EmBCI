@@ -262,7 +262,7 @@ class ADS1299_API(spidev.SpiDev):
     def set_sample_rate(self, rate):
         if rate not in SAMPLE_RATE:
             print('[ADS1299 API] choose one from supported rate!')
-            print(' | '.join(SAMPLE_RATE.keys()))
+            print(' | '.join(list(SAMPLE_RATE.keys())))
             return
         rate = SAMPLE_RATE[rate]
         self.write(SDATAC)
@@ -275,7 +275,7 @@ class ADS1299_API(spidev.SpiDev):
     def set_input_source(self, src):
         if src not in INPUT_SOURCES:
             print('[ADS1299 API] choose one from supported source!')
-            print(' | '.join(INPUT_SOURCES.keys()))
+            print(' | '.join(list(INPUT_SOURCES.keys())))
             return
         src = INPUT_SOURCES[src]
         self.write(SDATAC)
@@ -491,7 +491,7 @@ class ESP32_API(ADS1299_API):
         assert self._started
         if rate not in SAMPLE_RATE:
             print('[ESP32 API] choose one from supported rate!')
-            print(' | '.join(SAMPLE_RATE.keys()))
+            print(' | '.join(list(SAMPLE_RATE.keys())))
             return
         self.write_register(REG_SR, SAMPLE_RATE[rate])
         self._sample_rate = rate
@@ -501,7 +501,7 @@ class ESP32_API(ADS1299_API):
         assert self._started
         if src not in INPUT_SOURCES:
             print('[ESP32 API] choose one from supported source!')
-            print(' | '.join(INPUT_SOURCES.keys()))
+            print(' | '.join(list(INPUT_SOURCES.keys())))
             return
         self.write_register(REG_IS, INPUT_SOURCES[src])
         return src

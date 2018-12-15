@@ -6,7 +6,7 @@ Created on Tue Feb 27 16:03:02 2018
 @author: hank
 """
 # built-in
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import time
 import re
 import os
@@ -16,6 +16,8 @@ import select
 import socket
 import threading
 import traceback
+from builtins import input
+from functools import reduce
 
 # requirements.txt: drivers: pyserial, wifi
 # requirements.txt: data-processing: pylsl, numpy, scipy
@@ -24,10 +26,19 @@ from serial.tools.list_ports import comports
 import numpy as np
 import wifi
 
-from embci import BASEDIR, DATADIR, input, reduce, unicode
+from embci import DATADIR
+from embci import _load_config as load_config
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
+
+BOOLEANS = {
+    u'0': False, u'1': True,
+    u'No': False, u'Yes': True,
+    u'Off': False, u'On': True,
+    u'False': False, u'True': True,
+    u'None': None,
+}
 
 
 class abyi_dict(dict):
@@ -70,7 +81,7 @@ class ibya_list(list):
         try:
             return list.__getattr__(self, attr)
         except AttributeError:
-            return map(lambda i: getattr(i, attr), self)
+            return [getattr(e, attr) for e in self]
 
 
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
@@ -105,8 +116,8 @@ def mkuserdir(func):
     check if user folder exist before saving data etc.
     '''
     def wrapper(*a, **k):
-        if a and isinstance(a[0], (str, unicode)):
-            username = a[0]
+        if a and isinstance(a[0], (bytes, str)):
+            username = ensure_unicode(a[0])
         elif 'username' in k:
             username = k.get('username')
         else:
@@ -308,8 +319,10 @@ def find_wifi_hotspots(interface=None):
     cells = ibya_list()
     for interface in interfaces:
         try:
-            cells.extend(filter(lambda c: c.address not in cells.address,
-                                wifi.Cell.all(interface)))
+            cells.extend([
+                c for c in wifi.Cell.all(interface)
+                if c.address not in cells.address
+            ])
         except wifi.exceptions.InterfaceError:
             pass
         except:
@@ -317,9 +330,9 @@ def find_wifi_hotspots(interface=None):
     unique = reduce(lambda l, c: l if c.ssid in l.ssid else (l.append(c) or l),
                     cells, ibya_list([]))
     unique.sort(key=lambda cell: cell.signal, reverse=True)
-    # `return ibya_list(map(abyi_dict, cells.__dict__))` will not work
-    # because cells.__dict__ IS ITS __dict__ but not cells' __dict__
-    return ibya_list(map(abyi_dict, map(vars, unique)))
+    # `ibya_list([abyi_dict(c) for c in cells.__dict__])` will not work
+    # because cells.__dict__ is cells's __dict__ but not cells' __dict__
+    return ibya_list([abyi_dict(vars(c)) for c in unique])
 
 
 def virtual_serial():
@@ -467,7 +480,7 @@ def get_label_list(username):
          ...
     }
     '''
-    userpath = os.path.join(BASEDIR, 'data', username)
+    userpath = os.path.join(DATADIR, username)
     paths = [i[:-4] for i in os.listdir(userpath)]
     if len(paths) == 0:
         label_list = {}
@@ -484,9 +497,31 @@ def get_label_list(username):
     return label_list, summary
 
 
-if __name__ == '__main__':
-    username = 'test'
-    first_use()
-    print('time stamp: ' + time_stamp())
-    print(get_label_list(username)[1])
-    pass
+def get_boolean(v, table=BOOLEANS):
+    '''convert string to boolean'''
+    t = str(v).title()
+    if t not in table:
+        raise ValueError('Invalid boolean value: {}'.format(v))
+    return table[t]
+
+
+class boolean_str(str):
+    __nonzero__ = __bool__ = lambda self: get_boolean(self)
+
+
+def ensure_unicode(*a):
+    rst = []
+    for i in a:
+        if isinstance(i, bytes):
+            i = i.decode('utf8')
+        rst.append(u'{}'.format(i))
+    return rst
+
+
+# TODO: include them into a tester
+#  if __name__ == '__main__':
+#      print(vars(get_config()))
+#      username = 'test'
+#      first_use()
+#      print('time stamp: ' + time_stamp())
+#      print(get_label_list(username)[1])

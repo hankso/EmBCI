@@ -34,8 +34,8 @@ except ImportError:
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
-from embci import BASEDIR, DATADIR, unicode
-from embci.common import mkuserdir, time_stamp
+from embci import BASEDIR, DATADIR
+from embci.common import mkuserdir, time_stamp, ensure_unicode
 from embci.preprocess import Features
 if platform.machine() in ['arm', 'aarch64']:
     from embci.io import ESP32_SPI_reader as Reader
@@ -101,16 +101,6 @@ ws_lock = threading.Lock()
 # Functions
 #
 
-
-def ensure_unicode(*a):
-    rst = []
-    for i in a:
-        if not isinstance(i, unicode):
-            i = i.decode('utf8')
-        rst.append(i)
-    return rst
-
-
 @mkuserdir
 def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
                  frame_pre=None, frame_post=None, font='Mono', colors=rainbow,
@@ -129,7 +119,7 @@ def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
     k['tb'], k['sb'], k['mb'] = tb, sb, mb = calc_ch_coefs(frame_pre[channel])
     k['ta'], k['sa'], k['ma'] = ta, sa, ma = calc_ch_coefs(frame_post[channel])
     tr, sr, mr = abs(ta - tb) / ta, abs(sa - sb) / sa, abs(ma - mb) / ma
-    k['tr'], k['sr'], k['mr'] = tr, sr, mr = map(int, [100*tr, 100*sr, 100*mr])
+    k['tr'], k['sr'], k['mr'] = tr, sr, mr = 100 * np.array([tr, sr, mr])
     # prepare pngs
     data_x = np.arange(length)
     canvas_size = (length, int(float(length) / img_size[0] * img_size[1]))
@@ -154,10 +144,10 @@ def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
     # for ch in range(reader.n_channel):  # plot each channel(2018.9.30)
     for ch in [channel]:  # plot specific channel(2018.10.2)
         draw_pre.polygon(
-            map(tuple, np.vstack((data_x, to_plot[0][ch])).T),
+            [tuple(x_y) for x_y in np.vstack((data_x, to_plot[0][ch])).T],
             outline=colors[ch])
         draw_post.polygon(
-            map(tuple, np.vstack((data_x, to_plot[1][ch])).T),
+            [tuple(x_y) for x_y in np.vstack((data_x, to_plot[1][ch])).T],
             outline=colors[ch])
     imgpre = os.path.join(username, 'img_pre_' + time_stamp() + '.png')
     img_pre = img_pre.resize((img_size[0] + 4, img_size[1] + 4), 1)
@@ -180,14 +170,12 @@ def generate_pdf(username, id=u'', gender=u'', age='0', length=500, channel=0,
     c.drawString(65, 80, u'天坛医院DBS术后调控肌电报告单')
     c.setFontSize(20)
     c.line(30, 120, 580, 120)
-    c.drawString(
-        35, 150, u'姓名: {:4.12s}  性别: {:1.2s}  年龄: {:3d}  病号ID: {}'.format(
-            username, gender, age, id))
+    string = u'姓名: {:4.12s}  性别: {:1.2s}  年龄: {:3d}  病号ID: {}'
+    c.drawString(35, 150, string.format(username, gender, age, id))
     c.line(30, 165, 580, 165)
     c.line(30, 710, 580, 710)
-    c.drawString(
-        35, 740, u'改善率   震颤： {:3d}%    僵直： {:3d}%    运动： {:3d}%'.format(
-            tr, sr, mr))
+    string = u'改善率   震颤： {:4.1f}%    僵直： {:4.1f}%    运动： {:4.1f}%'
+    c.drawString(35, 740, string.format(tr, sr, mr))
     c.line(30, 755, 580, 755)
     c.drawImage(os.path.join(DATADIR, imgpre), 32, 190)
     c.drawImage(os.path.join(DATADIR, imgpost), 32, 450)
@@ -392,7 +380,7 @@ def data_status():
     summary += '<p>Realtime Bandpass state: {}</p>'.format(
         '{}Hz-{}Hz'.format(*bandpass_realtime) if bandpass_realtime else 'OFF')
     summary += '<p>Data saved for action: {}</p>'.format(
-        ', '.join(map(str, data_save.keys())) if data_save.keys() else None)
+        ', '.join(list(data_save.keys())) if data_save.keys() else None)
     summary += '<p>Current input source: {}</p>'.format(
         getattr(reader, 'input_source', 'None').title())
     summary += '<p>Current amplify scale: {}x</p>'.format(
