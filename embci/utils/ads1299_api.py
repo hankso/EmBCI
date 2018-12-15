@@ -33,7 +33,8 @@ __file__ = os.path.basename(__file__)
 # PIN_PWRDN       = 2  # pin PA02
 # PIN_START       = 3  # pin PA03
 # PIN_DRDY        = 6  # pin PA06 only for ads1299 direct connection
-PIN_DRDY        = 7  # pin PA07 only for esp32 spi buffer
+PIN_DRDY        = 6  # pin PA06 for esp32 on orangepi zero plus 2
+# PIN_DRDY        = 7  # pin PA07 only for esp32 spi buffer
 # PIN_RESET       = 7  # pin PA07
 # ADS1299 Registers
 REG_CONFIG1     = 0x01
