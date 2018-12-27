@@ -212,7 +212,7 @@ def _load_library(path=None, is_runtime=0):
     # Required from Python3.6
     m.set_option('byteorder'.encode(), sys.byteorder.encode())
 
-    # m.set_option('enable_trace_log'.encode(), c_char_p(1))
+    #  m.set_option('enable_trace_log'.encode(), c_char_p(1))
     m.set_option('enable_trial_license'.encode(), c_char_p(not is_runtime))
 
     # # Deprecated from v3.4
