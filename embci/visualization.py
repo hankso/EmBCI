@@ -159,7 +159,7 @@ def _pre_draw_check(name):
         #     this wrapper modify them and generate new *a, **k
         #     real function finally recieve new *a, **k, and defaults
         func(self, *a, **k)
-        if 'render' not in k or ('render' in k and k['render']):
+        if k.get('render', True):
             self.render(element=static, id=num)
     return caller
 

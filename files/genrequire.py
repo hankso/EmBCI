@@ -125,7 +125,7 @@ def sortmod(modules):
     return classes
 
 
-def main(dirs):
+def genrequire(dirs):
     srcfiles = []
     for d in dirs:
         if os.path.exists(d) and os.path.isdir(d):
@@ -170,8 +170,17 @@ def main(dirs):
     OUTPUT.close()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
+class HelpArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # argparse.ArgumentParser.error
+        #  self.print_usage(_sys.stderr)
+        #  self.exit(2, _('%s: error: %s\n') % (self.prog, message))
+        message = message + '\n\n' + self.format_help()
+        self.exit(2, '%s: error: %s\n' % (self.prog, message))
+
+
+def main():
+    parser = HelpArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=HELP, epilog=EXAMPLE)
     parser.add_argument('-v', '--verbose', action='count', default=0,
@@ -180,9 +189,13 @@ if __name__ == '__main__':
                         help='directory[s] to scan for python source files')
     parser.add_argument('-o', '--output', default=sys.stdout,
                         help='output filename, default stdout')
+
     args = parser.parse_args()
 
     globals()['OUTPUT'] = args.output
     globals()['VERBOSE'] = args.verbose
 
-    sys.exit(main(args.dir))
+    genrequire(args.dir)
+
+if __name__ == '__main__':
+    sys.exit(main())

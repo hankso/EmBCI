@@ -16,13 +16,14 @@ import multiprocessing
 # requirements.txt: necessary: decorator
 # requirements.txt: data-processing: numpy
 # requirements.txt: drivers: spidev, gpio4
+# requirements.txt: optional: html-testRunner
 import spidev
 import numpy as np
 from gpio4 import SysfsGPIO
 from decorator import decorator
+from HtmlTestRunner import HTMLTestRunner
 
 from ..common import time_stamp
-from ..utils.HTMLTestRunner import HTMLTestRunner
 from embci import BASEDIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))

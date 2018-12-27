@@ -52,8 +52,9 @@ h5py
 #
 # [optional]
 #
-ipython
+ipython==5.7.0
 reportlab
+html-testRunner
 gym
 
 

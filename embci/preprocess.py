@@ -28,7 +28,10 @@ import pywt
 import pyhht
 import numpy as np
 from decorator import decorator
-from scipy import signal, sparse, interpolate as ip
+import scipy
+import scipy.signal
+import scipy.sparse
+import scipy.interpolate
 
 from .io import _basic_reader
 
@@ -187,7 +190,7 @@ class Signal_Info(object):
         '''
         This is samiliar to covariance. The relationship between correlation
         coefficient and covariane is that
-            R[i, j] = C[i, j] / sqrt(C[i, i] * C[j, j])
+            CORR[i, j] = C[i, j] / sqrt(C[i, i] * C[j, j])
         Values of R are between -1 and 1.
         '''
         return np.corrcoef(X)
@@ -222,13 +225,13 @@ class Signal_Info(object):
         '''
         rst = []
         L = X.shape[1]
-        D = sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
+        D = scipy.sparse.diags([1, -2, 1], [0, -1, -2], shape=(L, L - 2))
         tmp = smooth * D.dot(D.transpose())
         for ch in X:
             w = np.ones(L)
             for i in np.arange(niter):
-                W = sparse.spdiags(w, 0, L, L)
-                z = sparse.linalg.spsolve(W + tmp, w * ch)
+                W = scipy.sparse.spdiags(w, 0, L, L)
+                z = scipy.sparse.linalg.spsolve(W + tmp, w * ch)
                 w = p * (ch > z) + (1 - p) * (ch < z)
             rst += [z]
         return np.array(rst)
@@ -253,19 +256,25 @@ class Signal_Info(object):
         relatively fast and the result is nice.
         '''
         if method == 1:
-            return abs(signal.hilbert(X, axis=-1))
+            return abs(scipy.signal.hilbert(X, axis=-1))
         elif method == 2:
             nch, wsize = X.shape
+            # find indexs of max values
+            maxs = [scipy.signal.argrelmax(ch)[-1] for ch in X]
+            mins = [scipy.signal.argrelmin(ch)[-1] for ch in X]
+            # index lists should start with 0 & end with wsize - 1
+            maxs = [np.concatenate(([0], ms, [wsize - 1])) for ms in maxs]
+            mins = [np.concatenate(([0], ms, [wsize - 1])) for ms in mins]
+            rst = []
             t = np.arange(wsize)
-            maxs = [np.concatenate(([0], signal.argrelmax(ch)[-1], [wsize-1]))
-                    for ch in X]
-            mins = [np.concatenate(([0], signal.argrelmin(ch)[-1], [wsize-1]))
-                    for ch in X]
-            rst = np.array(
-                [[ip.splev(t, ip.splrep(t[maxs[ch]], X[ch][maxs[ch]])),
-                  ip.splev(t, ip.splrep(t[mins[ch]], X[ch][mins[ch]]))]
-                 for ch in np.arange(nch)])
-            return rst
+            for ch in np.arange(nch):
+                # construct curve with points (index, value)
+                maxd = scipy.interpolate.splrep(t[maxs[ch]], X[ch][maxs[ch]])
+                mind = scipy.interpolate.splrep(t[mins[ch]], X[ch][mins[ch]])
+                # interpolate points between above indexs
+                rst.append([scipy.interpolate.splev(t, maxd),
+                            scipy.interpolate.splev(t, mind)])
+            return np.array(rst)
 
     @_check_shape
     def energy(self, X, low=2, high=15, sample_rate=None):
@@ -304,7 +313,8 @@ class Signal_Info(object):
         '''
         assert method in [1, 2]
         if method == 1:
-            return signal.detrend(X, axis=-1, bp=np.arange(0, X.shape[1], 200))
+            return scipy.signal.detrend(
+                X, axis=-1, bp=np.arange(0, X.shape[1], 200))
         elif method == 2:
             return X - self.baseline(X)
 
@@ -312,12 +322,12 @@ class Signal_Info(object):
     def bandpass(self, X, low, high, order=5,
                  sample_rate=None, register=False):
         nyq = float(sample_rate or self._fs) / 2
-        b, a = signal.butter(order, (low / nyq, high / nyq), 'band')
+        b, a = scipy.signal.butter(order, (low / nyq, high / nyq), 'band')
         if register:
             # store params for real-time filtering
-            zi = signal.lfilter_zi(b, a) * np.average(np.abs(X))
+            zi = scipy.signal.lfilter_zi(b, a) * np.average(np.abs(X))
             self._b['band'], self._a['band'], self._zi['band'] = b, a, zi
-        return signal.lfilter(b, a, X)
+        return scipy.signal.lfilter(b, a, X)
 
     def bandpass_realtime(self, x):
         '''
@@ -326,9 +336,9 @@ class Signal_Info(object):
         will be updated by recalling `Bandpass_Filter`
         '''
         assert self._b.get('band') is not None, 'call `bandpass` first!'
-        x = np.atleast_1d(x)
-        x, self._zi['band'] = signal.lfilter(
-            self._b['band'], self._a['band'], x, zi=self._zi['band'])
+        x, self._zi['band'] = scipy.signal.lfilter(
+            self._b['band'], self._a['band'],
+            np.atleast_1d(x), zi=self._zi['band'])
         return x
 
     @_check_shape
@@ -343,19 +353,17 @@ class Signal_Info(object):
         nyq = float(sample_rate or self._fs) / 2
         if register:
             self._b['notch'], self._a['notch'], self._zi['notch'] = [], [], []
-            for b, a in [signal.iirnotch(freq / nyq, Q)
-                         for freq in np.arange(Hz, nyq, Hz)]:
+        for b, a in [scipy.signal.iirnotch(freq / nyq, Q)
+                     for freq in np.arange(Hz, nyq, Hz)]:
+            if register:
+                # save params
                 self._b['notch'].append(b)
                 self._a['notch'].append(a)
-                data_level = np.average(np.abs(X))
-                self._zi['notch'].append(signal.lfilter_zi(b, a) * data_level)
-                X = signal.lfilter(b, a, X, axis=-1)
-            return X
-        else:
-            for b, a in [signal.iirnotch(freq / nyq, Q)
-                         for freq in np.arange(Hz, nyq, Hz)]:
-                X = signal.lfilter(b, a, X, axis=-1)
-            return X
+                self._zi['notch'].append(
+                    scipy.signal.lfilter_zi(b, a) * np.average(np.abs(X)))
+            # convolve filter with data
+            X = scipy.signal.lfilter(b, a, X, axis=-1)
+        return X
 
     def notch_realtime(self, x):
         '''
@@ -366,7 +374,7 @@ class Signal_Info(object):
         zis, self._zi['notch'] = self._zi['notch'], []
         x = np.atleast_1d(x)
         for b, a, zi in zip(self._b['notch'], self._a['notch'], zis):
-            x, zi = signal.lfilter(b, a, x, zi=zi)
+            x, zi = scipy.signal.lfilter(b, a, x, zi=zi)
             self._zi['notch'].append(zi)
         return x
 
@@ -505,10 +513,10 @@ class Signal_Info(object):
         # pxx.shape: n_sample x n_channels x freq x time
         #                0        2      3         1
         # target:    n_sample x freq x time x n_channels
-        sample_rate = sample_rate or self._fs
-        nperseg = nperseg or int(sample_rate / 5.0)
-        noverlap = noverlap or int(sample_rate / 5.0 * 0.67)
-        f, t, amp = signal.stft(X, sample_rate, 'hann', nperseg, noverlap)
+        f, t, amp = scipy.signal.stft(
+            X, sample_rate or self._fs, 'hann',
+            nperseg=nperseg or int(sample_rate / 5.0),
+            noverlap=noverlap or int(sample_rate / 5.0 * 0.67))
         return f, t, np.abs(amp)
 
     @_check_shape
@@ -648,7 +656,7 @@ class Signal_Info(object):
         '''
         if use_cwt:
             c, f = self.cwt(X, (scales or 10), sample_rate,
-                            (wavelet or signal.ricker))
+                            (wavelet or scipy.signal.ricker))
         else:
             if wavelet not in pywt.wavelist():
                 wavelet = 'haar'
@@ -682,7 +690,7 @@ class Signal_Info(object):
         scipy.signal.hilbert(x) = x + scipy.fftpack.hilbert(x) * j
         '''
         imfs = np.array([pyhht.EMD(ch).decompose() for ch in X])
-        analytic_signal = signal.hilbert(imfs, axis=-1)
+        analytic_signal = scipy.signal.hilbert(imfs, axis=-1)
         inst_phase_wrapped = np.angle(analytic_signal)
         inst_phase = np.unwrap(inst_phase_wrapped, axis=-1)
         inst_freq = (np.diff(inst_phase, axis=-1) / (2 * np.pi) *
@@ -690,17 +698,17 @@ class Signal_Info(object):
         return inst_freq
 
     @_check_shape
-    def energy_spectrum(self, X):
+    def Energy_Spectrum(self, X):
         '''
         '''
         raise
 
     @_check_shape
-    def scalogram(self, X, sample_rate=None):
+    def Scalogram(self, X, sample_rate=None):
         rst = self.cwt(X,
                        scale=np.arange(1, 31),
                        sample_rate=(sample_rate or self._fs),
-                       wavelet=signal.ricker,
+                       wavelet=scipy.signal.ricker,
                        use_scipy_signal=True)
         '''
         plt.imshow(
@@ -710,18 +718,18 @@ class Signal_Info(object):
         return rst
 
     @_check_shape
-    def power_spectrum(self, X, sample_rate=None, method=2):
+    def Power_Spectrum(self, X, sample_rate=None, method=2):
         '''
         There are two kinds of defination of power spectrum(PS hereafter).
         1. PS = fft(autocorrelation(X))
-           This is Winner-Khintchine defination
+            This is Winner-Khintchine defination
         2. PS = abs(fft(X))**2 / sample_time
-           It is known that
-               'P = W / S'
-           (power equals to energy divided by time duration), and
-           'abs(fft(X))**2' is known as energy spectrum. But here we use
-               'psd = fft**2 / freq-duration'
-           unit of psd will be 'W/Hz' instead of 'W/s'
+            This one is `P = W / S` defination (power equals to energy
+            divided by time duration), and 'W = abs(fft(X))**2' is known
+            as energy spectrum.
+        But here we implement
+            PS = fft**2 / freq-duration
+        Unit of PSD(Power Spectral Density) will be 'W / Hz' instead of 'W / s'
 
         Parameters
         ----------
@@ -734,7 +742,7 @@ class Signal_Info(object):
         '''
         sample_rate = sample_rate or self._fs
         if method == 1:
-            raise
+            return self.fft(self.Autocorrelation(X), sample_rate)
 
         elif method == 2:
             freq, amp = self.fft(X, sample_rate)
@@ -796,15 +804,15 @@ class Features(object):
         #  data = self.si.smooth(data, 15)[0]  # combine neighboor peaks
 
         # # peaks of upper and lower seperately
-        # u_peaks, u_height = signal.find_peaks(data, (0, None), distance=d)
-        # l_peaks, l_height = signal.find_peaks(data, (None, 0), distance=d)
+        # u_peaks, u_height = scipy.signal.find_peaks(data, (0, None), None, d)
+        # l_peaks, l_height = scipy.signal.find_peaks(data, (None, 0), None, d)
         # intervals = np.hstack((np.diff(u_peaks), np.diff(l_peaks)))
         # heights = np.hstack((u_height['peak_heights'],
         #                      l_height['peak_heights']))
 
         # peaks of both upper and lower
         data[data < data.max() / 4] = 0  # filter misleading extramax peaks
-        peaks, heights = signal.find_peaks(data, 0, distance=d)
+        peaks, heights = scipy.signal.find_peaks(data, 0, distance=d)
         intervals = np.diff(peaks)
         heights = heights['peak_heights']
 
@@ -813,8 +821,8 @@ class Features(object):
 
     @preprocess()
     def stiffness(self, data, lowpass=10.0):
-        b, a = signal.butter(4, 10.0 / self.si.sample_rate, btype='lowpass')
-        return 1000 * self.si.rms(signal.lfilter(b, a, data, -1))
+        b, a = scipy.signal.butter(4, 10.0 / self.si.sample_rate)
+        return 1000 * self.si.rms(scipy.signal.lfilter(b, a, data, -1))
 
     @preprocess(['notch'],
                 ['envelop', {'method': 1}],
@@ -827,11 +835,10 @@ __all__ = ['Signal_Info', 'Features']
 
 if __name__ == '__main__':
     s = Signal_Info(500)
-
     # fake data with shape of (10 samples x 8 channels x 1024 window_size)
     X = np.random.random((10, 8, 1024))
     print('create data with shape {}'.format(X.shape))
-    print('after remove DC shape {}'.format(s.remove_DC(X).shape))
+    print('after remove DC shape {}'.format(s.detrend(X).shape))
     print('after notch shape {}'.format(s.notch(X).shape))
     print('after fft shape {}'.format(s.fft(X).shape))
     print('after stft shape {}'.format(s.stft(X).shape))

@@ -22,12 +22,13 @@ from ctypes import c_uint16
 # requirements.txt: data-processing: numpy, scipy, pylsl, h5py
 # requirements.txt: bio-signal: mne
 # requirements.txt: drivers: pyserial
-# requirements.txt: optional: gym
+# requirements.txt: optional: gym, html-testRunner
 import scipy.io
 import scipy.signal
 import numpy as np
 import serial
 import pylsl
+from HtmlTestRunner import HTMLTestRunner
 #  import mne
 
 from .common import mkuserdir, check_input, get_label_list, Timer
@@ -37,7 +38,6 @@ from .gyms import TorcsEnv
 from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
 from .utils.ili9341_api import ILI9341_API, rgb24to565
-from .utils.HTMLTestRunner import HTMLTestRunner
 from embci import BASEDIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
