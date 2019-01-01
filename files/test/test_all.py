@@ -2,6 +2,5 @@ import os
 from embci import BASEDIR
 os.chdir(BASEDIR)
 
-from embci.utils.HTMLTestRunner import HTMLTestRunner
+import HtmlTestRunner
 suite = unittest.TestSuite()
-

@@ -3,10 +3,10 @@
 # EmBCI
 # Script used to flash ESP32 firmware
 #
-# On-shield ESP32 is directly connected to OrangePi UART by pin RX && TX only.
+# On-shield ESP32 is directly connected to OrangePi UART with RX && TX only.
 # Without DTR/DSR connection, arm can NOT soft reset ESP32. USB-to-TTL converter
-# on many ESP32 development board will support this feature, but on EmBCI shield
-# we have to reset ESP32 by GPIO EN && BOOT.
+# on many ESP32 development board will support this feature, but here we have
+# to reset ESP32 by GPIO EN && BOOT.
 #
 
 if (( $EUID != 0 )); then

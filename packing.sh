@@ -12,6 +12,7 @@
 # wget http://pyarmor.dashingsoft.com/downloads/platforms/orangepi/_pytransform.so -O dist/_pytransform.so
 
 rm -rf embci
+cp -a ${EMBCI_PATH}/files . 2>/dev/null
 cp -a ${EMBCI_PATH}/embci . 2>/dev/null
 
 # obfuscate source code
