@@ -19,8 +19,8 @@ cp -a ${EMBCI_PATH}/embci . 2>/dev/null
 cd dist
 ./pyarmor config --name embci --title embci
 ./pyarmor build --force --output ../
-./pyarmor licenses -e 2019-01-01 cheitech-develop
-cp licenses/cheitech-develop/license.lic ../embci/
+./pyarmor licenses -e 2019-02-05 cheitech-happy-new-year
+cp licenses/cheitech-happy-new-year/license.lic ../embci/
 cp _pytransform.so ../embci/
 cd ../
 
