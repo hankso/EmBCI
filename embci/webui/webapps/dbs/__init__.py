@@ -42,8 +42,6 @@ if platform.machine() in ['arm', 'aarch64']:
 else:
     from embci.io import Fake_data_generator as Reader
 from embci.io import Socket_TCP_server as Server
-from embci.webui import PIDFILE
-
 
 #
 # constants
@@ -80,10 +78,6 @@ data_save = {
 dbs = Bottle()
 reader = Reader(sample_rate, sample_time=1, n_channel=8)
 reader.start()
-
-with open(PIDFILE, 'a') as f:
-    f.write(' {} '.format(reader.pid))
-
 server = Server()
 server.start()
 feature = Features(sample_rate)

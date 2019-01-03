@@ -8,33 +8,12 @@
 
 from __future__ import absolute_import, unicode_literals
 import os
-import sys
-import configparser
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
 BASEDIR = os.path.abspath(os.path.join(__dir__, '../'))
 DATADIR = os.path.join(BASEDIR, 'data')
-
-
-def _load_config(file='/etc/embci.conf'):
-    file = str(file)
-    if not os.path.exists(file):
-        raise IOError("No such file: '%s'" % file)
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    if config.read(file) != [file]:
-        raise IOError("Cannot open file: '%s'" % file)
-    return config
-
-try:
-    _config = _load_config()
-    _NO_CONFIG_ = False
-    for section in _config:
-        globals().update(_config[section])
-except:
-    _NO_CONFIG_ = True
 
 
 from . import preprocess
@@ -45,6 +24,17 @@ from . import gyms
 from . import frame
 from . import webui
 from . import classifier
+
+
+# merge system config into globals()
+try:
+    __config = common.load_config('/etc/embci.conf')
+    __NO_CONFIG__ = False
+    for section in __config:
+        globals().update(__config[section])
+except:
+    __NO_CONFIG__ = True
+
 
 __title__ = 'EmBCI'
 __summary__ = 'EmBCI software Python packages'
