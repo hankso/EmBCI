@@ -12,10 +12,13 @@ import re
 import os
 import sys
 import glob
+import fcntl
 import select
 import socket
+import tempfile
 import threading
 import traceback
+import configparser
 from builtins import input
 from functools import reduce
 
@@ -27,7 +30,7 @@ import numpy as np
 import wifi
 
 from embci import DATADIR
-from embci import _load_config as load_config
+#  from embci import _load_config as load_config
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -505,8 +508,25 @@ def get_boolean(v, table=BOOLEANS):
     return table[t]
 
 
-class boolean_str(str):
-    __nonzero__ = __bool__ = lambda self: get_boolean(self)
+class Boolean_str(str):
+    '''
+    Create a boolean string. `bool(s)` will not always return `True` if length
+    of `s` is not zero. `bool()` will really convert string to boolean.
+
+    Example
+        >>> bool(Boolean_str('True'))
+        True
+        >>> bool(Boolean_str('False'))
+        False
+        >>> bool(Boolean_str('Yes'))
+        True
+
+    Boolean table can be replaced.
+    '''
+    def __nonzero__(self, table=BOOLEANS):
+        return get_boolean(self, table)
+
+    __bool__ = __nonzero__
 
 
 def ensure_unicode(*a):
@@ -516,6 +536,66 @@ def ensure_unicode(*a):
             i = i.decode('utf8')
         rst.append(u'{}'.format(i))
     return rst
+
+
+class LockedFile(object):
+    '''
+    Context manager for creating temp & auto-recycled & locked files
+
+    Here's something to be decleared on locking a file:
+    1. fcntl.lockf() most of the time implemented as a wrapper around the
+       fcntl() locking calls, which bound to processes, not file descriptors.
+    2. fcntl.flock() locks are bound to file descriptors, not processes.
+    3. On at least some systems, fcntl.LOCK_EX can only be used if the file
+       descriptor refers to a file opened for writing.
+    4. fcntl locks will be released after file is closed or by fcntl.LOCK_UN.
+    '''
+    def __init__(self, filename=None, *a, **k):
+        self.file_obj = None
+        self.path = os.path.abspath(filename or tempfile.mkstemp()[1])
+        if k.get('pidfile'):
+            self._pidfile = True
+
+    def acquire(self):
+        d = os.path.dirname(self.path)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        #  self.file_obj = os.fdopen(
+        #      os.open(self.path, os.O_CREAT | os.O_RDWR))
+        self.file_obj = open(self.path, 'a+')  # 'a' will not truncate file
+        try:
+            fcntl.flock(self.file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            raise RuntimeError('file `%s` has been used!' % self.path)
+        self.file_obj.truncate(0)
+        if hasattr(self, '_pidfile'):
+            self.file_obj.write(str(os.getpid()))
+            self.file_obj.flush()
+        return self.file_obj
+
+    def release(self):
+        try:
+            self.file_obj.close()
+        except:
+            pass
+        os.remove(self.path)
+
+    def __enter__(self):
+        return self.acquire()
+
+    def __exit__(self, exc_type=None, exc_value=None, exc_tb=None):
+        self.release()
+
+
+def load_config(file='/etc/embci.conf'):
+    file = str(file)
+    if not os.path.exists(file):
+        raise IOError("No such file: '%s'" % file)
+    config = configparser.ConfigParser()
+    config.optionxform = str
+    if config.read(file) != [file]:
+        raise IOError("Cannot open file: '%s'" % file)
+    return config
 
 
 # TODO: include them into a tester

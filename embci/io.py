@@ -32,7 +32,7 @@ from HtmlTestRunner import HTMLTestRunner
 #  import mne
 
 from .common import mkuserdir, check_input, get_label_list, Timer
-from .common import time_stamp, virtual_serial
+from .common import time_stamp, virtual_serial, LockedFile
 from .common import find_serial_ports, find_pylsl_outlets, find_spi_devices
 from .gyms import TorcsEnv
 from .gyms import PlaneClient
@@ -180,12 +180,12 @@ class _basic_reader(object):
         # basic stream reader information
         self.sample_rate = sample_rate
         self.sample_time = sample_time
-        self.n_channel = n_channel
         self.window_size = int(sample_rate * sample_time)
-        self._name = name if name is not None else ' reader%s  ' % time_stamp()
+        self.n_channel = n_channel
+        self.channels = ['ch%d' % i for i in range(1, n_channel + 1)]
+        self.channels += ['time']
 
-        # channels are defined here
-        self.ch_list = ['ch%d' % i for i in range(1, n_channel + 1)] + ['time']
+        self.name = name or '[Reader %s ] ' % self.__str__()[1:-1]
 
         # maintain a FIFO-loop queue to store data
         # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
@@ -203,57 +203,62 @@ class _basic_reader(object):
     def start(self, method='process'):
         self._flag_pause.set()
         self._flag_close.clear()
-        self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
-        self._f = open(self._data_file, 'w+')
-        self._f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
-        self._f.flush()
-        self._m = mmap.mmap(self._f.fileno(), 0)
+
+        name = self.name[1:-2].replace(' ', '_')
+        self._datafile = LockedFile('/tmp/mmap_' + name)
+        self._pidfile = LockedFile('/run/embci/%s.pid' % name, pidfile=True)
+
+        # lock mmap file to protect writing permission
+        f = self._datafile.acquire()
+        f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
+        f.flush()
+        # register memory-mapped-file as data buffer
+        self._mmapfile = mmap.mmap(f.fileno(), 0)
         self._data = np.ndarray(shape=(self.n_channel + 1, self.window_size),
-                                dtype=np.float32, buffer=self._m)
+                                dtype=np.float32, buffer=self._mmapfile)
+
         self._start_time = time.time()
         self._started = True
-        if method == 'block':
-            self._stream_data()
-            return
+
+        if method == 'thread':
+            self._thread = threading.Thread(target=self._stream_data)
+            self._thread.setDaemon(True)
+            self._thread.start()
         elif method == 'process':
             self._process = multiprocessing.Process(target=self._stream_data)
             self._process.daemon = True
             self._process.start()
-            self.pid = self._process.pid
-        elif method == 'thread':
-            self._thread = threading.Thread(target=self._stream_data)
-            self._thread.setDaemon(True)
-            self._thread.start()
+        elif method == 'block':
+            self._stream_data()
         else:
             raise RuntimeError('unknown method {}'.format(method))
 
     def _stream_data(self):
         #  signal.signal(signal.SIGINT, signal.SIG_IGN)
         try:
-            while not self._flag_close.is_set():
-                self._flag_pause.wait()
-                self._save_data_in_buffer()
-        except NotImplementedError:
-            print(self._name + 'cannot use this class directly')
-        except Exception:
+            with self._pidfile:
+                while not self._flag_close.is_set():
+                    self._flag_pause.wait()
+                    self._save_data_in_buffer()
+        except:
             traceback.print_exc()
             self.close()
         finally:
-            print(self._name + 'stop streaming data...')
-            print(self._name + 'shut down.')
+            print(self.name + 'stop streaming data...')
+            print(self.name + 'shut down.')
 
     def _save_data_in_buffer(self):
-        raise NotImplementedError('not implemented yet!')
+        raise NotImplementedError(self.name + 'cannot use this directly')
 
     def close(self):
-        assert self._started, 'Not started yet!'
+        if not self._started:
+            return
         self._flag_close.set()
         time.sleep(0.5)
         self._data = self._data.copy()  # remove reference to old data buffer
-        self._m.close()
-        self._f.close()
-        if os.path.exists(self._data_file):
-            os.remove(self._data_file)
+        self._mmapfile.close()
+        self._datafile.release()
+        del self._start_time
         self._started = False  # you can re-start this reader now, enjoy~~
 
     def restart(self):
@@ -300,7 +305,7 @@ class _basic_reader(object):
             while self._ch_last_index == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    print(self._name + 'there maybe error reading data')
+                    print(self.name + 'there maybe error reading data')
                     break
             self._ch_last_index = self._index
         return self._data[:-1, (self._ch_last_index - 1) % self.window_size]
@@ -312,7 +317,7 @@ class _basic_reader(object):
             while self._fr_last_index == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    print(self._name + 'there maybe error reading data')
+                    print(self.name + 'there maybe error reading data')
                     break
             self._fr_last_index = self._index
         return np.concatenate((
@@ -327,7 +332,7 @@ class _basic_reader(object):
         if isinstance(items, (slice, int)):
             return self._data[items]
         else:
-            print(self._name + 'unknown preprocessing method %s' % items)
+            print(self.name + 'unknown preprocessing method %s' % items)
             return self
 
 
@@ -340,7 +345,7 @@ class Fake_data_generator(_basic_reader):
         super(Fake_data_generator, self).__init__(sample_rate,
                                                   sample_time,
                                                   n_channel)
-        self._name = '[Fake data generator %d] ' % Fake_data_generator._num
+        self.name = '[Fake data generator %d] ' % Fake_data_generator._num
         self._send_to_pylsl = send_to_pylsl
         Fake_data_generator._num += 1
 
@@ -353,7 +358,7 @@ class Fake_data_generator(_basic_reader):
                 pylsl.StreamInfo(
                     'fake_data_generator', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'used for debugging'))
-            print(self._name + 'pylsl outlet established')
+            print(self.name + 'pylsl outlet established')
         super(Fake_data_generator, self).start(*a, **k)
 
     def set_sample_rate(self, rate):
@@ -383,7 +388,7 @@ class Files_reader(_basic_reader):
                  *a, **k):
         super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
         self.filename = filename
-        self._name = '[Files reader %d] ' % Files_reader._num
+        self.name = '[Files reader %d] ' % Files_reader._num
         Files_reader._num += 1
 
     def start(self, *a, **k):
@@ -391,7 +396,7 @@ class Files_reader(_basic_reader):
             self.resume()
             return
         # 1. try to open data file and load data into RAM
-        print(self._name + 'reading data file...')
+        print(self.name + 'reading data file...')
         while not os.path.exists(self.filename):
             self.filename = check_input(
                 'No such file! Please check and input correct file name: ', {})
@@ -401,17 +406,17 @@ class Files_reader(_basic_reader):
                 mat = scipy.io.loadmat(self.filename)
                 data = mat[actionname][0]
                 sample_rate = mat.get('sample_rate', None)
-                print(self._name + 'load data with shape of {} @ {}Hz'.format(
+                print(self.name + 'load data with shape of {} @ {}Hz'.format(
                     data.shape, sample_rate))
                 assert len(data.shape) == 2, 'Invalid data shape!'
                 n = data.shape[0]
                 if n < self.n_channel:
-                    print('{}change n_channel to {}'.format(self._name, n))
+                    print('{}change n_channel to {}'.format(self.name, n))
                     self.n_channel = n
                     self._data = self._data[:(n + 1)]
                 if sample_rate and sample_rate != self.sample_rate:
                     print('{}resample source data to {}Hz'.format(
-                        self._name, self.sample_rate))
+                        self.name, self.sample_rate))
                     data = scipy.signal.resample(data, self.sample_rate)
                 self._get_data = self._get_data_g(data.T)
                 self._get_data.next()
@@ -424,8 +429,8 @@ class Files_reader(_basic_reader):
             else:
                 raise NotImplementedError
         except Exception as e:
-            print(self._name + '{}: {}'.format(type(e), e))
-            print(self._name + 'Abort...')
+            print(self.name + '{}: {}'.format(type(e), e))
+            print(self.name + 'Abort...')
             return
         self._start_time = time.time()
 
@@ -458,7 +463,7 @@ class Pylsl_reader(_basic_reader):
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
         super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
-        self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
+        self.name = '[Pylsl reader %d] ' % Pylsl_reader._num
         Pylsl_reader._num += 1
 
     def start(self, servername=None, *a, **k):
@@ -476,14 +481,14 @@ class Pylsl_reader(_basic_reader):
             self.resume()
             return
         # 1. find available streaming info and build an inlet
-        print(self._name + 'finding availabel outlets...  ', end='')
+        print(self.name + 'finding availabel outlets...  ', end='')
         info = find_pylsl_outlets(servername)
         print('`%s` opened' % info.source_id)
         n = info.channel_count()
         if n < self.n_channel:
             print(('{}You want {} channel data but only {} channels is offered'
                    ' by pylsl stream outlet you select. Change n_channel to {}'
-                   '').format(self._name, self.n_channel, n, n))
+                   '').format(self.name, self.n_channel, n, n))
             self.n_channel = n
             self._data = self._data[:(n + 1)]
         max_buflen = (self.sample_time if info.nominal_srate() != 0
@@ -519,7 +524,7 @@ class Serial_reader(_basic_reader):
                                             sample_time,
                                             n_channel)
         self._serial = serial.Serial(baudrate=baudrate)
-        self._name = '[Serial reader %d] ' % Serial_reader._num
+        self.name = '[Serial reader %d] ' % Serial_reader._num
         self._send_to_pylsl = send_to_pylsl
         Serial_reader._num += 1
 
@@ -528,7 +533,7 @@ class Serial_reader(_basic_reader):
             self.resume()
             return
         # 1. find serial port and connect to it
-        print(self._name + 'finding availabel ports... ', end='')
+        print(self.name + 'finding availabel ports... ', end='')
         port = port if port is not None else find_serial_ports()
         self._serial.port = port
         self._serial.open()
@@ -537,7 +542,7 @@ class Serial_reader(_basic_reader):
         if n < self.n_channel:
             print(('{}You want {} channel data but only {} channels is offered'
                    ' by serial port you select. Change n_channel to {}'
-                   '').format(self._name, self.n_channel, n, n))
+                   '').format(self.name, self.n_channel, n, n))
             self.n_channel = n
             self._data = self._data[:(n + 1)]
         # 2. start get data process
@@ -548,7 +553,7 @@ class Serial_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'Serial_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
-            print(self._name + 'pylsl outlet established')
+            print(self.name + 'pylsl outlet established')
         super(Serial_reader, self).start(*a, **k)
 
     def close(self):
@@ -579,7 +584,7 @@ class ADS1299_reader(_basic_reader):
         super(ADS1299_reader, self).__init__(sample_rate,
                                              sample_time,
                                              n_channel)
-        self._name = '[ADS1299 SPI reader] '
+        self.name = '[ADS1299 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = ADS1299_API(sample_rate)
 
@@ -604,19 +609,19 @@ class ADS1299_reader(_basic_reader):
         if rst is not None:
             self.sample_rate = rate
             self.window_size = self.sample_rate * self.sample_time
-            print(self._name + ('sample rate set to {}, you may want to '
-                                'restart reader now').format(rst))
+            print(self.name + ('sample rate set to {}, you may want to '
+                               'restart reader now').format(rst))
             return True
-        print(self._name + 'invalid sample rate {}'.format(rate))
+        print(self.name + 'invalid sample rate {}'.format(rate))
         return False
 
     def set_input_source(self, src):
         rst = self._ads.set_input_source(src)
         if rst is not None:
             self.input_source = src
-            print(self._name + 'input source set to {}'.format(rst))
+            print(self.name + 'input source set to {}'.format(rst))
             return True
-        print(self._name + 'invalid input source {}'.fotmat(src))
+        print(self.name + 'invalid input source {}'.fotmat(src))
         return False
 
     def start(self, device=(0, 0), *a, **k):
@@ -624,7 +629,7 @@ class ADS1299_reader(_basic_reader):
             self.resume()
             return
         # 1. find avalable spi devices
-        print(self._name + 'finding available spi devices... ', end='')
+        print(self.name + 'finding available spi devices... ', end='')
         device = device if device is not None else find_spi_devices()
         self._ads.open(device)
         self._ads.start(self.sample_rate)
@@ -635,7 +640,7 @@ class ADS1299_reader(_basic_reader):
                 pylsl.StreamInfo(
                     'SPI_reader', 'unknown', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
-            print(self._name + 'pylsl outlet established')
+            print(self.name + 'pylsl outlet established')
         super(ADS1299_reader, self).start(*a, **k)
 
     def close(self):
@@ -666,7 +671,7 @@ class ESP32_SPI_reader(ADS1299_reader):
         super(ADS1299_reader, self).__init__(sample_rate,
                                              sample_time,
                                              n_channel)
-        self._name = '[ESP32 SPI reader] '
+        self.name = '[ESP32 SPI reader] '
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
 
@@ -697,7 +702,7 @@ class Socket_TCP_reader(_basic_reader):
         super(Socket_TCP_reader, self).__init__(sample_rate,
                                                 sample_time,
                                                 n_channel)
-        self._name = '[Socket TCP reader %d] ' % Socket_TCP_reader._num
+        self.name = '[Socket TCP reader %d] ' % Socket_TCP_reader._num
         Socket_TCP_reader._num += 1
 
     def start(self, *a, **k):
@@ -705,12 +710,12 @@ class Socket_TCP_reader(_basic_reader):
             self.resume()
             return
         # 1. IP addr and port are offered by user, connect to that host:port
-        print(self._name + 'configuring addr... input "quit" to abort')
+        print(self.name + 'configuring addr... input "quit" to abort')
         while 1:
             r = check_input(('please input an address in format "host,port"\n'
                              '>>> 192.168.0.1:8888 (example)\n>>> '), {})
             if r == 'quit':
-                raise SystemExit(self._name + 'mannually exit')
+                raise SystemExit(self.name + 'mannually exit')
             host, port = r.replace('localhost', '127.0.0.1').split(':')
             if int(port) <= 0:
                 print('port must be positive num')
@@ -719,7 +724,7 @@ class Socket_TCP_reader(_basic_reader):
                 socket.inet_aton(host)  # check if host is valid string
                 break
             except socket.error:
-                print(self._name + 'invalid addr!')
+                print(self.name + 'invalid addr!')
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
@@ -763,7 +768,7 @@ class Socket_UDP_reader(_basic_reader):
         super(Socket_UDP_reader, self).__init__(sample_rate,
                                                 sample_time,
                                                 n_channel)
-        self._name = '[Socket UDP reader %d] ' % Socket_UDP_reader._num
+        self.name = '[Socket UDP reader %d] ' % Socket_UDP_reader._num
         Socket_UDP_reader._num += 1
 
     def start(self, *a, **k):
@@ -791,7 +796,7 @@ class Socket_TCP_server(object):
     def __init__(self, host='0.0.0.0', port=9999):
         # if host is None:
         #     host = get_self_ip_addr()
-        self._name = '[Socket server %d] ' % Socket_TCP_server._num
+        self.name = '[Socket server %d] ' % Socket_TCP_server._num
         self._conns = []
         self._addrs = []
         Socket_TCP_server._num += 1
@@ -801,7 +806,7 @@ class Socket_TCP_server(object):
         self._server.listen(5)
         self._server.settimeout(0.5)
         self._flag_close = threading.Event()
-        print(self._name + 'binding socket server at %s:%d' % (host, port))
+        print(self.name + 'binding socket server at %s:%d' % (host, port))
 
     def start(self):
         # handle connection in a seperate thread
@@ -821,7 +826,7 @@ class Socket_TCP_server(object):
             if s is self._server:
                 con, addr = self._server.accept()
                 con.settimeout(0.5)
-                print('{}accept client from {}:{}'.format(self._name, *addr))
+                print('{}accept client from {}:{}'.format(self.name, *addr))
                 self._conns.append(con)
                 self._addrs.append(addr)
             # some client maybe closed
@@ -839,11 +844,11 @@ class Socket_TCP_server(object):
                         s.close()
                     self._conns.remove(s)
                     self._addrs.remove(addr)
-                    print('{}lost client from {}:{}'.format(self._name, *addr))
+                    print('{}lost client from {}:{}'.format(self.name, *addr))
                 # client sent some data
                 else:
-                    print('{}recv {} from {}:{}'.format(self._name, t, *addr))
-        print(self._name + 'socket manager say goodbye to you ;-)')
+                    print('{}recv {} from {}:{}'.format(self.name, t, *addr))
+        print(self.name + 'socket manager say goodbye to you ;-)')
 
     def send(self, data):
         data = data.tobytes()
@@ -855,11 +860,11 @@ class Socket_TCP_server(object):
 
     def close(self):
         self._flag_close.set()
-        print(self._name + 'stop broadcasting data...')
+        print(self.name + 'stop broadcasting data...')
         for con in self._conns:
             con.close()
         # self._server.close()
-        print(self._name + 'Socket server shut down.')
+        print(self.name + 'Socket server shut down.')
 
     def has_listeners(self):
         return len(self._conns)
@@ -964,7 +969,7 @@ command_dict_esp32 = {
 class _basic_commander(object):
     def __init__(self, command_dict):
         self._command_dict = command_dict
-        self._name = '[basic commander] '
+        self.name = '[basic commander] '
         try:
             print('[Command Dict] %s' % command_dict['_desc'])
         except:
@@ -981,7 +986,7 @@ class _basic_commander(object):
 
     def check_key(self, key):
         if key not in self._command_dict:
-            print(self._name + 'Wrong command {}! Abort.'.format(key))
+            print(self.name + 'Wrong command {}! Abort.'.format(key))
             return
 
     def close(self):
@@ -998,18 +1003,18 @@ class Torcs_commander(_basic_commander):
 
     def __init__(self, command_dict={}, *args, **kwargs):
         super(Torcs_commander, self).__init__(command_dict)
-        self._name = '[Torcs commander %d] ' % Torcs_commander._num
+        self.name = '[Torcs commander %d] ' % Torcs_commander._num
         Torcs_commander._num += 1
 
     def start(self):
-        print(self._name + 'initializing TORCS...')
+        print(self.name + 'initializing TORCS...')
         self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
         self.env.reset()
 
     @Timer.duration('Torcs_commander', 1)
     def send(self, key, prob, *args, **kwargs):
         cmd = [abs(prob) if key == 'right' else -abs(prob)]
-        print(self._name + 'sending cmd {}'.format(cmd))
+        print(self.name + 'sending cmd {}'.format(cmd))
         self.env.step(cmd)
         return cmd
 
@@ -1028,7 +1033,7 @@ class Plane_commander(_basic_commander):
         if Plane_commander._singleton is False:
             raise RuntimeError('There is already one Plane Commander.')
         super(Plane_commander, self).__init__(command_dict)
-        self._name = '[Plane commander] '
+        self.name = '[Plane commander] '
         Plane_commander._singleton = False
 
     def start(self):
@@ -1054,7 +1059,7 @@ class Pylsl_commander(_basic_commander):
 
     def __init__(self, command_dict={'_desc': 'send command to pylsl'}):
         super(Pylsl_commander, self).__init__(command_dict)
-        self._name = '[Pylsl commander %d] ' % Pylsl_commander._num
+        self.name = '[Pylsl commander %d] ' % Pylsl_commander._num
         Pylsl_commander._num += 1
 
     def start(self):
@@ -1068,7 +1073,7 @@ class Pylsl_commander(_basic_commander):
         if isinstance(key, str):
             self._outlet.push_sample([key])
             return
-        raise RuntimeError(self._name +
+        raise RuntimeError(self.name +
                            'only accept str but got {}'.format(type(key)))
 
     def close(self):
@@ -1086,11 +1091,11 @@ class Serial_commander(_basic_commander):
         self._serial = serial.Serial(baudrate=baudrate)
         self._CR = CR
         self._LF = LF
-        self._name = '[Serial commander %d] ' % Serial_commander._num
+        self.name = '[Serial commander %d] ' % Serial_commander._num
         Serial_commander._num += 1
 
     def start(self, port=None):
-        print(self._name + 'finding availabel ports... ', end='')
+        print(self.name + 'finding availabel ports... ', end='')
         port = port if port else find_serial_ports()
         self._serial.port = port
         self._serial.open()
@@ -1117,9 +1122,9 @@ class Serial_commander(_basic_commander):
             self._serial.close()
             time.sleep(1)
             self._serial.open()
-            print(self._name + 'reconnect success.')
+            print(self.name + 'reconnect success.')
         except:
-            print(self._name + 'reconnect failed.')
+            print(self.name + 'reconnect failed.')
 
 
 class _convert_24bit_to_15():
@@ -1139,7 +1144,7 @@ class Serial_Screen_commander(Serial_commander):
 
     def __init__(self, baud=115200, command_dict=command_dict_uart_screen_v1):
         super(Serial_Screen_commander, self).__init__(baud, command_dict)
-        self._name = self._name[:-2] + ' for screen' + self._name[-2:]
+        self.name = self.name[:-2] + ' for screen' + self.name[-2:]
 
     def send(self, key, *a, **k):
         self.check_key(key)
@@ -1156,7 +1161,7 @@ class Serial_Screen_commander(Serial_commander):
         try:
             cmd = cmd.format(*a, **k)
         except IndexError:
-            print(self._name +
+            print(self.name +
                   'unmatch key {} - {} and params {}!'.format(key, cmd, a))
         with self._lock:
             self._serial.write(cmd)
@@ -1227,7 +1232,7 @@ class SPI_Screen_commander(_basic_commander):
             raise RuntimeError('There is already one SPI Screen Commander.')
         self._ili = ILI9341_API(spi_device, width=width, height=height)
         self._ili.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
-        self._name = '[SPI screen commander] '
+        self.name = '[SPI screen commander] '
         self.width, self.height = width, height
         self._command_dict = {}  # this is a fake commander so leave it empty
         SPI_Screen_commander._singleton = False
@@ -1288,7 +1293,7 @@ class SPI_Screen_commander(_basic_commander):
         elif hasattr(self._ili, key):
             getattr(self._ili, key)(*a, **k)
         else:
-            print(self._name + 'No such key `{}`!'.format(key))
+            print(self.name + 'No such key `{}`!'.format(key))
 
     def close(self):
         self._ili.close()
