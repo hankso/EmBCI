@@ -22,12 +22,15 @@ from bottle import Bottle, static_file, redirect, response, run
 from bottle.ext.websocket import GeventWebSocketServer
 try:
     import argparse
+    from packaging import version
+    assert version.parse(argparse.__version__) >= version.parse("1.4.0")
 except:
     from embci.utils import argparse as argparse
 
 from embci.common import LockedFile
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__webapps__ = os.path.join(__dir__, 'webapps')
 __file__ = os.path.basename(__file__)
 
 root = Bottle()
@@ -54,18 +57,23 @@ def debug():
 
 def mount_subapps():
     if __dir__ not in sys.path:
-        sys.path.append(__dir__)
-    app_dir = os.path.join(__dir__, 'webapps')
-    for name in os.listdir(app_dir):
-        if not os.path.isdir(os.path.join(app_dir, name)):
+        sys.path.insert(0, __dir__)
+    for name in os.listdir(__webapps__):
+        if not os.path.isdir(os.path.join(__webapps__, name)):
             continue
-        # In order to keep compatiable with Apache mod_wsgi module, offer an
-        # bottle.Bottle instance named `application` in each packages
-        app = importlib.import_module('webapps.' + name).application
+        # If webapps/{name} can not be successfully imported (lack of
+        # "webapps/{name}/__init__.py" for example), python will then
+        # try to import module {name} from other paths in sys.path.
+        # So here we use `import_module(webapps.{name})` instead of
+        # `__import__(name)`
+        try:
+            app = importlib.import_module('webapps.' + name).application
+        except:
+            traceback.print_exc()
+            continue
         root.mount('/apps/{}'.format(name), app)
         root.mount('/apps/{}/'.format(name), app)
-        print('{}link /apps/{}/* to sub-app {}'.format(NAME, name, app))
-    print('{}link /* to root-app main {}'.format(NAME, root))
+        print(NAME + 'link /apps/{}/* to sub-app {}'.format(name, app))
 
 
 def serve_forever(port=80):

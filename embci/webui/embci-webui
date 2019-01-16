@@ -10,7 +10,7 @@ Time: Mon 26 Nov 2018 17:04:31 CST
 import re
 import sys
 
-from embci.webui.__main__ import main
+from embci.webui import main
 
 if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
