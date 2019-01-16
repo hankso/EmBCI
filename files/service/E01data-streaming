@@ -30,11 +30,10 @@ if EMBCI_PATH not in sys.path:
 
 try:
     # built-in argparse is provided >= 2.7
+    # and argparse is maintained as a separate package now
     import argparse
-    # argparse is maintained as a separate package now
-    _ = argparse.__version__.split('.')
-    if len(_) < 3 or _[1] < 4:
-        # argparse >= 1.4.0
+    from packaging import version
+    if version.parse(argparse.__version__) < version.parse("1.4.0"):
         raise ImportError
 except ImportError:
     from embci.utils import argparse as argparse
