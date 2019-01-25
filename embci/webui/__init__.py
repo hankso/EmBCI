@@ -85,7 +85,7 @@ def serve_forever(port=80):
         traceback.print_exc()
 
 
-def main(arg=sys.argv):
+def main(arg):
     parser = argparse.ArgumentParser(
         prog='embci.webui',
         description=('WebUI of EmBCI embedded system. This service default '

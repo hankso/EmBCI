@@ -298,7 +298,8 @@ def find_spi_devices():
     if not device:
         sys.exit(NAME + 'No divice available! Abort.')
     print('{}Select device `{}`'.format(NAME, device))
-    return device
+    # TODO: use regex
+    return int(device[-3]), int(device[-1])
 
 
 def find_gui_layouts(dir):

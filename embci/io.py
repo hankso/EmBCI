@@ -373,10 +373,9 @@ class Fake_data_generator(_basic_reader):
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  send_to_pylsl=False, *a, **k):
-        super(Fake_data_generator, self).__init__(sample_rate,
-                                                  sample_time,
-                                                  n_channel)
-        self.name = '[Fake data generator %d] ' % Fake_data_generator._num
+        super(Fake_data_generator, self).__init__(
+            sample_rate, sample_time, n_channel,
+            '[Fake data generator %d] ' % Fake_data_generator._num)
         self._send_to_pylsl = send_to_pylsl
         Fake_data_generator._num += 1
 
@@ -417,9 +416,10 @@ class Files_reader(_basic_reader):
 
     def __init__(self, filename, sample_rate=250, sample_time=2, n_channel=1,
                  *a, **k):
-        super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
+        super(Files_reader, self).__init__(
+            sample_rate, sample_time, n_channel,
+            '[Files reader %d] ' % Files_reader._num)
         self.filename = filename
-        self.name = '[Files reader %d] ' % Files_reader._num
         Files_reader._num += 1
 
     def start(self, *a, **k):
@@ -523,9 +523,9 @@ class Pylsl_reader(_basic_reader):
                   'the pylsl outlet `{}`. Change n_channel to {}'.format(
                       self.name, self.n_channel, n_info, info.name(), n_info))
             self.n_channel = n_info
-        super(Pylsl_reader, self).__init__(info.nominal_srate() or 250,
-                                           self.sample_time, self.n_channel,
-                                           self.name)
+        super(Pylsl_reader, self).__init__(
+            info.nominal_srate() or 250, self.sample_time, self.n_channel,
+            self.name)
         max_buflen = (self.sample_time if info.nominal_srate() != 0
                       else int(self.window_size / 100) + 1)
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
@@ -555,11 +555,10 @@ class Serial_reader(_basic_reader):
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
                  baudrate=115200, send_to_pylsl=False, *a, **k):
-        super(Serial_reader, self).__init__(sample_rate,
-                                            sample_time,
-                                            n_channel)
+        super(Serial_reader, self).__init__(
+            sample_rate, sample_time, n_channel,
+            '[Serial reader %d] ' % Serial_reader._num)
         self._serial = serial.Serial(baudrate=baudrate)
-        self.name = '[Serial reader %d] ' % Serial_reader._num
         self._send_to_pylsl = send_to_pylsl
         Serial_reader._num += 1
 
@@ -616,10 +615,8 @@ class ADS1299_reader(_basic_reader):
                  enable_bias=True, *a, **k):
         if ADS1299_reader._singleton is False:
             raise RuntimeError('There is already one ADS1299 reader.')
-        super(ADS1299_reader, self).__init__(sample_rate,
-                                             sample_time,
-                                             n_channel)
-        self.name = '[ADS1299 SPI reader] '
+        super(ADS1299_reader, self).__init__(
+            sample_rate, sample_time, n_channel, '[ADS1299 SPI reader] ')
         self._send_to_pylsl = send_to_pylsl
         self._ads = ADS1299_API(sample_rate)
 
@@ -659,13 +656,13 @@ class ADS1299_reader(_basic_reader):
         print(self.name + 'invalid input source {}'.fotmat(src))
         return False
 
-    def start(self, device=(0, 0), *a, **k):
+    def start(self, device=None, *a, **k):
         if self._started:
             self.resume()
             return
         # 1. find avalable spi devices
         print(self.name + 'finding available spi devices... ', end='')
-        device = device if device is not None else find_spi_devices()
+        device = device or find_spi_devices()
         self._ads.open(device)
         self._ads.start(self.sample_rate)
         print('`spi%d-%d` opened.' % device)
@@ -703,10 +700,8 @@ class ESP32_SPI_reader(ADS1299_reader):
                  enable_bias=True, *a, **k):
         if ESP32_SPI_reader._singleton is False:
             raise RuntimeError('There is already one ESP32 SPI reader.')
-        super(ADS1299_reader, self).__init__(sample_rate,
-                                             sample_time,
-                                             n_channel)
-        self.name = '[ESP32 SPI reader] '
+        super(ADS1299_reader, self).__init__(
+            sample_rate, sample_time, n_channel, '[ESP32 SPI reader] ')
         self._send_to_pylsl = send_to_pylsl
         self._ads = self._esp = ESP32_API()
 
@@ -734,10 +729,9 @@ class Socket_TCP_reader(_basic_reader):
     _num = 1
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Socket_TCP_reader, self).__init__(sample_rate,
-                                                sample_time,
-                                                n_channel)
-        self.name = '[Socket TCP reader %d] ' % Socket_TCP_reader._num
+        super(Socket_TCP_reader, self).__init__(
+            sample_rate, sample_time, n_channel,
+            '[Socket TCP reader %d] ' % Socket_TCP_reader._num)
         Socket_TCP_reader._num += 1
 
     def start(self, *a, **k):
@@ -800,10 +794,9 @@ class Socket_UDP_reader(_basic_reader):
     _num = 1
 
     def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Socket_UDP_reader, self).__init__(sample_rate,
-                                                sample_time,
-                                                n_channel)
-        self.name = '[Socket UDP reader %d] ' % Socket_UDP_reader._num
+        super(Socket_UDP_reader, self).__init__(
+            sample_rate, sample_time, n_channel,
+            '[Socket UDP reader %d] ' % Socket_UDP_reader._num)
         Socket_UDP_reader._num += 1
 
     def start(self, *a, **k):
