@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
 Created on Tue Feb 27 14:36:27 2018
@@ -13,7 +13,7 @@ import json
 import sys
 
 # requirements.txt: data-processing: numpy
-# requirements.txt: visualization: matplotlib
+# requirements.txt: optional: matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 

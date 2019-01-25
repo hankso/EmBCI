@@ -85,7 +85,7 @@ def serve_forever(port=80):
         traceback.print_exc()
 
 
-def main():
+def main(arg=sys.argv):
     parser = argparse.ArgumentParser(
         prog='embci.webui',
         description=('WebUI of EmBCI embedded system. This service default '
@@ -96,7 +96,7 @@ def main():
                               '/run/embci/webui.pid'))
     parser.add_argument('-P', '--port', default=80, type=int,
                         help='port that webservice will listen on')
-    args = parser.parse_args()
+    args = parser.parse_args(arg)
 
     mount_subapps()
 

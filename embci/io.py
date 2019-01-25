@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Tue Mar  6 20:45:20 2018
@@ -29,7 +29,7 @@ import numpy as np
 import serial
 import pylsl
 from HtmlTestRunner import HTMLTestRunner
-#  import mne
+import mne
 
 from .common import mkuserdir, check_input, get_label_list, Timer
 from .common import time_stamp, virtual_serial, LockedFile
@@ -38,54 +38,59 @@ from .gyms import TorcsEnv
 from .gyms import PlaneClient
 from .utils.ads1299_api import ADS1299_API, ESP32_API
 from .utils.ili9341_api import ILI9341_API, rgb24to565
-from embci import BASEDIR
+from embci import BASEDIR, DATADIR
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
 
 
 @mkuserdir
-def save_data(username, data, label, sample_rate,
-              print_summary=False, save_fif=False):
+def save_data(username, data, label, sample_rate=500,
+              format='mat', summary=False):
     '''
-    保存数据的函数，传入参数为username,data,label(这一段数据的标签)
-    可以用print_summary=True输出已经存储的数据的label及数量
+    Save data into ${DATADIR}/${username}/${label}-${num}.${surfix}
 
-    Input data shape
-    ----------------
-        n_sample x n_channel x window_size
-
-    data file name:
-        ${DIR}/data/${username}/${label}-${num}.${surfix}
-    current supported format is 'mat'(default) and 'fif'(set save_fif=True)
+    Parameters
+    ----------
+    username : str
+    data : array_list or instance of mne.Raw
+        2d or 3d array with a shape of [n_sample x] n_channel x window_size
+    label : str
+        Action name, data label
+    sample_rate : int
+        Sample rate of data, default set to 500Hz.
+    format : str
+        Current supported format is MATLAB-style '.mat'(default) and MNE
+        '.fif', '.fif.gz' file(set format to 'fif' or 'fif.gz')
+    summary : bool
+        Whether to print summary of currently saved data, default `False`.
     '''
-    # check data format and shape
-    if not isinstance(data, np.ndarray):
-        data = np.array(data)
-    if len(data.shape) != 3:
-        raise IOError('Invalid data shape{}, n_sample x n_channel x '
-                      'window_size is recommended!'.format(data.shape))
+    # n_sample x n_channel x window_size
+    data = np.atleast_3d(data)
+    label = str(label)
 
+    # scan how many data files already there
     label_list = get_label_list(username)[0]
-    num = '1' if label not in label_list else str(label_list[label] + 1)
+    num = label_list.get(label, 0) + 1
 
-    fn = os.path.join(BASEDIR, 'data', username, '%s-%s.mat' % (label, num))
-    scipy.io.savemat(fn,
-                     {label: data, 'sample_rate': sample_rate},
-                     do_compression=True)
-    print('{} data saved to {}'.format(data.shape, fn))
+    if format == 'mat':
+        fn = os.path.join(
+            DATADIR, username, '{}-{}.{}'.format(label, num, format))
+        scipy.io.savemat(fn, do_compression=True,
+                         mdict={label: data, 'sample_rate': sample_rate})
+        print('{} data saved to {}'.format(data.shape, fn))
+    elif format in ['fif', 'fif.gz']:
+        info = mne.create_info(data.shape[1], sample_rate)
+        for sample in data:
+            fn = os.path.join(
+                DATADIR, username, '{}-{}.{}'.format(label, num, format))
+            num += 1
+            mne.io.RawArray(sample, info).save(fn)
+            print('{} data saved to {}'.format(sample.shape, fn))
+    else:
+        raise IOError('only support save data in mat and fif')
 
-    #  if save_fif:
-    #      for sample in data:
-    #          fn = './data/fif/%s/%s-raw.fif.gz' % (username,
-    #                                                '-'.join([label, num]))
-    #          num += 1
-    #          info = mne.create_info(ch_names=sample.shape[0],
-    #                                 sfreq=sample_rate)
-    #          mne.io.RawArray(sample, info).save(fn, verbose=0)
-    #          print('{} data save to {}'.format(sample.shape, fn))
-
-    if print_summary:
+    if summary:
         print(get_label_list(username)[1])
 
 
@@ -176,6 +181,8 @@ def save_action(username, reader, action_list=['relax', 'grab']):
 
 
 class _basic_reader(object):
+    name = '[embci.io.Reader] '
+
     def __init__(self, sample_rate, sample_time, n_channel, name=None):
         # basic stream reader information
         self.sample_rate = sample_rate
@@ -185,7 +192,8 @@ class _basic_reader(object):
         self.channels = ['ch%d' % i for i in range(1, n_channel + 1)]
         self.channels += ['time']
 
-        self.name = name or '[Reader %s ] ' % self.__str__()[1:-1]
+        self.name = name or self.name
+        self._status = 'closed'
 
         # maintain a FIFO-loop queue to store data
         # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
@@ -205,6 +213,7 @@ class _basic_reader(object):
         self._flag_close.clear()
 
         name = self.name[1:-2].replace(' ', '_')
+        assert '/' not in name, 'Invalid reader name `%s`!' % self.name
         self._datafile = LockedFile('/tmp/mmap_' + name)
         self._pidfile = LockedFile('/run/embci/%s.pid' % name, pidfile=True)
 
@@ -219,6 +228,7 @@ class _basic_reader(object):
 
         self._start_time = time.time()
         self._started = True
+        self._status = 'started'
 
         if method == 'thread':
             self._thread = threading.Thread(target=self._stream_data)
@@ -260,6 +270,7 @@ class _basic_reader(object):
         self._datafile.release()
         del self._start_time
         self._started = False  # you can re-start this reader now, enjoy~~
+        self._status = 'closed'
 
     def restart(self):
         if self._started:
@@ -270,9 +281,27 @@ class _basic_reader(object):
 
     def pause(self):
         self._flag_pause.clear()
+        self._status = 'paused'
 
     def resume(self):
         self._flag_pause.set()
+        self._status = 'started'
+
+    def __repr__(self):
+        if not hasattr(self, 'status'):
+            msg = 'not initialized - {}'.format(self.name[1:-2])
+        else:
+            msg = '{} - {}'.format(self.status, self.name[1:-2])
+            msg += ': {}Hz'.format(self.sample_rate)
+            msg += ', {}chs'.format(self.n_channel)
+            msg += ', {}sec'.format(self.sample_time)
+            if self._started:
+                msg += ', {}kB'.format(self._data.nbytes)
+        return '<{}, at {}>'.format(msg, hex(self.__hash__()))
+
+    @property
+    def status(self):
+        return self._status
 
     @property
     def _index(self):
@@ -300,6 +329,7 @@ class _basic_reader(object):
 
     @property
     def data_channel(self):
+        '''Pick n_channel x 1 fresh data from FIFO queue'''
         if self.is_streaming:
             t = time.time()
             while self._ch_last_index == self._index:
@@ -312,6 +342,7 @@ class _basic_reader(object):
 
     @property
     def data_frame(self):
+        '''Pick n_channel x window_size (all data) from FIFO queue'''
         if self.is_streaming:
             t = time.time()
             while self._fr_last_index == self._index:
@@ -330,7 +361,7 @@ class _basic_reader(object):
                 self = self.__getitem__(item)
             return self
         if isinstance(items, (slice, int)):
-            return self._data[items]
+            return self.data_frame[items]
         else:
             print(self.name + 'unknown preprocessing method %s' % items)
             return self
@@ -356,7 +387,7 @@ class Fake_data_generator(_basic_reader):
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'fake_data_generator', 'unknown', self.n_channel,
+                    'fake_data_generator', 'reader_outlet', self.n_channel,
                     self.sample_rate, 'float32', 'used for debugging'))
             print(self.name + 'pylsl outlet established')
         super(Fake_data_generator, self).start(*a, **k)
@@ -461,10 +492,12 @@ class Pylsl_reader(_basic_reader):
     '''
     _num = 1
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
+    def __init__(self, sample_time=2, n_channel=None, *a, **k):
+        self.sample_time = sample_time
+        self.n_channel = n_channel
         self.name = '[Pylsl reader %d] ' % Pylsl_reader._num
         Pylsl_reader._num += 1
+        self._started = False
 
     def start(self, servername=None, *a, **k):
         '''
@@ -482,15 +515,17 @@ class Pylsl_reader(_basic_reader):
             return
         # 1. find available streaming info and build an inlet
         print(self.name + 'finding availabel outlets...  ', end='')
-        info = find_pylsl_outlets(servername)
-        print('`%s` opened' % info.source_id)
-        n = info.channel_count()
-        if n < self.n_channel:
-            print(('{}You want {} channel data but only {} channels is offered'
-                   ' by pylsl stream outlet you select. Change n_channel to {}'
-                   '').format(self.name, self.n_channel, n, n))
-            self.n_channel = n
-            self._data = self._data[:(n + 1)]
+        info = find_pylsl_outlets(name=servername)
+        n_info = info.channel_count()
+        self.n_channel = self.n_channel or n_info
+        if n_info < self.n_channel:
+            print('{}You want {} channels data but only {} is provided by '
+                  'the pylsl outlet `{}`. Change n_channel to {}'.format(
+                      self.name, self.n_channel, n_info, info.name(), n_info))
+            self.n_channel = n_info
+        super(Pylsl_reader, self).__init__(info.nominal_srate() or 250,
+                                           self.sample_time, self.n_channel,
+                                           self.name)
         max_buflen = (self.sample_time if info.nominal_srate() != 0
                       else int(self.window_size / 100) + 1)
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
@@ -551,7 +586,7 @@ class Serial_reader(_basic_reader):
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'Serial_reader', 'unknown', self.n_channel,
+                    'Serial_reader', 'reader_outlet', self.n_channel,
                     self.sample_rate, 'float32', self._serial.port))
             print(self.name + 'pylsl outlet established')
         super(Serial_reader, self).start(*a, **k)
@@ -638,7 +673,7 @@ class ADS1299_reader(_basic_reader):
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'SPI_reader', 'unknown', self.n_channel,
+                    'SPI_reader', 'reader_outlet', self.n_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
             print(self.name + 'pylsl outlet established')
         super(ADS1299_reader, self).start(*a, **k)

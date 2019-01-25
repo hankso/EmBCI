@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Tue Feb 27 16:03:02 2018
@@ -24,8 +24,10 @@ from functools import reduce
 
 # requirements.txt: drivers: pyserial, wifi
 # requirements.txt: data-processing: pylsl, numpy, scipy
+# requirements.txt: necessary: decorator
 import pylsl
 from serial.tools.list_ports import comports
+from decorator import decorator
 import numpy as np
 import wifi
 
@@ -114,27 +116,24 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
     return (a - low) / (high - low) * (t_high - t_low) + t_low
 
 
-def mkuserdir(func):
-    '''
-    check if user folder exist before saving data etc.
-    '''
-    def wrapper(*a, **k):
-        if a and isinstance(a[0], (bytes, str)):
-            username = ensure_unicode(a[0])
-        elif 'username' in k:
-            username = k.get('username')
-        else:
-            print('Decorator may be used in wrong place.')
+@decorator
+def mkuserdir(func, *a, **k):
+    if a and isinstance(a[0], (bytes, str)):
+        username = ensure_unicode(a[0])
+    elif 'username' in k:
+        username = k.get('username')
+    else:
+        print('Username is not provided, decorator abort.')
+        if a or k:
             print('args: {}, kwargs: {}'.format(a, k))
-            return func(*a, **k)
-        path = os.path.join(DATADIR, username)
-        if not os.path.exists(path):
-            try:
-                os.makedirs(path)
-            except:
-                pass
         return func(*a, **k)
-    return wrapper
+    path = os.path.join(DATADIR, username)
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except:
+            pass
+    return func(*a, **k)
 
 
 def check_input(prompt, answer={'y': True, 'n': False, '': True}, times=3):
@@ -178,47 +177,71 @@ def first_use():
           'recognizing program.\nYou need to record some action data first.\n'
           'Then next time you do that action again it will be recognized.\n'
           'Now start recording.', end='')
-    return check_input('Check all electrodes and ensure they are '
-                       'stable in right position, are they? ')
+    return check_input('Check all electrodes and ensure they are stable in '
+                       'correct position, are they? ')
 
 
-def find_pylsl_outlets(name=None, **kwargs):
-    '''If no wanted pylsl stream outlets found, exit python'''
-    if name is None:
-        stream_list = pylsl.resolve_stream()
+def find_pylsl_outlets(*args, **kwargs): # noqa: C901
+    '''
+    This function is easier to use than pylsl.resolve_stream.
+
+    Examples
+    --------
+    >>> find_pylsl_outlets()
+    >>> # same as pylsl.resolve_streams()
+    >>> find_pylsl_outlets(1)
+    >>> # same as pylsl.resolve_streams(timeout=1)
+
+    >>> find_pylsl_outlets('type', 'EEG_Data') # Error
+    >>> find_pylsl_outlets("type='EEG_Data'")
+    >>> # same as pylsl.resolve_bypred("type='EEG_Data'")
+    >>> find_pylsl_outlets(type='EEG_Data')
+    >>> # same as pylsl.resolve_byprop('type', 'EEG_Data')
+
+    If no wanted pylsl stream outlets found, sys.exit is called to exit python.
+    '''
+    timeout = kwargs.pop('timeout', 2)
+    NAME = '[Find Pylsl Outlets] '
+    if not args:
+        if kwargs:
+            stream_list = []
+        else:
+            stream_list = pylsl.resolve_streams(timeout)
+    elif isinstance(args[0], (int, float)):
+        timeout = args[0]
+        stream_list = pylsl.resolve_streams(timeout)
+    elif isinstance(args[0], str):
+        stream_list = pylsl.resolve_bypred(args[0], 0, timeout)
     else:
-        stream_list = pylsl.resolve_byprop('name', name, minimum=0, timeout=5)
-    while not len(stream_list):
-        if not len(kwargs):
-            sys.exit('No stream available! Abort.')
-        prop, value = kwargs.popitem()
-        stream_list += pylsl.resolve_byprop(prop, value, minimum=0, timeout=5)
+        stream_list = []
+    for key in kwargs:
+        if key in ['name', 'type', 'channel_count',
+                   'nominal_srate', 'channel_format', 'source_id']:
+            stream_list += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
+    if not len(stream_list):
+        sys.exit(NAME + 'No stream available! Abort.')
     if len(stream_list) == 1:
         stream = stream_list[0]
     else:
         dv = [stream.name() for stream in stream_list]
         ds = [stream.type() for stream in stream_list]
-        prompt = ('Please choose one from all available streams:\n    ' +
+        prompt = ('{}Please choose one from all available streams:\n    ' +
                   '\n    '.join(['%d %s - %s' % (i, j, k)
                                  for i, (j, k) in enumerate(zip(dv, ds))]) +
-                  '\nstream num(default 0): ')
+                  '\nstream num(default 0): ').format(NAME)
         answer = {str(i): stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
         try:
             stream = check_input(prompt, answer)
         except KeyboardInterrupt:
-            sys.exit('No stream available! Abort.')
-    if stream:
-        print(('Select stream `{name}` -- {chs} channel {type_num} {fmt} data '
-               'from {source} on server {host}').format(
-                   name=stream.name(),
-                   chs=stream.channel_count(),
-                   type_num=stream.type(),
-                   fmt=stream.channel_format(),
-                   source=stream.source_id(),
-                   host=stream.hostname()))
-        return stream
-    sys.exit('No stream available! Abort.')
+            sys.exit(NAME + 'No stream available! Abort.')
+    if not stream:
+        sys.exit(NAME + 'No stream available! Abort.')
+    print('{}Select stream `{}` -- {} channel {} {} data from {} on server {}'
+          .format(
+              NAME, stream.name(), stream.channel_count(), stream.type(),
+              stream.channel_format(), stream.source_id(), stream.hostname()))
+    return stream
 
 
 def find_serial_ports(timeout=3):
@@ -227,58 +250,60 @@ def find_serial_ports(timeout=3):
     for devices to be detected. If no ports found, return None
     '''
     # scan for all available serial ports
+    NAME = '[Find Serial Ports] '
     while timeout > 0:
         timeout -= 1
         if len(comports()) == 0:
             time.sleep(1)
-            print('[Find port] rescanning available ports')
+            print('{}rescanning available ports ... {}'.format(NAME, timeout))
             continue
         port_list = comports()
         if len(port_list) == 1:
             port = port_list[0]
         else:
             tmp = [(port.device, port.description) for port in port_list]
-            prompt = ('Please choose one from all available ports:\n    ' +
+            prompt = ('{}Please choose one from all available ports:\n    ' +
                       '\n    '.join(['%d %s - %s' % (i, dv, ds)
                                      for i, (dv, ds) in enumerate(tmp)]) +
-                      '\nport num(default 0): ')
+                      '\nport num(default 0): ').format(NAME)
             answer = {str(i): port for i, port in enumerate(port_list)}
             answer[''] = port_list[0]
             port = check_input(prompt, answer)
-        if port:
-            print('Select port `{}` -- {}'.format(port.device,
-                                                  port.description))
-            return port.device
-        else:
+        if not port:
             break
+        print('{}Select port `{}` -- {}'.format(
+            port.device, port.description))
+        return port.device
 
 
 def find_spi_devices():
     '''If there is no spi devices, exit python'''
+    NAME = '[Find SPI Devices] '
     dev_list = glob.glob('/dev/spidev*')
     if len(dev_list) == 0:
         device = None
     elif len(dev_list) == 1:
         device = dev_list[0]
     else:
-        prompt = ('Please choose one from all available devices:\n    ' +
+        prompt = ('{}Please choose one from all available devices:\n    ' +
                   '\n    '.join(['%d %s' % (i, dev)
                                  for i, dev in enumerate(dev_list)]) +
-                  '\ndevice num(default 0): ')
+                  '\ndevice num(default 0): ').format(NAME)
         answer = {str(i): dev for i, dev in enumerate(dev_list)}
         answer[''] = dev_list[0]
         try:
             device = check_input(prompt, answer)
         except KeyboardInterrupt:
-            sys.exit('No divice available! Abort.')
-    if device:
-        print('Select device `{}`'.format(device))
-        return device
-    sys.exit('No divice available! Abort.')
+            sys.exit(NAME + 'No divice available! Abort.')
+    if not device:
+        sys.exit(NAME + 'No divice available! Abort.')
+    print('{}Select device `{}`'.format(NAME, device))
+    return device
 
 
 def find_gui_layouts(dir):
     '''If no layouts found, return None.'''
+    NAME = '[Find GUI Layouts] '
     layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
     layout_list.sort(reverse=True)
     if len(layout_list) == 0:
@@ -286,17 +311,17 @@ def find_gui_layouts(dir):
     elif len(layout_list) == 1:
         layout = layout_list[0]
     else:
-        prompt = ('Please choose one from all available layouts:\n    ' +
+        prompt = ('{}Please choose one from all available layouts:\n    ' +
                   '\n    '.join(['%d %s' % (i, os.path.basename(j))
                                  for i, j in enumerate(layout_list)]) +
-                  '\nlayout num(default 0): ')
+                  '\nlayout num(default 0): ').format(NAME)
         answer = {str(i): layout for i, layout in enumerate(layout_list)}
         answer[''] = layout_list[0]
         try:
             layout = check_input(prompt, answer)
         except KeyboardInterrupt:
             return
-    print('Select layout `{}`'.format(layout))
+    print('{}Select layout `{}`'.format(NAME, layout))
     return layout
 
 
@@ -475,13 +500,13 @@ def _combine_action(d1, d2):
 def get_label_list(username):
     '''
     This function is used to count all saved data.
-    Return label_list, e.g.:
-    {
+    Return label_list and a summary string, e.g.:
+    ({
          'left': 16,
          'right': 21,
          'thumb_cross': 10,
          ...
-    }
+    }, 'There are 3 actions with 47 data recorded.\n')
     '''
     userpath = os.path.join(DATADIR, username)
     paths = [i[:-4] for i in os.listdir(userpath)]
@@ -535,6 +560,8 @@ def ensure_unicode(*a):
         if isinstance(i, bytes):
             i = i.decode('utf8')
         rst.append(u'{}'.format(i))
+    if len(rst) == 1:
+        return rst[0]
     return rst
 
 
