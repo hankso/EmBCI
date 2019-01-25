@@ -52,8 +52,11 @@ h5py
 #
 # [optional]
 #
-ipython
+ipython==5.7.0
 reportlab
+argparse
+matplotlib
+html-testRunner
 gym
 
 
@@ -62,18 +65,5 @@ gym
 #
 mne
 
-
-#
-# [conflicts]
-# You may manually solve them.
-#
-
-# From ./embci/frame.py
-# [visualization]
-matplotlib
-
-# From ./embci/visualization.py
-# [optional]
-matplotlib
 
 
