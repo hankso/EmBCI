@@ -45,12 +45,11 @@ else:
 from embci.utils.ads1299_api import INPUT_SOURCES
 from embci.common import get_boolean
 
-
+# Global
 STREAM_CONTROLS = ['start', 'pause', 'resume', 'close', 'restart']
 LISTEN_PORT = 9997
 TASK = '[{}] '.format(__file__)
 FLAG = threading.Event()
-signal.signal(signal.SIGTERM, lambda *a, **k: FLAG.set())
 
 HELP = '''
 Task data-streaming started by {filename} script in EmBCI. Streaming
@@ -84,6 +83,8 @@ input_source = 'normal'
 measure_impedance = False
 stream_control = 'start'
 
+reader = Reader(sample_rate, sample_time=1, n_channel=8, send_to_pylsl=True)
+
 
 def summary(args):
     ret = 'Status:\n'
@@ -92,7 +93,7 @@ def summary(args):
     ret += 'bias_output:\t{}\n'.format(
         'enabled' if bias_output else 'disabled')
     ret += 'input_source:\t{}\n'.format(input_source)
-    ret += 'stream_control:\t{}ed\n'.format(stream_control)
+    ret += 'stream_control:\t{}ed\n'.format(reader.status)
     ret += 'measure_impedance:\t{}\n'.format(
         'enabled' if measure_impedance else 'disabled')
     return ret
@@ -214,24 +215,29 @@ class _Box:
         return ''.join(box)
 
 
-def repl(flag_term, s):
+def repl(flag_term):
+    reply = zmq.Context().socket(zmq.REP)
+    reply.bind('tcp://127.0.0.1:%d' % LISTEN_PORT)
     print(TASK + 'Listening on tcp://localhost:%d' % LISTEN_PORT)
-    parser = init_parser()
     poller = zmq.Poller()
-    poller.register(s, zmq.POLLIN)
-    time.sleep(0.5)
+    poller.register(reply, zmq.POLLIN)
+
     # parser will print error & help info to sys.stderr & sys.stdout
     # so redirect them to socket.send
+    parser = init_parser()
+    time.sleep(0.5)
     stderr, stdout = sys.stderr, sys.stdout
     msg_box = sys.stderr = sys.stdout = _Box()
+
     while not flag_term.isSet():
         try:
-            # waiting for command
+            # 1 waiting for command
             if not poller.poll(timeout=500):
+                # print(msg_box.box, file=stdout)
                 continue
-            cmd = map(lambda x: x.strip(), s.recv().split())
+            cmd = map(lambda x: x.strip(), reply.recv().split())
 
-            # parse commands
+            # 2 parse commands
             ret = ''
             try:
                 args = parser.parse_args(cmd)
@@ -243,42 +249,39 @@ def repl(flag_term, s):
                 # execute command
                 ret = args.func(args)
 
-            # return result of command
+            # 3 return result of command
             if ret is None:
-                s.close()
+                # exit will return None
                 break
-            s.send(str(ret) + '\n')
+            reply.send(str(ret) + '\n')
         except zmq.ZMQError:
             print(TASK + 'zmq socket error', file=stdout)
+        except KeyboardInterrupt:
+            FLAG.set()
         except:
             traceback.print_exc(file=stdout)
     sys.stderr, sys.stdout = stderr, stdout
     time.sleep(0.5)
+    reply.close()
     reader.close()
-    s.close()
     print(TASK + 'Controller thread terminated.')
 
 
 if __name__ == '__main__':
-    reply = zmq.Context().socket(zmq.REP)
-    reply.bind('tcp://127.0.0.1:%d' % LISTEN_PORT)
-
-    reader = Reader(sample_rate, sample_time=1,
-                    n_channel=8, send_to_pylsl=True)
+    # task can safely exit if killed by `kill command` or `user log out`
+    signal.signal(signal.SIGTERM, lambda *a: FLAG.set())
+    signal.signal(signal.SIGHUP, lambda *a: FLAG.set())
 
     print(TASK + 'Start streaming.')
     print(HELP + EPILOG)
     print(TASK + 'Starting {}'.format(reader))
 
-    #
-    # let reader occupy main thread
-    #
-    threading.Thread(
-        target=repl, args=(FLAG, reply)).start()
-    reader.start(method='block')
+    # let REPL occupy main thread
+    reader.start(method='thread')
+    repl(FLAG)
 
-    #
-    # or let REPL occupy main thread
-    #
-    #  reader.start(method='thread')
-    #  repl(FLAG, reply)
+    # Let reader occupy main thread is not a good idea because `reader`
+    # can't handle SIGTERM and SIGINT properly as `repl` does. So this
+    # method is not suggested.
+    #  threading.Thread(target=repl, args=(FLAG)).start()
+    #  reader.start(method='block')
