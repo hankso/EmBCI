@@ -1,24 +1,38 @@
-# EmBCI Linux Service
-## EmBCI Tasks
+EmBCI Linux Service
+-------------------
+
+EmBCI Tasks
+===========
+
 The scripts in this directory whos names begin with a special
 alphabet will be executed when starting/reloading/stopping
 service embci.
 
-| Alphabet | Meanings |
-| -  | -  |
-| E | Essential tasks |
-| O | Optionally tasks |
-| A | Applications |
-| D | Disabled scripts |
-| K | Executed when stopping embci |
-| R | Reload scripts |
++----------+------------------------------+
+| Alphabet | Meanings                     |
++==========+==============================+
+| E        | Essential tasks              |
++----------+------------------------------+
+| O        | Optionally tasks             |
++----------+------------------------------+
+| A        | Applications                 |
++----------+------------------------------+
+| D        | Disabled scripts             |
++----------+------------------------------+
+| K        | Executed when stopping embci |
++----------+------------------------------+
+| R        | Reload scripts               |
++----------+------------------------------+
 
-### Usage
+Usage
+=====
+
 To enable a script/task in embci service, rename the script so
 that it begins with corresponding alphabet. Filenames starts
 with other alphabets will be ignored.
 
-### Rules
+Rules
+=====
 Each script must apply:
 - Scripts must be executable.
 - Scripts must start with a `shebang` mark, such as `#!/bin/sh` and `#!/bin/env python`.

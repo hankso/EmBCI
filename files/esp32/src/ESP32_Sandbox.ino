@@ -9,7 +9,7 @@
  Modified by Gao Han Lin, October 2018
  Page @ http://github.com/hankso
 
- Copyright (c) 2018 EmBCI. All right reserved.
+ Copyright (c) 2019 EmBCI. All right reserved.
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -51,9 +51,9 @@
 #include "freertos/task.h"
 
 #ifdef LOG_LOCAL_LEVEL
-#undef LOG_LOCAL_LEVEL
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-// #define LOGLOCAL_LEVEL ESP_LOG_NONE
+    #undef LOG_LOCAL_LEVEL
+    #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+    // #define LOGLOCAL_LEVEL ESP_LOG_NONE
 #endif
 
 #define M_BUFFERSIZE     8192
@@ -174,7 +174,7 @@ int drdypulsetime = 10;
 long wavei = 0;
 char* spibufrecv;
 bool blinkstat = false;
-bool wifiEcho = true;
+bool wifiEcho = false;
 
 int dataSrc = 0;
 const char* const dataSrcList[] = {
@@ -220,7 +220,7 @@ void sendToSPI() {
     if ((adsStatusBit & 0xF00000) != 0xC00000) return;
     for (int i = 0; i < 8; i++) {
         if (dataSrc == 1) {
-            cq->push((float)((wavei / 10) % 100));
+            cq->push((float)((wavei / 100) % 2));
             wavei++;
         } else if (dataSrc == 2) {
             cq->push(sin(wavei / 10));
@@ -237,34 +237,16 @@ void sendToSPI() {
 void handleSerialCommand() {
     ESP_LOGV(NAME, "Begin processing serial cmd");
     char inchar = Serial.read();
+    float bufrate;
     if (inchar < 'a' || inchar > 'z') return;
     switch(inchar) {
         case 'c':
             cq->clear();
             ESP_LOGD(NAME, "Queue empty now");
             break;
-        case 's':
-            char tmps[8+1];
-            itoa(adsStatusBit, tmps, 2);
-            ESP_LOGI(NAME, "ADS data header: 0b%s", tmps);
-            ESP_LOGI(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
-            ESP_LOGI(NAME, "Output data:     %s", dataSrcList[dataSrc]);
-            ESP_LOGI(NAME, "Logging level:   %s", logLevelList[logLevel]);
-            ESP_LOGI(NAME, "Serial to wifi:  %s", btos(wifiEcho));
-            break;
         case 'd':
             dataSrc = (dataSrc + 1) % 4;
             ESP_LOGD(NAME, "Current output data: %s", dataSrcList[dataSrc]);
-            break;
-        case 'm':
-            logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );
-            esp_log_level_set(NAME, logLevel);
-            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
-            break;
-        case 'v':
-            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
-            esp_log_level_set(NAME, logLevel);
-            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
             break;
         case 'w':
             wifiEcho = !wifiEcho;
@@ -275,19 +257,40 @@ void handleSerialCommand() {
             itoa(ads.init(), tmpr, 2);
             ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
             break;
+        case 's':
+            char tmps[8+1];
+            itoa(adsStatusBit, tmps, 2);
+            bufrate = (float)(cq->len) / M_BUFFERSIZE;
+            ESP_LOGW(NAME, "ADS data header: 0b%s", tmps);
+            ESP_LOGW(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
+            ESP_LOGW(NAME, "Output data:     %s", dataSrcList[dataSrc]);
+            ESP_LOGW(NAME, "Logging level:   %s", logLevelList[logLevel]);
+            ESP_LOGW(NAME, "Serial to wifi:  %s", btos(wifiEcho));
+            ESP_LOGW(NAME, "buffer used:     %.2f%%", bufrate * 100);
+            break;
         case 'h':
             ESP_LOGW(NAME, "Supported commands:");
             ESP_LOGW(NAME, "\th - print this Help message");
             ESP_LOGW(NAME, "\tc - Clear spi fifo queue");
             ESP_LOGW(NAME, "\td - change esp output Data source");
             ESP_LOGW(NAME, "\ts - print Summary of current status");
-            ESP_LOGW(NAME, "\tm - be less verbose (Mute)");
+            ESP_LOGW(NAME, "\tq - be more Quiet");
             ESP_LOGW(NAME, "\tv - be more Verbose");
             ESP_LOGW(NAME, "\tw - turn on/off serial-to-Wifi redirection");
-            ESP_LOGW(NAME, "\tr - Read ads1299 id register (will reset ads!)");
+            ESP_LOGW(NAME, "\tr - Reset ads1299 and read id register");
+            break;
+        case 'q':
+            logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
+            break;
+        case 'v':
+            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
             break;
         default:
-            ESP_LOGE(NAME, "%c: command not supported", inchar);
+            ESP_LOGE(NAME, "%c: command not supported.", inchar);
     }
     ESP_LOGV(NAME, "End processing serial cmd");
 }
@@ -298,6 +301,7 @@ void handleSerial() {
     }
     if (wifiEcho && client.connected()) {
         ESP_LOGI(NAME, "Redirecting Serial1 to WiFi client.");
+        ESP_LOGE(NAME, "Not implemented yet!");
         return;
         while (Serial1.available()) {
             client.print(Serial1.readStringUntil('\n'));
@@ -313,8 +317,8 @@ void handleSpiCommand() {
     if(spibufrecv[0] == 0x00) {
         return;
     } else {
-        char tmp[384+1];
-        tmp[384] = 0;
+        char tmp[3*128 + 1];
+        tmp[3*128] = '\0';
         for (int i = 0; i < 128; i++) {
             snprintf(tmp + 3*i, 4, "%02X ", spibufrecv[i]);
         }
@@ -326,7 +330,7 @@ void handleSpiCommand() {
             case 0x50:
                 ESP_LOGD(NAME, "REGISTER: SAMPLE RATE: ");
                 if (spibufrecv[2] <= 6) {
-                    int samplerate = fsList[(uint8_t)spibufrecv[2]];
+                    int samplerate = fsList[6 - spibufrecv[2]];
                     ads.setSampRate(samplerate);
                     ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", samplerate);
                 } else {
@@ -383,7 +387,6 @@ void handleSPI() {
             if (cq->len > PACKETSIZE) {
                 // SPI slave satatus reset to poll
                 slaveStatus = poll;
-                // buffer data in queue
                 digitalWrite(DRDY_PIN, LOW);
                 drdypulsetime = 10;
                 for (int i = 0; i < PACKETSIZE; i++) {
@@ -404,24 +407,16 @@ void handleSPI() {
             }
             break;
         case poll:
-            // Data has not been read by spi_master yet
+            // Data has not been read by SPI master yet
             if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
                 clkslavetimeout.reset();
                 digitalWrite(DRDY_PIN, LOW);
                 drdypulsetime = 10;
                 ESP_LOGV(NAME, "SPI TIMED OUT, RESENDING");
             }
+            // SPI master has read data, set slave status back to idle
             if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
-                // Spi_master read data, set spi_slave status back to idle
                 slaveStatus = idle;
-
-                // FIXME 1:
-                // We HAVE TO add this because of spi transcation error between
-                // ESP32 and OrangePi. This maybe solved in future hardware design.
-                for (int i = 0; i < 128; i++) {
-                    spibufrecv[i] /= 2;
-                }
-
                 handleSpiCommand();
             }
             break;

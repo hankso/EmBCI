@@ -39,4 +39,10 @@ numpy
 # [bio-signal]
 mne
 
+# [optional]
+reportlab
+argparse
+matplotlib
+ipython==5.7.0
+
 

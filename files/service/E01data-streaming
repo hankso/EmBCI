@@ -17,8 +17,9 @@ import platform
 import traceback
 import threading
 
-# requirements.txt: necessary: pyzmq
+# requirements.txt: necessary: pyzmq, six
 import zmq
+from six import StringIO
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __file__ = os.path.basename(__file__)
@@ -89,7 +90,7 @@ reader = Reader(sample_rate, sample_time=1, n_channel=8, send_to_pylsl=True)
 def summary(args):
     ret = 'Status:\n'
     ret += 'sample_rate:\t{}/{} Hz\n'.format(
-        reader.real_time_sample_rate, sample_rate)
+        reader.realtime_samplerate, sample_rate)
     ret += 'bias_output:\t{}\n'.format(
         'enabled' if bias_output else 'disabled')
     ret += 'input_source:\t{}\n'.format(input_source)
@@ -104,7 +105,7 @@ def _subcommand(args):
         func = globals()['_set_' + args.subcmd]
         try:
             func(args.param)
-        except:
+        except Exception:
             return ''.join(traceback.format_exception(*sys.exc_info()))
         globals()[args.subcmd] = args.param
         return 'Set `{subcmd}` to `{param}`'.format(**vars(args))
@@ -201,20 +202,6 @@ def init_parser():
     return parser
 
 
-class _Box:
-    box = []
-
-    def write(self, msg):
-        self.box.append(str(msg))
-
-    def flush(self):
-        pass
-
-    def pop(self):
-        box, self.box = self.box, []
-        return ''.join(box)
-
-
 def repl(flag_term):
     reply = zmq.Context().socket(zmq.REP)
     reply.bind('tcp://127.0.0.1:%d' % LISTEN_PORT)
@@ -227,15 +214,14 @@ def repl(flag_term):
     parser = init_parser()
     time.sleep(0.5)
     stderr, stdout = sys.stderr, sys.stdout
-    msg_box = sys.stderr = sys.stdout = _Box()
+    msg = sys.stderr = sys.stdout = StringIO()
 
     while not flag_term.isSet():
         try:
             # 1 waiting for command
             if not poller.poll(timeout=500):
-                # print(msg_box.box, file=stdout)
                 continue
-            cmd = map(lambda x: x.strip(), reply.recv().split())
+            cmd = [_.strip() for _ in reply.recv().split()]
 
             # 2 parse commands
             ret = ''
@@ -244,7 +230,8 @@ def repl(flag_term):
             except SystemExit:
                 # handle parse error
                 if cmd:
-                    ret = msg_box.pop()
+                    ret = msg.getvalue()
+                    msg.truncate(0)
             else:
                 # execute command
                 ret = args.func(args)
@@ -258,7 +245,7 @@ def repl(flag_term):
             print(TASK + 'zmq socket error', file=stdout)
         except KeyboardInterrupt:
             FLAG.set()
-        except:
+        except Exception:
             traceback.print_exc(file=stdout)
     sys.stderr, sys.stdout = stderr, stdout
     time.sleep(0.5)
