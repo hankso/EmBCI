@@ -1,6 +1,7 @@
 # user data no need to save
 # data/*
 # model/*
+*.old
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

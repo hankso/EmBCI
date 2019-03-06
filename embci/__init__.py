@@ -1,59 +1,45 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
-#  EmBCI(Embedded Brain Computer Interface)
-#
-#  mail: 3080863354@qq.com
-#  page: https://github.com/hankso
-#  project page: https://gitlab.com/hankso/EmBCI
-#
+# File: EmBCI/embci/__init__.py
+# Author: Hankso
+# Webpage: https://github.com/hankso
 
-from __future__ import absolute_import, division, print_function
+'''
+EmBCI(Embedded Brain Computer Interface)
+TODO: short description for embci
+'''
+
+from __future__ import absolute_import, unicode_literals
 import os
-import sys
-from functools import reduce
+
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__file__ = os.path.basename(__file__)
-
-BASEDIR = os.path.abspath(os.path.join(__dir__, '../'))
-DATADIR = os.path.join(BASEDIR, 'data')
-
-if sys.version_info.major == 2:
-    input = raw_input
-
-    unicode = unicode
-
-elif sys.version_info.major == 3:
-    input = input
-
-    def unicode(*a, **k):
-        return a, k
-
-
-from . import preprocess
-from . import io
-from . import visualization
-from . import common
-from . import gyms
-from . import frame
-from . import webui
-
-# TODO: turn off logs when importing keras like `Using TensorFlow backend.`
-#  from . import classifier
-
 __title__ = 'EmBCI'
 __summary__ = 'EmBCI software Python packages'
 __url__ = 'https://github.com/hankso/EmBCI'
 __author__ = 'Hankso and individual contributors'
-__email__ = 'hank1106@buaa.edu.cn'
-
+__email__ = 'hankso1106@gmail.com'
 __version__ = '0.1.2'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2019 Hankso and individual contributors'
+__keywords__ = (
+    'Brain-Computer-Interface '
+    'Human-Machine-Interfaces '
+    'Bio-Informatics '
+    'Biosignal-Analysis '
+    'Medical-Apps-Prototyping '
+    'Embedded-Platform '
+)
 
-__license__ = ''
-__copyright__ = 'Copyright 2018 Hankso and individual contributors'
+from . import io
+from . import viz
+from . import gyms
+from . import utils
+from . import processing
+
+del os
 
 __all__ = (
-    'preprocess', 'io', 'visualization', 'common', 'gyms', 'utils', 'frame',
-    'webui', 'classifier', 'input', 'unicode', 'reduce',
-    '__title__', '__summary__', '__url__', '__author__', '__email__',
-    '__version__', '__license__', '__copyright__',
+    'io', 'viz', 'gyms', 'utils', 'frame', 'classifier', 'processing'
 )

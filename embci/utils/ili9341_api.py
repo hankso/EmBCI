@@ -1,14 +1,17 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
+# File: EmBCI/embci/utils/ili9341_api.py
+# Author: Tony DiCola
+# Webpage: http://www.tonydicola.com/
+# Author: Hankso
+# Webpage: https://github.com/hankso
+# Time: Wed 23 May 2018 02:16:40 CST
+
 '''
-Created on Wed May 23 02:16:40 2018
 Modified ILI9341 python api based on Tony DiCola's Adafruit ILI9341 library
-
-I have to confirm that some code is indeed redundant after modification,
-but it's fast enough: calling functions and passing params consume time!
-
-@author Tony DiCola  @author: hank
 '''
+
 # built-ins
 import os
 import time
@@ -17,28 +20,15 @@ import threading
 # requirements.txt: necessary: pillow
 # requirements.txt: data-processing: numpy
 # requirements.txt: drivers: spidev, gpio4
-import spidev
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+import spidev
 from gpio4 import SysfsGPIO
-try:
-    from PIL import Image, ImageDraw, ImageFont
-    _NO_PIL_ = False
-except:
-    _NO_PIL_ = True
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__file__ = os.path.basename(__file__)
+__all__ = ['rgb888to565', 'rgb888to565_pro', 'rgb565to888', 'rgb565to888_pro',
+           'rgb24to565', 'rgb565to24', 'ILI9341_API']
 
-
-# ILI9341 Pin mapping
-# This pin mapping is only used on Orange Pi Zero Plus[2]
-# Adjust it to proper pin number on your platform before runnning
-PIN_DC              = 2
-PIN_RST             = 3
-
-# constants
-WIDTH               = 320
-HEIGHT              = 240
 
 # ILI9341 registers
 ILI9341_NOP         = 0x00
@@ -153,38 +143,66 @@ def rgb565to24(ch, cl):
 class ILI9341_API(spidev.SpiDev):
     _lock = threading.Lock()
 
-    def __init__(self, dev, dc=PIN_DC, rst=PIN_RST, width=None, height=None):
+    def __init__(self, dc, rst=None, width=320, height=240, *a, **k):
         '''
-        Create an instance of the display using SPI communication.  Must
-        provide the GPIO pin number for the D/C pin and the SPI driver.  Can
-        optionally provide the GPIO pin number for the reset pin as the rst
-        parameter.
+        Create an interface of ILI9341 SPI Screen by establishing SPI
+        connection through `/dev/spidev*.*`. GPIO number of D/C pin must be
+        provided(more details about Data/Command pin in ILI9341 datasheet),
+        as well as the spidev number(bus and cs pin). Reset pin is optional.
 
+        Parameters
+        ----------
+        dev : tuple
+            (bus, cs) indicating device `/dev/spidev${bus}.${cs}`
+        dc : int
+            Data/Command select pin number
+        rst : int
+            Reset pin number
+        width, height : int
+            screen width and height in pixel, default 320 x 240
+
+        Notes
+        -----
         Basic principle of this API:
             1. maintain a framebuffer (self.fb)
             2. draw on framebuffer (self.draw_*)
-            3. render to screen (self.flush)
+            3. render framebuffer to screen (self.flush)
         '''
         self._dc = SysfsGPIO(dc)
-        self._dc.export = True
-        self._dc.direction = 'out'
-        self._rst = SysfsGPIO(rst)
-        self._rst.export = True
-        self._rst.direction = 'out'
+        if rst is None:
+            self._rst = None
+        else:
+            self._rst = SysfsGPIO(rst)
+        self._opened = False
 
-        self.open(dev[0], dev[1])
-        self.mode = 0
-        self.max_speed_hz = 25000000
-
-        self.width = width or WIDTH
-        self.height = height or HEIGHT
+        self.width = width
+        self.height = height
         self.fb = np.zeros((self.height, self.width, 2), np.uint8)
         self.font = None
-        self.size = 15
+        self.size = 16
+
+    def open(self, dev, max_speed_hz=25000000):
+        assert not self._opened, 'already used spidev{}.{}'.format(*self._dev)
+        super(ILI9341_API, self).open(dev[0], dev[1])
+        self.max_speed_hz = max_speed_hz
+        self.mode = 0
+        self._dev = dev
+
+        self._dc.export = True
+        self._dc.direction = 'out'
+        if self._rst is not None:
+            self._rst.export = True
+            self._rst.direction = 'out'
+        self._opened = True
 
     def setfont(self, filename, size=None):
         size = size or self.size
-        self.font = ImageFont.truetype(filename, size * 2)
+        if self.font is None or self.font.path != filename:
+            try:
+                font = ImageFont.truetype(filename, size * 2)
+                self.font = font
+            except IOError:
+                pass
         self.size = size
 
     def setsize(self, size):
@@ -196,29 +214,24 @@ class ILI9341_API(spidev.SpiDev):
             self.size = size
 
     def _command(self, data):
-        '''
-        Write an array of bytes to screen as command data.
-        '''
+        '''Write an array of bytes to screen as command data'''
         self._dc.value = 0
         self.writebytes([data])
 
     def _data(self, data, chunk=4096):
-        '''
-        Write an array of bytes to screen as display data.
-        '''
-        data = map(int, data)
+        '''Write an array of bytes to screen as display data'''
         if len(data):
             self._dc.value = 1
             for s in range(0, len(data), chunk):
-                self.xfer2(data[s:min(s + chunk, len(data))])
+                self.xfer2(data[s:(s + chunk)])
 
     def _set_window(self, x1, y1, x2, y2):
         '''
-        Set the pixel address window for proceeding drawing commands. x1 and
-        x2 should define the minimum and maximum x pixel bounds.  y1 and y2
-        should define the minimum and maximum y pixel bound.  If no parameters
-        are specified the default will be to update the entire display from 0,0
-        to 239, 319.
+        Set the pixel address window for proceeding drawing commands.
+        x1 and x2 should define the minimum and maximum x pixel bounds.
+        y1 and y2 should define the minimum and maximum y pixel bounds.
+        If no parameters are specified the default will be to update the
+        entire display from (0, 0) to (239, 319)
         '''
         self._command(0x2A); self._data([x1 >> 8, x1, x2 >> 8, x2])
         self._command(0x2B); self._data([y1 >> 8, y1, y2 >> 8, y2])
@@ -228,28 +241,27 @@ class ILI9341_API(spidev.SpiDev):
         '''write data in framebuffer to screen'''
         with self._lock:
             self._set_window(x1, y1, x2, y2)
-            # self._data(self.fb[y1:y2+1, x1:x2+1].reshape(-1).tolist())
-            # used time: 621ns
             self._data(self.fb[y1:y2+1, x1:x2+1].flatten().tolist())
-            # used time: 407ns
 
     def reset(self):
+        if self._rst is None:
+            return False
         self._rst.value = 1
         time.sleep(0.02)
         self._rst.value = 0
         time.sleep(0.02)
         self._rst.value = 1
         time.sleep(0.15)
+        return True
 
     def start(self, *a, **k):
         '''
-        Initialize the display.  Should be called once before other calls that
-        interact with the display are called.
+        Initialize the display. This should be called at least once before
+        using other draw_* methods.
         '''
-        self.reset()
-        time.sleep(0.5)
-        # Initialize the display.  Broken out as a separate function so it can
-        # be overridden by other displays in the future.
+        assert self._opened, 'you need to open a spi device first'
+        if self.reset():
+            time.sleep(0.5)
         self._command(0xEF); self._data([0x03, 0x80, 0x02])
         self._command(0xCF); self._data([0x00, 0xC1, 0x30])
         self._command(0xED); self._data([0x64, 0x03, 0x12, 0x81])
@@ -281,10 +293,17 @@ class ILI9341_API(spidev.SpiDev):
         self.clear()
 
     def close(self, *a, **k):
-        self.reset()
-        self._dc.export = False
-        self._rst.export = False
+        if not self._opened:
+            return
+        self.clear()
         super(ILI9341_API, self).close()
+
+        self._dc.value = 0
+        self._dc.export = False
+        if self._rst is not None:
+            self._rst.value = 0
+            self._rst.export = False
+        self._opened = False
 
     def draw_point(self, x, y, c, *a, **k):
         self.fb[y, x] = c
@@ -294,60 +313,68 @@ class ILI9341_API(spidev.SpiDev):
         # draw vertical or horizontal line
         if (x1 == x2) or (y1 == y2):
             self.draw_rectf(x1, y1, x2, y2, c)
+            return
         # draw a line cross point(x1, y1) and point(x2, y2)
+        # 1. get line function `y = k * x + b`
+        k, b = np.polyfit([x1, x2], [y1, y2], 1)
+        if abs(y2 - y1) > abs(x2 - x1):
+            # 2. use y as index to get smoother line
+            _y = np.arange(min(y1, y2), max(y1, y2)).astype(np.uint16)
+            _x = np.round((_y - b) / k).astype(np.uint16)
         else:
-            # get line `y = k * x + b`
-            k, b = np.polyfit([x1, x2], [y1, y2], 1)
-            if abs(y2 - y1) > abs(x2 - x1):
-                # use y as index to get smoother line
-                _y = np.arange(min(y1, y2), max(y1, y2)).astype(np.uint16)
-                _x = np.round((_y - b)/k).astype(np.uint16)
-            else:
-                # use x as index to get smoother line
-                _x = np.arange(min(x1, x2), max(x1, x2)).astype(np.uint16)
-                _y = np.round(k*_x + b).astype(np.uint16)
-            self.fb[_y, _x] = c
-            self.flush(_x.min(), _y.min(), _x.max(), _y.max())
+            # 2. use x as index to get smoother line
+            _x = np.arange(min(x1, x2), max(x1, x2)).astype(np.uint16)
+            _y = np.round(k * _x + b).astype(np.uint16)
+        # 3. plot _x, _y on framebuffer
+        self.fb[_y, _x] = c
+        self.flush(_x.min(), _y.min(), _x.max(), _y.max())
 
     def draw_rect(self, x1, y1, x2, y2, c, *a, **k):
-        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        self.fb[y1, x1:x2] = self.fb[y2, x1+1:x2+1] = c
-        self.fb[y1+1:y2+1, x1] = self.fb[y1:y2, x2] = c
-        if max((x2 - x1), (y2 - y1)) > 45:  # 45*45*2 = 4050 bytes < 4096 chunk
+        self.fb[y1, x1:x2] = self.fb[y2, (x1 + 1):(x2 + 1)] = c
+        self.fb[y1:y2, x2] = self.fb[(y1 + 1):(y2 + 1), x1] = c
+        if max((x2 - x1), (y2 - y1)) < 45:  # 45*45*2 = 4050 bytes < 4096 chunk
+            self.flush(x1, y1, x2, y2)      # draw whole rectangle
+        else:
             self.flush(x1, y1, x2 - 1, y1)  # draw top line
             self.flush(x1 + 1, y2, x2, y2)  # draw bottom line
             self.flush(x1, y1 + 1, x1, y2)  # draw left line
             self.flush(x2, y1, x2, y2 - 1)  # draw right line
-        else:
-            self.flush(x1, y1, x2, y2)
 
     def draw_rectf(self, x1, y1, x2, y2, c, *a, **k):
-        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        self.fb[y1:y2+1, x1:x2+1] = c
+        self.fb[y1:(y2 + 1), x1:(x2 + 1)] = c
         self.flush(x1, y1, x2, y2)
 
-    def draw_circle(self, x, y, r, c, s=0, e=360, step=0.5, *a, **k):
+    def draw_circle(self, x, y, r, c, s=0, e=360, step=0.5, f=False, *a, **k):
         '''
         x, y: center of circle
         r: radius
         c: color
         s, e: start and end degree between [0, 360], default s=0, e=360
         step: this value smaller, the smooth level of arc higher
+        f: whether fill circle with color, only support s=0, 90, 180, 270
+            and e=90, 180, 270, 360
         '''
         d = np.arange(s, e, step) * np.pi / 180        # degree to rad
-        _x, _y = x + r * np.cos(d), y + r * np.sin(d)  # rad to pos(float)
-        _x, _y = np.round([_x, _y]).astype(np.uint32)  # pos to index(int)
+        _x, _y = x + r * np.cos(d), y - r * np.sin(d)  # rad to pos (float)
+        _x, _y = np.round([_x, _y]).astype(np.uint32)  # pos to index (int)
         d = np.unique(_x << 16 | _y)                   # remove repeat index
         _x, _y = d >> 16, d & 0xffff                   # recover index data
-        self.fb[_y, _x] = c
+        if f is True:
+            if s in [90, 180]:                         # fill from _x to x
+                for _x, _y in np.stack([_x, _y], -1):
+                    self.fb[_y, _x:x] = c
+            elif s in [0, 270]:                        # fill from x to _x
+                for _x, _y in np.stack([_x, _y], -1):
+                    self.fb[_y, x:_x] = c
+            else:
+                raise ValueError('only support s=0, 90, 180, 270')
+        else:
+            self.fb[_y, _x] = c
         self.flush(_x.min(), _y.min(), _x.max(), _y.max())
 
     def draw_circlef(self, x, y, r, c, *a, **k):
         '''
-        do not use self.draw_circle(f=True) to draw circlef, it's too slow
-        20180608:
-            self.draw_circle(f=True) has been deprecated
-            use self.draw_circlef() instead
+        draw a filled whole circle, faster than draw_circle(s=0, e=360, f=True)
         '''
         _y = np.arange(y - r, y + r + 1).astype(np.uint16)
         _x = np.round(np.sqrt(r**2 - (_y - y)**2)).astype(np.uint16)
@@ -364,52 +391,29 @@ class ILI9341_API(spidev.SpiDev):
         +--------------------------------+
         |(0, 0)                          |
         |                                |
-        |       m2           m3          |
+        |        m=1       m=0           |
         |         +---------+            |
         |         |I am rect|            |
         |         +---------+            |
-        |       m1           m0          |
+        |        m=2       m=3           |
         |                                |
         |                      (319, 239)|
         +--------------------------------+
         '''
-        self.draw_circle(x, y, r, c, s=m*90, e=(m + 1)*90)
+        assert m in [0, 1, 2, 3], 'Invalid corner number!'
+        self.draw_circle(x, y, r, c, m * 90, (m + 1) * 90)
 
-    def draw_roundf(self, x, y, r, c, m, *a, **k):
+    def draw_roundf(self, x, y, r, c, m, step=0.5, *a, **k):
         '''
-        x, y: center of round corner
-        r: radius
-        c: color, 2-bytes list of rgb565, such as `blue`: [0x00, 0x1F]
-        m: corner num, see below graph, m = 0, 1, 2, 3
-        +--------------------------------+
-        |(0, 0)                          |
-        |                                |
-        |       m2           m3          |
-        |         +---------+            |
-        |         |I am rect|            |
-        |         +---------+            |
-        |       m1           m0          |
-        |                                |
-        |                      (319, 239)|
-        +--------------------------------+
+        See Also
+        --------
+        draw_round
+        draw_circle
         '''
-        d = np.arange(m*90, (m + 1)*90, 1) * np.pi / 180
-        d = r * np.stack([np.cos(d), np.sin(d)], -1)
-        d = np.round([x, y] + d).astype(np.uint32)
-        d = np.unique(d[:, 0] << 16 | d[:, 1])
-        # d = zip(d >> 16, d & 0xffff)           # used time: 8.36us
-        d = np.stack([d >> 16, d & 0xffff], -1)  # used time: 4.12us
-        if m in [0, 3]:                          # fill from x to m_x
-            for m_x, m_y in d:
-                self.fb[m_y, x:m_x] = c
-        elif m in [1, 2]:                        # fill from m_x to x
-            for m_x, m_y in d:
-                self.fb[m_y, m_x:x] = c
-        self.flush(d[:, 0].min(), d[:, 1].min(), d[:, 0].max(), d[:, 1].max())
+        assert m in [0, 1, 2, 3], 'Invalid corner number!'
+        self.draw_circle(x, y, r, c, m * 90, (m + 1) * 90, f=True)
 
     def draw_round_rect(self, x1, y1, x2, y2, r, c, *a, **k):
-        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
         self.draw_round(x2 - r, y2 - r, r, c, 0)  # right - bottom
         self.draw_round(x1 + r, y2 - r, r, c, 1)  # left  - bottom
         self.draw_round(x1 + r, y1 + r, r, c, 2)  # left  - top
@@ -420,8 +424,6 @@ class ILI9341_API(spidev.SpiDev):
         self.draw_rectf(x2, y1 + r, x2, y2 - r, c)
 
     def draw_round_rectf(self, x1, y1, x2, y2, r, c, *a, **k):
-        # x1, y1, x2, y2 = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
-        # r = max(min((x2 - x1 + 1)/2, (y2 - y1 + 1)/2, r), 1)
         self.draw_roundf(x2 - r, y2 - r, r, c, 0)
         self.draw_roundf(x1 + r, y2 - r, r, c, 1)
         self.draw_roundf(x1 + r, y1 + r, r, c, 2)
@@ -436,14 +438,16 @@ class ILI9341_API(spidev.SpiDev):
         x1, y1 = x, y
         x2 = max(min(x1 + img.shape[1], self.width), x1)
         y2 = max(min(y1 + img.shape[0], self.height), y1)
-        img = img[:y2-y1, :x2-x1].astype(np.int16)
         # img shape correction and extracting alpha channel
-        alpha = np.ones(img.shape[:2])[:, :, None].astype(np.float)
+        img = img[:(y2 - y1), :(x2 - x1)].astype(np.int16)
         if img.shape[2] == 4:
             img, alpha = np.split(img, [-1], axis=-1)
             alpha = alpha.astype(np.float) / 255
-        elif img.shape[2] != 3:
-            img = np.repeat(img[:, :, 0], 3, axis=-1)
+        else:
+            if img.shape[2] != 3:
+                img = np.repeat(img[:, :, 0], 3, axis=-1)
+            alpha = np.ones((y2 - y1, x2 - x1, 1), np.float)
+
         # calculate difference of image and current framebuffer
         current = np.split(self.fb[y1:y2, x1:x2].astype(np.uint16), 2, -1)
         current = np.int16(np.concatenate(rgb565to888_pro(*current), -1))
@@ -456,65 +460,32 @@ class ILI9341_API(spidev.SpiDev):
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
-        if _NO_PIL_:
-            return
-        if self.font is None:
-            print('[ILI9341 API] font not set yet!')
-            return
-        try:
-            if size is not None and self.size != size:
-                self.setsize(size)
-            if font is not None and \
-               os.path.exists(font) and \
-               self.font.path != font:
-                font = ImageFont.truetype(font, self.size * 2)
-            else:
-                font = self.font
-        except:
-            print(('[ILI9341_API] error occur when setting font `{}` and size '
-                   '`{}`').format(font, self.size))
-            return
+        assert self.font, '[ILI9341 API] font not set yet!'
+        if size is not None and self.size != size:
+            self.setsize(size)
+        if font is not None and os.path.exists(font):
+            self.setfont(font)
         w, h = self.font.getsize(s)
         img = Image.new(mode='RGBA', size=(w, h))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), font)
-        img = img.resize((w/2, h/2), resample=Image.ANTIALIAS)
+        img = img.resize((w / 2, h / 2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
     def set_rotation(self, m):
-        self._command(0x36)
-        if (m % 4) == 0:
-            self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 1:
-            self._data([ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 2:
-            self._data([ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR])
-        elif (m % 4) == 3:
-            self._data([ILI9341_MADCTL_MX |
-                        ILI9341_MADCTL_MY |
-                        ILI9341_MADCTL_MV |
-                        ILI9341_MADCTL_BGR])
+        with self._lock:
+            self._command(0x36)
+            if (m % 4) == 0:
+                self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 1:
+                self._data([ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 2:
+                self._data([ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR])
+            elif (m % 4) == 3:
+                self._data([ILI9341_MADCTL_MX | ILI9341_MADCTL_MY |
+                            ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR])
 
     def clear(self, c=ILI9341_BLACK, *a, **k):
         self.draw_rectf(0, 0, self.width - 1, self.height - 1, c)
 
 
-if __name__ == '__main__':
-    from embci import BASEDIR
-    ili = ILI9341_API((0, 1))
-    ili.start()
-    ili.setfont(os.path.join(BASEDIR, 'files', 'fonts', 'yahei_mono.ttf'))
-    for i in range(240):
-        ili.draw_point(i, i, [int(i/240.0*0xff)]*2)
-    ili.draw_line(239, 0, 0, 239, ILI9341_WHITE)
-    ili.draw_rect(10, 20, 20, 30, ILI9341_GREEN)
-    ili.draw_rectf(10, 35, 20, 45, ILI9341_BLUE)
-    ili.draw_circle(30, 50, 10, ILI9341_CYAN)
-    ili.draw_circlef(30, 75, 14, ILI9341_YELLOW)
-    ili.draw_round(100, 100, 15, ILI9341_RED, 0)
-    ili.draw_round(100, 100, 15, ILI9341_MAGENTA, 1)
-    ili.draw_round(100, 100, 15, ILI9341_GREEN, 2)
-    ili.draw_round(100, 100, 15, ILI9341_WHITE, 3)
-    tiffany_blue = [0x0A, 0xBA, 0xB5]
-    ili.draw_round_rectf(150, 120, 300, 220, 7, rgb888to565(*tiffany_blue))
-    ili.draw_text(200, 200, 'cheitech',
-                  c=rgb24to565(np.random.randint(0xffffff)))
+# THE END

@@ -9,7 +9,7 @@
  Modified by Gao Han Lin, October 2018
  Page @ http://github.com/hankso
 
- Copyright (c) 2018 EmBCI. All right reserved.
+ Copyright (c) 2019 EmBCI. All right reserved.
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -30,50 +30,62 @@
  SOFTWARE.
 */
 
-/*
- You need to configure `Arduino-Log` lib before compiling in directory
- `${arduino-esp32}/libraries/Arduino-Log`. Lib page @
- https://github.com/thijse/Arduino-Log
-*/
-
+// local headers
 #include "ADS1299_ESP32.h"
 
-#include <ArduinoLog.h>
+// Arduino core @ ${ARDUINO_ESP32}/cores/esp32
+#include "Arduino.h"
+#include "HardwareSerial.h"
+
+// Arduino third-party lib @ ${ARDUINO_ESP32}/libraries
 #include <SPI.h>
 #include <WiFi.h>
-#include <Arduino.h>
-#include <HardwareSerial.h>
 
-// #include "esp_heap_alloc_caps.h"
+// ESP-IDF SDK @ ${ESP_IDF}/components && ${ARDUINO_ESP32}/tools/sdk/include
+#include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "esp_heap_caps.h"
 #include "driver/spi_slave.h"
-#include "driver/adc.h"
 #include "driver/gpio.h"
-#include "driver/rtc_io.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-// Uncomment line below to disable logging.
-// #define DISABLE_LOGGING
+#ifdef LOG_LOCAL_LEVEL
+    #undef LOG_LOCAL_LEVEL
+    #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
+    // #define LOGLOCAL_LEVEL ESP_LOG_NONE
+#endif
 
-#define M_BUFFERSIZ 8192
-#define M_BUFFERSIZSPI 256
-#define PACKETSIZ 256
+#define M_BUFFERSIZE     8192
+#define M_BUFFERSIZESPI  256
+#define PACKETSIZE       256
 #define SLAVESENDTIMEOUT 1000
 
-#define VSPI_SS 5
-#define HSPI_SS 15
-#define DRDY_PIN 4
-#define BLINK_PIN 2
-#define ADS_DRDY_PIN 27
+#define VSPI_SS          5
+#define HSPI_SS          15
+#define DRDY_PIN         4
+#define BLINK_PIN        2
+#define ADS_DRDY_PIN     27
 
-#define GPIO_MOSI 23
-#define GPIO_MISO 19
-#define GPIO_SCLK 18
-#define GPIO_CS 5
+#define GPIO_MOSI        23
+#define GPIO_MISO        19
+#define GPIO_SCLK        18
+#define GPIO_CS          5
 
-#define GPIO_BIT_MASK_XR (1ULL<<GPIO_NUM_32)
-#define GPIO_BIT_MASK_YD (1ULL<<GPIO_NUM_33)
+#define datatype float
 
-#define datatyp float
+#define btos(bool) (bool ? "True" : "False")
+
+// 170 --> 0b"10101010"
+char* itobs(int n, char *buff, int bits=8) {
+    buff += bits;
+    *buff-- = '\0';
+    while (bits--) {
+        *buff-- = (n & 1) + '0';
+        n >>= 1;
+    }
+    return buff;
+}
 
 template<typename T>
 class CyclicQueue {
@@ -146,19 +158,7 @@ class MillisClock {
         }
 };
 
-enum SpiSlaveStatus{
-    idle,
-    poll
-};
-
-datatyp cqbuf[M_BUFFERSIZ];
-datatyp* spibuf;
-CyclicQueue<datatyp> *cq;
-
-MillisClock clkgen;
-MillisClock clkslavetimeout;
-MillisClock clkblink;
-MillisClock clkts;
+enum SpiSlaveStatus{idle, poll} slaveStatus = idle;
 
 uint32_t timeacc;
 uint32_t adsStatusBit;
@@ -167,22 +167,14 @@ uint32_t sampfpsvi = 0;
 uint32_t sampfpsi = 0;
 uint32_t sampfpsv = 0;
 
-ADS1299 ads(HSPI, HSPI_SS);
-
 static const int spiClk = 1000000; // 1 MHz
-
-SPIClass * vspi = NULL;
-
-WiFiClient client;
+static const char *NAME = "EmBCI";
 
 int drdypulsetime = 10;
-int transits = 0;
-int transitsps = 0;
 long wavei = 0;
-float lastreading;
 char* spibufrecv;
 bool blinkstat = false;
-bool wifiEcho = true;
+bool wifiEcho = false;
 
 int dataSrc = 0;
 const char* const dataSrcList[] = {
@@ -192,20 +184,29 @@ const char* const dataSrcList[] = {
     "Constant 1.0"
 };
 
-// default log level is NOTICE, here we only use ERROR - VERBOSE
-int logLevel = 4;
-int minLevel = 2;
-int maxLevel = 7;
+esp_log_level_t logLevel = ESP_LOG_INFO;
+int minLevel = 0, maxLevel = 5;
 const char* const logLevelList[] = {
-    "SILENT", "FATAL", "ERROR", "WARNING", "NOTICE", "TRACE", "VERBOSE"
+    "SILENT", "ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE",
 };
 
 // Supported sample rates (Hz)
-int fsList[7] = {250, 500, 1000, 2000, 4000, 8000, 16000};
+int fsList[] = {250, 500, 1000, 2000, 4000, 8000, 16000};
 
-SpiSlaveStatus slaveStatus = idle;
+ADS1299 ads(HSPI, HSPI_SS);
+SPIClass * vspi = NULL;
+WiFiClient client;
+
+datatype cqbuf[M_BUFFERSIZE];
+datatype* spibuf;
+CyclicQueue<datatype> *cq;
+
+MillisClock clkgen;
+MillisClock clkslavetimeout;
+MillisClock clkblink;
+MillisClock clkts;
+
 spi_slave_transaction_t* t;
-esp_err_t ret;
 
 void my_post_setup_cb (spi_slave_transaction_t *trans) {}
 
@@ -217,12 +218,13 @@ void sendToSPI() {
     float res[8];
     adsStatusBit = ads.readData(res);
     if ((adsStatusBit & 0xF00000) != 0xC00000) return;
-    wavei++;
     for (int i = 0; i < 8; i++) {
         if (dataSrc == 1) {
-            cq->push((float)((wavei / 10) % 100));
+            cq->push((float)((wavei / 100) % 2));
+            wavei++;
         } else if (dataSrc == 2) {
             cq->push(sin(wavei / 10));
+            wavei++;
         } else if(dataSrc == 3) {
             cq->push(1.0);
         } else {
@@ -230,71 +232,77 @@ void sendToSPI() {
         }
     }
     sampfpsvi++;
-    if (fabs(lastreading - res[0]) > 10000.) {
-        transits++;
-    }
-    lastreading = res[0];
 }
 
 void handleSerialCommand() {
+    ESP_LOGV(NAME, "Begin processing serial cmd");
     char inchar = Serial.read();
+    float bufrate;
     if (inchar < 'a' || inchar > 'z') return;
     switch(inchar) {
         case 'c':
             cq->clear();
-            Log.notice("Queue empty now\n");
-            break;
-        case 'r':
-            Log.notice("ADS first register value: %B\n", ads.init());
-            break;
-        case 's':
-            Log.notice("ADS data header: %B\n", adsStatusBit);
-            Log.notice("Valid packets:   %d/%d Hz\n", sampfpsv, sampfps);
-            Log.notice("Output data:     %s\n", dataSrcList[dataSrc]);
-            Log.notice("Logging level:   %s\n", logLevelList[logLevel]);
-            Log.notice("Serial to wifi:  %T\n", wifiEcho);
+            ESP_LOGD(NAME, "Queue empty now");
             break;
         case 'd':
             dataSrc = (dataSrc + 1) % 4;
-            Log.notice("Current output data: %s\n", dataSrcList[dataSrc]);
-            break;
-        case 'o':
-            // TODO 1: add more output info here, what's this `transitsps`?
-            Log.notice("Current transitsps: %d\n", transitsps);
-            break;
-        case 'm':
-            logLevel = max((logLevel - 1), minLevel);
-            Log.setLogLevel(logLevel);
-            Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
-            break;
-        case 'v':
-            logLevel = min((logLevel + 1), maxLevel);
-            Log.setLogLevel(logLevel);
-            Log.fatal("Current log level: %s\n", logLevelList[logLevel]);
+            ESP_LOGD(NAME, "Current output data: %s", dataSrcList[dataSrc]);
             break;
         case 'w':
-            wifiEcho = ~wifiEcho;
-            Log.notice("Current serial-to-wifi redirection: %T\n", wifiEcho);
-        case 'h':
-            Log.notice("Supported commands:\n");
-            Log.notice("\th - print this Help message\n");
-            Log.notice("\tc - Clear spi fifo queue\n");
-            Log.notice("\td - change esp output Data source\n");
-            Log.notice("\tm - be less verbose (Mute)\n");
-            Log.notice("\to - ???\n");
-            Log.notice("\ts - print Summary of current status\n");
-            Log.notice("\tv - be more Verbose\n");
-            Log.notice("\tw - turn on/off serial-to-Wifi redirection\n");
+            wifiEcho = !wifiEcho;
+            ESP_LOGD(NAME, "Serial-to-wifi redirection: %s", btos(wifiEcho));
             break;
+        case 'r':
+            char tmpr[24+1];
+            itoa(ads.init(), tmpr, 2);
+            ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
+            break;
+        case 's':
+            char tmps[8+1];
+            itoa(adsStatusBit, tmps, 2);
+            bufrate = (float)(cq->len) / M_BUFFERSIZE;
+            ESP_LOGW(NAME, "ADS data header: 0b%s", tmps);
+            ESP_LOGW(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
+            ESP_LOGW(NAME, "Output data:     %s", dataSrcList[dataSrc]);
+            ESP_LOGW(NAME, "Logging level:   %s", logLevelList[logLevel]);
+            ESP_LOGW(NAME, "Serial to wifi:  %s", btos(wifiEcho));
+            ESP_LOGW(NAME, "buffer used:     %.2f%%", bufrate * 100);
+            break;
+        case 'h':
+            ESP_LOGW(NAME, "Supported commands:");
+            ESP_LOGW(NAME, "\th - print this Help message");
+            ESP_LOGW(NAME, "\tc - Clear spi fifo queue");
+            ESP_LOGW(NAME, "\td - change esp output Data source");
+            ESP_LOGW(NAME, "\ts - print Summary of current status");
+            ESP_LOGW(NAME, "\tq - be more Quiet");
+            ESP_LOGW(NAME, "\tv - be more Verbose");
+            ESP_LOGW(NAME, "\tw - turn on/off serial-to-Wifi redirection");
+            ESP_LOGW(NAME, "\tr - Reset ads1299 and read id register");
+            break;
+        case 'q':
+            logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
+            break;
+        case 'v':
+            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
+            break;
+        default:
+            ESP_LOGE(NAME, "%c: command not supported.", inchar);
     }
+    ESP_LOGV(NAME, "End processing serial cmd");
 }
 
 void handleSerial() {
-    Log.verbose("Begin processing serial cmd\n");
     if (Serial.available()) {
         handleSerialCommand();
     }
     if (wifiEcho && client.connected()) {
+        ESP_LOGI(NAME, "Redirecting Serial1 to WiFi client.");
+        ESP_LOGE(NAME, "Not implemented yet!");
+        return;
         while (Serial1.available()) {
             client.print(Serial1.readStringUntil('\n'));
         }
@@ -302,124 +310,121 @@ void handleSerial() {
             Serial1.print(client.readStringUntil('\n'));
         }
     }
-    Log.verbose("End processing serial cmd\n");
 }
 
 void handleSpiCommand() {
+    ESP_LOGV(NAME, "Begin processing SPI");
+    if(spibufrecv[0] == 0x00) {
+        return;
+    } else {
+        char tmp[3*128 + 1];
+        tmp[3*128] = '\0';
+        for (int i = 0; i < 128; i++) {
+            snprintf(tmp + 3*i, 4, "%02X ", spibufrecv[i]);
+        }
+        ESP_LOGD(NAME, "SPI RECEIVED: %s", tmp);
+    }
     if (spibufrecv[0] == 0x40) {
-        Log.trace("INSTRUCTION: WREG\n");
+        ESP_LOGD(NAME, "INSTRUCTION: WREG");
         switch(spibufrecv[1]) {
             case 0x50:
-                Log.trace("REGISTER: SAMPLE RATE: ");
+                ESP_LOGD(NAME, "REGISTER: SAMPLE RATE: ");
                 if (spibufrecv[2] <= 6) {
-                    int samplerate = fsList[(uint8_t)spibufrecv[2]];
+                    int samplerate = fsList[6 - spibufrecv[2]];
                     ads.setSampRate(samplerate);
-                    Log.trace("SAMPLE RATE SET TO %d\n", samplerate);
+                    ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", samplerate);
                 } else {
-                    Log.trace("NOT IMPLEMENTED SAMPLERATE %d\n", spibufrecv[2]);
+                    ESP_LOGD(NAME, "NOT IMPLEMENTED SAMPLERATE %d", spibufrecv[2]);
                 }
                 break;
             case 0x52:
-                Log.trace("REGISTER: INPUT SOURCE: ");
+                ESP_LOGD(NAME, "REGISTER: INPUT SOURCE: ");
                 if (spibufrecv[2] == 0x05) {
                     ads.setTestSignal(true);
-                    Log.trace("TEST SIGNAL ENABLED\n");
+                    ESP_LOGD(NAME, "TEST SIGNAL ENABLED");
                 } else if (spibufrecv[2] == 0x00) {
                     ads.setTestSignal(false);
-                    Log.trace("NORMAL SIGNAL ENABLED\n");
+                    ESP_LOGD(NAME, "NORMAL SIGNAL ENABLED");
                 } else {
-                    Log.trace("NOT IMPLEMENTED SIGNAL %d\n", spibufrecv[2]);
+                    ESP_LOGD(NAME, "NOT IMPLEMENTED SIGNAL %d", spibufrecv[2]);
                 }
                 break;
             case 0x54:
-                Log.trace("REGISTER: BIAS: ");
+                ESP_LOGD(NAME, "REGISTER: BIAS: ");
                 if (spibufrecv[2] == 0x01) {
                     ads.setBias(true);
-                    Log.trace("BIAS OUTPUT ENABLED\n");
+                    ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
                 } else if (spibufrecv[2] == 0x00) {
                     ads.setBias(false);
-                    Log.trace("BIAS OUTPUT DISABLED\n");
+                    ESP_LOGD(NAME, "BIAS OUTPUT DISABLED");
                 } else {
-                    Log.trace("NOT IMPLEMENTED BIAS CMD %d\n", spibufrecv[2]);
+                    ESP_LOGD(NAME, "NOT IMPLEMENTED BIAS CMD %d", spibufrecv[2]);
                 }
                 break;
             case 0x56:
-                Log.trace("REGISTER: IMPEDANCE: ");
+                ESP_LOGD(NAME, "REGISTER: IMPEDANCE: ");
                 if (spibufrecv[2] == 0x01) {
                     ads.setImpedance(true);
-                    Log.trace("IMPEDANCE ENABLED\n");
+                    ESP_LOGD(NAME, "IMPEDANCE ENABLED");
                 } else if (spibufrecv[2] == 0x00) {
                     ads.setImpedance(false);
-                    Log.trace("IMPEDANCE DISABLED\n");
+                    ESP_LOGD(NAME, "IMPEDANCE DISABLED");
                 } else {
-                    Log.trace("NOT IMPLEMENTED IMPEDANCE CMD %d\n", spibufrecv[2]);
+                    ESP_LOGD(NAME, "NOT IMPLEMENTED IMPEDANCE CMD %d", spibufrecv[2]);
                 }
                 break;
         }
     } else {
-        Log.trace("INSTRUCTION: NOT IMPLEMENTED\n");
+        ESP_LOGD(NAME, "INSTRUCTION: NOT IMPLEMENTED");
     }
+    ESP_LOGV(NAME, "End processing SPI");
 }
 
 void handleSPI() {
-    Log.verbose("Begin processing SPI\n");
-    if (slaveStatus == idle) {
-        if (cq->len > PACKETSIZ) {
-            // SPI slave satatus reset to poll
-            slaveStatus = poll;
-            // buffer data in queue
-            digitalWrite(DRDY_PIN, LOW);
-            drdypulsetime = 10;
-            for (int i = 0; i < PACKETSIZ; i++) {
-                cq->pop(&(spibuf[i]));
-            }
-            spibufrecv[0] = '\0';
-            t->length = sizeof(datatyp) * PACKETSIZ * 8;
-            t->trans_len = t->length;
-            t->tx_buffer = (char*)spibuf;
-            t->rx_buffer = (char*)spibufrecv;
-            spi_slave_queue_trans(VSPI_HOST,t,portMAX_DELAY);
-            Log.trace("BUFFER USED: %F\n", (float)(cq->len) / M_BUFFERSIZ);
-            if (cq->overriden) {
-                Log.verbose("BUFFER OVERFLOW\n");
-                cq->overriden = false;
-            }
-            clkslavetimeout.reset();
-        }
-    } else if (slaveStatus == poll) {
-        // test timeout
-        if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
-            clkslavetimeout.reset();
-            digitalWrite(DRDY_PIN, LOW);
-            drdypulsetime = 10;
-            Log.trace("SPI TIMED OUT, RESENDING\n");
-        }
-        if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
-            // SPI slave status set back to idle
-            slaveStatus = idle;
-
-            // FIXME 1:
-            // We HAVE TO add this because of spi transcation error between
-            // ESP32 and OrangePi. This maybe solved in future hardware design.
-            for (int i = 0; i < 128; i++) {
-                spibufrecv[i] /= 2;
-            }
-
-            if(spibufrecv[0] != 0x00){
-                Log.trace("SPI RECEIVED: ");
-                for (int i = 0; i < 128; i++) {
-                    Log.trace("%x ", spibufrecv[i]);
+    switch (slaveStatus) {
+        case idle:
+            // Put data into spi_slave_queue, waiting spi_master to read
+            if (cq->len > PACKETSIZE) {
+                // SPI slave satatus reset to poll
+                slaveStatus = poll;
+                digitalWrite(DRDY_PIN, LOW);
+                drdypulsetime = 10;
+                for (int i = 0; i < PACKETSIZE; i++) {
+                    cq->pop(&(spibuf[i]));
                 }
-                Log.trace("\n");
+                spibufrecv[0] = '\0';
+                t->length = sizeof(datatype) * PACKETSIZE * 8;
+                t->trans_len = t->length;
+                t->tx_buffer = (char*)spibuf;
+                t->rx_buffer = (char*)spibufrecv;
+                spi_slave_queue_trans(VSPI_HOST, t, portMAX_DELAY);
+                ESP_LOGV(NAME, "BUFFER USED: %F", (float)(cq->len) / M_BUFFERSIZE);
+                if (cq->overriden) {
+                    ESP_LOGD(NAME, "BUFFER OVERFLOW");
+                    cq->overriden = false;
+                }
+                clkslavetimeout.reset();
             }
-        }
-        handleSpiCommand();
+            break;
+        case poll:
+            // Data has not been read by SPI master yet
+            if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
+                clkslavetimeout.reset();
+                digitalWrite(DRDY_PIN, LOW);
+                drdypulsetime = 10;
+                ESP_LOGV(NAME, "SPI TIMED OUT, RESENDING");
+            }
+            // SPI master has read data, set slave status back to idle
+            if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
+                slaveStatus = idle;
+                handleSpiCommand();
+            }
+            break;
     }
-    Log.verbose("End processing SPI\n");
 }
 
 void blinkTest() {
-    Log.trace("Begin blink test\n");
+    ESP_LOGV(NAME, "Begin blink test");
     if (clkblink.getdiff() >= 1000) {
         clkblink.reset();
         if (blinkstat == true) {
@@ -430,47 +435,72 @@ void blinkTest() {
             blinkstat = true;
         }
     }
-    Log.trace("End blink test\n");
+    ESP_LOGV(NAME, "End blink test");
 }
 
 void setup() {
-    Serial.begin(115200);
-    Log.begin(logLevel, &Serial, false);
-    Log.notice("ESP32 Firmware 2018.10-EmBCI\n");
-    Log.notice("Board:  OrangePi Zero Plus 2\n");
-    Log.notice("Shield: EmBCI Rev.A7 Oct 22 2018\n");
-    Log.notice("Booting...\n");
+    ESP_LOGD(NAME, "ESP32 Firmware 2018.10-EmBCI");
+    ESP_LOGD(NAME, "Board:  OrangePi Zero Plus 2");
+    ESP_LOGD(NAME, "Shield: EmBCI Rev.A7 Oct 22 2018");
+    ESP_LOGD(NAME, "Booting...");
 
+#ifdef CONFIG_TASK_WDT
+    if (esp_task_wdt_add(NULL) == ESP_OK && \
+        esp_task_wdt_status(NULL) == ESP_OK) {
+        ESP_LOGI(NAME, "Task loopTask @ CPU1 subscribed to TWDT");
+    }
+    if (esp_task_wdt_delete(xTaskGetIdleTaskHandleForCPU(1)) == ESP_OK) {
+        ESP_LOGI(NAME, "Task IDLE1 @ CPU1 unsubscribed from TWDT");
+    }
+#endif
+
+    ESP_LOGD(NAME, "Init Serial... ");
     // In `uartSetBaudRate`:
     //     CLK_DIV = (UART_CLK_FREQ(80MHz) << 4) / baudrate
     //     therefore best baudrates:
     //         [100000, 200000, 400000, 500000, 800000...]
+    Serial.begin(115200);
     Serial1.begin(500000);
-    WiFi.mode(WIFI_STA);
+    ESP_LOGD(NAME, "done");
 
+    ESP_LOGD(NAME, "Init GPIO... ");
     pinMode(DRDY_PIN, OUTPUT);
     digitalWrite(DRDY_PIN, HIGH);
     pinMode(BLINK_PIN, OUTPUT);
     digitalWrite(BLINK_PIN, LOW);
     pinMode(ADS_DRDY_PIN, INPUT);
+    ESP_LOGD(NAME, "done");
 
+    ESP_LOGD(NAME, "Init SPI... ");
     vspi = new SPIClass(VSPI);
     vspi->begin();
+    ESP_LOGD(NAME, "done");
+
+    ESP_LOGD(NAME, "Init WiFi... ");
+    WiFi.mode(WIFI_STA);
+    ESP_LOGD(NAME, "done");
+
+    ESP_LOGD(NAME, "Init ADS... ");
     ads.begin();
     delay(10);
+    ads.init();
+    ESP_LOGD(NAME, "done");
 
-    Log.trace("Begin setup\n");
-    spibuf = (datatyp*) heap_caps_malloc(
-        sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
+
+    ESP_LOGD(NAME, "Begin setup");
+    spibuf = (datatype*) heap_caps_malloc(
+        sizeof(datatype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
     spibufrecv = (char*) heap_caps_malloc(
-        sizeof(datatyp) * M_BUFFERSIZSPI, MALLOC_CAP_DMA);
+        sizeof(datatype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
     t = (spi_slave_transaction_t*) malloc(sizeof(spi_slave_transaction_t*));
-    cq = new CyclicQueue<datatyp>(cqbuf,M_BUFFERSIZ);
-    for (int i = 0; i < M_BUFFERSIZ; i++) {
+    cq = new CyclicQueue<datatype>(cqbuf,M_BUFFERSIZE);
+    for (int i = 0; i < M_BUFFERSIZE; i++) {
         cq->buf[i] = i;
     }
+
     clkgen.reset();
     clkts.reset();
+    clkblink.reset();
 
     spi_bus_config_t buscfg;
     buscfg.mosi_io_num = GPIO_MOSI;
@@ -485,18 +515,18 @@ void setup() {
     slvcfg.post_setup_cb = my_post_setup_cb;
     slvcfg.post_trans_cb = my_post_trans_cb;
 
-    ret = spi_slave_initialize(VSPI_HOST, &buscfg, &slvcfg, 1);
-    if (ret != ESP_OK) {
-        Log.error("spi_slave_initialize FAILED!!!\n");
+    if (spi_slave_initialize(VSPI_HOST, &buscfg, &slvcfg, 1) != ESP_OK) {
+        ESP_LOGE(NAME, "spi_slave_initialize FAILED!!!");
     }
 
-    clkblink.reset();
-
-    Log.trace("End setup\n");
-    Log.notice("Press `h` for help message\n");
+    ESP_LOGD(NAME, "End setup");
+    ESP_LOGI(NAME, "Press `h` for help message");
 }
 
 void loop() {
+    sendToSPI();
+    sampfpsi++;
+
     // blinkTest();
 
     handleSerial();
@@ -514,12 +544,9 @@ void loop() {
         sampfpsv = sampfpsvi;
         sampfpsi = 0;
         sampfpsvi = 0;
-        transitsps = transits;
-        transits = 0;
         clkgen.reset();
     }
-
-    sendToSPI();
-
-    sampfpsi++;
+#ifdef CONFIG_TASK_WDT
+    esp_task_wdt_reset();
+#endif
 }

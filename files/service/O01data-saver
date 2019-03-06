@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+# coding=utf-8
+'''
+File: Git/EmBCI/files/service/O01data-saver
+Author: Hankso
+Web: http://github.com/hankso
+Time: Fri 18 Jan 2019 16:02:22 CST
+'''
+# built-in
+import os
+import sys
+
+# requirements.txt: data-processing: numpy
+import numpy as np
+
+from embci.io import save_data, Pylsl_reader as Reader
+
+username = 'test'
+reader = Reader(sample_time=10, num_channel=8)
+
+
+def main():
+    while 1:
+        save_data(username, np.atleast_2d(reader._data), label, reader.sample_rate)
+
+if __name__ == '__main__':
+    main()

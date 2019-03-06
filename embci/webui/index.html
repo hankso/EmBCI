@@ -26,17 +26,21 @@
             </div>
             <div class="content-right ">
                 <ul class="app">
-                    <li><a class="btn btn-default app-btn" href="/apps/dbs"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">帕金森调参仪</span></a></li>
-                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">应用2</span></a></li>
-                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="/images/icon2.svg"></span> <span class="tip">应用3</span></a></li>
-                    <li><a class="btn btn-default app-btn" href="#"> <span class="prefix"><img src="images/icon2.svg"></span> <span class="tip">应用4</span></a></li>
+                  % for app in subapps:
+                    <li>
+                        <a class="btn btn-default app-btn" href={{app.target}}> 
+                            <span class="prefix"><img src={{app.icon}}></span> 
+                            <span class="tip">{{app.name}}</span>
+                        </a>
+                    </li>
+                  % end
                 </ul>
             </div>
         </div>
     </div>
-<div class="bottom">
-    &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
-    <a href="http://localhost/apps/dbs/debug" style="display: none">debug</a>
-</div>
+    <div class="bottom"> &copy; 2019 
+        <a href="https://hankso.github.io/EmBCI">EmBCI</a> 版权所有
+        <a href="/debug" style="display: none">debug</a>
+    </div>
 </body>
 </html>

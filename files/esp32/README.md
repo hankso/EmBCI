@@ -44,18 +44,16 @@ On-shield ESP32-WROOM-32 chip's connection with OrangePi Zero Plus(2) listed as 
     ```
 
 ## Flash
-Simply run
-```bash
-./burning.sh
-```
-to flash firmware binary files into on-shield ESP32. Use `sudo` if needed.
+Run `burning.sh` script to flash firmware binary files into on-shield ESP32. Use `sudo` if needed.
 
 
 ## Monitor
 ```bash
-sudo miniterm.py /dev/ttyS1 115200
+miniterm.py /dev/ttyS1 115200
+# or
+screen /dev/ttyS1 115200
 ```
-or any serial monitor.
+or any other serial monitor.
 
 ## Serial Interface
 Example output of serial.

@@ -3,10 +3,10 @@
 # EmBCI
 # Script used to flash ESP32 firmware
 #
-# On-shield ESP32 is directly connected to OrangePi UART by pin RX && TX only.
+# On-shield ESP32 is directly connected to OrangePi UART with RX && TX only.
 # Without DTR/DSR connection, arm can NOT soft reset ESP32. USB-to-TTL converter
-# on many ESP32 development board will support this feature, but on EmBCI shield
-# we have to reset ESP32 by GPIO EN && BOOT.
+# on many ESP32 development board will support this feature, but here we have
+# to reset ESP32 by GPIO EN && BOOT.
 #
 
 if (( $EUID != 0 )); then
@@ -19,17 +19,18 @@ fi
 ./reset_esp.py flash
 
 # select ESP32 serial port
+PORT=/dev/ttyS1
+
+[[ -f /etc/armbian-release ]] && source /etc/armbian-release
 if [[ `grep "Orange Pi Zero Plus 2" /etc/armbian-release` ]]; then
     PORT=/dev/ttyS2
-else
-    PORT=/dev/ttyS1
 fi
 
 # burn firmware with esptool.py ( offered by Espressif Pte. Ltd. )
 ./esptool.py \
     --chip esp32 \
     --port ${PORT} \
-    --baud 115200 \
+    --baud 500000 \
     --before no_reset \
     --after no_reset \
     write_flash -z \

@@ -1,134 +1,298 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Mar  6 20:45:20 2018
+#
+# File: EmBCI/embci/io.py
+# Author: Hankso
+# Webpage: https://github.com/hankso
+# Time: Tue 06 Mar 2018 20:45:20 CST
 
-@author: hank
-"""
 # built-in
 from __future__ import print_function
 import os
+import re
 import sys
 import time
 import mmap
 import socket
 import select
-import unittest
+import warnings
 import threading
 import traceback
-import multiprocessing
-from ctypes import c_uint16
+import multiprocessing as mp
+from ctypes import c_bool, c_char_p, c_uint8, c_uint16, c_float
 
-# requirements.txt: data-processing: numpy, scipy, pylsl, h5py
+# requirements.txt: data-processing: numpy, scipy, pylsl
 # requirements.txt: bio-signal: mne
 # requirements.txt: drivers: pyserial
-# requirements.txt: optional: gym
+import numpy as np
 import scipy.io
 import scipy.signal
-import numpy as np
-import serial
 import pylsl
-#  import mne
+import mne
+import serial
 
-from .common import mkuserdir, check_input, get_label_list, Timer
-from .common import time_stamp, virtual_serial
-from .common import find_ports, find_outlets, find_spi_devices
-from .gyms import TorcsEnv
-from .gyms import PlaneClient
-from .utils.ads1299_api import ADS1299_API, ESP32_API
-from .utils.ili9341_api import ILI9341_API, rgb24to565
-from .utils.HTMLTestRunner import HTMLTestRunner
-from embci import BASEDIR, unicode
+from .utils import (mkuserdir, check_input, get_label_dict, ensure_unicode,
+                    find_serial_ports, find_pylsl_outlets, find_spi_devices,
+                    config_logger, duration,
+                    LockedFile, TempStream, Singleton)
+from .gyms import TorcsEnv, PlaneClient
+from .utils.ads1299_api import ADS1299_API
+from .utils.esp32_api import ESP32_API
+from .constants import command_dict_null, command_dict_plane
+from .configs import DATADIR
+
+# ============================================================================
+# constants
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__file__ = os.path.basename(__file__)
+logger = config_logger()
+
+
+# ============================================================================
+# save and load utilities
+
+def create_data_dict(data, label='default', sample_rate=500, suffix=None):
+    '''
+    Create a data_dict that can be saved by function `save_data`.
+
+    Parameters
+    ----------
+    data : ndarray | array list | instance of mne.Raw[Array]
+        2d or 3d array with a shape of [n_sample x ]num_channel x window_size
+    label : str
+        Action name, data label. Char '-' is not suggested in label.
+    sample_rate : int
+        Sample rate of data, default set to 500Hz.
+    suffix : str
+        Currently supported formats are MATLAB-style '.mat'(default),
+        MNE-style '.fif[.gz]' and raw text '.csv'.
+
+    Returns
+    -------
+    data_dict : dict
+        {'data': array, 'label': str, 'sample_rate': int, ...}
+    '''
+    data_dict = {
+        'label': str(label),
+        'sample_rate': int(sample_rate)
+    }
+    if suffix is not None:
+        data_dict['suffix'] = str(suffix)
+
+    if isinstance(data, mne.io.BaseRaw):
+        data_dict['info'] = data.info
+        data_dict['sample_rate'] = data.info['sfreq']
+        # 1 x num_channel x window_size
+        data = data.get_data()[np.newaxis, :, :]
+    elif data.ndim == 1:
+        # 1 x 1 x window_size
+        data = data[np.newaxis, np.newaxis, :]
+    elif data.ndim == 2:
+        # 1 x num_channel x window_size
+        data = data[np.newaxis]
+    elif data.ndim > 3:
+        raise ValueError('data array with too many dimensions')
+
+    data_dict['data'] = data
+    return data_dict
 
 
 @mkuserdir
-def save_data(username, data, label, sample_rate,
-              print_summary=False, save_fif=False):
+def save_data(username, data_dict, suffix='.mat', summary=False):
     '''
-    保存数据的函数，传入参数为username,data,label(这一段数据的标签)
-    可以用print_summary=True输出已经存储的数据的label及数量
+    Save data into ${DATADIR}/${username}/${label}-${num}.${suffix}
 
-    Input data shape
-    ----------------
-        n_sample x n_channel x window_size
+    Parameters
+    ----------
+    username : str
+    data_dict : dict
+        created by function create_data_dict(data, label, format, sample_rate)
+    suffix : str
+        Currently supported formats are MATLAB-style '.mat'(default),
+        MNE-style '.fif[.gz]' and raw text '.csv'. Format setting in
+        data_dict will overwrite this argument.
+    summary : bool
+        Whether to print summary of currently saved data, default `False`.
 
-    data file name:
-        ${DIR}/data/${username}/${label}-${num}.${surfix}
-    current supported format is 'mat'(default) and 'fif'(set save_fif=True)
+    Examples
+    --------
+    >>> data = np.random.rand(8, 1000) # 8chs x 4sec x 250Hz data
+    >>> save_data('test', create_data_dict(data, 'random_data', 250))
+    (8, 1000) data saved to ${DATADIR}/test/random_data-1.mat
+
+    >>> raw = mne.io.RawArray(data, mne.create_info(8, 250))
+    >>> save_data('test', create_data_dict(raw, format='fif.gz'))
+    (8, 1000) data saved to ${DATADIR}/test/default-1.fif.gz
     '''
-    # check data format and shape
-    if not isinstance(data, np.ndarray):
-        data = np.array(data)
-    if len(data.shape) != 3:
-        raise IOError('Invalid data shape{}, n_sample x n_channel x '
-                      'window_size is recommended!'.format(data.shape))
+    try:
+        label = data_dict['label']
+        sample_rate = data_dict['sample_rate']
+    except Exception as e:
+        raise TypeError('{} {}\n`data_dict` object created by function '
+                        '`create_data_dict` is suggested.'.format(
+                            e.__class__.__name__.lower(), e.args[0]))
 
-    label_list = get_label_list(username)[0]
-    num = '1' if label not in label_list else str(label_list[label] + 1)
+    # scan how many data files already there
+    label_dict = get_label_dict(username)[0]
+    num = label_dict.get(label, 0) + 1
+    suffix = data_dict.pop('suffix', suffix)
+    # function create_data_dict maybe offer mne.Info object
+    info = data_dict.pop(
+        'info', mne.create_info(data_dict['data'].shape[1], sample_rate))
+    data = data_dict.pop('data', [])
 
-    fn = os.path.join(BASEDIR, 'data', username, '%s-%s.mat' % (label, num))
-    scipy.io.savemat(fn,
-                     {label: data, 'sample_rate': sample_rate},
-                     do_compression=True)
-    print('{} data saved to {}'.format(data.shape, fn))
+    for sample in data:
+        fn = os.path.join(
+            DATADIR, username, '{}-{}{}'.format(label, num, suffix))
+        num += 1
+        try:
+            if suffix == '.mat':
+                data_dict['data'] = sample
+                scipy.io.savemat(fn, data_dict, do_compression=True)
+            elif suffix == '.csv':
+                np.savetxt(fn, sample, delimiter=',')
+            elif suffix in ['.fif', '.fif.gz']:
+                # mute mne.io.BaseRaw.save info from stdout and stderr
+                with TempStream(stdout=None, stderr=None):
+                    mne.io.RawArray(sample, info).save(fn)
+            else:
+                raise ValueError('format `%s` is not supported.' % suffix)
 
-    #  if save_fif:
-    #      for sample in data:
-    #          fn = './data/fif/%s/%s-raw.fif.gz' % (username,
-    #                                                '-'.join([label, num]))
-    #          num += 1
-    #          info = mne.create_info(ch_names=sample.shape[0],
-    #                                 sfreq=sample_rate)
-    #          mne.io.RawArray(sample, info).save(fn, verbose=0)
-    #          print('{} data save to {}'.format(sample.shape, fn))
+            logger.info('Save {} data to {}'.format(sample.shape, fn))
+        except Exception:
+            if os.path.exists(fn):
+                os.remove(fn)
+            num -= 1
+            logger.warn('Save {} failed.\n{}'.format(
+                fn, traceback.format_exc()))
 
-    if print_summary:
-        print(get_label_list(username)[1])
+    if summary:
+        print(get_label_dict(username)[1])
+
+
+def load_label_data(username, label='default'):
+    '''
+    Load all data files that match ${DATADIR}/${username}/${label}-*.*
+
+    Parameters
+    ----------
+    username : str
+    label : str
+
+    Returns
+    -------
+    data_list : list
+    '''
+    data_list = []
+    userdir = os.path.join(DATADIR, username)
+    for fn in sorted(os.listdir(userdir)):
+        if not fn.startswith(label):
+            continue
+        name, suffix = os.path.splitext(fn)
+        if suffix == '.gz':
+            name, suffix = os.path.splitext(name)
+        fn = os.path.join(userdir, fn)
+        try:
+            if suffix == '.mat':
+                data = scipy.io.loadmat(fn)['data']
+                if data.ndim != 2:
+                    raise IOError('data file {} not support'.format(fn))
+            elif suffix == '.csv':
+                data = np.loadtxt(fn, np.float32, delimiter=',')
+            elif suffix == '.fif':
+                with TempStream(stdout=None, stderr=None):
+                    #  data = mne.io.RawFIF(fn).get_data()
+                    data = mne.io.RawFIF(fn, preload=True)._data
+            else:
+                raise ValueError('format `%s` is not supported.' % suffix)
+            data_list.append(data)
+            logger.info('Load {} data from {}'.format(data.shape, fn))
+        except Exception:
+            logger.warn('Load {} failed.\n{}'.format(
+                fn, traceback.format_exc()))
+    return data_list
 
 
 @mkuserdir
-def load_data(username, print_summary=True):
+def load_data(username, pick=None, summary=True):
     '''
-    读取./data/username文件夹下的所有数据，返回三维数组
+    Load all data files under directory ${DATADIR}/${username}
 
-    Output shape: n_samples x n_channel x window_size
+    Parameters
+    ----------
+    username : str
+    pick : str | list or tuple of str | regex pattern | function
+        load data files whose label name:
+        equal to | inside | match | return True by appling `pick`
+    summary : bool
+        whether to print summary of currently saved data, default `False`.
+
+    Returns
+    -------
+    out : tuple
+        (data_array, label_list)
+    data_array : ndarray
+        3D array with a shape of n_samples x num_channel x window_size
+    label_list : list
+        String list with a length of n_samples. Each element indicate
+        label(action name) of corresponding data sample.
+
+    Examples
+    --------
+    >>> data, label = load_data('test')
+    >>> data.shape, label
+    ((5, 8, 1000), ['default', 'default', 'default', 'right', 'left'])
+
+    >>> _, _ = load_data('test', pick=('left', 'right'), summary=True)
+    There are 3 actions with 5 data recorded.
+      * default        3
+        default-1.fif.gz
+        default-2.fif.gz
+        default-3.mat
+      * right          1
+        right-1.mat
+      * left           1
+        left-1.fif
+    There are 2 actions with 2 data loaded.
+      + left     1
+      + right    1
     '''
-    userpath = os.path.join(BASEDIR, 'data', username)
-    if not os.listdir(userpath):
-        check_input(('There is no data available for this user, please save '
-                     'some first, continue? '))
-        return np.array([]), np.array([]), {}
+    data_array = []
+    label_list = []
+    action_dict, msg = get_label_dict(username)
 
-    # here we got an auto-sorted action name list
-    # label_list  {'left': left_num, ... , 'up': up_num, ...}
-    # action_dict {'left': 10, ... , 'up': 15, ...}
-    # label       [10] * left_num + ... + [15] * up_num + ...
-    label_list = get_label_list(username)[0]
-    action_dict = {n: a for n, a in enumerate(label_list)}
+    def filterer(action):
+        if isinstance(pick, str):
+            return action == pick
+        if isinstance(pick, (tuple, list)):
+            return action in pick
+        if isinstance(pick, re._pattern_type):
+            return bool(pick.match(action))
+        if callable(pick):
+            return pick(action)
+        return True
 
-    # data  n_action*action_num*n_samples x n_channel x window_size
-    # label n_action*action_num*n_samples x 1
-    data = []
-    label = []
-    for n, action_name in enumerate(label_list):  # n_action
-        for fn in os.listdir(userpath):  # action_num
-            if fn.startswith(action_name) and fn.endswith('.mat'):
-                file_path = os.path.join(userpath, fn)
-                dat = scipy.io.loadmat(file_path)[action_name]
-                if len(dat.shape) != 3:
-                    print('Invalid data shape{}, '
-                          'n_sample x n_channel x window_size is recommended! '
-                          'Skip file {}.'.format(data.shape, file_path))
-                    continue
-                label += dat.shape[0] * [n]  # n_samples
-                data = np.stack([s for s in data] + [s for s in dat])
+    actions = filter(filterer, action_dict)
+    for action in actions:
+        data_list = load_label_data(username, action)
+        data_array.extend(data_list)
+        label_list.extend([action] * len(data_list))
 
-    if print_summary:
-        print(get_label_list(username)[1])
-    return np.array(data), np.array(label), action_dict
+    if summary:
+        msg += '\nThere are {} actions with {} data loaded.'.format(
+            len(actions), len(data_array))
+        if len(data_array):
+            maxname = max([len(_) for _ in actions]) + 4
+            msg += ('\n  + ' + '\n  + '.join(
+                [action.ljust(maxname) + str(label_list.count(action))
+                 for action in actions]))
+        print(msg.strip())
+
+    if len(data_array):
+        data_array = np.array(data_array)
+    # data_array: n_samples x num_channel x window_size
+    # label_list: n_samples
+    return data_array, label_list
 
 
 def save_action(username, reader, action_list=['relax', 'grab']):
@@ -138,8 +302,8 @@ def save_action(username, reader, action_list=['relax', 'grab']):
     username: where will data be saved to
     reader:   where does data come from
     '''
-    print(('\nYou have to finish each action in '
-           '{} seconds.').format(reader.sample_time))
+    print('\nYou have to finish each action in {} seconds.'.format(
+        reader.sample_time))
     rst = check_input(('How many times you would like to record for each '
                        'action?(empty to abort): '), {}, times=999)
     if not rst:
@@ -148,7 +312,7 @@ def save_action(username, reader, action_list=['relax', 'grab']):
         num = int(rst)
     except ValueError:
         return
-    label_list = get_label_list(username)[0]
+    label_list = get_label_dict(username)[0]
     name_list = action_list * num
     np.random.shuffle(name_list)
     for i in range(len(action_list) * num):
@@ -157,7 +321,7 @@ def save_action(username, reader, action_list=['relax', 'grab']):
         time.sleep(2)
         try:
             if action_name and '-' not in action_name:
-                # input shape: 1 x n_channel x window_size
+                # input shape: 1 x num_channel x window_size
                 save_data(username, reader.data_frame, action_name,
                           reader.sample_rate, print_summary=True)
                 # update label_list
@@ -175,149 +339,125 @@ def save_action(username, reader, action_list=['relax', 'grab']):
     return label_list
 
 
-class _basic_reader(object):
-    def __init__(self, sample_rate, sample_time, n_channel, name=None):
-        # basic stream reader information
-        self.sample_rate = sample_rate
-        self.sample_time = sample_time
-        self.n_channel = n_channel
-        self.window_size = int(sample_rate * sample_time)
-        self._name = name if name is not None else ' reader%s  ' % time_stamp()
+# ============================================================================
+# stream readers and commanders
 
-        # channels are defined here
-        self.ch_list = ['ch%d' % i for i in range(1, n_channel + 1)] + ['time']
-
-        # maintain a FIFO-loop queue to store data
-        # self._data = np.zeros((n_channel + 1, self.window_size), np.float32)
-        self._data = None
-        self._index_mp_value = multiprocessing.Value(c_uint16, 0)
-        self._ch_last_index = self._fr_last_index = self._index_mp_value.value
+class StreamControlMixin(object):
+    def __init__(self):
+        '''only used for testing'''
+        self._flag_pause = threading.Event()
+        self._flag_close = threading.Event()
         self._started = False
+        self._status = 'closed'
 
-        # use these flags to controll the data streaming thread
-        self._flag_pause = multiprocessing.Event()
-        self._flag_close = multiprocessing.Event()
-        # self._flag_pause = threading.Event()
-        # self._flag_close = threading.Event()
-
-    def start(self, method='process'):
+    def start(self):
+        if self._started:
+            if self._status == 'paused' and self._flag_pause.is_set():
+                self.resume()
+            return
         self._flag_pause.set()
         self._flag_close.clear()
-        self._data_file = '/tmp/mmap_%s' % self._name[1:-2].replace(' ', '_')
-        self._f = open(self._data_file, 'w+')
-        self._f.write('\x00' * 4 * (self.n_channel + 1) * self.window_size)
-        self._f.flush()
-        self._m = mmap.mmap(self._f.fileno(), 0)
-        self._data = np.ndarray(shape=(self.n_channel + 1, self.window_size),
-                                dtype=np.float32, buffer=self._m)
-        self._start_time = time.time()
         self._started = True
-        if method == 'block':
-            self._stream_data()
-            return
-        elif method == 'process':
-            self._process = multiprocessing.Process(target=self._stream_data)
-            self._process.daemon = True
-            self._process.start()
-            self.pid = self._process.pid
-        elif method == 'thread':
-            self._thread = threading.Thread(target=self._stream_data)
-            self._thread.setDaemon(True)
-            self._thread.start()
-        else:
-            raise RuntimeError('unknown method {}'.format(method))
-
-    def _stream_data(self):
-        #  signal.signal(signal.SIGINT, signal.SIG_IGN)
-        try:
-            while not self._flag_close.is_set():
-                self._flag_pause.wait()
-                self._save_data_in_buffer()
-        except NotImplementedError:
-            print(self._name + 'cannot use this class directly')
-        except Exception:
-            traceback.print_exc()
-            self.close()
-        finally:
-            print(self._name + 'stop streaming data...')
-            print(self._name + 'shut down.')
-
-    def _save_data_in_buffer(self):
-        raise NotImplementedError('not implemented yet!')
+        self._status = 'started'
+        self._start_time = time.time()
 
     def close(self):
-        assert self._started, 'Not started yet!'
+        if not self._started:
+            return
         self._flag_close.set()
-        time.sleep(0.5)
-        self._data = self._data.copy()  # remove reference to old data buffer
-        self._m.close()
-        self._f.close()
-        if os.path.exists(self._data_file):
-            os.remove(self._data_file)
+        self._flag_pause.clear()
         self._started = False  # you can re-start this reader now, enjoy~~
+        self._status = 'closed'
 
     def restart(self):
         if self._started:
             self.close()
-        self._flag_close.clear()
-        self._flag_pause.set()
         self.start()
 
     def pause(self):
+        if not self._started:
+            return
         self._flag_pause.clear()
+        self._status = 'paused'
 
     def resume(self):
+        if not self._started:
+            return
         self._flag_pause.set()
+        self._status = 'resumed'
 
     @property
-    def _index(self):
-        return self._index_mp_value.value
+    def status(self):
+        return self._status
 
-    @_index.setter
-    def _index(self, value):
-        self._index_mp_value.value = value
 
-    @property
+class ReaderIOMixin(object):
+    def set_sample_rate(self, sample_rate, sample_time=None):
+        self.sample_rate = sample_rate
+        if sample_time is not None and sample_time > 0:
+            self.sample_time = sample_time
+        self.window_size = int(self.sample_rate * self.sample_time)
+        if self._status in ['started', 'resumed']:
+            warnings.warn('Runtime sample rate changing is not suggested.')
+            # TODO: change info and re-config self._data etc. at runtime.
+            #  self.restart()
+        return True
+
+    def set_channel_num(self, num_channel):
+        self.num_channel = num_channel
+        self.channels = ['ch%d' % i for i in range(1, num_channel + 1)]
+        self.channels += ['time']
+        if self._status in ['started', 'resumed']:
+            warnings.warn('Runtime channel num changing is not suggested.')
+            #  self.restart()
+        return True
+
     def is_streaming(self):
         if hasattr(self, '_process'):
-            tmp = self._process.is_alive()
+            alive = self._process.is_alive()
         elif hasattr(self, '_thread'):
-            tmp = self._thread.is_alive()
-        return self._started and tmp and self._flag_pause.is_set()
+            alive = self._thread.is_alive()
+        return self._started and self._flag_pause.is_set() and alive
 
     @property
-    def real_time_sample_rate(self):
+    def realtime_samplerate(self):
+        if not self.is_streaming():
+            return 0
         try:
             t1, t2 = (self._index - 1) % self.window_size, self._index
-            return self.window_size / (self._data[-1, t1] - self._data[-1, t2])
-        except:
+            dt = self._data[-1, t1] - self._data[-1, t2]
+            assert dt != 0
+            return self.window_size / dt
+        except (TypeError, AssertionError):
             return 0
 
     @property
     def data_channel(self):
-        if self.is_streaming:
+        '''Pick num_channel x 1 fresh data from FIFO queue'''
+        if self.is_streaming():
             t = time.time()
-            while self._ch_last_index == self._index:
+            while self._last_ch == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    print(self._name + 'there maybe error reading data')
+                    logger.warn(self.name + ' there maybe error reading data')
                     break
-            self._ch_last_index = self._index
-        return self._data[:-1, (self._ch_last_index - 1) % self.window_size]
+            self._last_ch = self._index
+        return self._data[:-1, (self._last_ch - 1) % self.window_size]
 
     @property
     def data_frame(self):
-        if self.is_streaming:
+        '''Pick num_channel x window_size (all data) from FIFO queue'''
+        if self.is_streaming():
             t = time.time()
-            while self._fr_last_index == self._index:
+            while self._last_fr == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    print(self._name + 'there maybe error reading data')
+                    logger.warn(self.name + ' there maybe error reading data')
                     break
-            self._fr_last_index = self._index
+            self._last_fr = self._index
         return np.concatenate((
-            self._data[:-1, self._fr_last_index:],
-            self._data[:-1, :self._fr_last_index]), -1)
+            self._data[:-1, self._last_fr:],
+            self._data[:-1, :self._last_fr]), -1)
 
     def __getitem__(self, items):
         if isinstance(items, tuple):
@@ -325,24 +465,147 @@ class _basic_reader(object):
                 self = self.__getitem__(item)
             return self
         if isinstance(items, (slice, int)):
-            return self._data[items]
+            return self.data_frame[items]
         else:
-            print(self._name + 'unknown preprocessing method %s' % items)
-            return self
+            raise TypeError('indices must be `int` or `slice`, not '
+                            '{0.__class__.__name__}'.format(items))
+
+    def __repr__(self):
+        if not hasattr(self, 'status'):
+            msg = 'not initialized - {}'.format(self.name[1:-1])
+        else:
+            msg = '{} - {}'.format(self._status, self.name[1:-1])
+            msg += ': {}Hz'.format(self.sample_rate)
+            msg += ', {}chs'.format(self.num_channel)
+            msg += ', {}sec'.format(self.sample_time)
+            if self._started:
+                msg += ', {}B'.format(self._data[:-1].nbytes)
+        return '<{}, at {}>'.format(msg, hex(self.__hash__()))
 
 
-class Fake_data_generator(_basic_reader):
+class CompatiableMixin(object):
+    '''Methods defined here are for compatibility between all Readers.'''
+    def set_input_source(self, src):
+        self.input_source = src
+        return True
+
+    #  enable_bias = False
+    #  measure_impedance = False
+
+
+class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
+    name = '[embci.io.Reader]'
+
+    def __init__(self, sample_rate, sample_time, num_channel, name=None,
+                 *a, **k):
+        # update basic info with arguments
+        self.name = name or self.name
+        self.set_sample_rate(sample_rate, sample_time)
+        self.set_channel_num(num_channel)
+
+        # fetch data used indexs
+        self._last_ch = self._last_fr = self._index
+
+        # these attributes will be initialized in method `start`
+        self._data = self._datafile = self._pidfile = self._mmapfile = None
+
+    def __new__(cls, *a, **k):
+        obj = object.__new__(cls)
+        # Basic stream reader attributes.
+        # These values may be accessed in another thread or process.
+        # So make them multiprocessing.Value and serve as properties.
+        for target, t, v in [('_index', c_uint16, 0),
+                             ('_status', c_char_p, 'closed'),
+                             ('_started', c_bool, False),
+                             ('input_source', c_char_p, 'None'),
+                             ('sample_rate', c_uint16, 250),
+                             ('sample_time', c_float, 2),
+                             ('window_size', c_uint16, 500),
+                             ('num_channel', c_uint8, 1)]:
+            source = '_mp_{}'.format(target)
+            setattr(obj, source, mp.Value(t, v))
+            if target in cls.__dict__:
+                continue
+            setattr(cls, target, property(
+                lambda self, attr=source: getattr(
+                    getattr(self, attr), 'value'),
+                lambda self, value, attr=source: setattr(
+                    getattr(self, attr), 'value', value),
+                None,
+                'property ' + target
+            ))
+        # stream control used flags
+        obj._flag_pause = mp.Event()
+        obj._flag_close = mp.Event()
+        return obj
+
+    def start(self, method='process', *a, **k):
+        name = self.name[1:-1].replace(' ', '_')
+        assert '/' not in name, 'Invalid reader name `%s`!' % self.name
+        self._datafile = LockedFile('/tmp/mmap_' + name)
+        self._pidfile = LockedFile('/run/embci/%s.pid' % name, pidfile=True)
+
+        # lock mmap file to protect writing permission
+        f = self._datafile.acquire()
+        f.write('\x00' * 4 * (self.num_channel + 1) * self.window_size)
+        f.flush()
+        # register memory-mapped-file as data buffer
+        self._mmapfile = mmap.mmap(f.fileno(), 0)
+        self._data = np.ndarray(shape=(self.num_channel + 1, self.window_size),
+                                dtype=np.float32, buffer=self._mmapfile)
+
+        StreamControlMixin.start(self)
+        if method == 'thread':
+            self._thread = threading.Thread(target=self._stream_data)
+            self._thread.setDaemon(True)
+            self._thread.start()
+        elif method == 'process':
+            self._process = mp.Process(target=self._stream_data)
+            self._process.daemon = True
+            self._process.start()
+        elif method == 'block':
+            self._stream_data()
+        else:
+            raise RuntimeError('unknown method {}'.format(method))
+
+    def _stream_data(self):
+        #  signal.signal(signal.SIGINT, signal.SIG_IGN)
+        try:
+            self._pidfile.acquire()
+            while not self._flag_close.is_set():
+                self._flag_pause.wait()
+                self._save_data_in_buffer()
+        except Exception:
+            logger.error(traceback.format_exc())
+        finally:
+            self.close()
+            self._pidfile.release()
+            logger.debug(self.name + ' stop streaming data')
+
+    def _save_data_in_buffer(self):
+        raise NotImplementedError(self.name + ' cannot use this directly')
+
+    def close(self, *a, **k):
+        StreamControlMixin.close(self)
+        time.sleep(0.5)
+        self._data = self._data.copy()  # remove reference to old data buffer
+        self._mmapfile.close()
+        self._datafile.release()
+        logger.debug(self.name + ' shut down.')
+
+
+class FakeDataGenerator(BaseReader):
     '''Generate random data, same as any Reader defined in io.py'''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
                  send_to_pylsl=False, *a, **k):
-        super(Fake_data_generator, self).__init__(sample_rate,
-                                                  sample_time,
-                                                  n_channel)
-        self._name = '[Fake data generator %d] ' % Fake_data_generator._num
+        super(FakeDataGenerator, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Fake data generator %d]' % FakeDataGenerator.__num__)
+        FakeDataGenerator.__num__ += 1
+        self.input_source = 'random'
         self._send_to_pylsl = send_to_pylsl
-        Fake_data_generator._num += 1
 
     def start(self, *a, **k):
         if self._started:
@@ -351,40 +614,41 @@ class Fake_data_generator(_basic_reader):
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'fake_data_generator', 'unknown', self.n_channel,
-                    self.sample_rate, 'float32', 'used for debugging'))
-            print(self._name + 'pylsl outlet established')
-        super(Fake_data_generator, self).start(*a, **k)
+                    'FakeDataGenerator', 'Reader Outlet', self.num_channel,
+                    self.sample_rate, 'float32', self.name))
+            logger.debug(self.name + ' pylsl outlet established')
+        super(FakeDataGenerator, self).start(*a, **k)
 
     def _save_data_in_buffer(self):
-        time.sleep(0.9 / self.sample_rate)
-        d = np.random.rand(self.n_channel) / 10
-        self._data[:-1, self._index] = d[:self.n_channel]
+        time.sleep(0.8 / self.sample_rate)
+        d = np.random.rand(self.num_channel) / 10
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
         if self._send_to_pylsl:
             self._outlet.push_sample(d)
 
 
-class Files_reader(_basic_reader):
+class FilesReader(BaseReader):
     '''
     Read data from mat, fif, csv... file and simulate as a common data reader
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, filename, sample_rate=250, sample_time=2, n_channel=1,
+    def __init__(self, filename, sample_rate=250, sample_time=2, num_channel=1,
                  *a, **k):
-        super(Files_reader, self).__init__(sample_rate, sample_time, n_channel)
-        self.filename = filename
-        self._name = '[Files reader %d] ' % Files_reader._num
-        Files_reader._num += 1
+        super(FilesReader, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Files reader %d]' % FilesReader.__num__)
+        FilesReader.__num__ += 1
+        self.input_source = self.filename = filename
 
     def start(self, *a, **k):
         if self._started:
             self.resume()
             return
         # 1. try to open data file and load data into RAM
-        print(self._name + 'reading data file...')
+        logger.debug(self.name + ' reading data file...')
         while not os.path.exists(self.filename):
             self.filename = check_input(
                 'No such file! Please check and input correct file name: ', {})
@@ -394,17 +658,19 @@ class Files_reader(_basic_reader):
                 mat = scipy.io.loadmat(self.filename)
                 data = mat[actionname][0]
                 sample_rate = mat.get('sample_rate', None)
-                print(self._name + 'load data with shape of {} @ {}Hz'.format(
-                    data.shape, sample_rate))
-                assert len(data.shape) == 2, 'Invalid data shape!'
+                logger.debug('{} load data with shape of {} @ {}Hz'.format(
+                    self.name, data.shape, sample_rate))
+                assert data.ndim == 2, 'Invalid data shape!'
                 n = data.shape[0]
-                if n < self.n_channel:
-                    print('{}change n_channel to {}'.format(self._name, n))
-                    self.n_channel = n
+                if n < self.num_channel:
+                    logger.info('{} change num_channel to {}'.format(
+                        self.name, n))
+                    self.num_channel = n
                     self._data = self._data[:(n + 1)]
                 if sample_rate and sample_rate != self.sample_rate:
-                    print('{}resample source data to {}Hz'.format(
-                        self._name, self.sample_rate))
+                    logger.warn('{} resample source data to {}Hz'.format(
+                        self.name, self.sample_rate))
+                    raise NotImplementedError
                     data = scipy.signal.resample(data, self.sample_rate)
                 self._get_data = self._get_data_g(data.T)
                 self._get_data.next()
@@ -417,44 +683,46 @@ class Files_reader(_basic_reader):
             else:
                 raise NotImplementedError
         except Exception as e:
-            print(self._name + '{}: {}'.format(type(e), e))
-            print(self._name + 'Abort...')
+            logger.error(self.name + ' {}: {}'.format(type(e), e))
+            logger.error(self.name + ' Abort...')
             return
         self._start_time = time.time()
 
         # 2. get ready to stream data
-        super(Files_reader, self).start(*a, **k)
+        super(FilesReader, self).start(*a, **k)
 
     def _get_data_g(self, data):
         self._last_time = time.time()
         d = 0.9 / self.sample_rate
         for line in data:
             while (time.time() - self._last_time) < d:
-                time.sleep(0)
+                time.sleep(d / 2)
             self._last_time = time.time()
             if (yield line) == 'quit':
                 break
 
     def _save_data_in_buffer(self):
         d = self._get_data.next()
-        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
 
 
-class Pylsl_reader(_basic_reader):
+class PylslReader(BaseReader):
     '''
     Connect to a data stream on localhost:port and read data into buffer.
     There should be at least one stream available.
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Pylsl_reader, self).__init__(sample_rate, sample_time, n_channel)
-        self._name = '[Pylsl reader %d] ' % Pylsl_reader._num
-        Pylsl_reader._num += 1
+    def __init__(self, sample_time=2, num_channel=None, *a, **k):
+        self.name = '[Pylsl reader %d]' % PylslReader.__num__
+        PylslReader.__num__ += 1
+        self.sample_time = sample_time
+        self.num_channel = num_channel
+        self._started = False
 
-    def start(self, servername=None, *a, **k):
+    def start(self, info=None, *a, **k):
         '''
         Here we take window_size(sample_rate x sample_time) as max_buflen
         In doc of pylsl.StreamInlet:
@@ -469,69 +737,74 @@ class Pylsl_reader(_basic_reader):
             self.resume()
             return
         # 1. find available streaming info and build an inlet
-        print(self._name + 'finding availabel outlets...  ', end='')
-        info = find_outlets(servername)
-        print('`%s` opened' % info.source_id)
-        n = info.channel_count()
-        if n < self.n_channel:
-            print(('{}You want {} channel data but only {} channels is offered'
-                   ' by pylsl stream outlet you select. Change n_channel to {}'
-                   '').format(self._name, self.n_channel, n, n))
-            self.n_channel = n
-            self._data = self._data[:(n + 1)]
+        logger.debug(self.name + ' finding availabel outlets...  ')
+        info = info or find_pylsl_outlets(*a, **k)
+        nch = info.channel_count()
+        self.input_source = '{} @ {}'.format(info.name(), info.source_id())
+        self.num_channel = self.num_channel or nch
+        if nch < self.num_channel:
+            logger.info(
+                '{} You want {} channels data but only {} is provided by '
+                'the pylsl outlet `{}`. Change num_channel to {}'.format(
+                    self.name, self.num_channel, nch, info.name(), nch))
+            self.num_channel = nch
+        super(PylslReader, self).__init__(
+            info.nominal_srate() or 250, self.sample_time, self.num_channel,
+            self.name)
         max_buflen = (self.sample_time if info.nominal_srate() != 0
                       else int(self.window_size / 100) + 1)
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
         self._start_time = info.created_at()
-        super(Pylsl_reader, self).start(*a, **k)
+        super(PylslReader, self).start(*a, **k)
 
     def close(self):
-        super(Pylsl_reader, self).close()
+        super(PylslReader, self).close()
         time.sleep(0.2)
         self._inlet.close_stream()
 
     def _save_data_in_buffer(self):
         d, t = self._inlet.pull_sample()
-        self._data[:-1, self._index] = d[1:(self.n_channel + 1)]
+        self._data[:-1, self._index] = d[1:(self.num_channel + 1)]
         self._data[-1, self._index] = t - self._start_time
         self._index = (self._index + 1) % self.window_size
 
 
-class Serial_reader(_basic_reader):
+class SerialReader(BaseReader):
     '''
     Connect to a serial port and fetch data into buffer.
     There should be at least one port available.
     '''
-    _num = 1
+    __num__ = 1
+    _serial = serial.Serial()
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 baudrate=115200, send_to_pylsl=False, *a, **k):
-        super(Serial_reader, self).__init__(sample_rate,
-                                            sample_time,
-                                            n_channel)
-        self._serial = serial.Serial(baudrate=baudrate)
-        self._name = '[Serial reader %d] ' % Serial_reader._num
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
+                 send_to_pylsl=False, *a, **k):
+        super(SerialReader, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Serial reader %d]' % SerialReader.__num__)
+        SerialReader.__num__ += 1
         self._send_to_pylsl = send_to_pylsl
-        Serial_reader._num += 1
 
-    def start(self, port=None, *a, **k):
+    def start(self, port=None, baudrate=115200, *a, **k):
         if self._started:
             self.resume()
             return
         # 1. find serial port and connect to it
-        print(self._name + 'finding availabel ports... ', end='')
-        port = port if port is not None else find_ports()
-        self._serial.port = port
+        logger.debug(self.name + ' finding availabel ports... ')
+        self._serial.port = port or find_serial_ports()
+        self._serial.baudrate = baudrate
         self._serial.open()
-        print('`%s` opened.' % port)
+        self.input_source = 'Serial @ {}'.format(self._serial.port)
+        logger.debug(self.name + ' `%s` opened.' % port)
         n = len(self._serial.read_until().strip().split(','))
-        if n < self.n_channel:
-            print(('{}You want {} channel data but only {} channels is offered'
-                   ' by serial port you select. Change n_channel to {}'
-                   '').format(self._name, self.n_channel, n, n))
-            self.n_channel = n
+        if n < self.num_channel:
+            logger.info(
+                '{} You want {} channel data but only {} channels is offered '
+                'by serial port you select. Change num_channel to {}'.format(
+                    self.name, self.num_channel, n, n))
+            self.num_channel = n
             self._data = self._data[:(n + 1)]
         # 2. start get data process
         # here we only need to check one time whether send_to_pylsl is set
@@ -539,185 +812,171 @@ class Serial_reader(_basic_reader):
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'Serial_reader', 'unknown', self.n_channel,
+                    'SerialReader', 'Reader Outlet', self.num_channel,
                     self.sample_rate, 'float32', self._serial.port))
-            print(self._name + 'pylsl outlet established')
-        super(Serial_reader, self).start(*a, **k)
+            logger.debug(self.name + ' pylsl outlet established')
+        super(SerialReader, self).start(*a, **k)
 
     def close(self):
         self._serial.close()
-        super(Serial_reader, self).close()
+        super(SerialReader, self).close()
 
     def _save_data_in_buffer(self):
         d = np.array(self._serial.read_until().strip().split(','), np.float32)
-        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
         if self._send_to_pylsl:
             self._outlet.push_sample(d)
 
 
-class ADS1299_reader(_basic_reader):
+class ADS1299SPIReader(BaseReader):
     '''
     Read data from SPI connection with ADS1299.
     This class is only used on ARM. It depends on class ADS1299_API
     '''
-    _singleton = True
+    __metaclass__ = Singleton
+    name = '[ADS1299 SPI reader]'
+    API = ADS1299_API
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, measure_impedance=False,
-                 enable_bias=True, *a, **k):
-        if ADS1299_reader._singleton is False:
-            raise RuntimeError('There is already one ADS1299 reader.')
-        super(ADS1299_reader, self).__init__(sample_rate,
-                                             sample_time,
-                                             n_channel)
-        self._name = '[ADS1299 SPI reader] '
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
+                 send_to_pylsl=False, *a, **k):
+        '''
+        Parameters
+        ----------
+        '''
+        super(ADS1299SPIReader, self).__init__(
+            sample_rate, sample_time, num_channel)
         self._send_to_pylsl = send_to_pylsl
-        self._ads = ADS1299_API(sample_rate)
 
-        self.enable_bias = property(
-            lambda: getattr(self._ads, 'enable_bias'),
-            lambda v: setattr(self._ads, 'enable_bias', v))
-        self.measure_impedance = property(
-            lambda: getattr(self._ads, 'measure_impedance'),
-            lambda v: setattr(self._ads, 'measure_impedance', v))
+    def __new__(cls, sample_rate=250, sample_time=2, num_channel=1,
+                send_to_pylsl=False, measure_impedance=False,
+                enable_bias=True, API=None, *a, **k):
+        api = (API or cls.API)()
+        self = super(ADS1299SPIReader, cls).__new__(cls)
+        self._api = api
+        cls.enable_bias = property(
+            lambda self: getattr(self._api, 'enable_bias'),
+            lambda self, v: setattr(self._api, 'enable_bias', v),
+            None,
+            'Whether to enable BIAS output on BIAS pin.'
+        )
+        cls.measure_impedance = property(
+            lambda self: getattr(self._api, 'measure_impedance'),
+            lambda self, v: setattr(self._api, 'measure_impedance', v),
+            None,
+            'Whether to measure impedance in ohm or raw signal in volt.'
+        )
         self.enable_bias = enable_bias
         self.measure_impedance = measure_impedance
         self.input_source = 'normal'
-
-        ADS1299_reader._singleton = False
+        return self
 
     def __del__(self):
-        ADS1299_reader._singleton = True
-        del self
+        Singleton.remove(self.__class__)
 
-    def set_sample_rate(self, rate):
-        rst = self._ads.set_sample_rate(rate)
+    def set_sample_rate(self, rate, time=None):
+        rst = self._api.set_sample_rate(rate)
         if rst is not None:
-            self.sample_rate = rate
-            self.window_size = self.sample_rate * self.sample_time
-            print(self._name + ('sample rate set to {}, you may want to '
-                                'restart reader now').format(rst))
+            super(ADS1299SPIReader, self).set_sample_rate(rate, time)
+            if self._started:
+                logger.info('{} sample rate set to {}, you may want to '
+                            'restart reader now.'.format(self.name, rst))
             return True
-        print(self._name + 'invalid sample rate {}'.format(rate))
+        logger.error(self.name + ' invalid sample rate {}'.format(rate))
         return False
 
     def set_input_source(self, src):
-        rst = self._ads.set_input_source(src)
+        rst = self._api.set_input_source(src)
         if rst is not None:
             self.input_source = src
-            print(self._name + 'input source set to {}'.format(rst))
+            logger.info(self.name + ' input source set to {}'.format(rst))
             return True
-        print(self._name + 'invalid input source {}'.fotmat(src))
+        logger.error(self.name + ' invalid input source {}'.fotmat(src))
         return False
 
-    def start(self, device=(0, 0), *a, **k):
+    def start(self, device=None, *a, **k):
         if self._started:
             self.resume()
             return
         # 1. find avalable spi devices
-        print(self._name + 'finding available spi devices... ', end='')
-        device = device if device is not None else find_spi_devices()
-        self._ads.open(device)
-        self._ads.start(self.sample_rate)
-        print('`spi%d-%d` opened.' % device)
+        logger.debug(self.name + ' finding available spi devices... ')
+        device = device or find_spi_devices()
+        self._api.open(device)
+        self._api.start(self.sample_rate)
+        logger.debug(self.name + ' `/dev/spidev%d-%d` opened.' % device)
         # 2. start get data process
         if self._send_to_pylsl:
             self._outlet = pylsl.StreamOutlet(
                 pylsl.StreamInfo(
-                    'SPI_reader', 'unknown', self.n_channel,
+                    'SPIReader', 'Reader Outlet', self.num_channel,
                     self.sample_rate, 'float32', 'spi%d-%d ' % device))
-            print(self._name + 'pylsl outlet established')
-        super(ADS1299_reader, self).start(*a, **k)
+            logger.debug(self.name + ' pylsl outlet established')
+        super(ADS1299SPIReader, self).start(*a, **k)
 
     def close(self):
-        self._ads.close()
-        super(ADS1299_reader, self).close()
+        self._api.close()
+        super(ADS1299SPIReader, self).close()
 
     def _save_data_in_buffer(self):
-        d = self._ads.read()
-        self._data[:-1, self._index] = d[:self.n_channel]
+        d = self._api.read()
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
         if self._send_to_pylsl:
             self._outlet.push_sample(d)
 
 
-class ESP32_SPI_reader(ADS1299_reader):
+class ESP32SPIReader(ADS1299SPIReader):
     '''
     Read data from SPI connection with onboard ESP32.
     This class is only used on ARM.
     '''
-    _singleton = True
-
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1,
-                 send_to_pylsl=False, measure_impedance=False,
-                 enable_bias=True, *a, **k):
-        if ESP32_SPI_reader._singleton is False:
-            raise RuntimeError('There is already one ESP32 SPI reader.')
-        super(ADS1299_reader, self).__init__(sample_rate,
-                                             sample_time,
-                                             n_channel)
-        self._name = '[ESP32 SPI reader] '
-        self._send_to_pylsl = send_to_pylsl
-        self._ads = self._esp = ESP32_API()
-
-        self.enable_bias = property(
-            lambda: getattr(self._ads, 'enable_bias'),
-            lambda v: setattr(self._ads, 'enable_bias', v))
-        self.measure_impedance = property(
-            lambda: getattr(self._ads, 'measure_impedance'),
-            lambda v: setattr(self._ads, 'measure_impedance', v))
-        self.enable_bias = enable_bias
-        self.measure_impedance = measure_impedance
-        self.input_source = 'normal'
-
-        ESP32_SPI_reader._singleton = False
-
-    def __del__(self):
-        ESP32_SPI_reader._singleton = True
-        del self
+    __metaclass__ = Singleton
+    name = '[ESP32 SPI reader]'
+    API = ESP32_API
 
 
-class Socket_TCP_reader(_basic_reader):
+class SocketTCPReader(BaseReader):
     '''
     Socket TCP client, data reciever.
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Socket_TCP_reader, self).__init__(sample_rate,
-                                                sample_time,
-                                                n_channel)
-        self._name = '[Socket TCP reader %d] ' % Socket_TCP_reader._num
-        Socket_TCP_reader._num += 1
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=1, *a, **k):
+        super(SocketTCPReader, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Socket TCP reader %d]' % SocketTCPReader.__num__)
+        SocketTCPReader.__num__ += 1
 
     def start(self, *a, **k):
         if self._started:
             self.resume()
             return
         # 1. IP addr and port are offered by user, connect to that host:port
-        print(self._name + 'configuring addr... input "quit" to abort')
+        logger.debug(self.name + ' configure IP address')
         while 1:
-            r = check_input(('please input an address in format "host,port"\n'
-                             '>>> 192.168.0.1:8888 (example)\n>>> '), {})
+            r = check_input((
+                'Please input an address "host:port".\n'
+                'Type `quit` to abort.\n'
+                '> 192.168.0.1:8888 (example)\n> '), {})
             if r == 'quit':
-                raise SystemExit(self._name + 'mannually exit')
+                raise SystemExit(self.name + ' mannually exit')
             host, port = r.replace('localhost', '127.0.0.1').split(':')
             if int(port) <= 0:
-                print('port must be positive num')
+                logger.error('port must be positive num')
                 continue
             try:
                 socket.inet_aton(host)  # check if host is valid string
                 break
             except socket.error:
-                print(self._name + 'invalid addr!')
+                logger.error(self.name + ' invalid addr!')
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
+        self.input_source = ':'.join([host, port])
         # 2. read data in another thread
-        super(Socket_TCP_reader, self).start(*a, **k)
+        super(SocketTCPReader, self).start(*a, **k)
 
     def close(self):
         '''
@@ -727,7 +986,7 @@ class Socket_TCP_reader(_basic_reader):
         to let server socket close the connection.
         '''
         # stop data streaming process/thread
-        super(Socket_TCP_reader, self).close()
+        super(SocketTCPReader, self).close()
         # notice server to shutdown
         self._client.send('shutdown')
         # wait for msg, server will sendback `shutdown` twice to
@@ -741,23 +1000,22 @@ class Socket_TCP_reader(_basic_reader):
         # 8-channel float32 data = 8*32bits = 32bytes
         # d is np.ndarray with a shape of (8, 1)
         d = np.frombuffer(self._client.recv(32), np.float32)
-        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
 
 
-class Socket_UDP_reader(_basic_reader):
+class SocketUDPReader(BaseReader):
     '''
     Socket UDP client, data receiver.
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, sample_rate=250, sample_time=2, n_channel=1, *a, **k):
-        super(Socket_UDP_reader, self).__init__(sample_rate,
-                                                sample_time,
-                                                n_channel)
-        self._name = '[Socket UDP reader %d] ' % Socket_UDP_reader._num
-        Socket_UDP_reader._num += 1
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=1, *a, **k):
+        super(SocketUDPReader, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Socket UDP reader %d]' % SocketUDPReader.__num__)
+        SocketUDPReader.__num__ += 1
 
     def start(self, *a, **k):
         raise
@@ -769,35 +1027,33 @@ class Socket_UDP_reader(_basic_reader):
         # 8-channel float32 data = 8*32bits = 32bytes
         # d is np.ndarray with a shape of (8, 1)
         d = np.frombuffer(self._client.recv(32), np.float32)
-        self._data[:-1, self._index] = d[:self.n_channel]
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time
         self._index = (self._index + 1) % self.window_size
 
 
-class Socket_TCP_server(object):
+class SocketTCPServer(object):
     '''
     Socket TCP server on host:port, default to 0.0.0.0:9999
     Data sender.
     '''
-    _num = 1
+    __num__ = 1
 
     def __init__(self, host='0.0.0.0', port=9999):
-        # if host is None:
-        #     host = get_self_ip_addr()
-        self._name = '[Socket server %d] ' % Socket_TCP_server._num
+        self.name = '[Socket server %d]' % SocketTCPServer.__num__
+        SocketTCPServer.__num__ += 1
         self._conns = []
         self._addrs = []
-        Socket_TCP_server._num += 1
         # TCP IPv4 socket connection
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.bind((host, port))
         self._server.listen(5)
         self._server.settimeout(0.5)
         self._flag_close = threading.Event()
-        print(self._name + 'binding socket server at %s:%d' % (host, port))
+        logger.debug('{} binding socket server at {}:{}'.format(
+            self.name, host, port))
 
     def start(self):
-        # handle connection in a seperate thread
         self._flag_close.clear()
         self._thread = threading.Thread(target=self._manage_connections)
         self._thread.setDaemon(True)
@@ -806,163 +1062,74 @@ class Socket_TCP_server(object):
     def _manage_connections(self):
         while not self._flag_close.is_set():
             # manage all connections and wait for new client
-            rst = select.select([self._server] + self._conns, [], [], 3)
-            if not rst[0]:
+            rst, _, _ = select.select([self._server] + self._conns, [], [], 3)
+            if not rst:
                 continue
-            s = rst[0][0]
+            s = rst[0]
             # new connection
             if s is self._server:
                 con, addr = self._server.accept()
                 con.settimeout(0.5)
-                print('{}accept client from {}:{}'.format(self._name, *addr))
+                logger.debug('{} accept client from {}:{}'.format(
+                    self.name, *addr))
                 self._conns.append(con)
                 self._addrs.append(addr)
             # some client maybe closed
             elif s in self._conns:
-                t = s.recv(4096)
+                msg = s.recv(4096)
                 addr = self._addrs[self._conns.index(s)]
-                # client shutdown and we should clear correspond server
-                if t in ['shutdown', '']:
-                    try:
-                        s.sendall('shutdown')
-                        s.shutdown(socket.SHUT_RDWR)
-                    except:
-                        traceback.print_exc()
-                    finally:
-                        s.close()
-                    self._conns.remove(s)
-                    self._addrs.remove(addr)
-                    print('{}lost client from {}:{}'.format(self._name, *addr))
                 # client sent some data
-                else:
-                    print('{}recv {} from {}:{}'.format(self._name, t, *addr))
-        print(self._name + 'socket manager say goodbye to you ;-)')
+                if msg not in ['shutdown', '']:
+                    logger.info('{} recv `{}` from {}:{}'.format(
+                        self.name, msg, *addr))
+                    continue
+                # client shutdown and we should clear correspond server
+                try:
+                    s.sendall('shutdown')
+                    s.shutdown(socket.SHUT_RDWR)
+                except socket.error:
+                    logger.error(traceback.format_exc())
+                finally:
+                    s.close()
+                self._conns.remove(s)
+                self._addrs.remove(addr)
+                logger.debug('{} lost client from {}:{}'.format(
+                    self.name, *addr))
+        logger.debug(self.name + ' socket manager terminated')
 
     def send(self, data):
         data = data.tobytes()
         try:
             for con in self._conns:
                 con.sendall(data)
-        except:
+        except socket.error:
             pass
 
     def close(self):
         self._flag_close.set()
-        print(self._name + 'stop broadcasting data...')
         for con in self._conns:
             con.close()
-        # self._server.close()
-        print(self._name + 'Socket server shut down.')
+        logger.debug(self.name + ' Socket server shut down.')
 
     def has_listeners(self):
         return len(self._conns)
 
 
-command_dict_plane = {
-    'left':       ['3', 0.5],
-    'right':      ['4', 0.5],
-    'up':         ['1', 0.5],
-    'down':       ['2', 0.5],
-    'disconnect': ['9', 0.5],
-    '_desc':     ("plane war game support command : "
-                  "left, right, up, down, disconnect")}
+class BaseCommander(object):
+    name = '[embci.io.Commander]'
+    _command_dict = command_dict_null
 
-command_dict_glove_box = {
-    'thumb':        ['1', 0.5],
-    'index':        ['2', 0.5],
-    'middle':       ['3', 0.5],
-    'ring':         ['5', 0.5],
-    'little':       ['4', 0.5],
-    'grab-all':     ['6', 0.5],
-    'relax':        ['7', 0.5],
-    'grab':         ['8', 0.5],
-    'thumb-index':  ['A', 0.5],
-    'thumb-middle': ['B', 0.5],
-    'thumb-ring':   ['C', 0.5],
-    'thumb-little': ['D', 0.5],
-    '_desc':       ("This is a dict for glove box version 1.0.\n"
-                    "Support command:\n\t"
-                    "thumb, index, middle, ring\n\t"
-                    "little, grab-all, relax, grab\n")}
-
-command_dict_arduino_screen_v1 = {
-    'point':  ['#0\r\n{x},{y}\r\n', 0.5],
-    'line':   ['#1\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-    'circle': ['#2\r\n{x},{y},{r}\r\n', 0.5],
-    'rect':   ['#3\r\n{x1},{y1},{x2},{y2}\r\n', 0.5],
-    'text':   ['#4\r\n{x},{y},{s}\r\n', 0.5],
-    'clear':  ['#5\r\n', 1.0],
-    '_desc': ("Arduino-controlled SSD1306 0.96' 128x64 OLED screen v1.0:\n"
-              "you need to pass in args as `key`=`value`(dict)\n\n"
-              "Commands | args\n"
-              "point    | x, y\n"
-              "line     | x1, y1, x2, y2\n"
-              "circle   | x, y, r\n"
-              "rect     | x1, y1, x2, y2\n"
-              "text     | x, y, s\n")}
-
-command_dict_arduino_screen_v2 = {
-    'points': ['P{:c}{}', 0.1],
-    'point':  ['D{:c}{}', 0.05],
-    'text':   ['S{:c}{:s}', 0.1],
-    'clear':  ['C', 0.5],
-    '_desc': ("Arduino-controlled ILI9325D 2.3' 220x176 LCD screen v1.0:\n"
-              "Commands | Args\n"
-              "points   | len(pts), bytearray([y for x, y in pts])\n"
-              "point    | len(pts), bytearray(np.uint8(pts).reshape(-1))\n"
-              "text     | len(str), str\n"
-              "clear    | no args, clear screen\n")}
-
-command_dict_uart_screen_v1 = {
-    'point':   ['PS({x},{y},{c});\r\n', 0.38/220],
-    'line':    ['PL({x1},{y1},{x2},{y2},{c});\r\n', 3.5/220],
-    'circle':  ['CIR({x},{y},{r},{c});\r\n', 3.0/220],
-    'circlef': ['CIRF({x},{y},{r},{c});\r\n', 8.0/220],
-    'rect':    ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-    'rrect':   ['BOX({x1},{y1},{x2},{y2},{c});\r\n', 3.0/220],
-    'rectf':   ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-    'rrectf':  ['BOXF({x1},{y1},{x2},{y2},{c});\r\n', 15.0/220],
-    'text':    ['DC16({x},{y},{s},{c});\r\n', 15.0/220],
-    'dir':     ['DIR({:d});\r\n', 3.0/220],
-    'clear':   ['CLR(0);\r\n', 10.0/220],
-    '_desc':  ("UART-controlled Winbond 2.3' 220x176 LCD screen:\n"
-               "Commands | Args\n"
-               "point    | x, y, c\n"
-               "line     | x1, y1, x2, y2, c\n"
-               "circle   | x, y, r, c\n"
-               "circlef  | x, y, r, c, filled circle\n"
-               "rect     | x1, y1, x2, y2, c\n"
-               "rectf    | x1, y1, x2, y2, c, filled rectangle\n"
-               "text     | x, y, s(string), c(color)\n"
-               "dir      | one num, 0 means vertical, 1 means horizental\n"
-               "clear    | clear screen will black\n")}
-
-command_dict_esp32 = {
-    'start':     ['', 0.2],
-    'write':     ['', 0.3],
-    'writereg':  ['', 0.5],
-    'writeregs': ['', 0.5],
-    'readreg':   ['', 0.5],
-    'readregs':  ['', 0.5],
-    '_desc':    ("This dict is used to commucate with onboard ESP32.\n"
-                 "Supported command:\n\t"
-                 "start: init ads1299 and start RDATAC mode\n\t"
-                 "write: nothing\n\t"
-                 "writereg: write single register\n\t"
-                 "writeregs: write a list of registers\n\t"
-                 "readreg: read single register\n\t"
-                 "readregs: read a list of registers\n\t")}
-
-
-class _basic_commander(object):
-    def __init__(self, command_dict):
-        self._command_dict = command_dict
-        self._name = '[basic commander] '
+    def __init__(self, command_dict=None, name=None, *a, **k):
+        self.name = name or self.name
+        self._command_dict = command_dict or self._command_dict
         try:
-            print('[Command Dict] %s' % command_dict['_desc'])
-        except:
-            print('[Command Dict] current command dict does not have a '
-                  'key named _desc to describe itself. please add it.')
+            logger.debug('[Command Dict] %s' % self._command_dict['_desc'])
+        except KeyError:
+            logger.warn('[Command Dict] current command dict does not have a '
+                        'key named _desc to describe itself. please add it.')
+        # alias `write` to make instance a file-like object
+        self.write = self.send
+        self.flush = self.seek = self.truncate = lambda *a, **k: None
 
     def start(self):
         raise NotImplementedError('you can not directly use this class')
@@ -970,39 +1137,40 @@ class _basic_commander(object):
     def send(self, key, *args, **kwargs):
         raise NotImplementedError('you can not directly use this class')
 
-    write = send
-
-    def check_key(self, key):
-        if key not in self._command_dict:
-            print(self._name + 'Wrong command {}! Abort.'.format(key))
+    def get_command(self, cmd, warning=True):
+        if cmd not in self._command_dict:
+            if warning:
+                logger.warn('{} command {} is not supported'.format(
+                    self.name, cmd))
             return
+        return self._command_dict[cmd]
 
     def close(self):
         raise NotImplementedError('you can not directly use this class')
 
 
-class Torcs_commander(_basic_commander):
+class TorcsCommander(BaseCommander):
     '''
-    Send command to TORCS(The Open Race Car Simulator)
+    Send command to TORCS (The Open Race Car Simulator)
     You can output predict result from classifier to the
     game to control race car(left, right, throttle, brake...)
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, command_dict={}, *args, **kwargs):
-        super(Torcs_commander, self).__init__(command_dict)
-        self._name = '[Torcs commander %d] ' % Torcs_commander._num
-        Torcs_commander._num += 1
+    def __init__(self, *a, **k):
+        super(TorcsCommander, self).__init__(
+            name='[Torcs commander %d]' % TorcsCommander.__num__)
+        TorcsCommander.__num__ += 1
 
     def start(self):
-        print(self._name + 'initializing TORCS...')
+        logger.debug(self.name + ' initializing TORCS...')
         self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
         self.env.reset()
 
-    @Timer.duration('Torcs_commander', 1)
+    @duration(1, 'TorcsCommander')
     def send(self, key, prob, *args, **kwargs):
         cmd = [abs(prob) if key == 'right' else -abs(prob)]
-        print(self._name + 'sending cmd {}'.format(cmd))
+        logger.debug(self.name + ' sending cmd {}'.format(cmd))
         self.env.step(cmd)
         return cmd
 
@@ -1010,355 +1178,118 @@ class Torcs_commander(_basic_commander):
         self.env.end()
 
 
-class Plane_commander(_basic_commander):
+class PlaneCommander(BaseCommander):
     '''
-    Send command to plane war game.
-    Controlling plane with `left`, `right`, `up` and `down`.
+    Send command to plane war game. Control plane with commands
+    [`left`, `right`, `up` and `down`].
     '''
-    _singleton = True
+    __singleton__ = True
+    name = '[Plane commander]'
 
     def __init__(self, command_dict=command_dict_plane):
-        if Plane_commander._singleton is False:
-            raise RuntimeError('There is already one Plane Commander.')
-        super(Plane_commander, self).__init__(command_dict)
-        self._name = '[Plane commander] '
-        Plane_commander._singleton = False
+        if PlaneCommander.__singleton__ is False:
+            raise RuntimeError('There is already one ' + self.name)
+        super(PlaneCommander, self).__init__(command_dict)
+        PlaneCommander.__singleton__ = False
 
     def start(self):
         self.client = PlaneClient()
 
-    @Timer.duration('Plane_commander', 1)
+    @duration(1, 'PlaneCommander')
     def send(self, key, *args, **kwargs):
-        self.check_key(key)
-        cmd, delay = self._command_dict[key]
-        self.client.send(cmd)
-        time.sleep(delay)
-        return cmd
+        ret = self.get_command(key)
+        if ret is None:
+            return
+        self.client.send(ret[0])
+        time.sleep(ret[1])
+        return ret[0]
 
     def close(self):
-        pass
+        self.client.close()
 
 
-class Pylsl_commander(_basic_commander):
+class PylslCommander(BaseCommander):
     '''
-    Send predict result to pylsl as an online command stream
+    Broadcast string[s] by pylsl.StreamOutlet as an online command stream.
     '''
-    _num = 1
+    __num__ = 1
 
-    def __init__(self, command_dict={'_desc': 'send command to pylsl'}):
-        super(Pylsl_commander, self).__init__(command_dict)
-        self._name = '[Pylsl commander %d] ' % Pylsl_commander._num
-        Pylsl_commander._num += 1
+    def __init__(self, command_dict=None, name=None):
+        super(PylslCommander, self).__init__(
+            command_dict,
+            name or '[Pylsl commander %d]' % PylslCommander.__num__)
+        PylslCommander.__num__ += 1
 
-    def start(self):
+    def start(self, name=None, source=None):
+        '''
+        Initialize and start pylsl outlet.
+
+        Parameters
+        ----------
+        name : str, optional
+            Name describes the data stream or session name.
+        source : str
+            Source specifies an unique identifier of the device or
+            data generator, such as serial number or MAC.
+
+        Examples
+        --------
+        >>> c = PylslCommander(name='pylsl commander 2')
+        >>> c.start('result of recognition', 'EmBCI Hardware Re.A7.1221')
+        >>> pylsl.resolve_bypred("contains('recognition')")
+        [<pylsl.pylsl.StreamInfo instance at 0x7f3e82d8c3b0>]
+        '''
         self._outlet = pylsl.StreamOutlet(
             pylsl.StreamInfo(
-                'Pylsl_commander', 'predict result', 1,
-                0.0, 'string', 'pylsl commander'))
+                name or self.name, type='predict result',
+                channel_format='string', source_id=source or self.name))
 
-    @Timer.duration('Pylsl commander', 0)
     def send(self, key, *args, **kwargs):
-        if isinstance(key, str):
-            self._outlet.push_sample([key])
+        if not isinstance(key, str):
+            raise TypeError('{} only accept str but got {}: {}'.format(
+                self.name, type(key), key))
+        self._outlet.push_sample([ensure_unicode(key)])
+
+    def close(self):
+        del self._outlet
+
+
+class SerialCommander(BaseCommander):
+    __num__ = 1
+
+    def __init__(self, command_dict=None, name=None):
+        super(SerialCommander, self).__init__(
+            command_dict,
+            name or '[Serial Commander %d]' % SerialCommander.__num__)
+        self._command_lock = threading.Lock()
+        self._command_serial = serial.Serial()
+        SerialCommander.__num__ += 1
+
+    def start(self, port=None, baudrate=9600):
+        self._command_serial.port = port or find_serial_ports()
+        self._command_serial.baudrate = baudrate
+        self._command_serial.open()
+
+    def send(self, key, *args, **kwargs):
+        ret = self.get_command(key)
+        if ret is None:
             return
-        raise RuntimeError(self._name +
-                           'only accept str but got {}'.format(type(key)))
+        with self._command_lock:
+            self._command_serial.write(ret[0])
+            time.sleep(ret[1])
+        return ret[0]
 
     def close(self):
-        pass
-
-
-class Serial_commander(_basic_commander):
-    _lock = threading.Lock()
-    _num = 1
-
-    def __init__(self, baudrate=9600,
-                 command_dict=command_dict_glove_box,
-                 CR=True, LF=True):
-        super(Serial_commander, self).__init__(command_dict)
-        self._serial = serial.Serial(baudrate=baudrate)
-        self._CR = CR
-        self._LF = LF
-        self._name = '[Serial commander %d] ' % Serial_commander._num
-        Serial_commander._num += 1
-
-    def start(self, port=None):
-        print(self._name + 'finding availabel ports... ', end='')
-        port = port if port else find_ports()
-        self._serial.port = port
-        self._serial.open()
-        print('`%s` opened.' % port)
-
-    @Timer.duration('Serial_commander', 5)
-    def send(self, key, *args, **kwargs):
-        self.check_key(key)
-        cmd, delay = self._command_dict[key]
-        with self._lock:
-            self._serial.write(cmd)
-            if self._CR:
-                self._serial.write('\r')
-            if self._LF:
-                self._serial.write('\n')
-            time.sleep(delay)
-        return cmd
-
-    def close(self):
-        self._serial.close()
+        self._command_serial.close()
 
     def reconnect(self):
         try:
-            self._serial.close()
+            self._command_serial.close()
             time.sleep(1)
-            self._serial.open()
-            print(self._name + 'reconnect success.')
-        except:
-            print(self._name + 'reconnect failed.')
+            self._command_serial.open()
+            logger.info(self.name + ' reconnect success.')
+        except serial.serialutil.SerialException:
+            logger.error(self.name + ' reconnect failed.')
 
 
-class _convert_24bit_to_15():
-    def __getitem__(self, v):
-        if isinstance(v, int) and v <= 0xFFFFFF and v >= 0:
-            return int(float(v) / 0xFFFFFF * 15)
-        raise KeyError('')
-
-
-class Serial_Screen_commander(Serial_commander):
-    _color_map = {
-        str: {
-            'black': 0, 'red': 1, 'green': 2, 'blue': 3, 'yellow': 4,
-            'cyan': 5, 'purple': 6, 'gray': 7, 'grey': 8, 'brown': 9,
-            'orange': 13, 'pink': 14, 'white': 15},
-        int: {}}
-
-    def __init__(self, baud=115200, command_dict=command_dict_uart_screen_v1):
-        super(Serial_Screen_commander, self).__init__(baud, command_dict)
-        self._name = self._name[:-2] + ' for screen' + self._name[-2:]
-
-    def send(self, key, *a, **k):
-        self.check_key(key)
-        if key == 'img':
-            self._plot_img_point_by_point(k)
-            return 'img'
-        cmd, delay = self._command_dict[key]
-        if 'c' in k:
-            assert type(k['c']) in self._color_map, 'c only can be str or int'
-            try:
-                k['c'] = self._color_map[type(k['c'])][k['c']]
-            except KeyError:
-                raise ValueError('Unsupported color: {}'.format(k['c']))
-        try:
-            cmd = cmd.format(*a, **k)
-        except IndexError:
-            print(self._name +
-                  'unmatch key {} - {} and params {}!'.format(key, cmd, a))
-        with self._lock:
-            self._serial.write(cmd)
-        time.sleep(delay)
-        return cmd
-
-    def _plot_img_point_by_point(self, e):
-        img = e['img'].copy()
-        x1, y1, x2, y2 = e['x1'], e['y1'], e['x2'], e['y2']
-        if len(img.shape) == 3:
-            img = img[:, :, 0]
-        cmd, delay = self._command_dict['point']
-        with self._lock:
-            for x, y in [(x, y) for x in range(x2-x1) for y in range(y2-y1)]:
-                if img[y, x] > 15:
-                    continue
-                tosend = cmd.format(x=e['x1'] + x, y=e['y1'] + y, c=img[y, x])
-                self._serial.write(tosend)
-                time.sleep(delay)
-
-    def close(self):
-        self.send('clear', c='black')
-        super(Serial_Screen_commander, self).close()
-
-    def getsize(self, s, size=None, font=None):
-        '''
-        Get width and height of string `s` with `size` and `font`
-        Returns
-        -------
-        w, h: tuple | None
-            size in pixel
-        s: str | None
-            string in correct encoding
-        font_path: str | None
-            If param `font` offered, check whether font exist. If font file not
-            exists or supported, return None.
-        '''
-        # Although there is already `# -*- coding: utf-8 -*-` above,
-        # we'd better explicitly use utf-8 to decode string in py2.
-        # py3 default use utf-8 coding, which is really really nice.
-        if sys.version_info.major == 2 and not isinstance(s, unicode):
-            s = s.decode('utf8')
-        # Serial Screen use 8 pixels for English characters and 16 pixels for
-        # Chinese characters(GBK encoding)
-        en_zh = [ord(char) > 255 for char in s]
-        return en_zh.count(False)*8 + en_zh.count(True)*16, 16
-
-
-class _convert_24bit_to_565():
-    def __getitem__(self, v):
-        if isinstance(v, int) and v <= 0xFFFFFF and v >= 0:
-            return rgb24to565(v)
-        raise KeyError('')
-
-
-class SPI_Screen_commander(_basic_commander):
-    _color_map = {
-        str: {
-            'white': [0xFF, 0xFF], 'red': [0xF8, 0x00], 'orange': [0xEC, 0xAF],
-            'cyan': [0x07, 0xFF], 'pink': [0xF8, 0x1F], 'yellow': [0xFF, 0xE0],
-            'black': [0x00, 0x00], 'blue': [0x00, 0x1F], 'green': [0x07, 0xE0],
-            'purple': [0x41, 0x2B]},
-        int: _convert_24bit_to_565()}
-    _singleton = True
-
-    def __init__(self, spi_device, width=None, height=None):
-        if SPI_Screen_commander._singleton is False:
-            raise RuntimeError('There is already one SPI Screen Commander.')
-        self._ili = ILI9341_API(spi_device, width=width, height=height)
-        self._ili.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
-        self._name = '[SPI screen commander] '
-        self.width, self.height = width, height
-        self._command_dict = {}  # this is a fake commander so leave it empty
-        SPI_Screen_commander._singleton = False
-
-    def getsize(self, s, size=None, font=None):
-        '''
-        get
-        Returns
-        -------
-        w, h: tuple | None
-            size in pixel
-        s: str | None
-            string in correct encoding
-        font_path: str | None
-            If param `font` offered, check whether font exist. If font file not
-            exists or supported, return None.
-        '''
-        if sys.version_info.major == 2 and not isinstance(s, unicode):
-            s = s.decode('utf8')
-        if size is not None:
-            self._ili.setsize(size)
-        if font is not None and os.path.exist(font):
-            font_backup = self._ili.font.path
-            try:
-                self._ili.setfont(font)
-                w, h = self._ili.font.getsize(s)
-                return w/2, h/2
-            except:
-                self._ili.setfont(font_backup)
-        w, h = self._ili.font.getsize(s)
-        return w/2, h/2
-
-    def start(self):
-        self._ili.start()
-        self.width, self.height = self._ili.width, self._ili.height
-
-    def send(self, key, *a, **k):
-        '''
-        Never inherit API class, just use it. Because funcitons with same
-        names may conflict with each other!
-        super(aaa, self).bbb() is not a good idea.
-        '''
-        if 'c' in k:
-            assert type(k['c']) in self._color_map, 'c only can be str or int'
-            try:
-                k['c'] = self._color_map[type(k['c'])][k['c']]
-            except KeyError:
-                raise ValueError('Unsupported color: {}'.format(k['c']))
-        # if 'bg' in k and k['bg'] is not None:
-        #     assert type(k['bg']) in self._color_map, 'bg can be str or int'
-        #     try:
-        #         k['bg'] = self._color_map[type(k['bg'])][k['bg']]
-        #         k['bg'] = list(ILI9341_API.rgb565to888(*k['bg']))
-        #     except NameError:
-        #         raise ValueError('Unsupported bg color: {}'.format(k['bg']))
-        if hasattr(self._ili, 'draw_' + key):
-            getattr(self._ili, 'draw_' + key)(*a, **k)
-        elif hasattr(self._ili, key):
-            getattr(self._ili, key)(*a, **k)
-        else:
-            print(self._name + 'No such key `{}`!'.format(key))
-
-    def close(self):
-        self._ili.close()
-
-
-class _testReader(unittest.TestCase):
-    def setUp(self):
-        print('=' * 80)
-        self.username = 'test'
-        self._r = Fake_data_generator(sample_rate=10,
-                                      sample_time=2,
-                                      n_channel=8)
-        self._r.start()
-        print('=' * 80)
-
-    def tearDown(self):
-        print('=' * 80)
-        self._r.close()
-        print('=' * 80)
-
-    def test_1_test_reader(self):
-        '''
-        test Fake_data_generator reader
-        '''
-        print('=' * 80)
-        print('Is streaming: {}'.format(self._r.is_streaming))
-        print('Real sample_rate: {}'.format(self._r.real_sample_rate))
-        for i in range(5):
-            print(self._r.data_channel)
-        self._r.pause()
-        self._r.resume()
-        print(self._r.data_frame)
-        print('=' * 80)
-
-    def test_2_load_data(self):
-        '''
-        try to load all data of user `test`
-        '''
-        print('=' * 80)
-        data, label, action_dict = load_data(self.username)
-        print('load data with shape of {}'.format(data.shape))
-        print('label: {}'.format(label))
-        print('action_dict: {}'.format(action_dict))
-
-    def test_3_save_data(self):
-        '''
-        then save into one file and delete it
-        '''
-        print('=' * 80)
-        data = np.zeros((1, 8, 250))
-        save_data(self.username, data, 'aabbcc', 250, print_summary=True)
-        datafile = os.path.join(BASEDIR, 'data', self.username, 'aabbcc*')
-        os.system('rm ' + datafile)
-        print('=' * 80)
-
-
-class _testCommander(unittest.TestCase):
-    def setUp(self):
-        self.stop = virtual_serial()
-        self._c = Serial_Screen_commander()
-        self._c.start()
-
-    def tearDown(self):
-        self.stop.set()
-        self._c.close()
-
-    def test_draw_circle(self):
-        self._c.send('circle', 10, 20, 5, 'black')
-
-
-if __name__ == '__main__':
-    suite = unittest.TestSuite()
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testReader))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(_testCommander))
-    filename = os.path.join(BASEDIR, 'files/test/test-%s.html' % __file__)
-    with open(filename, 'w') as f:
-        HTMLTestRunner(stream=f,
-                       title='%s Test Report' % __name__,
-                       description='generated at ' + time_stamp(),
-                       verbosity=2).run(suite)
+# THE END
