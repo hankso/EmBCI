@@ -30,7 +30,7 @@ fi
 ./esptool.py \
     --chip esp32 \
     --port ${PORT} \
-    --baud 115200 \
+    --baud 500000 \
     --before no_reset \
     --after no_reset \
     write_flash -z \

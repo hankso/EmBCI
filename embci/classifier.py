@@ -16,19 +16,17 @@ import math
 import numpy as np
 from sklearn import svm
 
-# Redirect `Using X backend.` log to `/dev/null`.
+# Mute `Using X backend.` log.
 # See #1406 @ https://github.com/keras-team/keras/issues/1406
-stderr = sys.stderr
-with open(os.devnull, 'w') as sys.stderr:
+from .utils import TempStream
+with TempStream(stderr=None):
     import keras
-sys.stderr = stderr
-del stderr
 
 from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras.layers import MaxPooling2D, TimeDistributed, LSTM
 from keras.utils.np_utils import to_categorical
 
-from .preprocess import Signal_Info
+from .processing import SignalInfo
 
 
 class Models():
@@ -56,20 +54,18 @@ class Models():
         self.built = False
         self.model_type = model_type
         self.fs = sample_rate
-        self._p = Signal_Info(sample_rate)
+        self._p = SignalInfo(sample_rate)
         self._result = None
         self._preprocessers = []
 
-    def build(self, nb_classes, input_shape):
+    def build(self, nb_classes, shape):
         self._preprocessers = []
         if self.model_type == 'Default':
-            '''
-            src: n_sample x n_channel x window_size
-            out: n_sample x freq x time x n_channel
-            label: n_sample x 1
-            freq: int(1 + math.floor(float(nperseg)/2))
-            time: int(1 + math.ceil(float(window_size)/(nperseg-noverlap)))
-            '''
+            #  src: n_sample x n_channel x window_size
+            #  out: n_sample x freq x time x n_channel
+            #  label: n_sample x 1
+            #  freq: int(1 + math.floor(float(nperseg)/2))
+            #  time: int(1 + math.ceil(float(window_size)/(nperseg-noverlap)))
             self._preprocessers += [self._p.detrend]
             self._preprocessers += [self._p.notch]
             self._preprocessers += [self._p.stft]
@@ -77,10 +73,10 @@ class Models():
 
             nperseg = int(self.fs / 5)
             noverlap = int(self.fs / 5 * 0.67)
-            f = int(1+math.floor(float(nperseg)/2))
-            t = int(1+math.ceil(float(input_shape[2])/(nperseg-noverlap)))
+            f = int(1 + math.floor(float(nperseg) / 2))
+            t = int(1 + math.ceil(float(shape[2]) / (nperseg - noverlap)))
 
-            self._Default(nb_classes, (f, t, input_shape[1]))
+            self._Default(nb_classes, (f, t, shape[1]))
             self.epochs, self.batch_size = 60, 25
 
         elif self.model_type == 'CNN_LSTM':
@@ -90,27 +86,23 @@ class Models():
             self._preprocessers += [lambda X: np.transpose(X, (0, 2, 3, 1))]
             nperseg = int(self.fs / 5)
             noverlap = int(self.fs / 5 * 0.67)
-            f = int(1+math.floor(float(nperseg)/2))
-            t = int(1+math.ceil(float(input_shape[2])/(nperseg-noverlap)))
-            self._CNN_LSTM(nb_classes, (f, t, input_shape[1]))
+            f = int(1 + math.floor(float(nperseg) / 2))
+            t = int(1 + math.ceil(float(shape[2]) / (nperseg - noverlap)))
+            self._CNN_LSTM(nb_classes, (f, t, shape[1]))
             self.epochs, self.batch_size = 60, 20
 
         elif self.model_type == 'Double_Dense':
-            '''
-            src: n_sample x n_channel x window_size
-            out: n_sample x n_channel x window_size
-            label: n_sample x 1
-            '''
+            #  src: n_sample x n_channel x window_size
+            #  out: n_sample x n_channel x window_size
+            #  label: n_sample x 1
             self._preprocessers += [self._p.detrend, self._p.notch]
-            self._Double_Dense(nb_classes, input_shape[1:])
+            self._Double_Dense(nb_classes, shape[1:])
             self.epochs, self.batch_size = 200, 15
 
         elif self.model_type == 'SVM':
-            '''
-            src: n_sample x n_channel x window_size
-            out: n_sample x series(n_channel * freq * time)
-            label:  n_sample x 1
-            '''
+            #  src: n_sample x n_channel x window_size
+            #  out: n_sample x series(n_channel * freq * time)
+            #  label:  n_sample x 1
             self._preprocessers += [self._p.detrend,
                                     self._p.notch,
                                     self._p.stft]

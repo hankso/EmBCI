@@ -1,113 +1,241 @@
 #!/usr/bin/env python
 # coding=utf-8
+#
+# File: EmBCI/embci/webui/__init__.py
+# Author: Hankso
+# Webpage: http://github.com/hankso
+# Time: Fri 14 Sep 2018 21:51:46 CST
+
 '''
-File: EmBCI/embci/webui/__init__.py
-Author: Hankso
-Web: http://github.com/hankso
-Time: Fri Sep 14 21:51:46 2018
+webui
 '''
-from __future__ import absolute_import, division, print_function
 
 # built-in
+from __future__ import absolute_import
 import os
 import sys
-import time
+import logging
+import functools
 import importlib
 import traceback
+from logging.handlers import RotatingFileHandler
 
-# requirements.txt: network: bottle, bottle-websocket
+# requirements.txt: network: bottle, gevent, gevent-websocket
 # requirements.txt: optional: argparse
-# deprecated: necessary: mod_wsgi(cooperate with Apache server)
-from bottle import Bottle, static_file, redirect, response, run
-from bottle.ext.websocket import GeventWebSocketServer
+import bottle
+import gevent
+from geventwebsocket.handler import WebSocketHandler
 try:
     import argparse
     from packaging import version
-    assert version.parse(argparse.__version__) >= version.parse("1.4.0")
-except:
-    from embci.utils import argparse as argparse
+    if version.parse(argparse.__version__) >= version.parse("1.4.0"):
+        raise ImportError
+except ImportError:
+    from ..utils import argparse as argparse
 
-from embci.common import LockedFile
+from ..utils import LockedFile, LoggerStream, AttributeDict, AttributeList
+from ..utils import get_self_ip_addr, config_logger, get_config
+from ..configs import PIDDIR
+import embci.apps
 
+
+# =============================================================================
+# constants
+#
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__webapps__ = os.path.join(__dir__, 'webapps')
-__file__ = os.path.basename(__file__)
+__port__ = int(get_config('WEBUI_PORT', 80))
+__host__ = get_self_ip_addr(get_config('WEBUI_HOST', '0.0.0.0'))
+__appsdir__ = os.path.join(__dir__, '../apps')
+__pidfile__ = os.path.join(PIDDIR, 'webui.pid')
+DEFAULT_ICON = '/images/icon2.png'
+root = bottle.Bottle()
+logger = logging.getLogger(__name__)
+subapps = AttributeList()
 
-root = Bottle()
 
-NAME = '[EmBCI WebUI] '
-
-
+# =============================================================================
+# routes
+#
 @root.route('/')
+def index_r():
+    bottle.redirect('/index.html')
+
+
+@root.route('/index.html')
 def index():
-    redirect('/index.html')
+    kwargs = {
+        'subapps': [app for app in subapps if app.obj is not None],
+    }
+    return bottle.template(os.path.join(__dir__, 'index.html'), **kwargs)
 
 
 @root.route('/<filename:path>')
 def static(filename):
-    return static_file(filename=filename, root=__dir__)
+    return bottle.static_file(filename=filename, root=__dir__)
+
+
+@root.route('/reload')
+def reload():
+    # TODO: runtime refresh/rescan subapps
+    #  mount_subapps()
+    bottle.abort(500, 'Not implemented yet!')
 
 
 @root.route('/debug')
 def debug():
-    response.set_cookie(
-        'last_debug', time.strftime('%a,%b %d %H:%M:%S %Y', time.localtime()))
-    redirect('http://hankso.com:9999')
+    bottle.redirect('http://{}:9999'.format(__host__))
 
 
-def mount_subapps():
-    if __dir__ not in sys.path:
-        sys.path.insert(0, __dir__)
-    for name in os.listdir(__webapps__):
-        if not os.path.isdir(os.path.join(__webapps__, name)):
+# =============================================================================
+# functions
+#
+def mount_subapps(applist=subapps):
+    '''
+    Mount subapps from:
+    1. default argument `appdict`
+    2. embci.apps.__all__
+    3. application folders under `/path/to/embci/apps/`
+    '''
+    for appname in embci.apps.__all__:
+        if appname in applist.name:
             continue
-        # If webapps/{name} can not be successfully imported (lack of
-        # "webapps/{name}/__init__.py" for example), python will then
-        # try to import module {name} from other paths in sys.path.
-        # So here we use `import_module(webapps.{name})` instead of
-        # `__import__(name)`
         try:
-            app = importlib.import_module('webapps.' + name).application
-        except:
-            traceback.print_exc()
+            appmod = getattr(embci.apps, appname)
+            appobj = appmod.application
+        except AttributeError:
+            logger.warn('Load `application` object from app {} failed. '
+                        'Check out `embci.apps.__doc__`.'.format(appname))
+        else:
+            applist.append(AttributeDict(
+                name=appname, obj=appobj, target='/apps/' + appname.lower(),
+                icon=os.path.join(appmod.__path__[0], 'icon.png')))
+
+    for appname in os.listdir(embci.apps.__dir__):
+        if appname in applist.name:
             continue
-        root.mount('/apps/{}'.format(name), app)
-        root.mount('/apps/{}/'.format(name), app)
-        print(NAME + 'link /apps/{}/* to sub-app {}'.format(name, app))
+        if appname[0] in ['_', '.']:
+            continue
+        if not os.path.isdir(os.path.join(embci.apps.__dir__, appname)):
+            continue
+        # If use `import {appname}` and `embci/apps/{appname}` can not be
+        # successfully imported (lack of "__init__.py" for example), python
+        # will then try to import {appname} from other paths in sys.path.
+        # So here we use `importlib.import_module("embci.apps.{appname}")`
+        try:
+            appmod = importlib.import_module('embci.apps.' + appname)
+            appobj = appmod.application
+        except (ImportError, AttributeError):
+            pass
+        else:
+            applist.append(AttributeDict(
+                name=appname, obj=appobj, target='/apps/' + appname.lower(),
+                icon=os.path.join(appmod.__path__[0], 'icon.png')))
+
+    for app in applist:
+        if app.obj is None:  # skip masked apps
+            continue
+        root.mount(app.target, app.obj)
+        logger.info('link {} to subapp {}'.format(app.target, app.obj))
+        if not os.path.exists(app.icon):
+            app.icon = DEFAULT_ICON
+    return applist
 
 
-def serve_forever(port=80):
+class GeventWebsocketServer(bottle.ServerAdapter):
+    '''Gevent websocket server using local logger.'''
+    def run(self, app):
+        _logger = self.options.get('logger', logger)
+        server = gevent.pywsgi.WSGIServer(
+            listener=(self.host, self.port),
+            application=app,
+            log=LoggerStream(_logger, logging.DEBUG),
+            error_log=LoggerStream(_logger, logging.ERROR),
+            handler_class=WebSocketHandler)
+        server.serve_forever()
+
+
+def serve_forever(app=root, **k):
     try:
-        run(app=root, host='0.0.0.0', port=port, server=GeventWebSocketServer)
+        bottle.run(app, quiet=True, server=GeventWebsocketServer, **k)
     except KeyboardInterrupt:
         pass
-    except:
-        traceback.print_exc()
+    except Exception:
+        logger.error(traceback.format_exc())
+
+
+def make_parser():
+    parser = argparse.ArgumentParser(prog=__name__, description=(
+        'Network based user interface of EmBCI embedded system. '
+        'Default listen on http://{}:{}. '
+        'Address can be specified by user.').format(__host__, __port__))
+    parser.add_argument(
+        '-v', '--verbose', default=0, action='count',
+        help='be verbose, -vv for more details')
+    parser.add_argument(
+        '-l', '--log', default=None, type=str,
+        help='log output to a file instead of stdout')
+    parser.add_argument(
+        '-p', '--pid', default=__pidfile__, type=str,
+        help='pid file used for EmBCI WebUI, default `%s`' % __pidfile__)
+    parser.add_argument(
+        '--host', default=__host__, type=str, help='webpage address')
+    parser.add_argument(
+        '--port', default=__port__, type=int, help='port number')
+    parser.add_argument(
+        '--newtab', default=True, type=bool, help='open webpage of WebUI')
+    return parser
+
+
+def open_webpage(addr):
+    '''open embci-webui page if not run by root user'''
+    if os.getuid() == 0:
+        return
+    try:
+        from webbrowser import open_new_tab
+        open_new_tab(addr)
+    except Exception:
+        pass
 
 
 def main(arg):
-    parser = argparse.ArgumentParser(
-        prog='embci.webui',
-        description=('WebUI of EmBCI embedded system. This service default '
-                     'listen on http://localhost, one can change port to a '
-                     'specific one'))
-    parser.add_argument('-p', '--pid', default='/run/embci/webui.pid',
-                        help=('pid file of embci-webui process, default use '
-                              '/run/embci/webui.pid'))
-    parser.add_argument('-P', '--port', default=80, type=int,
-                        help='port that webservice will listen on')
-    args = parser.parse_args(arg)
+    parser = make_parser()
+    args = vars(parser.parse_args(arg))
 
+    # ensure host address legal
+    from socket import inet_aton, inet_ntoa, error
+    try:
+        args['host'] = inet_ntoa(inet_aton(
+            args['host'].replace('localhost', '127.0.0.1')
+        ))
+    except error:
+        parser.error("argument --host: invalid address: '%s'" % args['host'])
+
+    # config logger with loglevel by counting number of -v
+    logfile = args.pop('log')
+    level = max(logging.WARN - args.pop('verbose') * 10, 10)
+    if logfile is not None:
+        kwargs = {
+            'filename': logfile,
+            'handler': functools.partial(
+                RotatingFileHandler, maxByte=100 * 2**10, backupCount=5)
+        }
+    else:
+        kwargs = {'stream': sys.stdout}
+    config_logger(logger, level, **kwargs)
+    args['logger'] = logger
+
+    # load and mount subapps
     mount_subapps()
 
-    # Open embci webpage if not run by root user
-    if os.getuid() != 0:
-        try:
-            from webbrowser import open_new_tab
-            open_new_tab("http://localhost:%d" % args.port)
-        except Exception:
-            pass
+    pidfile = LockedFile(args.pop('pid'), pidfile=True)
+    pidfile.acquire()
+    logger.info('Using PIDFILE: {}'.format(pidfile))
 
-    with LockedFile(args.pid, pidfile=True):
-        #  print('Using PIDFILE: ' + args.pid)
-        serve_forever(args.port)
+    addr = 'http://%s:%d/' % (args['host'], args['port'])
+    logger.info('Listening on : ' + addr)
+    logger.info('Hit Ctrl-C to quit.\n')
+    if args.pop('newtab'):
+        open_webpage(addr)
+
+    serve_forever(**args)
+    pidfile.release()

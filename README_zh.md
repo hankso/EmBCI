@@ -20,7 +20,7 @@ python2或3都是兼容的
 - run run_me1.py即可看到GUI，需要手动调用 `s.start_touch_screen(port=avr_port(default '/dev/ttyS2' on OPi))` ARM才会开始接受AVR发出的触摸屏信号
 - 目前run_me1.py里面有了显示信息和显示波形两个功能，还需要添加下面几个功能
     - `通过触摸屏调节波形放大倍数scale（写好了，未测试）`
-    - `显示频谱，从 utils/common.py 里面的 Signal_Info 类实现了各种频域信息的提取`
+    - `显示频谱，从 utils/common.py 里面的 SignalInfo 类实现了各种频域信息的提取`
     - `GUI好好排版一下`
 
 ## 运行程序
