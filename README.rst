@@ -1,24 +1,28 @@
-.. image:: https://raw.github.com/hankso/EmBCI/master/files/icons/logo.jpg
+.. image:: https://raw.github.com/hankso/EmBCI/master/files/icons/logo-blue.png
+    :alt: EmBCI LOGO
+    :align: center
+    :target: https://hankso.github.io/EmBCI
 
 -------
 
 .. image:: https://img.shields.io/travis/hankso/EmBCI/master.svg?label=Travis%20CI
-    :alt: Travis (.org) branch
+    :alt: Travis CI
     :target: https://travis-ci.org/hankso/EmBCI
 
 .. #image:: https://img.shields.io/codecov/c/github/hankso/EmBCI.svg
-    :alt: codecov
+    :alt: Codecov
     :target: https://codecov.io/gh/hankso/EmBCI
 
 .. image:: https://img.shields.io/github/languages/top/hankso/EmBCI.svg
     :alt: GitHub top language
+    :target: https://hankso.github.io/EmBCI
 
 .. image:: https://img.shields.io/github/languages/code-size/hankso/EmBCI.svg
     :alt: GitHub code size in bytes
     :target: https://github.com/hankso/EmBCI/archive/master.zip
 
 .. image:: https://img.shields.io/github/license/hankso/EmBCI.svg
-    :alt: GitHub - License
+    :alt: GitHub License
     :target: https://opensource.org/licenses/MIT
 
 .. #image:: https://img.shields.io/github/release/hankso/EmBCI.svg
@@ -26,7 +30,7 @@
     :target: https://github.com/hankso/EmBCI/releases
 
 .. image:: https://img.shields.io/pypi/v/EmBCI.svg
-    :alt: PyPI - Version
+    :alt: PyPI Version
     :target: https://pypi.org/project/EmBCI/
 
 .. image:: https://img.shields.io/pypi/pyversions/EmBCI.svg
@@ -34,15 +38,16 @@
     :target: https://pypi.org/project/EmBCI/
 
 .. #image:: https://img.shields.io/pypi/status/EmBCI.svg
-    :alt: PyPI - Status
+    :alt: PyPI Status
     :target: https://pypi.org/project/EmBCI/
 
 .. image:: https://img.shields.io/github/tag-date/hankso/EmBCI.svg
-    :alt: GitHub tag (latest by date)
+    :alt: GitHub tag
     :target: https://github.com/hankso/EmBCI/tags
 
 .. #image:: https://img.shields.io/github/stars/hankso/EmBCI.svg?style=social
     :alt: GitHub stars
+    :target: https://github.com/hankso/EmBCI/stargazers
 
 .. default-role:: code
 

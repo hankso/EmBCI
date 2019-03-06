@@ -389,3 +389,6 @@ class ADS1299_API(spidev.SpiDev):
         value = self.write([RREG | reg, num - 1] + [0] * num)[2:]
         self.write(RDATAC)
         return value
+
+
+# THE END
