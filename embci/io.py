@@ -464,11 +464,10 @@ class ReaderIOMixin(object):
             for item in items:
                 self = self.__getitem__(item)
             return self
-        if isinstance(items, (slice, int)):
+        if self._data is not None:
             return self.data_frame[items]
-        else:
-            raise TypeError('indices must be `int` or `slice`, not '
-                            '{0.__class__.__name__}'.format(items))
+        warnings.warn(self.name + ' not started yet')
+        return np.zeros((self.num_channel, self.window_size), 'float32')[items]
 
     def __repr__(self):
         if not hasattr(self, 'status'):
@@ -715,14 +714,14 @@ class PylslReader(BaseReader):
     '''
     __num__ = 1
 
-    def __init__(self, sample_time=2, num_channel=None, *a, **k):
+    def __init__(self, sample_time=2, num_channel=0, *a, **k):
         self.name = '[Pylsl reader %d]' % PylslReader.__num__
         PylslReader.__num__ += 1
         self.sample_time = sample_time
         self.num_channel = num_channel
         self._started = False
 
-    def start(self, info=None, *a, **k):
+    def start(self, *a, **k):
         '''
         Here we take window_size(sample_rate x sample_time) as max_buflen
         In doc of pylsl.StreamInlet:
@@ -738,21 +737,22 @@ class PylslReader(BaseReader):
             return
         # 1. find available streaming info and build an inlet
         logger.debug(self.name + ' finding availabel outlets...  ')
-        info = info or find_pylsl_outlets(*a, **k)
+        args, kwargs = k.pop('args', ()), k.pop('kwargs', {})
+        info = k.get('info') or find_pylsl_outlets(*args, **kwargs)
         nch = info.channel_count()
         self.input_source = '{} @ {}'.format(info.name(), info.source_id())
-        self.num_channel = self.num_channel or nch
         if nch < self.num_channel:
             logger.info(
                 '{} You want {} channels data but only {} is provided by '
                 'the pylsl outlet `{}`. Change num_channel to {}'.format(
                     self.name, self.num_channel, nch, info.name(), nch))
             self.num_channel = nch
+        self.set_channel_num(self.num_channel or nch)
         super(PylslReader, self).__init__(
-            info.nominal_srate() or 250, self.sample_time, self.num_channel,
-            self.name)
-        max_buflen = (self.sample_time if info.nominal_srate() != 0
-                      else int(self.window_size / 100) + 1)
+            int(info.nominal_srate() or 250), self.sample_time,
+            self.num_channel, self.name)
+        max_buflen = int(self.sample_time if info.nominal_srate() != 0
+                         else int(self.window_size / 100) + 1)
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
@@ -766,7 +766,7 @@ class PylslReader(BaseReader):
 
     def _save_data_in_buffer(self):
         d, t = self._inlet.pull_sample()
-        self._data[:-1, self._index] = d[1:(self.num_channel + 1)]
+        self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = t - self._start_time
         self._index = (self._index + 1) % self.window_size
 
@@ -939,7 +939,7 @@ class ESP32SPIReader(ADS1299SPIReader):
 
 class SocketTCPReader(BaseReader):
     '''
-    Socket TCP client, data reciever.
+    A reader that recieve data from specific host and port through TCP socket.
     '''
     __num__ = 1
 
@@ -956,21 +956,23 @@ class SocketTCPReader(BaseReader):
         # 1. IP addr and port are offered by user, connect to that host:port
         logger.debug(self.name + ' configure IP address')
         while 1:
+            extra = ''
             r = check_input((
-                'Please input an address "host:port".\n'
+                extra + 'Please input an address "host:port".\n'
                 'Type `quit` to abort.\n'
                 '> 192.168.0.1:8888 (example)\n> '), {})
-            if r == 'quit':
+            extra = ''
+            if r in ['quit', '']:
                 raise SystemExit(self.name + ' mannually exit')
             host, port = r.replace('localhost', '127.0.0.1').split(':')
             if int(port) <= 0:
-                logger.error('port must be positive num')
+                extra = self.name + 'port must be positive number!\n'
                 continue
             try:
                 socket.inet_aton(host)  # check if host is valid string
                 break
             except socket.error:
-                logger.error(self.name + ' invalid addr!')
+                extra = self.name + ' invalid addr!\n'
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
@@ -985,20 +987,16 @@ class SocketTCPReader(BaseReader):
         client may be blocking that process/thread by client.recv(n). We need
         to let server socket close the connection.
         '''
-        # stop data streaming process/thread
         super(SocketTCPReader, self).close()
-        # notice server to shutdown
         self._client.send('shutdown')
-        # wait for msg, server will sendback `shutdown` twice to
-        # ensure stop process/thread securely
-        self._client.recv(10)
-        # send shutdown signal to release system resource and close socket
-        self._client.shutdown(socket.SHUT_RDWR)
-        self._client.close()
+        try:
+            self._client.shutdown(socket.SHUT_RDWR)
+            self._client.close()
+        except socket.error:
+            pass
 
     def _save_data_in_buffer(self):
         # 8-channel float32 data = 8*32bits = 32bytes
-        # d is np.ndarray with a shape of (8, 1)
         d = np.frombuffer(self._client.recv(32), np.float32)
         self._data[:-1, self._index] = d[:self.num_channel]
         self._data[-1, self._index] = time.time() - self._start_time

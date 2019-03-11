@@ -44,7 +44,7 @@ def generate_pdf(username, **kwargs):
     c.line(30, 120, 580, 120)
     str1 = (u'姓名: {username:^8s}  性别: {gender:>2s}  '
             u'年龄: {age:>3s}  病号ID: {id}')
-    c.drawString(35, 150, str1.format(**kwargs))
+    c.drawString(35, 150, str1.format(username=username, **kwargs))
     c.line(30, 165, 580, 165)
     c.line(30, 710, 580, 710)
     str2 = (u'改善率   震颤： {tr:4.1f}%    '

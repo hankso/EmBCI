@@ -35,5 +35,5 @@ Rules
 =====
 Each script must apply:
 - Scripts must be executable.
-- Scripts must start with a `shebang` mark, such as `#!/bin/sh` and `#!/bin/env python`.
-- Filenames are case-sensetive, i.g. `E01xxx` is essential but `e01xxx` will be ignored.
+- Scripts must start with a :code:`shebang` mark, such as **#!/bin/sh** and **#!/bin/env python**.
+- Filenames are case-sensetive, i.g. :code:`E01xxx` is essential but :code:`e01xxx` will be ignored.

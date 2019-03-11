@@ -34,7 +34,7 @@ except ImportError:
     from ..utils import argparse as argparse
 
 from ..utils import LockedFile, LoggerStream, AttributeDict, AttributeList
-from ..utils import get_self_ip_addr, config_logger, get_config
+from ..utils import get_self_ip_addr, config_logger, get_config, get_boolean
 from ..configs import PIDDIR
 import embci.apps
 
@@ -148,15 +148,19 @@ class GeventWebsocketServer(bottle.ServerAdapter):
         server = gevent.pywsgi.WSGIServer(
             listener=(self.host, self.port),
             application=app,
-            log=LoggerStream(_logger, logging.DEBUG),
+            # Fix WebSocketHandler log_request, see more below:
+            #  log=LoggerStream(_logger, logging.DEBUG),
             error_log=LoggerStream(_logger, logging.ERROR),
             handler_class=WebSocketHandler)
+        # WebSocketHandler use `server.logger.info`
+        # instead of `server.log.debug`
+        server.logger = _logger
         server.serve_forever()
 
 
-def serve_forever(app=root, **k):
+def serve_forever(app=root, host=__host__, port=__port__, **k):
     try:
-        bottle.run(app, quiet=True, server=GeventWebsocketServer, **k)
+        bottle.run(app, GeventWebsocketServer, host, port, quiet=True, **k)
     except KeyboardInterrupt:
         pass
     except Exception:
@@ -182,7 +186,8 @@ def make_parser():
     parser.add_argument(
         '--port', default=__port__, type=int, help='port number')
     parser.add_argument(
-        '--newtab', default=True, type=bool, help='open webpage of WebUI')
+        '--newtab', default=True, type=get_boolean,
+        help='boolean, whether to open webpage of WebUI in browser')
     return parser
 
 
@@ -205,19 +210,18 @@ def main(arg):
     from socket import inet_aton, inet_ntoa, error
     try:
         args['host'] = inet_ntoa(inet_aton(
-            args['host'].replace('localhost', '127.0.0.1')
+            args.get('host', __host__).replace('localhost', '127.0.0.1')
         ))
     except error:
         parser.error("argument --host: invalid address: '%s'" % args['host'])
 
     # config logger with loglevel by counting number of -v
-    logfile = args.pop('log')
-    level = max(logging.WARN - args.pop('verbose') * 10, 10)
-    if logfile is not None:
+    level = max(logging.WARN - args.get('verbose', 0) * 10, 10)
+    if args.get('log') is not None:
         kwargs = {
-            'filename': logfile,
+            'filename': args['log'],
             'handler': functools.partial(
-                RotatingFileHandler, maxByte=100 * 2**10, backupCount=5)
+                RotatingFileHandler, maxBytes=100 * 2**10, backupCount=5)
         }
     else:
         kwargs = {'stream': sys.stdout}
@@ -227,7 +231,7 @@ def main(arg):
     # load and mount subapps
     mount_subapps()
 
-    pidfile = LockedFile(args.pop('pid'), pidfile=True)
+    pidfile = LockedFile(args.get('pid', __pidfile__), pidfile=True)
     pidfile.acquire()
     logger.info('Using PIDFILE: {}'.format(pidfile))
 

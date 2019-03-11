@@ -58,7 +58,7 @@ def get_wifi():
         wifi.ssid = re.sub(r'\\x([0-9a-fA-F]{2})',
                            lambda m: binascii.a2b_hex(m.group(1)),
                            wifi.ssid.encode('utf8')).decode('utf8')
-    return {'list': wifi_list}
+    return {'list': [wifi.copy(dict) for wifi in wifi_list]}
 
 
 @wifi.post('/hotspots')

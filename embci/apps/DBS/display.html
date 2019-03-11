@@ -259,9 +259,11 @@
                     method: 'GET',
                     url: 'report',
                     data: subData,
-                    success: function(data) {
-                        alert('数据提交成功,即将跳转到报告界面');
-                        $('html').html(data);
+                    success: function() {
+                        console.log('用户数据提交成功');
+                        var btn = document.getElementById('submit');
+                        btn.text = '查看报告';
+                        btn.href = 'report.html';
                     }
                 })
             });
@@ -393,8 +395,7 @@
                 alert('您的浏览器不支持websocket，请更换更高级的浏览器')
             }
 
-            // var ws = new WebSocket("ws://10.0.0.1:80/apps/dbs/data/websocket");
-            var ws = new WebSocket("ws://127.0.0.1:8080/apps/dbs/data/websocket");
+            var ws = new WebSocket("ws://{{addr}}/apps/dbs/data/websocket");
 
             ws.binaryType = 'arraybuffer';
 
@@ -530,14 +531,14 @@
                         method: "GET",
                         url: 'data/coef',
                         dataType: 'json',
-                        success: function(data) {
+                        success: function(msg) {
                             for (var i = 0; i < 3; i++) {
                                 if (bFlag[i]) {
-                                    var n = parseFloat(data[i]).toFixed(4);
+                                    var n = parseFloat(msg.data[i]).toFixed(4);
                                     be[i].text(n);
                                 }
                                 if (aFlag[i]) {
-                                    var m = parseFloat(data[i]).toFixed(4);
+                                    var m = parseFloat(msg.data[i]).toFixed(4);
                                     af[i].text(m);
                                     update(be[i], af[i], rate[i]);
                                 }
@@ -545,7 +546,7 @@
                         },
                     });
                 }
-            }, 1000);
+            }, 1500);
 
             function updateButton(flag, num, ba) {
                 console.log(flag);

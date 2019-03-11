@@ -113,9 +113,9 @@ It integrates:
 `EmBCI Shield`__ can also be used as extension board.
 
 __ `files/hardware`_
-.. _ADS1299:            /blob/master/tools/ADS1299-Datasheet.pdf
+.. _ADS1299:            /tools/ADS1299-Datasheet.pdf
 .. _Texas Instruments:  http://www.ti.com/product/ADS1299/description
-.. _ESP32:              /tree/master/files/esp32
+.. _ESP32:              /files/esp32
 .. _Espressif:          https://www.espressif.com/en/products/hardware/esp32/overview
 
 
