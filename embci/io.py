@@ -390,10 +390,24 @@ class StreamControlMixin(object):
     def status(self):
         return self._status
 
+    def loop(self, func, args=(), kwargs={}, before=None, after=None):
+        try:
+            if before is not None:
+                before()
+            while not self._flag_close.is_set():
+                self._flag_pause.wait()
+                func(*args, **kwargs)
+        except Exception:
+            logger.error(traceback.format_exc())
+        finally:
+            self.close()
+            if after is not None:
+                after()
+
 
 class ReaderIOMixin(object):
     def set_sample_rate(self, sample_rate, sample_time=None):
-        self.sample_rate = sample_rate
+        self.sample_rate = int(sample_rate)
         if sample_time is not None and sample_time > 0:
             self.sample_time = sample_time
         self.window_size = int(self.sample_rate * self.sample_time)
@@ -413,10 +427,10 @@ class ReaderIOMixin(object):
         return True
 
     def is_streaming(self):
-        if hasattr(self, '_process'):
-            alive = self._process.is_alive()
-        elif hasattr(self, '_thread'):
-            alive = self._thread.is_alive()
+        if hasattr(self, '_task'):
+            alive = self._task.is_alive()
+        else:
+            alive = False
         return self._started and self._flag_pause.is_set() and alive
 
     @property
@@ -432,7 +446,7 @@ class ReaderIOMixin(object):
             return 0
 
     @property
-    def data_channel(self):
+    def data_channel(self, **k):
         '''Pick num_channel x 1 fresh data from FIFO queue'''
         if self.is_streaming():
             t = time.time()
@@ -516,6 +530,7 @@ class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
         for target, t, v in [('_index', c_uint16, 0),
                              ('_status', c_char_p, 'closed'),
                              ('_started', c_bool, False),
+                             ('_start_time', c_float, time.time()),
                              ('input_source', c_char_p, 'None'),
                              ('sample_rate', c_uint16, 250),
                              ('sample_time', c_float, 2),
@@ -554,32 +569,23 @@ class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
                                 dtype=np.float32, buffer=self._mmapfile)
 
         StreamControlMixin.start(self)
-        if method == 'thread':
-            self._thread = threading.Thread(target=self._stream_data)
-            self._thread.setDaemon(True)
-            self._thread.start()
+        args = (self._save_data_in_buffer,)
+        kwargs = {
+            'before': lambda: self._pidfile.acquire(),
+            'after': lambda: self._pidfile.release()
+        }
+        if method == 'block':
+            self.loop(*args, **kwargs)
+            return
+        elif method == 'thread':
+            method = threading.Thread
         elif method == 'process':
-            self._process = mp.Process(target=self._stream_data)
-            self._process.daemon = True
-            self._process.start()
-        elif method == 'block':
-            self._stream_data()
+            method = mp.Process
         else:
             raise RuntimeError('unknown method {}'.format(method))
-
-    def _stream_data(self):
-        #  signal.signal(signal.SIGINT, signal.SIG_IGN)
-        try:
-            self._pidfile.acquire()
-            while not self._flag_close.is_set():
-                self._flag_pause.wait()
-                self._save_data_in_buffer()
-        except Exception:
-            logger.error(traceback.format_exc())
-        finally:
-            self.close()
-            self._pidfile.release()
-            logger.debug(self.name + ' stop streaming data')
+        self._task = method(target=self.loop, args=args, kwargs=kwargs)
+        self._task.daemon = True
+        self._task.start()
 
     def _save_data_in_buffer(self):
         raise NotImplementedError(self.name + ' cannot use this directly')
@@ -714,12 +720,12 @@ class PylslReader(BaseReader):
     '''
     __num__ = 1
 
-    def __init__(self, sample_time=2, num_channel=0, *a, **k):
-        self.name = '[Pylsl reader %d]' % PylslReader.__num__
+    def __init__(self, sample_rate=250, sample_time=2, num_channel=0, *a, **k):
+        super(PylslReader, self).__init__(
+            sample_rate, sample_time, num_channel,
+            '[Pylsl reader %d]' % PylslReader.__num__
+        )
         PylslReader.__num__ += 1
-        self.sample_time = sample_time
-        self.num_channel = num_channel
-        self._started = False
 
     def start(self, *a, **k):
         '''
@@ -739,6 +745,11 @@ class PylslReader(BaseReader):
         logger.debug(self.name + ' finding availabel outlets...  ')
         args, kwargs = k.pop('args', ()), k.pop('kwargs', {})
         info = k.get('info') or find_pylsl_outlets(*args, **kwargs)
+        # 1.1 set sample rate
+        fs = info.nominal_srate()
+        if fs not in [self.sample_rate, pylsl.IRREGULAR_RATE]:
+            self.set_sample_rate(fs)
+        # 1.2 set channel num
         nch = info.channel_count()
         self.input_source = '{} @ {}'.format(info.name(), info.source_id())
         if nch < self.num_channel:
@@ -748,6 +759,7 @@ class PylslReader(BaseReader):
                     self.name, self.num_channel, nch, info.name(), nch))
             self.num_channel = nch
         self.set_channel_num(self.num_channel or nch)
+        # 1.3 construct inlet
         super(PylslReader, self).__init__(
             int(info.nominal_srate() or 250), self.sample_time,
             self.num_channel, self.name)
@@ -756,8 +768,8 @@ class PylslReader(BaseReader):
         self._inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
-        self._start_time = info.created_at()
         super(PylslReader, self).start(*a, **k)
+        self._start_time = info.created_at()
 
     def close(self):
         super(PylslReader, self).close()
@@ -832,8 +844,8 @@ class SerialReader(BaseReader):
 
 class ADS1299SPIReader(BaseReader):
     '''
-    Read data from SPI connection with ADS1299.
-    This class is only used on ARM. It depends on class ADS1299_API
+    Read data through SPI connection with ADS1299.
+    This Reader is only used on ARM. It depends on class ADS1299_API.
     '''
     __metaclass__ = Singleton
     name = '[ADS1299 SPI reader]'
@@ -841,10 +853,6 @@ class ADS1299SPIReader(BaseReader):
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
                  send_to_pylsl=False, *a, **k):
-        '''
-        Parameters
-        ----------
-        '''
         super(ADS1299SPIReader, self).__init__(
             sample_rate, sample_time, num_channel)
         self._send_to_pylsl = send_to_pylsl
@@ -929,8 +937,8 @@ class ADS1299SPIReader(BaseReader):
 
 class ESP32SPIReader(ADS1299SPIReader):
     '''
-    Read data from SPI connection with onboard ESP32.
-    This class is only used on ARM.
+    Read data through SPI connection with onboard ESP32.
+    This Reader is only used on ARM. It depends on class ESP32_API.
     '''
     __metaclass__ = Singleton
     name = '[ESP32 SPI reader]'

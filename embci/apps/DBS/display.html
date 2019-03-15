@@ -7,18 +7,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
     <title>Display</title>
-    <script src="/js/jquery-2.0.2.min.js"></script>
     <link rel="stylesheet" href="/css/index.css" />
     <link rel="stylesheet" href="/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/display.css">
+    <script src="/js/jquery-2.0.2.min.js"></script>
     <script src="/js/echarts.common.min.js"></script>
     <script src="/js/macarons.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+    <script src="echart-options.js"></script>
+    <script src="callbacks.js"></script>
 </head>
 
 <body>
     <div class="top">
-        <img src="/images/logo.jpg" alt="logo" id="logo">
+        <img src="/images/logo.png" alt="logo" id="logo" align="middle">
         <div class="top-bar">
             <form class="form-inline content-center">
                 <div class="odd">
@@ -122,281 +124,95 @@
     <div class="bottom">
         &copy; 2018 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
     </div>
+    
     <script type="text/javascript">
-        function update(before, after, rate) {
-            var bef = before.html();
-            var aft = after.html();
-            if (!isNaN(bef) && !isNaN(aft)) {
-                var res = (bef - aft) / bef * 100;
-                res = res.toFixed(2);
-                rate.html(res + '%');
+    $(function() {
+        $('#notch').click(function() {
+            dataFilter(
+                $('#low').val(),
+                $('#high').val(),
+                this.checked);
+        });
+
+        $('#filter').click(function() {
+            dataFilter(
+                $('#low').val(),
+                $('#high').val(),
+                $('#notch').get(0).checked
+            )
+        });
+
+        $('#smaller').click(() => dataScale('minus'));
+
+        $('#bigger').click(() => dataScale('plus'));
+
+        $('#checkboard>li').click(function() {
+            var nowColor = colors[this.id];
+            option1.series.itemStyle.normal.lineStyle.color = nowColor;
+            option2.series.itemStyle.normal.lineStyle.color = nowColor;
+            myChart1.setOption(option1);
+            myChart2.setOption(option2);
+            dataChannel(this.id);
+        });
+
+        $('.col3').click(() => $(this).text('%'));
+
+        $('#submit').click(function() {
+            var data = {
+                username: $('#name').val(),
+                gender: $('#gender').val(),
+                age: $('#age').val(),
+                id: $('#id').val()
+            }; 
+            genReport(data, function() {
+                console.log('用户数据提交成功');
+                var btn = document.getElementById('submit');
+                btn.text = '查看报告';
+                btn.href = 'report.html';
+            })
+        });
+
+        $('#save-before').click(() => dataConfig({save: 'before'}));
+
+        $('#save-after').click(() => dataConfig({save: 'after'}));
+
+        var myChart1 = echarts.init(document.getElementById('chart1'), 'macarons');
+        var myChart2 = echarts.init(document.getElementById('chart2'), 'macarons');
+        myChart1.setOption(option1);
+        myChart2.setOption(option2);
+        window.addEventListener("resize", myChart1.resize);
+        window.addEventListener("resize", myChart2.resize);
+
+        var t = 0;
+
+        function animate(listY, time) {
+            if (listY.length < 4)
+                return;
+            var li = [];
+            for (var i = 0; i < 5; i++, t += 0.002) {
+                if (t >= 1) {
+                    t = 0;
+                    myChart1.setOption({
+                        series: {
+                            data: []
+                        }
+                    })
+                }
+                li.push([t, listY.splice(0, 1)]);
             }
+            myChart1.appendData({
+                seriesIndex: 0,
+                data: li
+            });
+            setTimeout(function() {
+                animate(listY, time)
+            }, time);
         }
 
-        $(function() {
-            // var colors = ['#000000','#5dd39e','#028090','#00a896','#05668d','#02c39a','#457b9d','#525174','#513b56'];
-            var colors = ['#0000FF', '#DEDE22', '#FF11FF', '#00FFFF', '#00FF00', '#FF0000', '#800080', '#FFA00A', '#808080'];
-            var nowColor = colors[0];
-            var x = 0;
-
-            function randomData1() {
-                var list = [];
-                for (var i = 0; i < 100; i++) {
-                    var y = (Math.random() * 20 - 10) / 25;
-                    list.push([x / 500, y]);
-                    x++;
-                }
-                return list;
-            }
-
-            $('#notch').click(function() {
-                var low = $('#low').val();
-                var high = $('#high').val();
-                if (low == '' || high == '') {
-                    alert('输入不能为空');
-                    return;
-                }
-                low = parseFloat(low).toFixed(1);
-                high = parseFloat(high).toFixed(1);
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/filter',
-                    data: {
-                        notch: this.checked,
-                        low: low,
-                        high: high
-                    }
-                })
-            });
-
-            $('#filter').click(function() {
-                var low = $('#low').val();
-                var high = $('#high').val();
-                var checked = $('#notch').get(0).checked;
-
-                low = parseFloat(low).toFixed(1);
-                high = parseFloat(high).toFixed(1);
-                if (low == '' || high == '') {
-                    alert('输入不能为空');
-                    return;
-                }
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/filter',
-                    data: {
-                        notch: checked,
-                        low: low,
-                        high: high
-                    }
-                })
-            });
-
-            $('#smaller').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/scale',
-                    data: {
-                        scale: 'minus'
-                    }
-                })
-            });
-
-            $('#bigger').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/scale',
-                    data: {
-                        scale: 'plus'
-                    }
-                })
-            });
-
-            $('#checkboard>li').click(function() {
-                nowColor = colors[this.id];
-                x = 0;
-                data1 = [];
-                myChart1.setOption({
-                    series: {
-                        data: data1,
-                        itemStyle: {
-                            normal: {
-                                lineStyle: {
-                                    color: nowColor,
-                                }
-                            }
-                        }
-                    },
-                });
-                option2.series.lineStyle = {
-                    color: nowColor
-                };
-                myChart2.setOption(option2);
-                $.ajax({
-                    method: "GET",
-                    url: 'data/channel',
-                    data: {
-                        channel: this.id
-                    },
-                })
-            });
-            
-            $('.col3').click(function() {
-                $(this).text('%');
-            });
-
-            $('#submit').click(function() {
-                var subData = {
-                    username: $('#name').val(),
-                    gender: $('#gender').val(),
-                    age: $('#age').val(),
-                    id: $('#id').val(),
-                };
-                if (subData.username == '' || subData.gender == '请选择性别' || subData.age == '' || subData.age < 0 || subData.id == '') {
-                    alert('您填写的数据有误，请检查后重新提交');
-                    return;
-                }
-                $.ajax({
-                    method: 'GET',
-                    url: 'report',
-                    data: subData,
-                    success: function() {
-                        console.log('用户数据提交成功');
-                        var btn = document.getElementById('submit');
-                        btn.text = '查看报告';
-                        btn.href = 'report.html';
-                    }
-                })
-            });
-
-            $('#save-before').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/config',
-                    data: {
-                        save: "before"
-                    },
-                    success: function() {
-                        console.log("术前信息保存成功");
-                    }
-                })
-            });
-
-            $('#save-after').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/config',
-                    data: {
-                        save: "after"
-                    },
-                    success: function() {
-                        console.log("术后信息保存成功");
-                    }
-                })
-            })
-
-            var myChart1 = echarts.init(document.getElementById('chart1'), 'macarons');
-
-            var option1 = {
-                grid: {
-                    top: 25,
-                    bottom: 50
-                },
-                animationDurationUpdate: 1,
-                xAxis: {
-                    type: 'value',
-                    name: 'Time/s',
-                    nameLocation: 'middle',
-                    nameTextStyle: {
-                        padding: [15, 0, 0, 0]
-                    },
-                    max: 1,
-                    min: 0,
-                    splitLine: {
-                        show: false
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#333'
-                        },
-                        onZero: false
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Voltage/V',
-                    nameLocation: 'end',
-                    nameTextStyle: {
-                        padding: [0, 0, -10, 0]
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#333'
-                        }
-                    },
-                    splitLine: {
-                        show: false
-                    },
-                    boundaryGap: ['10%', '10%'],
-                    max: 0.5,
-                    min: -0.5
-                },
-                series: [{
-                    name: 'test',
-                    type: 'line',
-                    showSymbol: false,
-                    hoverAnimation: false,
-                    smooth: false,
-                    data: [],
-                    animationDurationUpdate: 10,
-                    itemStyle: {
-                        normal: {
-                            lineStyle: {
-                                color: nowColor,
-                                width: 1
-                            }
-                        }
-                    },
-                }]
-            };
-
-            myChart1.setOption(option1);
-            window.addEventListener("resize", function() {
-                myChart1.resize();
-            });
-
-            var t = 0;
-
-            function animate(listY, time) {
-                if (listY.length < 4)
-                    return;
-                var li = [];
-                for (var i = 0; i < 5; i++, t += 0.002) {
-                    if (t >= 1) {
-                        t = 0;
-                        myChart1.setOption({
-                            series: {
-                                data: []
-                            }
-                        })
-                    }
-                    li.push([t, listY.splice(0, 1)]);
-                }
-                // console.log(listY);
-                myChart1.appendData({
-                    seriesIndex: 0,
-                    data: li
-                });
-                setTimeout(function() {
-                    animate(listY, time)
-                }, time);
-            }
-
-            if (!window.WebSocket) {
-                alert('您的浏览器不支持websocket，请更换更高级的浏览器')
-            }
-
-            var ws = new WebSocket("ws://{{addr}}/apps/dbs/data/websocket");
-
+        if (!window.WebSocket) {
+            alert('您的浏览器不支持websocket，请更换更高级的浏览器')
+        } else {
+            var ws = new WebSocket('ws://' + location.host + location.pathname.replace('display.html', 'data/websocket'));
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = function() {
@@ -416,176 +232,33 @@
                 var list = new Float32Array(msg.data);
                 var li = [];
                 for (var i = 0; i < list.length; i++)
-                    li.push(list[i])
-                // console.log(li);
+                    li.push(list[i]);
                 animate(li, 10);
             };
+        }
 
-            function randomData2() {
-                var x = 0;
-                var sample = [];
-                for (; x < 100; x++) {
-                    var y = Math.random() * 10;
-                    sample.push([x / 4, y]);
-                }
-                return sample;
-            }
-
-            var myChart2 = echarts.init(document.getElementById('chart2'), 'macarons');
-
-            var option2 = {
-                grid: {
-                    top: 15,
-                    bottom: 40
-                },
-                xAxis: {
-                    type: 'value',
-                    name: 'Frequency/Hz',
-                    nameLocation: 'middle',
-                    min: 0,
-                    max: 25,
-                    nameTextStyle: {
-                        padding: [15, 0, 0, 0]
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#333'
-                        }
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Amp/V',
-                    nameLocation: 'end',
-                    nameTextStyle: {
-                        padding: [0, 0, -10, 0]
-                    },
-                    boundaryGap: ['0%', '20%'],
-                    axisLine: {
-                        lineStyle: {
-                            color: '#333'
-                        }
-                    }
-                },
-                series: [{
-                    name: 'test',
-                    type: 'line',
-                    showSymbol: false,
-                    hoverAnimation: true,
-                    smooth: false,
-                    data: [],
-                    itemStyle: {
-                        normal: {
-                            lineStyle: {
-                                color: nowColor,
-                                width: 1
-                            }
-                        }
-                    }
-                }],
-            };
-
-            myChart2.setOption(option2);
-            window.addEventListener("resize", function() {
-                myChart2.resize();
-            });
-
-            setInterval(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'data/freq',
-                    dataType: 'json',
-                    success: function(msg) {
-                        option2.series = {
-                            name: 'test',
-                            type: 'line',
-                            showSymbol: false,
-                            hoverAnimation: true,
-                            smooth: false,
+        setInterval(function() {
+            $.ajax({
+                method: 'GET',
+                url: 'data/freq',
+                dataType: 'json',
+                success: function(msg) {
+                    myChart2.setOption({
+                        series: {
                             data: msg.data
-                        };
-                        myChart2.setOption(option2);
-                    }
-                })
-            }, 1500);
-
-            var upColor = '#333333';
-            var be = [$('#bt'), $('#bs'), $('#bm')];
-            var af = [$('#at'), $('#as'), $('#am')];
-            var bFlag = {
-                0: false,
-                1: false,
-                2: false
-            };
-            var aFlag = {
-                0: false,
-                1: false,
-                2: false
-            };
-            var btnCount = 0;
-
-            var rate = [$('#t'), $('#s'), $('#m')];
-            setInterval(function() {
-                if (btnCount) {
-                    $.ajax({
-                        method: "GET",
-                        url: 'data/coef',
-                        dataType: 'json',
-                        success: function(msg) {
-                            for (var i = 0; i < 3; i++) {
-                                if (bFlag[i]) {
-                                    var n = parseFloat(msg.data[i]).toFixed(4);
-                                    be[i].text(n);
-                                }
-                                if (aFlag[i]) {
-                                    var m = parseFloat(msg.data[i]).toFixed(4);
-                                    af[i].text(m);
-                                    update(be[i], af[i], rate[i]);
-                                }
-                            }
-                        },
+                        }
                     });
                 }
-            }, 1500);
+            })
+        }, 1500);
 
-            function updateButton(flag, num, ba) {
-                console.log(flag);
-                if (flag[num] == false) {
-                    flag[num] = true;
-                    btnCount++;
-                    ba[num].css('color', '#ffffff');
-                } else {
-                    flag[num] = false;
-                    btnCount--;
-                    ba[num].css('color', upColor);
-                }
-            }
-
-            be[0].click(function() {
-                updateButton(bFlag, 0, be)
-            });
-
-            af[0].click(function() {
-                updateButton(aFlag, 0, af)
-            });
-
-            be[1].click(function() {
-                updateButton(bFlag, 1, be)
-            });
-
-            af[1].click(function() {
-                updateButton(aFlag, 1, af)
-            });
-
-            be[2].click(function() {
-                updateButton(bFlag, 2, be)
-            });
-
-            af[2].click(function() {
-                updateButton(aFlag, 2, af)
-            });
-        });
+        $('#bt').click(() => stateCoef($('#bt').get(0)));
+        $('#bs').click(() => stateCoef($('#bs').get(0)));
+        $('#bm').click(() => stateCoef($('#bm').get(0)));
+        $('#at').click(() => stateCoef($('#at').get(0)));
+        $('#as').click(() => stateCoef($('#as').get(0)));
+        $('#am').click(() => stateCoef($('#am').get(0)));
+    });
     </script>
 </body>
-
 </html>

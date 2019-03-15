@@ -41,7 +41,7 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
     elif channel is None:
         channel = range(data.shape[0])
     elif isinstance(channel, int):
-        channel = [int]
+        channel = [channel]
     else:
         raise TypeError('Invalid channel type: `{}`'
                         .format(type(channel).__name__))

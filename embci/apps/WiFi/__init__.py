@@ -23,6 +23,7 @@ from embci.utils import find_wifi_hotspots, get_self_ip_addr
 
 wifi = Bottle()
 wifi_list = []
+APPNAME = 'WiFi'
 interface = 'wlan0'
 Scheme = Scheme.for_file('/tmp/interface.embci')
 

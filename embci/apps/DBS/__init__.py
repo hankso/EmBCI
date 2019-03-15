@@ -21,13 +21,10 @@ import bottle
 import numpy as np
 import scipy.signal
 
-from embci.configs import DATADIR
-from embci.processing import Features
+import embci
+import embci.webui
 from embci.io import PylslReader as Reader
 from embci.io import SocketTCPServer as Server
-from embci.viz import plot_waveform
-from embci.utils import (config_logger, get_boolean, time_stamp,
-                         mkuserdir, serialize, deserialize)
 
 
 # =============================================================================
@@ -46,9 +43,9 @@ scale_list = {'a': [pow(10, x) for x in range(-2, 8)], 'i': 2}  # amp scale
 channel_range = {'r': (0, 8), 'n': 0}  # current displayed channel
 
 dbs = bottle.Bottle()
-logger = config_logger()
+logger = embci.utils.config_logger()
+feature = embci.processing.Features()
 reader = Reader(sample_time=5, num_channel=8)
-feature = Features()
 server = Server()
 server.start()
 
@@ -67,29 +64,19 @@ def app_index():
     bottle.redirect('display.html')
 
 
-@dbs.route('/display.html')
-def app_display_html():
-    return bottle.template(__display__, addr='10.0.0.1:80')
-
-
 @dbs.route('/report.html')
 def app_report_html():
     token = bottle.request.get_cookie('report')
     if token is None:
         bottle.abort(408, 'Cache expired or user\'s report not generated yet!')
-    token = deserialize(base64.b64decode(token))
+    token = embci.utils.deserialize(base64.b64decode(token))
     return bottle.template(__report__, **token)
 
 
-#  @dbs.route(r'/<filename:re:(\w)+\.html>')
-#  def app_static_html(filename):
-#      return bottle.static_file(filename, root=__dir__)
-
-
 @dbs.route('/report/download/<path:path>')
-def app_static_files(path):
+def app_download_files(path):
     download = path.endswith('.pdf') and path.replace('/', '-')
-    return bottle.static_file(path, root=DATADIR, download=download)
+    return bottle.static_file(path, embci.configs.DATADIR, download=download)
 
 
 @dbs.route('/report')
@@ -122,13 +109,18 @@ def app_generate_pdf(k={}):
     data_after = feature.si.notch(data_after)
     data_after = feature.si.bandpass(data_after, **rtbandpass)
     try:
-        mkuserdir(lambda *a: None)(username)  # make user data folder
-        img_pre = os.path.join(username, 'img_{}.png'.format(time_stamp()))
-        plot_waveform(data_before).save(os.path.join(DATADIR, img_pre))
-        logger.info('[Plot Waveform] image %s saved.' % img_pre)
-        img_post = os.path.join(username, 'img_{}.png'.format(time_stamp()))
-        plot_waveform(data_after).save(os.path.join(DATADIR, img_post))
-        logger.info('[Plot Waveform] image %s saved.' % img_post)
+        embci.utils.mkuserdir(lambda *a: None)(username)  # make user folder
+        img_pre = os.path.join(
+            username, 'img_pre_{}.png'.format(embci.utils.time_stamp()))
+        embci.viz.plot_waveform(data_before).save(
+            os.path.join(embci.configs.DATADIR, img_pre))
+        logger.debug('[Plot Waveform] image %s saved.' % img_pre)
+
+        img_post = os.path.join(
+            username, 'img_post_{}.png'.format(embci.utils.time_stamp()))
+        embci.viz.plot_waveform(data_after).save(
+            os.path.join(embci.configs.DATADIR, img_post))
+        logger.debug('[Plot Waveform] image %s saved.' % img_post)
     except IOError:
         logger.error(traceback.format_exc())
         k['img_pre'], k['img_post'] = 'test/pre.png', 'test/post.png'
@@ -138,13 +130,20 @@ def app_generate_pdf(k={}):
     # generate and save user's report PDF to ${DATADIR}/${username}
     from .utils import generate_pdf
     pdfpath = generate_pdf(**k).get('pdfpath', 'test/asdf.pdf')
-    logger.info('[Generate Report PDF] pdf %s saved!' % pdfpath)
+    logger.debug('[Generate Report PDF] pdf %s saved!' % pdfpath)
 
     k['pdf_url'] = 'report/download/{}'.format(pdfpath.encode('utf8'))
     k['img_pre_url'] = 'report/download/{}'.format(img_pre.encode('utf8'))
     k['img_post_url'] = 'report/download/{}'.format(img_post.encode('utf8'))
-    token = base64.b64encode(serialize(k))
+    token = base64.b64encode(embci.utils.serialize(k))
     bottle.response.set_cookie('report', token, max_age=30)  # 30 seconds
+
+
+@dbs.route('/<filename:path>')
+def app_static_files(filename):
+    for rootdir in [__dir__, embci.webui.__dir__]:
+        if os.path.exists(os.path.join(rootdir, filename)):
+            return bottle.static_file(filename, rootdir)
 
 
 # =============================================================================
@@ -194,8 +193,8 @@ def data_get_websocket():
 def data_get_freq():
     # y_amp: 1ch x length
     y_amp = feature.si.fft_amp_only(
-        reader.data_frame[channel_range['n']],
-        resolution=fft_resolution)[:, :fft_points]
+        feature.si.detrend(reader.data_frame[channel_range['n']]),
+        resolution=fft_resolution)[:, :fft_points]  # this maybe multi-channels
     return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
 
 
@@ -227,7 +226,7 @@ def data_get_status():
                '{low}Hz-{high}Hz').format(**rtbandpass))
     msg.append('Data saved for action: {}'.format(saved_data.keys() or None))
     msg.append('Current input source: ' + reader.input_source)
-    msg.append('Current amplify scale: %dx' % scale_list['a'][scale_list['i']])
+    msg.append('Current amplify scale: %fx' % scale_list['a'][scale_list['i']])
     msg.append('Current channel num: CH{}'.format(channel_range['n'] + 1))
     msg.append('Current Sample rate: {}Hz'.format(reader.sample_rate))
     msg.append('ADS1299 BIAS output: {}'.format(
@@ -397,7 +396,7 @@ def config_freq(freq):
 def config_detrend(detrend):
     global rtdetrend
     try:
-        rtdetrend = get_boolean(detrend)
+        rtdetrend = embci.utils.get_boolean(detrend)
     except ValueError:
         return ('Invalid detrend `{}`! '.format(detrend) +
                 'Choose one from `True` | `False`')
@@ -405,7 +404,7 @@ def config_detrend(detrend):
 
 def config_bias(bias):
     try:
-        reader.enable_bias = get_boolean(bias)
+        reader.enable_bias = embci.utils.get_boolean(bias)
     except ValueError:
         return ('Invalid bias `{}`! ' +
                 'Choose one from `True` | `False`').format(bias)
@@ -413,7 +412,7 @@ def config_bias(bias):
 
 def config_impedance(impedance):
     try:
-        reader.measure_impedance = get_boolean(impedance)
+        reader.measure_impedance = embci.utils.get_boolean(impedance)
     except ValueError:
         return ('Invalid impedance: `{}`! '.format(impedance) +
                 'Choose one from `True` | `False`')

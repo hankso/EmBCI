@@ -101,6 +101,7 @@ def mount_subapps(applist=subapps):
             continue
         try:
             appmod = getattr(embci.apps, appname)
+            appname = getattr(appmod, 'APPNAME', appname)
             appobj = appmod.application
         except AttributeError:
             logger.warn('Load `application` object from app {} failed. '
@@ -123,6 +124,7 @@ def mount_subapps(applist=subapps):
         # So here we use `importlib.import_module("embci.apps.{appname}")`
         try:
             appmod = importlib.import_module('embci.apps.' + appname)
+            appname = getattr(appmod, 'APPNAME', appname)
             appobj = appmod.application
         except (ImportError, AttributeError):
             pass

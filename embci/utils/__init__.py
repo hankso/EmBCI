@@ -1082,7 +1082,7 @@ def input(prompt=None, timeout=None, file=sys.stdin):
     return raw string as function `raw_input` do.
 
     The optional second argument specifies a timeout in seconds. Both int
-    and float is accepted.
+    and float is accepted. If timeout, an error will be thrown out.
 
     This function is PY2/3 & Linux/Windows compatible
     '''
@@ -1091,7 +1091,10 @@ def input(prompt=None, timeout=None, file=sys.stdin):
     if prompt is not None:
         stdout.write(prompt)
         stdout.flush()
-    rlist, _, _ = select.select([file], [], [], timeout)
+    try:
+        rlist, _, _ = select.select([file], [], [], timeout)
+    except select.error:
+        rlist = []
     if rlist:
         return file.readline().rstrip('\n')
     msg = 'read from {} failed'.format(getattr(file, 'name', str(file)))
