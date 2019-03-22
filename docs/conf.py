@@ -42,11 +42,14 @@ release = embci.__version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.extlinks',
     'numpydoc',
+    'm2r',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -109,7 +112,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'EmBCIdoc'
+htmlhelp_basename = 'EmBCI Doc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -146,8 +149,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'embci', u'EmBCI Documentation',
-     [author], 1)
+    (master_doc, 'embci', u'EmBCI Documentation', [author], 1)
 ]
 
 
@@ -157,13 +159,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'EmBCI', u'EmBCI Documentation',
-     author, 'EmBCI', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'EmBCI', u'EmBCI Documentation', author,
+     'EmBCI', 'One line description of project.', 'Miscellaneous'),
 ]
 
 
 # -- Extension configuration -------------------------------------------------
+extlinks = {
+    'issue': (os.path.join(embci.__url__, 'issue/%s'), '#')
+}
 
 # -- Options for todo extension ----------------------------------------------
 

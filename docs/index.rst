@@ -6,10 +6,18 @@
 Welcome to EmBCI's documentation!
 =================================
 
+Contents:
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   readme
+   readme_zh
+   configurations
+   hardware
+   service
+   changelog
+   todo
 
 
 Indices and tables

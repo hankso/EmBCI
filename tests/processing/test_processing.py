@@ -42,7 +42,7 @@ def test_stft(self):
 
 
 if __name__ == '__main__':
-    from . import run_test_with_unittest
+    from .. import run_test_with_unittest
     funcs = []
     for func in [_ for _ in globals() if _.startswith('test_')]:
         func = globals()[func]

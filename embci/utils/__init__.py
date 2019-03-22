@@ -69,11 +69,14 @@ logger.setLevel(logging.WARN)
 del hdlr
 # you can use config_logger instead, which is better
 
-
 if sys.version_info > (3, 0):
     strtypes = (bytes, str)  # noqa: E602
 else:
     strtypes = (basestring)  # noqa: E602
+
+from ..testing import PytestRunner
+test = PytestRunner(__name__)
+del PytestRunner
 
 
 # =============================================================================

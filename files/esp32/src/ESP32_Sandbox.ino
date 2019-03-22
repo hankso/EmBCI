@@ -43,6 +43,7 @@
 
 // ESP-IDF SDK @ ${ESP_IDF}/components && ${ARDUINO_ESP32}/tools/sdk/include
 #include "esp_log.h"
+#include "esp_sleep.h"
 #include "esp_task_wdt.h"
 #include "esp_heap_caps.h"
 #include "driver/spi_slave.h"
@@ -71,6 +72,8 @@
 #define GPIO_MISO        19
 #define GPIO_SCLK        18
 #define GPIO_CS          5
+
+#define GPIO_WAKEUP      0
 
 #define datatype float
 
@@ -191,7 +194,15 @@ const char* const logLevelList[] = {
 };
 
 // Supported sample rates (Hz)
-int fsList[] = {250, 500, 1000, 2000, 4000, 8000, 16000};
+int fsList[] = {
+    250, 500, 1000, 2000, 4000, 8000, 16000
+};
+
+
+const char* const wakeupReasonList[] = {
+    "Undefined", "Undefined", "EXT0", "EXT1", 
+    "Timer", "Touchpad", "ULP", "GPIO", "UART",
+};
 
 ADS1299 ads(HSPI, HSPI_SS);
 SPIClass * vspi = NULL;
@@ -257,7 +268,7 @@ void handleSerialCommand() {
             itoa(ads.init(), tmpr, 2);
             ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
             break;
-        case 's':
+        case 'p':
             char tmps[8+1];
             itoa(adsStatusBit, tmps, 2);
             bufrate = (float)(cq->len) / M_BUFFERSIZE;
@@ -268,16 +279,34 @@ void handleSerialCommand() {
             ESP_LOGW(NAME, "Serial to wifi:  %s", btos(wifiEcho));
             ESP_LOGW(NAME, "buffer used:     %.2f%%", bufrate * 100);
             break;
+        case 's':
+            ESP_LOGW(NAME, "ESP32 will turn into light sleep mode");
+            ESP_LOGW(NAME, "Pull down GPIO0(BOOT) and then pull up to wake up");
+            gpio_wakeup_enable((gpio_num_t)GPIO_WAKEUP, GPIO_INTR_LOW_LEVEL);
+            esp_sleep_enable_gpio_wakeup();
+            esp_sleep_enable_uart_wakeup(0);
+            Serial.flush();
+            esp_light_sleep_start();
+            ESP_LOGW(NAME, "ESP32 is woken up from light sleep mode by %s", 
+                    wakeupReasonList[(int)esp_sleep_get_wakeup_cause()]);
+            break;
+        case 'S':
+            ESP_LOGW(NAME, "ESP32 will turn into deep sleep mode");
+            ESP_LOGW(NAME, "Pull down PIN3(EN/RST) and then pull up to reboot");
+            esp_deep_sleep_start();
+            break;
         case 'h':
             ESP_LOGW(NAME, "Supported commands:");
             ESP_LOGW(NAME, "\th - print this Help message");
             ESP_LOGW(NAME, "\tc - Clear spi fifo queue");
             ESP_LOGW(NAME, "\td - change esp output Data source");
-            ESP_LOGW(NAME, "\ts - print Summary of current status");
+            ESP_LOGW(NAME, "\tp - Print summary of current status");
             ESP_LOGW(NAME, "\tq - be more Quiet");
             ESP_LOGW(NAME, "\tv - be more Verbose");
             ESP_LOGW(NAME, "\tw - turn on/off serial-to-Wifi redirection");
             ESP_LOGW(NAME, "\tr - Reset ads1299 and read id register");
+            ESP_LOGW(NAME, "\ts - immediately turn into light Sleep mode");
+            ESP_LOGW(NAME, "\tS - immediately turn into deep Sleep mode");
             break;
         case 'q':
             logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );

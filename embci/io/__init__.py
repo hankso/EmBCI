@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# coding=utf-8
+# -*- coding: utf-8 -*-
 #
-# File: EmBCI/embci/processing/__init__.py
+# File: EmBCI/embci/io/__init__.py
 # Author: Hankso
 # Webpage: https://github.com/hankso
-# Time: Sun 24 Feb 2019 22:52:42 CST
-
-'''Data processing'''
+# Time: Tue 06 Mar 2018 20:45:20 CST
 
 from ..utils import config_logger
 logger = config_logger()
@@ -16,7 +14,6 @@ from ..testing import PytestRunner
 test = PytestRunner(__name__)
 del PytestRunner
 
-from .preprocessing import *
-from .motorimagery import *
-from .ssvep import *
-from .p300 import *
+from .base import *
+from .readers import *
+from .commanders import *

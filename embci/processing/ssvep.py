@@ -8,6 +8,8 @@
 
 '''SSVEP pattern BCI algorithms'''
 
+__all__ = []
+
 
 def SSVEP():
     raise NotImplementedError

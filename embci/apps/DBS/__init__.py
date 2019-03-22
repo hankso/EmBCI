@@ -43,7 +43,7 @@ scale_list = {'a': [pow(10, x) for x in range(-2, 8)], 'i': 2}  # amp scale
 channel_range = {'r': (0, 8), 'n': 0}  # current displayed channel
 
 dbs = bottle.Bottle()
-logger = embci.utils.config_logger()
+logger = embci.utils.config_logger('apps.DBS')
 feature = embci.processing.Features()
 reader = Reader(sample_time=5, num_channel=8)
 server = Server()
@@ -93,32 +93,31 @@ def app_generate_pdf(k={}):
     if saved_data.get('frame_post') is None:
         # bottle.abort(400, 'Save two frame of data before generating report!')
         logger.warn('[Generate Report PDF] using random data')
-        data_before = np.random.randn(1, reader.window_size)
-        data_after = np.random.randn(1, reader.window_size)
+        data_pre = np.random.randn(1, reader.window_size)
+        data_post = np.random.randn(1, reader.window_size)
     else:
-        data_before = saved_data['frame_pre'][saved_data['channel_pre']]
-        data_after = saved_data['frame_post'][saved_data['channel_post']]
-    k['tb'], k['sb'], k['mb'] = tb, sb, mb = data_get_coef(data_before)['data']
-    k['ta'], k['sa'], k['ma'] = ta, sa, ma = data_get_coef(data_after)['data']
+        data_pre = saved_data['frame_pre'][saved_data['channel_pre']]
+        data_post = saved_data['frame_post'][saved_data['channel_post']]
+    k['tb'], k['sb'], k['mb'] = tb, sb, mb = data_get_coef(data_pre)['data']
+    k['ta'], k['sa'], k['ma'] = ta, sa, ma = data_get_coef(data_post)['data']
     tr, sr, mr = abs(ta - tb) / ta, abs(sa - sb) / sa, abs(ma - mb) / ma
     k['tr'], k['sr'], k['mr'] = tr, sr, mr = 100 * np.array([tr, sr, mr])
 
     # generate data waveform image
-    data_before = feature.si.notch(data_before)
-    data_before = feature.si.bandpass(data_before, **rtbandpass)
-    data_after = feature.si.notch(data_after)
-    data_after = feature.si.bandpass(data_after, **rtbandpass)
+    dataf_pre = feature.si.notch(data_pre.copy())
+    dataf_pre = feature.si.bandpass(dataf_pre, **saved_data['bandpass_pre'])
+    dataf_post = feature.si.notch(data_post.copy())
+    dataf_post = feature.si.bandpass(dataf_post, **saved_data['bandpass_post'])
     try:
         embci.utils.mkuserdir(lambda *a: None)(username)  # make user folder
         img_pre = os.path.join(
             username, 'img_pre_{}.png'.format(embci.utils.time_stamp()))
-        embci.viz.plot_waveform(data_before).save(
+        embci.viz.plot_waveform(dataf_pre).save(
             os.path.join(embci.configs.DATADIR, img_pre))
         logger.debug('[Plot Waveform] image %s saved.' % img_pre)
-
         img_post = os.path.join(
             username, 'img_post_{}.png'.format(embci.utils.time_stamp()))
-        embci.viz.plot_waveform(data_after).save(
+        embci.viz.plot_waveform(dataf_post).save(
             os.path.join(embci.configs.DATADIR, img_post))
         logger.debug('[Plot Waveform] image %s saved.' % img_post)
     except IOError:
@@ -131,6 +130,10 @@ def app_generate_pdf(k={}):
     from .utils import generate_pdf
     pdfpath = generate_pdf(**k).get('pdfpath', 'test/asdf.pdf')
     logger.debug('[Generate Report PDF] pdf %s saved!' % pdfpath)
+    np.savez_compressed(
+        os.path.join(embci.configs.DATADIR, username,
+                     'data_{}'.format(embci.utils.time_stamp())),
+        spre=data_pre, spost=data_post, ppre=dataf_pre, ppost=dataf_post)
 
     k['pdf_url'] = 'report/download/{}'.format(pdfpath.encode('utf8'))
     k['img_pre_url'] = 'report/download/{}'.format(img_pre.encode('utf8'))
@@ -368,12 +371,14 @@ def config_save(save):
     if save == 'before':
         saved_data['frame_pre'] = reader.data_frame
         saved_data['channel_pre'] = channel_range['n']
+        saved_data['bandpass_pre'] = rtbandpass.copy()
     elif save == 'after':
         if saved_data.get('frame_pre') is None:
             return ('Invalid save command! Save data with param '
                     '`before` first. Then save with param `after`')
         saved_data['frame_post'] = reader.data_frame
         saved_data['channel_post'] = channel_range['n']
+        saved_data['bandpass_post'] = rtbandpass.copy()
     else:
         return ('Invalid save param: `{}`! '.format(save) +
                 'Choose one from `before` | `after`')

@@ -8,6 +8,8 @@
 
 '''__doc__'''
 
+__all__ = []
+
 
 def MotorImagery(username, reader, model, commander):
     raise NotImplementedError

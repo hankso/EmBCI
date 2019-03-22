@@ -78,11 +78,9 @@ function stateCoef(button) {
     }
     if (btnCount == 0) {
         clearInterval(coefInterval);
-        console.log('stop displaying coefs');
         coefInterval = 0;
     } else if (coefInterval == 0) {
         coefInterval = setInterval(dataCoef, 1200);
-        console.log('start displaying coefs');
     }
 }
 
@@ -106,18 +104,17 @@ function updateCoef(data) {
     for (var i = 0; i < coefBtns.length; i++) {
         var btn = coefBtns[i];
         if (!btn.display) continue;
-        var value = data[btn.id[1]] || '0';
+        var name = btn.id[1];
+        if (name == undefined) {
+            console.error("Invalid btn.id: ", btn);
+            continue;
+        }
+        var value = data[name] || '0';
         $('#' + btn.id).text(parseFloat(value).toFixed(4));
-    }
-//    updateRate();
-}
-
-function updateRate(before, after, rate) {
-    var bef = before.html();
-    var aft = after.html();
-    if (!isNaN(bef) && !isNaN(aft)) {
-        var res = (bef - aft) / bef * 100;
-        res = res.toFixed(2);
-        rate.html(res + '%');
+        if (btn.id[0] != 'a') continue;
+        var bef = parseFloat($('#b' + name).html());
+        var aft = parseFloat($('#a' + name).html());
+        if (isNaN(bef) || isNaN(aft)) continue;
+        $('#' + name).text(((bef - aft) / bef * 100).toFixed(2) + '%');
     }
 }

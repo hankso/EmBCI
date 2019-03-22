@@ -30,19 +30,19 @@ from ..configs import BASEDIR
 from ..io import SerialCommander
 from ..utils.ili9341_api import ILI9341_API, rgb565to888, rgb888to565
 from ..utils import (time_stamp, find_gui_layouts, ensure_unicode, get_config,
-                     serialize, deserialize, get_func_args, config_logger,
+                     serialize, deserialize, get_func_args,
                      AttributeDict, AttributeList, Singleton)
 from ..constants import (command_dict_uart_screen_winbond_v1,
                          colormapper_uart_screen_winbond_v1,
                          colormapper_spi_screen_ili9341,
                          colormapper_default)
+from . import logger
 
 # ===============================================================================
 # Constants
 
-logger = config_logger()
 __dir__ = os.path.dirname(os.path.abspath(__file__))
-__all__ = []
+__all__ = ['Colormap', 'SerialScreenGUI', 'SPIScreenGUI']
 
 DEFAULT_WIDGET = AttributeDict({
     'point': AttributeList(), 'text': AttributeList(), 'img': AttributeList(),
@@ -917,7 +917,6 @@ class GUIControlMixin(object):
         DrawElementMixin.render(self, *a, **k)
 
 
-__all__ += ['Colormap']
 __guidoc__ = ''.join([
     DrawElementMixin.__doc__,
     GUIControlMixin.__doc__,
@@ -1074,12 +1073,8 @@ class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin,
         pass
 
 
-__all__ += ['SerialScreenGUI']
-
-
 # ===============================================================================
 # SPI Screen: ILI9341 2.4' 320x240 LCD
-
 try:
     from ..configs import PIN_ILI9341_DC, PIN_ILI9341_RST
 except ImportError:
@@ -1204,7 +1199,5 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
         w, h = self._api.font.getsize(s)
         return w / 2, h / 2
 
-
-__all__ += ['SPIScreenGUI']
 
 # THE END

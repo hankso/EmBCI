@@ -30,7 +30,7 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
     data : array-like
     channel : int or tuple of int or None
     '''
-    data = np.atleast_2d(data)
+    data = np.atleast_2d(data).copy()
     if data.ndim >= 3:
         raise ValueError('Invalid data shape: `{}`'.format(data.shape))
     length = data.shape[1]
@@ -55,9 +55,10 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
         y *= canvas_size[1] / 2  # resize to [-half_height, +half_height]
         y += canvas_size[1] / 2  # resize to [0, canvas_height]
         y[0] = y[-1] = 0         # set first and end point to zero
-        draw.polygon([tuple(_) for _ in np.vstack((x, y)).T], None, colors[n])
+        toplot = [tuple(_) for _ in np.vstack((x, y)).T]
+        draw.line(toplot, colors[n], width=(length / 500))
 
-    img = img.resize((imgsize[0] + 4, imgsize[1] + 4), 1)
+    img = img.resize((imgsize[0] + 4, imgsize[1] + 4), Image.ANTIALIAS)
     img = img.crop((2, 2, imgsize[0] + 2, imgsize[1] + 2)).transpose(1)
     return img
 

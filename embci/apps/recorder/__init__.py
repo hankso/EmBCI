@@ -30,7 +30,7 @@ from embci.io import StreamControlMixin
 '''
 
 reader = Reader(sample_time=2, num_channel=8)
-logger = embci.utils.config_logger()
+logger = embci.utils.config_logger('apps.recorder')
 
 
 class Recorder(Thread, StreamControlMixin):
@@ -66,8 +66,8 @@ class Recorder(Thread, StreamControlMixin):
             last_index = index and (index - 1)
         event = np.array([event + [0] * (data.shape[1] - len(event))])
         self.buffer.append(np.concatenate((data, event)))
-        logger.info('Recording {:.2f}s - {:.2f}s with {} events'
-                    .format(data[-1, 1], data[-1, -1], len(self.events)))
+        logger.debug('Recording {:.2f}s - {:.2f}s with {} events'
+                     .format(data[-1, 1], data[-1, -1], len(self.events)))
         self.events = []
 
     def cmd(self, *a, **k):
@@ -95,8 +95,9 @@ class Recorder(Thread, StreamControlMixin):
             logger.error(traceback.format_exc())
 
     def close(self):
-        StreamControlMixin.close(self)
         self.save()
+        self.buffer = []
+        StreamControlMixin.close(self)
 
     stop = close
 

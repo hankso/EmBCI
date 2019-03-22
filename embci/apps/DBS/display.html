@@ -14,8 +14,8 @@
     <script src="/js/echarts.common.min.js"></script>
     <script src="/js/macarons.js"></script>
     <script src="/js/bootstrap.min.js"></script>
-    <script src="echart-options.js"></script>
-    <script src="callbacks.js"></script>
+    <script src="js/echart-options.js"></script>
+    <script src="js/callbacks.js"></script>
 </head>
 
 <body>
@@ -155,7 +155,9 @@
             dataChannel(this.id);
         });
 
-        $('.col3').click(() => $(this).text('%'));
+        $('.col3').click(function(){
+            $(this).text('%');
+        });
 
         $('#submit').click(function() {
             var data = {
