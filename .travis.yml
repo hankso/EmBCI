@@ -1,0 +1,57 @@
+language: python
+sudo: required
+python:
+- '2.7'
+- '3.5'
+- '3.7'
+virtualenv:
+    system_site_packages: true
+
+git:
+    depth: 3
+
+env:
+    global:
+      # travis encrypt CODECOV_TOKEN="token for EmBCI private repo on gitlab"
+      - secure: vW/U9ppA9IfXzVRZqW2c1+6ceT7y69fN1oBBe1ZKKcCgGBYKzcgjwPWCvRGnydkPREuQ0Ia09CRfYWml7DeyqKYWqhkH/IFBqWwQrBFYfDudOoWyYj3oZIVNEGwgycyEVb7BeQ8t0gwHhTuhy4j1j+YGUC8TX1cuhmvOBC39vikRZEejoYe3f6ZUxJuEJbKwCm+S/yEPA8QvXDzkNdd3wl3Bo/S6oUGtc45cEdSWcG5ig+V4HDdfLN2FgI763T6aBYbidEubXAha7Py8PyHL5ajEoC2F71reJpTO6bA1FwG+wm8hc1vn2yOm1+I4hobpq/2ZaoFjUlabtk+dX4lPbe/vbneDt1Obdc/Sso0B/dcIKtrsZPby/fc/C8MU5o3gGGqRSEHMKOf+9P57Gna/edXyq+Nj76ogGBMT5mpHA+E85SpbEk4Wi8JuZhVkuTgeeMZtc7ONNOn+7XAuD6EoKMKrua+TcnPEwbJ5Wpgex4OZLnFjfVzXoTRNz67ZnMvLFwT7DSPGdNzDoC1Xh8so9awHXtNIroMhBBWEAiwSi++lR1YQ4yNRw/G71LWwp+I5IL8x7YxuVOEW0orH5/w1+DB+cOaU1ogYqmCW8gTtIFXWUlZVvnORHwPJ5fHZ78ARn18GKVQgpgypelj83W4jls4SLR4bTg8BWRmNagxBM4c=
+
+
+before_install:
+# - ./tools/genrequire.py ./embci -o requirements.txt
+
+install:
+- pip install codecov pytest-cov
+- pip install -q -r requirements.txt
+- pip install -q -e .
+
+script:
+- pytest --cov=./
+- python setup.py sdist bdist_wheel
+
+after_success:
+- codecov
+
+
+deploy:
+  - provider: releases
+    api_key:
+        secure: FO9S6e+VRb6FSwZCjjTgWU+x5PfHmfEJlP8gsOPILBvpNNQ+rpO4FdwJZ4T9t2ELpKg9BKqt21yHxuKkx22HKba5AMpbjpAFnVMNT9OhpMXhKJ8glWqXX4FkJPq6QyhNDrGKxd9zYNQEuO5l6pIkF5AckYUmB6ls+wtz930yskUCEv0zgOLQvF6PdyXtU6cZs/q/gvqh1MgrUHJfvJtwr62Z84eL+BCvQ/YDQGxnSExdfzhqR1n3w+kyEbBzhdnX/lCqut/cgrg2uUgKUUENpFGNjdl3ZRUv2JzedU01QL/A73zRpp1IjeJy2iw9sHMJLhp7Ix6LT9tmdBcBP1/ukmlVyqt7kTcL4kEz7BZMRMfAeJ8I8qYuWp6lzXwelQvSpsmU5pm59muDpZ9+5W5zUOiCTTHNm58RBWHwOOf99oMmWzk4v6N2Urf9VfBSWO3s5JTNkWspcz9Nm/Tr50P10RAPQQLUyGdrjEzTJeWBm1cAfFCu1SItYGncEM1PuKkT2+DuvD8G30yvWEkK6krjSKdcXHJNYPz1CL6Ikq3ifD47TFKHai3IndpqCb/mvp0Wnta23cg1qAH+ipG9tLRO1k1FDoVSDXJ91BPvD/aBQAsV5qFrP+cXG0OMRpmuzTOfKvBphOmXQN6K5N/zF3vLENlPkNuOiqEcni9EfbX7fjw=
+    file_glob: true
+    file:
+    - dist/*.whl
+    - dist/*.tar.gz
+    skip_cleanup: true
+    on:
+        repo: hankso/EmBCI
+        tags: true
+
+  - provider: pypi
+    user: hankso
+    password:
+        secure: QsPBPg16PFbNScKwwP+88HKMcyiIrJWT8ZgDG0citXr9lb8RLOfkUKKdsvB2o1gXvw6fwGNMlKwgQVV57sGaawjXtqqPKFQr7lMxjcJXPmkn4NxWvqu3CRhKkdZhBsa0C1y6kNzSs8uJYi/ixe0F8e/J6hXYK7i94L/Ytf80HnRPRGGUYeOsfC/unRz3C+0Ou2RKF7p56iGX9ATlqurLVEjuJ2HlwY3wjmPEqIuQdgKMrHFwkOp0xAFhxFWbLyDMNF1eSs/U0FMQxWfoIJdIIHb1BhK4N+J2Ef+O109uvz7woid2ppWVTy1BSkot6sUJShxM/U2qXggoFrUIbeTLBQbKVyq7sWy8t6aYg7B7ymHF2AaxdIcVEdGYUW/S+r1bO3fxhUujioBTVRXe03F6J41tg84rI9igRY70/Y0oDOMdiDQBavLutbSIkqNL8f946JODovTiB3cXgktF/iFsXEM77wfqxMqsCvyEbNTssjJRyYMwksOjXsvpC9J3S+/JAih+Gqkz3/jtGxpoG/1mR10VaAsOWbGOesamVDrgWdBElShrfj53kRHivP5oTOaqCn9Q2qYRtrWjjxZyXtse5EZloat+vWWBwUWQOmGEj4lsdBLy74cZQ5kytOgxdsmQkSAyHzr6hZ9VsTNirkcyEIu5izKSO8XhwpmQECAnQvg=
+    on:
+        tags: true
+        branch: release
+    distributions: "sdist bdist_wheel"
+    skip_cleanup: true
+    skip_existing: true

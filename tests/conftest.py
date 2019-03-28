@@ -25,11 +25,12 @@ def username():
 @pytest.fixture(scope='module')
 def random_data():
     np.random.seed()
-    return np.random.randn(1, 8, 1000)
+    return np.random.randn(2, 8, 1024)
 
 
 @pytest.fixture
-def clean_user_dir(username):
-    userdir = os.path.join(DATADIR, username)
-    if os.path.exists(userdir):
-        subprocess.call(['rm', '-rf', userdir])
+def clean_userdir(username):
+    def clean(userdir=os.path.join(DATADIR, username)):
+        if os.path.exists(userdir):
+            subprocess.call(['rm', '-rf', userdir])
+    return clean

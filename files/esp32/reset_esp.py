@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 # coding=utf-8
-'''
-File: reset_esp.py
-Author: Hankso
-Web: http://github.com/hankso
-Time: Thu 02 Aug 2018 10:21:59 AM UTC
-'''
+#
+# File: reset_esp.py
+# Author: Hankso
+# Webpage: https://github.com/hankso
+# Time: Thu 02 Aug 2018 10:21:59 AM UTC
 
-import os
 import sys
 import time
 
 from gpio4 import SysfsGPIO
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-# BASEDIR = os.path.abspath(os.path.join(__dir__, '../../'))
-# sys.path.append(BASEDIR)
-# from embci.common import reset_esp
 
 def reset_esp(flash=False, en_pin=19, boot_pin=18):
     '''
@@ -54,8 +48,8 @@ def reset_esp(flash=False, en_pin=19, boot_pin=18):
     print('[ESP Reset] soft reset done!')
     boot.export = False
     rst.export = False
-
     time.sleep(1.5)
+
 
 if __name__ == '__main__':
     reset_esp(flash=('flash' in sys.argv))

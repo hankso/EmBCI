@@ -1,6 +1,13 @@
 # user data no need to save
 # data/*
 # model/*
+*.old
+
+# Pyarmor config files
+.github/.pyarmor*
+.github/_pytransform.so
+.github/licenses/
+.github/pyarmor
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

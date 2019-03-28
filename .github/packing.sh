@@ -41,7 +41,7 @@ ${BIN} build --force -O ${REPO_PATH} ${DIR}
 ${BIN} licenses -e 2020-01-01 ${LICENSE} -O ${DIR}
 cp -v ${DIR}/licenses/${LICENSE}/license.lic ${REPO_PATH}/embci/
 if [ `uname -m | grep "arm"` ]; then
-    cp ${DIR}/_pytransform.so ${REPO_PATH}/embci/
+    cp -v ${DIR}/_pytransform.so ${REPO_PATH}/embci/
 fi
 find ${REPO_PATH}/embci -name "*.pyc" -delete
 # find ${REPO_PATH}/embci -name "*.py" -exec python -m py_compile {} \;
@@ -66,4 +66,4 @@ make -C ${REPO_PATH}/docs html
 #
 # Build binary files
 #
-${IDF_PATH}/examples/Arduino-core/Arduino_ESP32_Sandbox/0build.sh
+# ${IDF_PATH}/examples/Arduino-core/Arduino_ESP32_Sandbox/0build.sh

@@ -1,1 +1,1 @@
-include *.md LICENSE.txt pytest.ini
+include *.md *.rst LICENSE.txt pytest.ini

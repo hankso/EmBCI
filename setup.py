@@ -43,8 +43,9 @@ if platform.machine() in ['arm', 'aarch64']:
         except subprocess.CalledProcessError:
             print('Enable service `embci` failed.\nYou may want to manually'
                   'enable it with command `update-rc.d embci enable`')
-    import atexit
-    atexit.register(enable_autostart)
+    # EmBCI linux service is still developing
+    #  import atexit
+    #  atexit.register(enable_autostart)
 
 
 setup(

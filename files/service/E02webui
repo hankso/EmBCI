@@ -2,9 +2,14 @@
 
 PIDFILE=/run/embci/webui.pid
 LOGFILE=/var/log/embci/webui.log
-# PORT=8080
+HOST="10.0.0.1"
 PORT=80
 
 mkdir -p $(dirname ${PIDFILE} ${LOGFILE})
 
-nohup python -m embci.webui --port ${PORT} --pid ${PIDFILE} > ${LOGFILE} 2>&1 &
+nohup python -m embci.webui\
+    --host ${HOST}\
+    --port ${PORT}\
+    --pid ${PIDFILE}\
+    --log ${LOGFILE}\
+    > /var/log/embci/webui-error.log 2>&1 &

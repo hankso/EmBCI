@@ -10,22 +10,29 @@
 EmBCI tests
 
 Support:
-    A. cd /path/to/EmBCI && pytest
-    B. cd /path/to/EmBCI && python setup.py test
+A. cd /path/to/EmBCI && pytest
+B. cd /path/to/EmBCI && python setup.py test
 
 Keeping tests separate from source codes has following benefits:
-    1. Tests can run on an installed version after package is installed
-    2. Tests can run on editable installed version after `pip install -e`
-    3. Tests can run on local version without installing package. `pytest`
-       will add current directory into `sys.path`
+1. Tests can run on an installed version after package is installed
+2. Tests can run on editable installed version after `pip install -e`
+3. Tests can run on local version without installing package. `pytest`
+    will add current directory into `sys.path`
 
-layout:
+Package layout::
+
     setup.py
     embci/
+        __init__.py
+        foo.py
+        utils/
+            bar.py
         ...
     tests/
         __init__.py
         test_foo.py
+        utils/
+            test_bar.py
         ...
 '''
 
