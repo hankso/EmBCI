@@ -68,9 +68,9 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
                   (indent != 0) * '├── ' +
                   os.path.basename(dir))
     srcfiles = []
-    l = sorted(os.listdir(dir))
-    while l:
-        file = l.pop(0)
+    lst = sorted(os.listdir(dir))
+    while lst:
+        file = lst.pop(0)
         filename = os.path.join(dir, file)
         if filename.endswith(__file__):
             continue
@@ -82,8 +82,8 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
                 log = ' selected'
             else:
                 log = ' skip'
-            logging.debug(('│   ' if len(l) else '│   ') * indent +
-                          ('├── ' if len(l) else '└── ') + file + log)
+            logging.debug(('│   ' if len(lst) else '│   ') * indent +
+                          ('├── ' if len(lst) else '└── ') + file + log)
     return srcfiles
 
 
@@ -158,20 +158,20 @@ def genrequire(dirs, output):
         conflicts += '\n\n'.join([
             '\n\n'.join([
                 '# From {}\n# [{}]\n'.format(m.srcfile, m.type) + m
-                for m in l])
-            for l in classes['_conflict'].values()])
+                for m in lst])
+            for lst in classes['_conflict'].values()])
         conflicts += '\n\n'
     classes.pop('_conflict')
 
     optional = ''
     if 'optional' in classes:
         optional += '# [optional]\n'
-        optional += '\n'.join(classes.pop('optional'))
+        optional += '\n'.join(sorted(classes.pop('optional')))
         optional += '\n\n'
 
     for c in classes:
         body += '# [{}]\n'.format(c)
-        body += '\n'.join(classes[c])
+        body += '\n'.join(sorted(classes[c]))
         body += '\n\n'
 
     if isinstance(output, strtypes):
