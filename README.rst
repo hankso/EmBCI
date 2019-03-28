@@ -63,25 +63,21 @@ Check out full documentation `here <https://embci.readthedocs.io/en/latest>`_.
 
 **EmBCI** was held on a **gitlab private repo** before. It's fully opened now. Happy Open Source!
 
-.. #_中文:  https://github.com/hankso/EmBCI/blob/master/README_zh.md
+.. Contents::
 
-
-
-Contents
-========
-- `What is EmBCI?`_
-- `Why should you choose EmBCI?`_
-- `Hardware support`_
-- `Software support`_
-    - `Requirements`_
-    - `Installation`_
-- `Linux service interface`_
-- `Configuration`_
-- `Documentation`_
-- `Files outline`_
-- `Supported gyms`_
-- `License`_
-- `Useful links`_
+.. - `What is EmBCI?`_
+.. - `Why should you choose EmBCI?`_
+.. - `Hardware support`_
+.. - `Software support`_
+..     - `Requirements`_
+..     - `Installation`_
+.. - `Linux service interface`_
+.. - `Configuration`_
+.. - `Documentation`_
+.. - `Files outline`_
+.. - `Supported gyms`_
+.. - `License`_
+.. - `Useful links`_
 
 
 
@@ -224,7 +220,7 @@ On Windows system::
 
 See `docs/Configurations`_ for more details.
 
-.. _docs/Configurations:  https://embci.readthedocs.io/en/latest/Configurations.html
+.. _docs/Configurations:  https://embci.readthedocs.io/en/latest/configurations.html
 
 
 
@@ -253,7 +249,7 @@ Files outline
 +-------------------+-------------------------------------------------------+
 | `embci.webui`_    | Web-based User Interface                              |
 +-------------------+-------------------------------------------------------+
-| `files/avr`_      | On shield ``Atmega328P`` firmware (Deprecated)        |
+| `files/avr`       | On shield ``Atmega328P`` firmware (**Deprecated**)    |
 +-------------------+-------------------------------------------------------+
 | `files/esp32`_    | On shield ``ESP32`` firmware and burning tools        |
 +-------------------+-------------------------------------------------------+
@@ -264,7 +260,6 @@ Files outline
 | `files/service`_  | Linux service configurations                          |
 +-------------------+-------------------------------------------------------+
 
-.. #_files/avr:       https://github.com/hankso/EmBCI/tree/master/files/avr
 .. _files/esp32:     https://github.com/hankso/EmBCI/tree/master/files/esp32
 .. _files/cases:     https://github.com/hankso/EmBCI/tree/master/files/cases
 .. _files/hardware:  https://github.com/hankso/EmBCI/tree/master/files/hardware
@@ -311,6 +306,5 @@ Useful links
 - `Awesome-BCI <https://github.com/NeuroTechX/awesome-bci>`_
 - `OpenBCI <https://github.com/openbci>`_
 - `OpenViBE <http://openvibe.inria.fr/>`_
-- Matlab toolboxes
-    - `EEGLAB <http://sccn.ucsd.edu/eeglab/>`_
-    - `BCILAB <https://sccn.ucsd.edu/wiki/BCILAB>`_
+- `EEGLAB <http://sccn.ucsd.edu/eeglab/>`_
+- `BCILAB <https://sccn.ucsd.edu/wiki/BCILAB>`_

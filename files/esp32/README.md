@@ -1,7 +1,9 @@
-# Pin-out
+# ESP32 Reference
+
+## Pin-out
 On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as follows.
 
-## Connection
+### Connection
 | ESP32 | OPi0+ | OPi0+2 |
 | -     | -     | -      |
 | EN    | PA19  | PA19   |
@@ -11,21 +13,21 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
 | UART1 | UART2 | ------ |
 | HSPI  | SPI1  | SPI1   |
 
-## OPi0+ Pin Number
+### OPi0+ Pin Number
 | num  | UART1     | UART2     | SPI1                 |
 | -    | -         | -         | -                    |
 | GPIO | T198 R199 | T0   R1   | CS13 CLK14 MO15 MI16 |
 | PIN  | PG06 PG07 | PA00 PA01 | PA13 PA14  PA15 PA16 |
 ![OPi0+ Pin-out](../images/Orange-Pi-Zero-Plus.png)
 
-## OPi0+2 Pin Number
+### OPi0+2 Pin Number
 | num  | UART2     | SPI1                 |
 | -    | -         | -                    |
 | GPIO | T0   R1   | CS13 CLK14 MO15 MI16 |
 | PIN  | PA00 PA01 | PA13 PA14  PA15 PA16 |
 ![OPi0+2 Pin-out](../images/Orange-Pi-Zero-Plus-2.png)
 
-## ESP32 Pin Number
+### ESP32 Pin Number
 | num  | EN | BOOT | DRDY | UART0 | UART1  | HSPI                 |
 | -    | -  | -    | -    | -     | -      | -                    |
 | GPIO | -- | 0    | 4    | T1 R3 | T10 R9 | CS15 CLK14 MI12 MO13 |
@@ -33,8 +35,8 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
 ![ESP32 Pin-out](../images/ESP32-Pinout.png)
 
 
-# Usage
-## Firmware
+## Usage
+### Firmware
 - Pre-compiled binary firmware files are in folder `firmware`.
     - boot_app0.bin
     - bootloader.bin
@@ -88,11 +90,11 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
     cp bootloader/bootloader.bin ESP32_Sandbox.ino.bin default.bin ../firmware/
     ```
 
-## Flash
+### Flash
 Run `burning.sh` script to flash firmware binary files into on-shield ESP32. Use `sudo` if needed.
 
 
-## Monitor
+### Monitor
 ```bash
 miniterm.py /dev/ttyS1 115200
 # or
@@ -100,7 +102,7 @@ screen /dev/ttyS1 115200
 ```
 or any other serial monitor.
 
-## Serial Interface
+### Serial Interface (Deprecated in v0.1.4)
 Example output of serial.
 ```
 ESP32 Firmware XXXX.XX-EmBCI
@@ -119,6 +121,9 @@ Supported commands:
     v - be more Verbose
     w - turn on/off serial-to-Wifi redirection
 ```
+
+### UART Console-like Interface
+
 
 # TODO
 Write `Makefile`:
