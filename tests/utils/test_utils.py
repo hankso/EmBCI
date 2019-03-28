@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# File: EmBCI/tests/test_utils.py
+# File: EmBCI/tests/utils/test_utils.py
 # Author: Hankso
 # Webpage: https://github.com/hankso
 # Time: Mon 25 Feb 2019 22:34:40 CST
@@ -12,7 +12,7 @@ import logging
 
 from six import StringIO
 
-from . import embeddedonly
+from .. import embeddedonly
 
 from embci.configs import BASEDIR, DATADIR
 from embci.utils import (

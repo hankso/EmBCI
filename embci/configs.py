@@ -28,6 +28,8 @@ DEFAULT_CONFIG_FILES = [
 #
 # example:  CRITICAL:embci.webui:__init__.py:1234: abort!
 LOGFORMAT = ('%(levelname)s:%(name)s:%(filename)s:%(lineno)d: %(message)s')
+WEBUI_HOST = '0.0.0.0'
+WEBUI_PORT = 80
 
 
 # =============================================================================

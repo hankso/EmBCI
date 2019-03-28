@@ -8,4 +8,15 @@
 
 '''Data processing'''
 
-from .preprocess import SignalInfo, Features
+from ..utils import config_logger
+logger = config_logger()
+del config_logger
+
+from ..testing import PytestRunner
+test = PytestRunner(__name__)
+del PytestRunner
+
+from .preprocessing import *
+from .motorimagery import *
+from .ssvep import *
+from .p300 import *

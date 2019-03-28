@@ -31,275 +31,49 @@
 */
 
 // local headers
+#include "ESP32_Sandbox.h"
 #include "ADS1299_ESP32.h"
-
-// Arduino core @ ${ARDUINO_ESP32}/cores/esp32
-#include "Arduino.h"
-#include "HardwareSerial.h"
-
-// Arduino third-party lib @ ${ARDUINO_ESP32}/libraries
-#include <SPI.h>
-#include <WiFi.h>
-
-// ESP-IDF SDK @ ${ESP_IDF}/components && ${ARDUINO_ESP32}/tools/sdk/include
-#include "esp_log.h"
-#include "esp_task_wdt.h"
-#include "esp_heap_caps.h"
-#include "driver/spi_slave.h"
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#ifdef LOG_LOCAL_LEVEL
-    #undef LOG_LOCAL_LEVEL
-    #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-    // #define LOGLOCAL_LEVEL ESP_LOG_NONE
-#endif
-
-#define M_BUFFERSIZE     8192
-#define M_BUFFERSIZESPI  256
-#define PACKETSIZE       256
-#define SLAVESENDTIMEOUT 1000
-
-#define VSPI_SS          5
-#define HSPI_SS          15
-#define DRDY_PIN         4
-#define BLINK_PIN        2
-#define ADS_DRDY_PIN     27
-
-#define GPIO_MOSI        23
-#define GPIO_MISO        19
-#define GPIO_SCLK        18
-#define GPIO_CS          5
-
-#define datatype float
-
-#define btos(bool) (bool ? "True" : "False")
-
-// 170 --> 0b"10101010"
-char* itobs(int n, char *buff, int bits=8) {
-    buff += bits;
-    *buff-- = '\0';
-    while (bits--) {
-        *buff-- = (n & 1) + '0';
-        n >>= 1;
-    }
-    return buff;
-}
-
-template<typename T>
-class CyclicQueue {
-    public:
-        T *buf;
-        uint32_t buffersiz;
-        bool overriden = false;
-        uint32_t sp, ep;
-        int32_t len = 0;
-        CyclicQueue(T* bp, uint32_t siz) {
-            buf = bp;
-            buffersiz = siz;
-            clear();
-        }
-        void clear() {
-            sp = 0;
-            ep = 0;
-            len = 0;
-            for (uint32_t i = 0; i < buffersiz; i++) {
-                buf[i] = 0;
-            }
-        }
-        bool push(T val) {
-            buf[sp] = val;
-            sp = (sp + 1) % buffersiz;
-            if (sp == ep) {
-                overriden = true;
-                ep = (ep + 1) % buffersiz;
-                return false;
-            } else {
-                len++;
-                return true;
-            }
-        }
-        bool pop(T* val) {
-            if (ep == sp) {
-                return true;
-            } else {
-                *val = buf[ep];
-                ep = (ep + 1) % buffersiz;
-                len--;
-                return false;
-            }
-        }
-};
-
-class MillisClock {
-    public:
-        uint32_t lasttime;
-        void reset() {
-            lasttime = millis();
-        }
-        uint32_t getdiff() {
-            int32_t diff = millis() - lasttime;
-            if (diff > 0) {
-                return diff;
-            } else {
-                reset();
-                return 0;
-            }
-        }
-        uint32_t update() {
-            int32_t diff = millis() - lasttime;
-            reset();
-            if (diff > 0) {
-                return diff;
-            } else {
-                return 0;
-            }
-        }
-};
-
-enum SpiSlaveStatus{idle, poll} slaveStatus = idle;
-
-uint32_t timeacc;
-uint32_t adsStatusBit;
-uint32_t sampfps = 0;
-uint32_t sampfpsvi = 0;
-uint32_t sampfpsi = 0;
-uint32_t sampfpsv = 0;
-
-static const int spiClk = 1000000; // 1 MHz
-static const char *NAME = "EmBCI";
+#include "console_cmds.h"
 
 int drdypulsetime = 10;
 long wavei = 0;
-char* spibufrecv;
+char *spibufrecv;
 bool blinkstat = false;
-bool wifiEcho = false;
 
-int dataSrc = 0;
-const char* const dataSrcList[] = {
-    "ADS1299 Float32 Raw Wave",
-    "ESP Generated Square Wave",
-    "ESP Generated Sine Wave",
-    "Constant 1.0"
-};
-
-esp_log_level_t logLevel = ESP_LOG_INFO;
-int minLevel = 0, maxLevel = 5;
-const char* const logLevelList[] = {
-    "SILENT", "ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE",
-};
-
-// Supported sample rates (Hz)
-int fsList[] = {250, 500, 1000, 2000, 4000, 8000, 16000};
-
-ADS1299 ads(HSPI, HSPI_SS);
-SPIClass * vspi = NULL;
+SPIClass *vspi;
 WiFiClient client;
 
-datatype cqbuf[M_BUFFERSIZE];
-datatype* spibuf;
-CyclicQueue<datatype> *cq;
+bufftype cqbuf[M_BUFFERSIZE];
+bufftype *spibuf;
 
-MillisClock clkgen;
-MillisClock clkslavetimeout;
-MillisClock clkblink;
-MillisClock clkts;
+spi_slave_transaction_t *t;
 
-spi_slave_transaction_t* t;
 
-void my_post_setup_cb (spi_slave_transaction_t *trans) {}
-
-void my_post_trans_cb (spi_slave_transaction_t *trans) {}
-
-void sendToSPI() {
-    // wait until ADS1299 DRDY pin fall down, why not use interrupt?
-    if (digitalRead(ADS_DRDY_PIN) == HIGH) return;
+void read_from_ads1299() {
     float res[8];
-    adsStatusBit = ads.readData(res);
-    if ((adsStatusBit & 0xF00000) != 0xC00000) return;
+    ads.readData(res);
+    counter.count(0);
+    if ((ads.statusBit & 0xF00000) != 0xC00000) return;
+    counter.count(1);
     for (int i = 0; i < 8; i++) {
-        if (dataSrc == 1) {
+        switch (data_source) {
+        case ADS_RAW:
+            cq->push(res[i]); break;
+        case ESP_SQUARE:
             cq->push((float)((wavei / 100) % 2));
-            wavei++;
-        } else if (dataSrc == 2) {
+            wavei++; break;
+        case ESP_SINE:
             cq->push(sin(wavei / 10));
-            wavei++;
-        } else if(dataSrc == 3) {
-            cq->push(1.0);
-        } else {
-            cq->push(res[i]);
+            wavei++; break;
+        case ESP_CONST:
+            cq->push(1.0); break;
         }
     }
-    sampfpsvi++;
 }
 
-void handleSerialCommand() {
-    ESP_LOGV(NAME, "Begin processing serial cmd");
-    char inchar = Serial.read();
-    float bufrate;
-    if (inchar < 'a' || inchar > 'z') return;
-    switch(inchar) {
-        case 'c':
-            cq->clear();
-            ESP_LOGD(NAME, "Queue empty now");
-            break;
-        case 'd':
-            dataSrc = (dataSrc + 1) % 4;
-            ESP_LOGD(NAME, "Current output data: %s", dataSrcList[dataSrc]);
-            break;
-        case 'w':
-            wifiEcho = !wifiEcho;
-            ESP_LOGD(NAME, "Serial-to-wifi redirection: %s", btos(wifiEcho));
-            break;
-        case 'r':
-            char tmpr[24+1];
-            itoa(ads.init(), tmpr, 2);
-            ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
-            break;
-        case 's':
-            char tmps[8+1];
-            itoa(adsStatusBit, tmps, 2);
-            bufrate = (float)(cq->len) / M_BUFFERSIZE;
-            ESP_LOGW(NAME, "ADS data header: 0b%s", tmps);
-            ESP_LOGW(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
-            ESP_LOGW(NAME, "Output data:     %s", dataSrcList[dataSrc]);
-            ESP_LOGW(NAME, "Logging level:   %s", logLevelList[logLevel]);
-            ESP_LOGW(NAME, "Serial to wifi:  %s", btos(wifiEcho));
-            ESP_LOGW(NAME, "buffer used:     %.2f%%", bufrate * 100);
-            break;
-        case 'h':
-            ESP_LOGW(NAME, "Supported commands:");
-            ESP_LOGW(NAME, "\th - print this Help message");
-            ESP_LOGW(NAME, "\tc - Clear spi fifo queue");
-            ESP_LOGW(NAME, "\td - change esp output Data source");
-            ESP_LOGW(NAME, "\ts - print Summary of current status");
-            ESP_LOGW(NAME, "\tq - be more Quiet");
-            ESP_LOGW(NAME, "\tv - be more Verbose");
-            ESP_LOGW(NAME, "\tw - turn on/off serial-to-Wifi redirection");
-            ESP_LOGW(NAME, "\tr - Reset ads1299 and read id register");
-            break;
-        case 'q':
-            logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );
-            esp_log_level_set(NAME, logLevel);
-            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
-            break;
-        case 'v':
-            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
-            esp_log_level_set(NAME, logLevel);
-            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
-            break;
-        default:
-            ESP_LOGE(NAME, "%c: command not supported.", inchar);
-    }
-    ESP_LOGV(NAME, "End processing serial cmd");
-}
-
-void handleSerial() {
-    if (Serial.available()) {
-        handleSerialCommand();
-    }
-    if (wifiEcho && client.connected()) {
+/*
+void handle_uart_message() {
+    if (wifi_echo && client.connected()) {
         ESP_LOGI(NAME, "Redirecting Serial1 to WiFi client.");
         ESP_LOGE(NAME, "Not implemented yet!");
         return;
@@ -311,10 +85,10 @@ void handleSerial() {
         }
     }
 }
+*/
 
-void handleSpiCommand() {
-    ESP_LOGV(NAME, "Begin processing SPI");
-    if(spibufrecv[0] == 0x00) {
+void handle_spi_command() {
+    if (spibufrecv[0] == 0x00) {
         return;
     } else {
         char tmp[3*128 + 1];
@@ -327,86 +101,83 @@ void handleSpiCommand() {
     if (spibufrecv[0] == 0x40) {
         ESP_LOGD(NAME, "INSTRUCTION: WREG");
         switch(spibufrecv[1]) {
-            case 0x50:
-                ESP_LOGD(NAME, "REGISTER: SAMPLE RATE: ");
-                if (spibufrecv[2] <= 6) {
-                    int samplerate = fsList[6 - spibufrecv[2]];
-                    ads.setSampRate(samplerate);
-                    ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", samplerate);
-                } else {
-                    ESP_LOGD(NAME, "NOT IMPLEMENTED SAMPLERATE %d", spibufrecv[2]);
-                }
-                break;
-            case 0x52:
-                ESP_LOGD(NAME, "REGISTER: INPUT SOURCE: ");
-                if (spibufrecv[2] == 0x05) {
-                    ads.setTestSignal(true);
-                    ESP_LOGD(NAME, "TEST SIGNAL ENABLED");
-                } else if (spibufrecv[2] == 0x00) {
-                    ads.setTestSignal(false);
-                    ESP_LOGD(NAME, "NORMAL SIGNAL ENABLED");
-                } else {
-                    ESP_LOGD(NAME, "NOT IMPLEMENTED SIGNAL %d", spibufrecv[2]);
-                }
-                break;
-            case 0x54:
-                ESP_LOGD(NAME, "REGISTER: BIAS: ");
-                if (spibufrecv[2] == 0x01) {
-                    ads.setBias(true);
-                    ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
-                } else if (spibufrecv[2] == 0x00) {
-                    ads.setBias(false);
-                    ESP_LOGD(NAME, "BIAS OUTPUT DISABLED");
-                } else {
-                    ESP_LOGD(NAME, "NOT IMPLEMENTED BIAS CMD %d", spibufrecv[2]);
-                }
-                break;
-            case 0x56:
-                ESP_LOGD(NAME, "REGISTER: IMPEDANCE: ");
-                if (spibufrecv[2] == 0x01) {
-                    ads.setImpedance(true);
-                    ESP_LOGD(NAME, "IMPEDANCE ENABLED");
-                } else if (spibufrecv[2] == 0x00) {
-                    ads.setImpedance(false);
-                    ESP_LOGD(NAME, "IMPEDANCE DISABLED");
-                } else {
-                    ESP_LOGD(NAME, "NOT IMPLEMENTED IMPEDANCE CMD %d", spibufrecv[2]);
-                }
-                break;
+        case 0x50:
+            ESP_LOGD(NAME, "REGISTER: SAMPLE RATE: ");
+            if (spibufrecv[2] <= 6) {
+                int samplerate = sample_rate_list[6 - spibufrecv[2]];
+                ads.setSampRate(samplerate);
+                ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", samplerate);
+            } else {
+                ESP_LOGD(NAME, "NOT IMPLEMENTED SAMPLERATE %d", spibufrecv[2]);
+            }
+            break;
+        case 0x52:
+            ESP_LOGD(NAME, "REGISTER: INPUT SOURCE: ");
+            if (spibufrecv[2] == 0x05) {
+                ads.setTestSignal(true);
+                ESP_LOGD(NAME, "TEST SIGNAL ENABLED");
+            } else if (spibufrecv[2] == 0x00) {
+                ads.setTestSignal(false);
+                ESP_LOGD(NAME, "NORMAL SIGNAL ENABLED");
+            } else {
+                ESP_LOGD(NAME, "NOT IMPLEMENTED SIGNAL %d", spibufrecv[2]);
+            }
+            break;
+        case 0x54:
+            ESP_LOGD(NAME, "REGISTER: BIAS: ");
+            if (spibufrecv[2] == 0x01) {
+                ads.setBias(true);
+                ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
+            } else if (spibufrecv[2] == 0x00) {
+                ads.setBias(false);
+                ESP_LOGD(NAME, "BIAS OUTPUT DISABLED");
+            } else {
+                ESP_LOGD(NAME, "NOT IMPLEMENTED BIAS CMD %d", spibufrecv[2]);
+            }
+            break;
+        case 0x56:
+            ESP_LOGD(NAME, "REGISTER: IMPEDANCE: ");
+            if (spibufrecv[2] == 0x01) {
+                ads.setImpedance(true);
+                ESP_LOGD(NAME, "IMPEDANCE ENABLED");
+            } else if (spibufrecv[2] == 0x00) {
+                ads.setImpedance(false);
+                ESP_LOGD(NAME, "IMPEDANCE DISABLED");
+            } else {
+                ESP_LOGD(NAME, "NOT IMPLEMENTED IMPEDANCE CMD %d", spibufrecv[2]);
+            }
+            break;
         }
     } else {
         ESP_LOGD(NAME, "INSTRUCTION: NOT IMPLEMENTED");
     }
-    ESP_LOGV(NAME, "End processing SPI");
 }
 
-void handleSPI() {
-    switch (slaveStatus) {
-        case idle:
+void handle_spi() {
+    switch (slave_status) {
+        case IDLE:
             // Put data into spi_slave_queue, waiting spi_master to read
-            if (cq->len > PACKETSIZE) {
-                // SPI slave satatus reset to poll
-                slaveStatus = poll;
-                digitalWrite(DRDY_PIN, LOW);
-                drdypulsetime = 10;
-                for (int i = 0; i < PACKETSIZE; i++) {
-                    cq->pop(&(spibuf[i]));
-                }
-                spibufrecv[0] = '\0';
-                t->length = sizeof(datatype) * PACKETSIZE * 8;
-                t->trans_len = t->length;
-                t->tx_buffer = (char*)spibuf;
-                t->rx_buffer = (char*)spibufrecv;
-                spi_slave_queue_trans(VSPI_HOST, t, portMAX_DELAY);
-                ESP_LOGV(NAME, "BUFFER USED: %F", (float)(cq->len) / M_BUFFERSIZE);
-                if (cq->overriden) {
-                    ESP_LOGD(NAME, "BUFFER OVERFLOW");
-                    cq->overriden = false;
-                }
-                clkslavetimeout.reset();
+            if (cq->len <= PACKETSIZE) break;
+            // SPI slave satatus reset to poll
+            slave_status = POLL;
+            digitalWrite(DRDY_PIN, LOW);
+            drdypulsetime = 10;
+            for (int i = 0; i < PACKETSIZE; i++) {
+                cq->pop(&(spibuf[i]));
             }
+            spibufrecv[0] = '\0';
+            t->length = sizeof(bufftype) * PACKETSIZE * 8;
+            t->trans_len = t->length;
+            t->tx_buffer = (char*)spibuf;
+            t->rx_buffer = (char*)spibufrecv;
+            spi_slave_queue_trans(VSPI_HOST, t, portMAX_DELAY);
+            if (cq->overriden) {
+                ESP_LOGD(NAME, "BUFFER OVERFLOW");
+                cq->overriden = false;
+            }
+            clkslavetimeout.reset();
             break;
-        case poll:
+        case POLL:
             // Data has not been read by SPI master yet
             if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
                 clkslavetimeout.reset();
@@ -416,13 +187,14 @@ void handleSPI() {
             }
             // SPI master has read data, set slave status back to idle
             if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
-                slaveStatus = idle;
-                handleSpiCommand();
+                slave_status = IDLE;
+                handle_spi_command();
             }
             break;
     }
 }
 
+/*
 void blinkTest() {
     ESP_LOGV(NAME, "Begin blink test");
     if (clkblink.getdiff() >= 1000) {
@@ -437,6 +209,8 @@ void blinkTest() {
     }
     ESP_LOGV(NAME, "End blink test");
 }
+*/
+
 
 void setup() {
     ESP_LOGD(NAME, "ESP32 Firmware 2018.10-EmBCI");
@@ -447,20 +221,29 @@ void setup() {
 #ifdef CONFIG_TASK_WDT
     if (esp_task_wdt_add(NULL) == ESP_OK && \
         esp_task_wdt_status(NULL) == ESP_OK) {
-        ESP_LOGI(NAME, "Task loopTask @ CPU1 subscribed to TWDT");
+        ESP_LOGD(NAME, "Task loopTask @ CPU0 subscribed to TWDT");
     }
     if (esp_task_wdt_delete(xTaskGetIdleTaskHandleForCPU(1)) == ESP_OK) {
-        ESP_LOGI(NAME, "Task IDLE1 @ CPU1 unsubscribed from TWDT");
+        ESP_LOGD(NAME, "Task IDLE1 @ CPU1 unsubscribed from TWDT");
     }
 #endif
 
     ESP_LOGD(NAME, "Init Serial... ");
-    // In `uartSetBaudRate`:
-    //     CLK_DIV = (UART_CLK_FREQ(80MHz) << 4) / baudrate
-    //     therefore best baudrates:
-    //         [100000, 200000, 400000, 500000, 800000...]
-    Serial.begin(115200);
-    Serial1.begin(500000);
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 0,
+        .use_ref_tick = true
+    };
+    ESP_ERROR_CHECK( uart_param_config(UART_CONSOLE, &uart_config) );
+    ESP_ERROR_CHECK( uart_driver_install(UART_CONSOLE, 256, 0, 0, NULL, 0) );
+    esp_vfs_dev_uart_use_driver(UART_CONSOLE);
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    // Serial1.begin(500000);
     ESP_LOGD(NAME, "done");
 
     ESP_LOGD(NAME, "Init GPIO... ");
@@ -474,11 +257,44 @@ void setup() {
     ESP_LOGD(NAME, "Init SPI... ");
     vspi = new SPIClass(VSPI);
     vspi->begin();
+
+    spibuf = (bufftype*) heap_caps_malloc(
+        sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
+    spibufrecv = (char*) heap_caps_malloc(
+        sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
+    t = (spi_slave_transaction_t*) malloc(sizeof(spi_slave_transaction_t*));
+    cq = new CyclicQueue<bufftype>(cqbuf,M_BUFFERSIZE);
+    for (int i = 0; i < M_BUFFERSIZE; i++) {
+        cq->buf[i] = i;
+    }
+
+    spi_bus_config_t buscfg = {
+        .mosi_io_num = GPIO_MOSI,
+        .miso_io_num = GPIO_MISO,
+        .sclk_io_num = GPIO_SCLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 0,
+        .flags = 0
+    };
+    spi_slave_interface_config_t slvcfg = {
+        .spics_io_num = GPIO_CS,
+        .flags = 0,
+        .queue_size = 3,
+        .mode = 0,
+        .post_setup_cb = NULL,
+        .post_trans_cb = NULL,
+    };
+    if (spi_slave_initialize(VSPI_HOST, &buscfg, &slvcfg, 1) != ESP_OK) {
+        ESP_LOGE(NAME, "spi_slave_initialize FAILED!!!");
+    }
     ESP_LOGD(NAME, "done");
 
+    /*
     ESP_LOGD(NAME, "Init WiFi... ");
     WiFi.mode(WIFI_STA);
     ESP_LOGD(NAME, "done");
+    */
 
     ESP_LOGD(NAME, "Init ADS... ");
     ads.begin();
@@ -486,52 +302,27 @@ void setup() {
     ads.init();
     ESP_LOGD(NAME, "done");
 
+    ESP_LOGD(NAME, "Init Console... ");
+    initialize_console();
+    // compatiable for `minicom`, `screen` those who send CR
+    esp_vfs_dev_uart_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
+    esp_vfs_dev_uart_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
+    ESP_LOGD(NAME, "done");
 
     ESP_LOGD(NAME, "Begin setup");
-    spibuf = (datatype*) heap_caps_malloc(
-        sizeof(datatype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
-    spibufrecv = (char*) heap_caps_malloc(
-        sizeof(datatype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
-    t = (spi_slave_transaction_t*) malloc(sizeof(spi_slave_transaction_t*));
-    cq = new CyclicQueue<datatype>(cqbuf,M_BUFFERSIZE);
-    for (int i = 0; i < M_BUFFERSIZE; i++) {
-        cq->buf[i] = i;
-    }
-
     clkgen.reset();
     clkts.reset();
-    clkblink.reset();
-
-    spi_bus_config_t buscfg;
-    buscfg.mosi_io_num = GPIO_MOSI;
-    buscfg.miso_io_num = GPIO_MISO;
-    buscfg.sclk_io_num = GPIO_SCLK;
-
-    spi_slave_interface_config_t slvcfg;
-    slvcfg.mode = 0;
-    slvcfg.spics_io_num = GPIO_CS;
-    slvcfg.queue_size = 3;
-    slvcfg.flags = 0;
-    slvcfg.post_setup_cb = my_post_setup_cb;
-    slvcfg.post_trans_cb = my_post_trans_cb;
-
-    if (spi_slave_initialize(VSPI_HOST, &buscfg, &slvcfg, 1) != ESP_OK) {
-        ESP_LOGE(NAME, "spi_slave_initialize FAILED!!!");
-    }
-
+    // clkblink.reset();
+    attachInterrupt(ADS_DRDY_PIN, read_from_ads1299, FALLING);
+    ESP_LOGI(NAME, "Type `help` for commands message");
+    xTaskCreatePinnedToCore(console_loop, "console", 3000, NULL, 2, NULL, 0);
     ESP_LOGD(NAME, "End setup");
-    ESP_LOGI(NAME, "Press `h` for help message");
 }
 
 void loop() {
-    sendToSPI();
-    sampfpsi++;
-
     // blinkTest();
-
-    handleSerial();
-
-    handleSPI();
+    // handle_usrt_message();
+    handle_spi();
 
     if (drdypulsetime <= 0) {
         digitalWrite(DRDY_PIN, HIGH);
@@ -540,12 +331,11 @@ void loop() {
     }
 
     if (clkgen.getdiff() > 1000) {
-        sampfps = sampfpsi;
-        sampfpsv = sampfpsvi;
-        sampfpsi = 0;
-        sampfpsvi = 0;
+        counter.freeze();
+        counter.reset();
         clkgen.reset();
     }
+
 #ifdef CONFIG_TASK_WDT
     esp_task_wdt_reset();
 #endif

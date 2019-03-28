@@ -8,6 +8,8 @@
 
 '''P300 pattern Brain Computer Interface algorithms.'''
 
+__all__ = []
+
 
 def P300(username, reader, model, commander):
     raise NotImplementedError

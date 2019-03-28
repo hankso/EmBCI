@@ -91,16 +91,16 @@
 
             <div class="bar">
                 <hr/>
-                <p>姓名：
+                <p>姓名:
                     <span id="name">{{username}}</span>
                 </p>
-                <p>性别：
+                <p>性别:
                     <span id="sex">{{gender}}</span>
                 </p>
-                <p>年龄：
+                <p>年龄:
                     <span id="age">{{age}}</span>
                 </p>
-                <p>病号ID：
+                <p>病号ID:
                     <span id="id">{{id}}</span>
                 </p>
                 <hr/>
@@ -114,15 +114,15 @@
                 <div class="data">
                     <h2>术前</h2>
                     <h3>
-                        震颤： {{tb}}Hz
+                        震颤: {{round(tb, 3)}}Hz
                         <span id="bt"></span>
                     </h3>
                     <h3>
-                        僵直： {{sb}}
+                        僵直: {{round(sb, 4)}}
                         <span id="bs"></span>
                     </h3>
                     <h3>
-                        运动： {{mb}}
+                        运动: {{round(mb, 2)}}
                         <span id="bm"></span>
                     </h3>
                 </div>
@@ -134,15 +134,15 @@
                 <div class="data">
                     <h2>术前</h2>
                     <h3>
-                        震颤： {{ta}}Hz
+                        震颤: {{round(ta, 3)}}Hz
                         <span id="at"></span>
                     </h3>
                     <h3>
-                        僵直： {{sa}}
+                        僵直: {{round(sa, 4)}}
                         <span id="as"></span>
                     </h3>
                     <h3>
-                        运动： {{ma}}
+                        运动: {{round(ma, 2)}}
                         <span id="am"></span>
                     </h3>
                 </div>
@@ -153,19 +153,19 @@
             <div class="bar">
                 <hr/>
                 <p>改善率</p>
-                <p>震颤：
-                    <span id="t">{{tr}}%</span>
+                <p>震颤:
+                    <span id="t">{{round(tr, 2)}}%</span>
                 </p>
-                <p>僵直：
-                    <span id="s">{{sr}}%</span>
+                <p>僵直:
+                    <span id="s">{{round(sr, 2)}}%</span>
                 </p>
-                <p>运动：
-                    <span id="m">{{mr}}%</span>
+                <p>运动:
+                    <span id="m">{{round(mr, 2)}}%</span>
                 </p>
                 <hr/>
             </div>
             <p class="sign">
-                医师签字：
+                医师签字:
             </p>
             <p class="power">
                 Powered by Cheitech
@@ -173,8 +173,8 @@
         </div>
     </div>
     <div>
-        <a href="{{pdf_url}}" class="btn btn-default download" href>下载pdf <span class="glyphicon glyphicon-download-alt"></span></a>
-        <a href="/index.html" class="btn btn-default download">返回首页 <span class="glyphicon glyphicon-log-out"></span></a>
+        <a href="{{pdf_url}}" class="btn btn-default download">下载PDF <span class="glyphicon glyphicon-download-alt"></span></a>
+        <a href="/index.html" class="btn btn-default download">返回首页<span class="glyphicon glyphicon-log-out"></span></a>
     </div>
 </body>
 </html>

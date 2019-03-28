@@ -12,6 +12,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
+from __future__ import unicode_literals
 import os
 import sys
 import time
@@ -25,10 +26,18 @@ project = u'EmBCI'
 copyright = u'2017-{}, {}'.format(time.strftime('%Y'), embci.__author__)
 author = u'Hankso'
 
-# The short X.Y version
-version = u'.'.join(embci.__version__.split('.')[:2])
-# The full version, including alpha/beta/rc tags
-release = embci.__version__
+try:
+    from packaging import version as vparser
+    v = vparser.parse(embci.__version__)
+    # The short X.Y version
+    version = v.base_version
+    # The full version, including alpha/beta/rc tags
+    release = str(v)
+except ImportError:
+    # The short X.Y version
+    version = u'.'.join(embci.__version__.split('.')[:2])
+    # The full version, including alpha/beta/rc tags
+    release = embci.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,11 +51,15 @@ release = embci.__version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.napoleon',
     'numpydoc',
+    'm2r',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -82,7 +95,9 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+#  html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
+html_title = '{} v{} User Guide'.format(project, release)
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -109,7 +124,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'EmBCIdoc'
+htmlhelp_basename = 'EmBCI Doc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -146,8 +161,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'embci', u'EmBCI Documentation',
-     [author], 1)
+    (master_doc, 'embci', u'EmBCI Documentation', [author], 1)
 ]
 
 
@@ -157,13 +171,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'EmBCI', u'EmBCI Documentation',
-     author, 'EmBCI', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'EmBCI', u'EmBCI Documentation', author,
+     'EmBCI', 'One line description of project.', 'Miscellaneous'),
 ]
 
 
 # -- Extension configuration -------------------------------------------------
+extlinks = {
+    'issue': (os.path.join(embci.__url__, 'issue/%s'), '#')
+}
 
 # -- Options for todo extension ----------------------------------------------
 

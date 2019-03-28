@@ -8,6 +8,10 @@
 
 '''Visualization.'''
 
+from ..utils import config_logger
+logger = config_logger()
+del config_logger
+
 from .screen import *
 from .plots import *
 from .qt import *

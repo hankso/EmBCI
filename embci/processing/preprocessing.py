@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# File: EmBCI/embci/processing/preprocess.py
+# File: EmBCI/embci/processing/preprocessing.py
 # Author: Hankso
 # Webpage: https://github.com/hankso
 # Time: Wed 28 Feb 2018 11:05:15 CST
@@ -16,7 +16,7 @@ import scipy.signal
 from decorator import decorator
 
 from . import timed, freqd
-from ..io import BaseReader
+from ..io.readers import BaseReader
 
 
 @decorator

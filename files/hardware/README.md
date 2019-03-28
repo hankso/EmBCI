@@ -1,6 +1,6 @@
-# EmBCI Hardware
+# EmBCI Shield
 
-# Connection
+## Board Connection
 - Communicate with [ADS1299](http://www.ti.com/product/ADS1299) through SPI
 interface on OrangePi pin `CS/PA13`, `CLK/PA14`, `MOSI/PA15` and `MISO/PA16`
 

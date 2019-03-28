@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# File: EmBCI/embci/apps/SPIScreen/__main__.py
+# File: EmBCI/embci/apps/DisplaySPI/__main__.py
 # Author: Hankso
 # Webpage: https://github.com/hankso
 # Time: Thu 26 Apr 2018 19:27:13 CST
@@ -13,6 +13,7 @@ from __future__ import print_function
 import os
 import time
 import threading
+import functools
 import subprocess
 from functools import partial
 
@@ -29,19 +30,22 @@ from PIL import Image, ImageDraw
 from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.pdfgen import canvas
 
-from ...common import check_input, time_stamp, mkuserdir
-from ...processing import SignalInfo
-from ...viz import SPIScreenGUI as Screen_GUI
-from ...io import ESP32SPIReader as Reader, SocketTCPServer
-from ...constants import (RGB565_BLUE, RGB565_GREEN, RGB565_CYAN,
-                          RGB565_RED, RGB565_MAGENTA, RGB565_YELLOW,
-                          RGB565_WHITE, RGB565_PURPLE, RGB565_ORANGE,
-                          RGB565_GREY, RGB888_BLUE, RGB888_GREEN, RGB888_CYAN,
-                          RGB888_RED, RGB888_MAGENTA, RGB888_YELLOW,
-                          RGB888_PURPLE, RGB888_ORANGE, RGB888_GREY)
+from embci.common import check_input, time_stamp, mkuserdir
+from embci.processing import SignalInfo
+from embci.viz import SPIScreenGUI as Screen_GUI
+from embci.io import ESP32SPIReader as Reader, SocketTCPServer
+from embci.constants import (
+    RGB565_BLUE, RGB565_GREEN, RGB565_CYAN,
+    RGB565_RED, RGB565_MAGENTA, RGB565_YELLOW,
+    RGB565_WHITE, RGB565_PURPLE, RGB565_ORANGE,
+    RGB565_GREY, RGB888_BLUE, RGB888_GREEN, RGB888_CYAN,
+    RGB888_RED, RGB888_MAGENTA, RGB888_YELLOW,
+    RGB888_PURPLE, RGB888_ORANGE, RGB888_GREY
+)
 
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
+__icon__ = functools.partial(os.path.join, __dir__, 'icons')
 
 
 ILI9341_Rainbow = [
@@ -264,9 +268,9 @@ callback_list = [
 
 def page1_daemon(flag_pause, flag_close, fps=0.8, thres=0):
     print('turn to page1')
-    img_red = Image.open('./files/icons/4@300x-8.png').resize((21, 21))
+    img_red = Image.open(__icon__('4@300x-8.png')).resize((21, 21))
     img_red = np.array(img_red.convert('RGBA'))
-    img_green = Image.open('./files/icons/5@300x-8.png').resize((21, 21))
+    img_green = Image.open(__icon__('5@300x-8.png')).resize((21, 21))
     img_green = np.array(img_green.convert('RGBA'))
     reader._esp.do_measure_impedance = True
     reader.data_channel

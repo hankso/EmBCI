@@ -29,7 +29,6 @@ import warnings
 import importlib
 import threading
 import traceback
-from functools import reduce
 from collections import MutableMapping, MutableSequence
 try:
     import ConfigParser as configparser
@@ -66,15 +65,18 @@ logger = logging.getLogger(__name__)
 hdlr = logging.StreamHandler(stdout)
 hdlr.setFormatter(logging.Formatter(LOGFORMAT))
 logger.handlers = [hdlr]
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARN)
 del hdlr
 # you can use config_logger instead, which is better
-
 
 if sys.version_info > (3, 0):
     strtypes = (bytes, str)  # noqa: E602
 else:
     strtypes = (basestring)  # noqa: E602
+
+from ..testing import PytestRunner
+test = PytestRunner(__name__)
+del PytestRunner
 
 
 # =============================================================================
@@ -1047,7 +1049,7 @@ def duration(sec, name=None, warning=None):
             return func(*args, **kwargs)
         if (time.time() - time_dict[_name]) < sec:
             if warning:
-                logger.info(warning)
+                logger.warn(warning)
             return
         else:
             time_dict[_name] = time.time()
@@ -1083,7 +1085,7 @@ def input(prompt=None, timeout=None, file=sys.stdin):
     return raw string as function `raw_input` do.
 
     The optional second argument specifies a timeout in seconds. Both int
-    and float is accepted.
+    and float is accepted. If timeout, an error will be thrown out.
 
     This function is PY2/3 & Linux/Windows compatible
     '''
@@ -1092,7 +1094,10 @@ def input(prompt=None, timeout=None, file=sys.stdin):
     if prompt is not None:
         stdout.write(prompt)
         stdout.flush()
-    rlist, _, _ = select.select([file], [], [], timeout)
+    try:
+        rlist, _, _ = select.select([file], [], [], timeout)
+    except select.error:
+        rlist = []
     if rlist:
         return file.readline().rstrip('\n')
     msg = 'read from {} failed'.format(getattr(file, 'name', str(file)))
@@ -1272,7 +1277,8 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     hdlrlevel = kwargs.pop('hdlrlevel', level)
     filename = kwargs.pop('filename', None)
     if filename is not None:
-        filedir = os.path.dirname(os.path.abspath(filename))
+        filename = os.path.abspath(os.path.expanduser(filename))
+        filedir = os.path.dirname(filename)
         if not os.path.exists(filedir):
             os.makedirs(filedir)
         hdlr = kwargs.pop('handler', logging.FileHandler)
@@ -1321,7 +1327,8 @@ class LoggerStream(object):
         ]
         while hasattr(f, "f_code"):
             co = f.f_code
-            if os.path.normcase(co.co_filename) not in srcfiles:
+            fn = os.path.normcase(os.path.abspath(co.co_filename))
+            if fn not in srcfiles:
                 rv = (co.co_filename, f.f_lineno, co.co_name)
                 break
             f = f.f_back
@@ -1382,7 +1389,7 @@ def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
     If no wanted pylsl stream outlets found, `sys.exit` will be
     called to exit python.
     '''
-    timeout = kwargs.pop('timeout', 3)
+    timeout = kwargs.pop('timeout', 1)
     NAME = '[Find Pylsl Outlets] '
     if not args:
         if kwargs:
@@ -1528,29 +1535,32 @@ def find_wifi_hotspots(interface=None):
     if interface is not None:
         interfaces = [interface]
     else:
+        ifs = []
         try:
             with open('/proc/net/wireless', 'r') as f:
-                rsts = [re.findall(r'wl\w+', line)
+                ifs += [re.findall(r'wl\w+', line)
+                        for line in f.readlines() if '|' not in line]
+            with open('/proc/net/dev', 'r') as f:
+                ifs += [re.findall(r'wl\w+', line)
                         for line in f.readlines() if '|' not in line]
         except IOError:
-            with open('/proc/net/dev', 'r') as f:
-                rsts = [re.findall(r'wl\w+', line)
-                        for line in f.readlines() if '|' not in line]
-        interfaces = [rst[0] for rst in rsts if rst]
+            pass
+        interfaces = list(set([_[0] for _ in ifs if _]))
     cells = AttributeList()
     for interface in interfaces:
         try:
             cells.extend([
-                AttributeDict(c) for c in wifi.Cell.all(interface)
+                AttributeDict(vars(c)) for c in wifi.Cell.all(interface)
                 if c.address not in cells.address
             ])
         except wifi.exceptions.InterfaceError:
             pass
         except Exception:
             logger.error(traceback.format_exc())
-    unique = reduce(lambda l, c: l if c.ssid in l.ssid else (l.append(c) or l),
-                    cells, AttributeList([]))
-    unique.sort(key=lambda cell: cell.signal, reverse=True)
+    unique = AttributeList()
+    for cell in sorted(cells, key=lambda cell: cell.signal, reverse=True):
+        if cell.ssid not in unique.ssid:
+            unique.append(cell)
     return unique
 
 

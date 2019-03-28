@@ -304,3 +304,82 @@ class DebugLogger {
         }
 };
 DebugLogger logger;
+
+void handleSerialCommand() {
+    ESP_LOGV(NAME, "Begin processing serial cmd");
+    char inchar = Serial.read();
+    float bufrate;
+    if (inchar < 'a' || inchar > 'z') return;
+    switch(inchar) {
+        case 'c':
+            cq->clear();
+            ESP_LOGD(NAME, "Queue empty now");
+            break;
+        case 'd':
+            dataSrc = (dataSrc + 1) % 4;
+            ESP_LOGD(NAME, "Current output data: %s", dataSrcList[dataSrc]);
+            break;
+        case 'w':
+            wifiEcho = !wifiEcho;
+            ESP_LOGD(NAME, "Serial-to-wifi redirection: %s", btos(wifiEcho));
+            break;
+        case 'r':
+            char tmpr[24+1];
+            itoa(ads.init(), tmpr, 2);
+            ESP_LOGI(NAME, "ADS first register value: 0b%s", tmpr);
+            break;
+        case 'p':
+            char tmps[8+1];
+            itoa(adsStatusBit, tmps, 2);
+            bufrate = (float)(cq->len) / M_BUFFERSIZE;
+            ESP_LOGW(NAME, "ADS data header: 0b%s", tmps);
+            ESP_LOGW(NAME, "Valid packets:   %d/%d Hz", sampfpsv, sampfps);
+            ESP_LOGW(NAME, "Output data:     %s", dataSrcList[dataSrc]);
+            ESP_LOGW(NAME, "Logging level:   %s", logLevelList[logLevel]);
+            ESP_LOGW(NAME, "Serial to wifi:  %s", btos(wifiEcho));
+            ESP_LOGW(NAME, "buffer used:     %.2f%%", bufrate * 100);
+            break;
+        case 's':
+            ESP_LOGW(NAME, "ESP32 will turn into light sleep mode");
+            ESP_LOGW(NAME, "Pull down GPIO0(BOOT) and then pull up to wake up");
+            gpio_wakeup_enable((gpio_num_t)GPIO_WAKEUP, GPIO_INTR_LOW_LEVEL);
+            esp_sleep_enable_gpio_wakeup();
+            esp_sleep_enable_uart_wakeup(0);
+            Serial.flush();
+            esp_light_sleep_start();
+            ESP_LOGW(NAME, "ESP32 is woken up from light sleep mode by %s", 
+                    wakeupReasonList[(int)esp_sleep_get_wakeup_cause()]);
+            break;
+        case 'S':
+            ESP_LOGW(NAME, "ESP32 will turn into deep sleep mode");
+            ESP_LOGW(NAME, "Pull down PIN3(EN/RST) and then pull up to reboot");
+            esp_deep_sleep_start();
+            break;
+        case 'h':
+            ESP_LOGW(NAME, "Supported commands:");
+            ESP_LOGW(NAME, "\th - print this Help message");
+            ESP_LOGW(NAME, "\tc - Clear spi fifo queue");
+            ESP_LOGW(NAME, "\td - change esp output Data source");
+            ESP_LOGW(NAME, "\tp - Print summary of current status");
+            ESP_LOGW(NAME, "\tq - be more Quiet");
+            ESP_LOGW(NAME, "\tv - be more Verbose");
+            ESP_LOGW(NAME, "\tw - turn on/off serial-to-Wifi redirection");
+            ESP_LOGW(NAME, "\tr - Reset ads1299 and read id register");
+            ESP_LOGW(NAME, "\ts - immediately turn into light Sleep mode");
+            ESP_LOGW(NAME, "\tS - immediately turn into deep Sleep mode");
+            break;
+        case 'q':
+            logLevel = esp_log_level_t( max((logLevel - 1), minLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
+            break;
+        case 'v':
+            logLevel = esp_log_level_t( min((logLevel + 1), maxLevel) );
+            esp_log_level_set(NAME, logLevel);
+            ESP_LOGW(NAME, "Current log level: %s", logLevelList[logLevel]);
+            break;
+        default:
+            ESP_LOGE(NAME, "%c: command not supported.", inchar);
+    }
+    ESP_LOGV(NAME, "End processing serial cmd");
+}

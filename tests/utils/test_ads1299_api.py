@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #
-# File: EmBCI/tests/test_ads1299.py
+# File: EmBCI/tests/utils/test_ads1299.py
 # Author: Hankso
 # Webpage: https://github.com/hankso
 # Time: Wed 06 Feb 2019 01:42:11 CST
@@ -10,7 +10,7 @@ import time
 
 from embci.utils.ads1299_api import ADS1299_API
 from embci.utils.esp32_api import ESP32_API
-from . import EmBCITestCase, embeddedonly
+from .. import EmBCITestCase, embeddedonly
 
 
 @embeddedonly
@@ -67,5 +67,5 @@ class TestESP(TestADS):
 
 
 if __name__ == '__main__':
-    from . import run_test_with_unittest
+    from .. import run_test_with_unittest
     run_test_with_unittest(TestADS, TestESP)
