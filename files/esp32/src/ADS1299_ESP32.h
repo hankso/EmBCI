@@ -68,29 +68,30 @@
 #define ADS_GPIO        0x14
 #define ADS_MISC1       0x15
 #define ADS_MISC2       0x16
-// #define ADS_CONFIG4     0x17
+
+
+const char* const ads1299_data_source[] = {
+    "Normal", "BIAS", "Shorted", "MVDD", "Temprature", "Test",
+};
+
+const int gain_list[] = {
+    1, 2, 4, 6, 8, 12, 24, 0,
+};
 
 
 class ADS1299 {
     private:
-        SPIClass *spi=NULL;
-        SPISettings *spiSetting=NULL;
+        SPIClass *spi = NULL;
+        SPISettings *spiSetting = NULL;
+        bool bias = false, imped = false;
+        int gain = 24, fs = 250;
         uint8_t SSPin;
+        const char *source = "normal";
 
-    public:
-        int gain;
-        uint32_t statusBit = 0;
-
-        //initialization with spi type
-        ADS1299(int spitype, int sspin) {
-            spi = new SPIClass(spitype);
-            SSPin = sspin;
-        }
-
-        //initialization with spi class pointer
-        ADS1299(SPIClass* spiclass, int sspin) {
-            spi = spiclass;
-            SSPin = sspin;
+        inline uint32_t sign_extend_24_32(uint32_t x) {
+            const int bits = 24;
+            uint32_t m = 1u << (bits - 1);
+            return (x ^ m) - m;
         }
 
         inline byte spiSend(const byte dat) {
@@ -113,6 +114,53 @@ class ADS1299 {
             digitalWrite(SSPin, HIGH);
         }
 
+        byte rreg(byte addr) {
+            byte tobesent[3] = {0x00, 0x00, 0x00};
+            byte received[3];
+            tobesent[0] = ADS_RREG | addr;
+            spiSend(tobesent, 3, received);
+            return received[2];
+        }
+
+        void wreg(byte addr, byte data) {
+            byte tobesent[3] = {0x00, 0x00, 0x00};
+            byte received[3];
+            tobesent[0] = ADS_WREG | addr;
+            tobesent[2] = data;
+            spiSend(tobesent, 3, received);
+        }
+
+    public:
+        uint32_t statusBit = 0;
+
+        //initialization with spi type
+        ADS1299(int spitype, int sspin) {
+            spi = new SPIClass(spitype);
+            SSPin = sspin;
+        }
+
+        //initialization with spi class pointer
+        ADS1299(SPIClass* spiclass, int sspin) {
+            spi = spiclass;
+            SSPin = sspin;
+        }
+
+        byte init() {
+            byte id;
+            reset();
+            sdatac();
+            id = rreg(ADS_ID);
+            wreg(ADS_CONFIG2, 0xD0);
+            wreg(ADS_CONFIG3, 0xE0);
+            wreg(ADS_MISC1, 0x20);
+            for (int i = 0; i < 8; i++) {
+                wreg(ADS_CH1SET + i, 0x60);
+            }
+            start();
+            rdatac();
+            return id;
+        }
+
         void begin() {
             pinMode(SSPin, OUTPUT);
             digitalWrite(SSPin, HIGH);
@@ -120,14 +168,13 @@ class ADS1299 {
             spiSetting = new SPISettings(1000000, MSBFIRST, SPI_MODE2);
         }
 
-        void setSPISpeed(uint32_t spd) {
-            delete(spiSetting);
-            spiSetting = new SPISettings(spd, MSBFIRST, SPI_MODE2);
-        }
-
         void reset() {
             spiSend(ADS_RESET);
             delay(1000);
+            gain = 24;
+            fs = 250;
+            bias = false;
+            imped = false;
         }
 
         void wakeup() {
@@ -159,132 +206,142 @@ class ADS1299 {
             delay(1);
         }
 
-        byte rreg(byte addr) {
-            byte tobesent[3] = {0x00, 0x00, 0x00};
-            byte received[3];
-            tobesent[0] = ADS_RREG | addr;
-            spiSend(tobesent, 3, received);
-            return received[2];
+        bool setSPISpeed(uint32_t spd) {
+            delete(spiSetting);
+            spiSetting = new SPISettings(spd, MSBFIRST, SPI_MODE2);
+            return true;
         }
 
-        void wreg(byte addr, byte data) {
-            byte tobesent[3] = {0x00, 0x00, 0x00};
-            byte received[3];
-            tobesent[0] = ADS_WREG | addr;
-            tobesent[2] = data;
-            spiSend(tobesent, 3, received);
-        }
-
-        byte init() {
-            byte id;
-            gain = 24;
-            reset();
+        bool setDataSource(uint8_t src) {
+            if (src > 7) return false;
+            const char *srcName = ads1299_data_source[src];
+            if (!strcmp(source, srcName)) return true;
+            source = srcName;
             sdatac();
-            id = rreg(ADS_ID);
-            wreg(ADS_CONFIG3, 0xE0);
-            wreg(ADS_MISC1, 0x20);
-            wreg(ADS_CONFIG2, 0xD0);
             for (int i = 0; i < 8; i++) {
-                wreg(ADS_CH1SET + i, 0x60);
+                byte v = rreg(ADS_CH1SET + i);
+                wreg(ADS_CH1SET + i, (v & ~0x07) | src);
             }
-            start();
             rdatac();
-            return id;
+            return true;
         }
 
-        void setTestSignal(bool en) {
+        bool setDataSource(uint8_t src, int ch) {
+            if (ch < 0) return setDataSource(src);
+            if (ch > 7 || src > 7) return false;
+            const char *srcName = ads1299_data_source[src];
+            if (!strcmp(source, srcName)) return true;
+            source = srcName;
             sdatac();
-            wreg(ADS_CONFIG2, 0xD0);
-            if (en) {
-                wreg(ADS_CH1SET, 0x65);
-                wreg(ADS_CH2SET, 0x65);
-                wreg(ADS_CH3SET, 0x65);
-                wreg(ADS_CH4SET, 0x65);
-                wreg(ADS_CH5SET, 0x65);
-                wreg(ADS_CH6SET, 0x65);
-                wreg(ADS_CH7SET, 0x65);
-                wreg(ADS_CH8SET, 0x65);
-            } else {
-                for (int i = 0; i < 8; i++) {
-                    wreg(ADS_CH1SET + i, 0x60);
-                }
-            }
+            byte v = rreg(ADS_CH1SET + ch);
+            wreg(ADS_CH1SET + ch, (v & ~0x07) | src);
             rdatac();
+            return true;
         }
 
-        void setBias(bool en) {
+        bool setGain(uint8_t idx) {
+            if (idx > 7) return false;
+            int idxAmp = gain_list[idx];
+            if (gain == idxAmp) return true;
+            gain = idxAmp;
             sdatac();
-            if (en) {
-                wreg(ADS_BIAS_SENSP, 0xFF);
-                wreg(ADS_BIAS_SENSN, 0xFF);
-                wreg(ADS_CONFIG3, 0xEC);
-            } else {
-                wreg(ADS_BIAS_SENSP, 0x00);
-                wreg(ADS_BIAS_SENSN, 0x00);
-                wreg(ADS_CONFIG3, 0xE0);
+            for (int i = 0; i < 8; i++) {
+                byte v = rreg(ADS_CH1SET + i);
+                wreg(ADS_CH1SET + i, (v & ~0x70) | (idx << 4));
             }
             rdatac();
+            return true;
         }
 
-        void setImpedance(bool en) {
+        bool setGain(uint8_t idx, int ch) {
+            if (ch < 0) return setGain(idx);
+            if (ch > 7 || idx > 7) return false;
+            int idxAmp = gain_list[idx];
+            if (gain == idxAmp) return true;
+            gain = idxAmp;
             sdatac();
-            if (en) {
-                wreg(ADS_LOFF_SENSP, 0xFF);
-                wreg(ADS_CH1SET, 0x00);
-                wreg(ADS_CH2SET, 0x00);
-                wreg(ADS_CH3SET, 0x00);
-                wreg(ADS_CH4SET, 0x00);
-                wreg(ADS_CH5SET, 0x00);
-                wreg(ADS_CH6SET, 0x00);
-                wreg(ADS_CH7SET, 0x00);
-                wreg(ADS_CH8SET, 0x00);
-            } else {
-                wreg(ADS_LOFF_SENSP, 0x00);
-                for(int i = 0; i < 8; i++) {
-                    wreg(ADS_CH1SET + i, 0x60);
-                }
-            }
+            byte v = rreg(ADS_CH1SET + ch);
+            wreg(ADS_CH1SET + ch, (v & ~0x70) | (idx << 4));
             rdatac();
+            return true;
         }
 
-        void setSampRate(uint16_t sr) {
+        bool setImpedance(bool en) {
+            if (imped == en) return true;
+            imped = en;
+            setGain(en ? 0 : 6); // TODO: is this really necessary?
+            setDataSource(0);
+            sdatac();
+            wreg(ADS_LOFF_SENSP, en ? 0xFF : 0x00);
+            rdatac();
+            return true;
+        }
+
+        bool setImpedance(bool en, int ch) {
+            if (ch < 0) setImpedance(en);
+            if (imped == en) return true;
+            imped = en;
+            setGain(en ? 0 : 6, ch); // TODO: is this really necessary?
+            setDataSource(0, ch);
+            sdatac();
+            byte v = rreg(ADS_LOFF_SENSP);
+            wreg(ADS_LOFF_SENSP, (v & ~(1 << ch)) | ((en ? 1 : 0) << ch) );
+            rdatac();
+            return true;
+        }
+
+        bool setBias(bool en) {
+            if (bias == en) return true;
+            bias = en;
+            sdatac();
+            wreg(ADS_BIAS_SENSP, en ? 0xFF : 0x00);
+            wreg(ADS_BIAS_SENSN, en ? 0xFF : 0x00);
+            wreg(ADS_CONFIG3,    en ? 0xEC : 0xE0);
+            rdatac();
+            return true;
+        }
+
+        bool setSampleRate(uint16_t rate) {
             byte lowbyte;
-            switch (sr) {
-                case 250:
-                    lowbyte = 0x06;
-                    break;
-                case 500:
-                    lowbyte = 0x05;
-                    break;
-                case 1000:
-                    lowbyte = 0x04;
-                    break;
-                case 2000:
-                    lowbyte = 0x03;
-                    break;
-                case 4000:
-                    lowbyte = 0x02;
-                    break;
-                case 8000:
-                    lowbyte = 0x01;
-                    break;
-                case 16000:
-                    lowbyte = 0x00;
-                    break;
-                default:
-                    lowbyte = 0x06;
-                    break;
+            switch (rate) {
+            case 250:
+                lowbyte = 0x06;
+                break;
+            case 500:
+                lowbyte = 0x05;
+                break;
+            case 1000:
+                lowbyte = 0x04;
+                break;
+            case 2000:
+                lowbyte = 0x03;
+                break;
+            case 4000:
+                lowbyte = 0x02;
+                break;
+            case 8000:
+                lowbyte = 0x01;
+                break;
+            case 16000:
+                lowbyte = 0x00;
+                break;
+            default:
+                return false;
             }
+            fs = rate;
             sdatac();
             wreg(ADS_CONFIG1, 0x90 | lowbyte);
             rdatac();
+            return true;
         }
 
-        inline uint32_t sign_extend_24_32(uint32_t x) {
-            const int bits = 24;
-            uint32_t m = 1u << (bits - 1);
-            return (x ^ m) - m;
-        }
+        const char* getDataSource(int ch = 0) { return source; }
+
+        bool getImpedance(int ch = 0) { return imped; }
+
+        bool getBias() { return bias; }
+
+        int getSampleRate() { return fs; }
 
         void readData(float res[]) {
             byte tobesent[27];
@@ -305,9 +362,12 @@ class ADS1299 {
                 //res[i]=((float)data[i])*2.0*4.5/gain/16777216.0;
                 res[i]=*((float*)(data+i));
             }
-            statusBit = (received[0] << 16) | (received[1] << 8) | (received[2]);
+            statusBit = (received[0] << 16) | \
+                        (received[1] << 8) | \
+                        (received[2]);
         }
 
         ~ADS1299() {}
 };
-#endif
+
+#endif // ADS1299_ESP32_h
