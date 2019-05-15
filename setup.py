@@ -46,6 +46,9 @@ if platform.machine() in ['arm', 'aarch64']:
     # EmBCI linux service is still developing
     #  import atexit
     #  atexit.register(enable_autostart)
+else:
+    print('{}: not installing config files because current platform is {}'
+          .format(__file__, platform.machine()))
 
 
 setup(

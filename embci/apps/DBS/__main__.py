@@ -6,13 +6,25 @@
 # Webpage: https://github.com/hankso
 # Time: Tue 05 Mar 2019 02:07:51 CST
 
-'''__doc__'''
-
 import sys
+
+if __name__ == '__main__' and 'obfuscate' in sys.argv:
+    import os
+    import re
+    import marshal
+    __dir__ = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(__dir__, 'utils.src'), 'r') as f:
+        codes = [line for line in f.readlines()
+                 if not re.match(r'^\n|( *#)', line)]
+    code = compile(''.join(codes), 'utils.py', 'exec')
+    with open(os.path.join(__dir__, 'utils.bin'), 'w') as f:
+        marshal.dump(code, f)
+    print('Code of `utils.bin` has been updated!')
+    sys.exit(0)
+
 
 import bottle
 from embci.webui import GeventWebsocketServer
-
 from . import application, logger
 
 

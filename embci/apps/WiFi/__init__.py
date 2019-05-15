@@ -1,91 +1,120 @@
 #!/usr/bin/env python
 # coding=utf-8
-'''
-File: EmBCI/embci/webui/webapps/wifi/__init__.py
-Author: Hankso
-Web: http://github.com/hankso
-Time: Tue 18 Sep 2018 01:55:03 CST
-'''
-# built-in
-import re
-import os
-import sys
-import binascii
+#
+# File: WiFi/__init__.py
+# Author: Hankso
+# Webpage: https://github.com/hankso
+# Time: Tue 18 Sep 2018 01:55:03 CST
 
-# requirements.txt: drivers: wifi
+'''
+
+'''
+
+# built-in
+import os
+import subprocess
+
 # requirements.txt: network: bottle
-from wifi import Scheme
-from bottle import request, redirect, run, static_file, Bottle
+import bottle
+
+from embci.configs import BASEDIR
+from embci.utils import config_logger
+logger = config_logger(__name__)
+del config_logger
+
+from .backend import (wifi_accesspoints, wifi_status,
+                      wifi_connect, wifi_disconnect, wifi_forget,
+                      wifi_enable, wifi_disable)
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
-from embci.utils import find_wifi_hotspots, get_self_ip_addr
-
-wifi = Bottle()
-wifi_list = []
-APPNAME = 'WiFi'
-interface = 'wlan0'
-Scheme = Scheme.for_file('/tmp/interface.embci')
+wifi = bottle.Bottle()
 
 
+# =============================================================================
+# WiFi Basic API
 #
-# routes
-#
-
-
 @wifi.get('/')
-def main():
-    redirect('login.html')
+def api_index():
+    bottle.redirect('index.html')
 
 
 @wifi.get('/<filename:path>')
-def static(filename):
-    return static_file(filename, root=__dir__)
+def api_static(filename):
+    return bottle.static_file(filename, root=__dir__)
 
 
+@wifi.get('/upgrade')
+def api_upgrade():
+    pwd = os.getcwd()
+    os.chdir(BASEDIR)
+    try:
+        #  st = subprocess.check_output(['git', 'status'])
+        msg = subprocess.check_output(['git', 'pull'])
+    except subprocess.CalledProcessError as e:
+        msg = e.output
+    os.chdir(pwd)
+    return {'status': True, 'msg': msg}
+
+
+# =============================================================================
+# WiFi Service API
+#
 @wifi.get('/hotspots')
-def get_wifi():
-    # TODO: status: connected | disconnected | connecting
-    #  saved = Scheme.all()
-    global wifi_list
-    wifi_list = find_wifi_hotspots(interface)
-    for wifi in wifi_list:
-        del wifi.bitrates, wifi.channel, wifi.mode, wifi.noise
-        l, h = [float(i) for i in wifi.pop('quality').split('/')]
-        wifi.signal = int(l / h * 10)
-        if wifi.encryption_type is not None:
-            wifi.encryption_type = wifi.encryption_type.upper()
-        # convert u'\\xe5\\x93\\x88' to u'\u54c8' (for example)
-        wifi.ssid = re.sub(r'\\x([0-9a-fA-F]{2})',
-                           lambda m: binascii.a2b_hex(m.group(1)),
-                           wifi.ssid.encode('utf8')).decode('utf8')
-    return {'list': [wifi.copy(dict) for wifi in wifi_list]}
+def api_list_hotspots():
+    return {'list': wifi_accesspoints()}
 
 
-@wifi.post('/hotspots')
-def post_wifi():
-    # if not has psk
-    #     return Scheme.find(interface, essid)
-    # elif forget:
-    #     find and delete
-    # else:
-    #     try connect
-    essid = request.forms.essid
-    scheme = Scheme.for_cell(interface, essid,
-                             wifi_list[wifi_list.ssid.index(essid)],
-                             request.forms.psk)
-    scheme.save()
-    scheme.activate()
-    return
+@wifi.post('/connect')
+def api_connect():
+    ssid = bottle.request.forms.get('ssid')
+    user = bottle.request.forms.get('user')
+    psk = bottle.request.forms.get('psk')
+    logger.debug(bottle.request.forms.items())
+    rst, msg = wifi_connect(ssid, user, psk)
+    return {'status': rst, 'msg': msg}
 
 
+@wifi.get('/disconnect')
+def api_disconnect():
+    ssid = bottle.request.query.get('ssid')
+    rst, msg = wifi_disconnect(ssid)
+    return {'status': rst, 'msg': msg}
+
+
+@wifi.get('/forget')
+def api_forget():
+    ssid = bottle.request.query.get('ssid')
+    rst, msg = wifi_forget(ssid)
+    return {'status': rst, 'msg': msg}
+
+
+@wifi.route('/control')
+def api_control():
+    for key in bottle.request.query:
+        if key == 'action':
+            action = bottle.request.query.get('action')
+            if action == 'enable':
+                rst, err = wifi_enable()
+            elif action == 'disable':
+                rst, err = wifi_disable()
+            else:
+                bottle.abort(400, 'Invalid action `{}`!'.format(action))
+            if rst is False:
+                bottle.abort(500, err)
+
+
+@wifi.route('/status')
+def api_status():
+    return {
+        'wifi_state': 'enabled' if wifi_status() else 'disabled',
+        'connection': {}
+    }
+
+
+# =============================================================================
+# provide an object named `application` for Apache + mod_wsgi and embci.apps
 #
-# provide an object named `application` for Apache + mod_wsgi
-#
-
 application = wifi
 __all__ = ['application']
-
-
-if __name__ == '__main__':
-    run(wifi, host='0.0.0.0', port=80, reloader=True)
+# THE END

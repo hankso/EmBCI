@@ -1,4 +1,11 @@
 
+## 0.1.5 [2019-5-01]
+- [DBS] Hide source code of data-processing algorithms with pre-compiled binary files.
+- [Apps] Sub-app `WiFi` implemented as a web-based client of freedesktop NetworkManager, working on wireless card `AP6212` at STA+AP mode.
+- [Apps] Support updating OTA (On-The-Air) by simple `git pull`.
+- [WebUI] Upgrade `jQuery` to v3.4.1 and `Bootstrap` to v4.3.
+- [WebUI] Immegrate from `glyphicon` to `font-awesome`
+
 ## 0.1.4 [2019-3-23]
 - [Doc] Add basic documentations.
 - [Apps] Rename and move lots of DisplaySPI datafiles.

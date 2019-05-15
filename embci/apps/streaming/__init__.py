@@ -13,6 +13,7 @@ from __future__ import print_function
 import os
 import sys
 import time
+import shlex
 import signal
 import platform
 import traceback
@@ -37,7 +38,7 @@ if platform.machine() in ['arm', 'aarch64']:
 else:
     from embci.io import FakeDataGenerator as Reader
 from embci.utils.ads1299_api import INPUT_SOURCES
-from embci.utils import get_boolean
+from embci.utils import get_boolean, get_config
 
 
 # =============================================================================
@@ -46,23 +47,25 @@ from embci.utils import get_boolean
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
 STREAM_CONTROLS = ['start', 'pause', 'resume', 'close', 'restart']
-LISTEN_PORT = 9997
+LISTEN_HOST = get_config('STREAMING_CMD_HOST', '127.0.0.1')
+LISTEN_PORT = int(get_config('STREAMING_CMD_PORT', 9997))
+ADDR = 'tcp://{}:{}'.format(LISTEN_HOST, LISTEN_PORT)
 TASK = '[{}] '.format(__name__)
 FLAG = threading.Event()
 
 HELP = '''
 Task data-streaming started by {filename} script in EmBCI. Streaming
-controller interface will listen on `tcp://localhost:{port}`, from
+controller interface will listen on `{addr}`, from
 which users can set data capturing params at runtime. One can send
 commands to the controller powered by PyZMQ from other processes.
-'''.format(filename=__name__, port=LISTEN_PORT)
+'''.format(filename=__name__, addr=ADDR)
 
 EPILOG = '''
 Examples:
     >>> import zmq
     >>> c = zmq.Context()
     >>> q = c.socket(zmq.REQ)
-    >>> q.connect('tcp://localhost:9997')
+    >>> q.connect('{addr}')
     >>> while 1:
     ...     q.send(raw_input('console@E01:$ '))
     ...     print(q.recv())
@@ -73,7 +76,7 @@ Examples:
     False
 
 See `<command> -h` for more information on each command.
-'''
+'''.format(addr=ADDR)
 
 
 # =============================================================================
@@ -208,8 +211,8 @@ def init_parser():
 
 def repl(flag_term):
     reply = zmq.Context().socket(zmq.REP)
-    reply.bind('tcp://127.0.0.1:%d' % LISTEN_PORT)
-    print(TASK + 'Listening on tcp://localhost:%d' % LISTEN_PORT)
+    reply.bind(ADDR)
+    print(TASK + 'Listening on `%s`' % ADDR)
     poller = zmq.Poller()
     poller.register(reply, zmq.POLLIN)
 
@@ -225,7 +228,7 @@ def repl(flag_term):
             # 1 waiting for command
             if not poller.poll(timeout=500):
                 continue
-            cmd = [_.strip() for _ in reply.recv().split()]
+            cmd = shlex.split(reply.recv())
 
             # 2 parse commands
             ret = ''

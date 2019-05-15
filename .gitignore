@@ -2,6 +2,10 @@
 # data/*
 # model/*
 *.old
+*.src
+
+# Vim swap file
+*.swp
 
 # Pyarmor config files
 .github/.pyarmor*

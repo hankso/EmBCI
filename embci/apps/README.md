@@ -10,15 +10,15 @@ EmBCI suppport
 - [Speller](Speller): SSVEP-based mind-typing system(**under-developing**)
 
 # WebUI
-Want to integrate an user interface into your application? `EmBCI` provides you a easy-extenable web-based one! Simply create a `bottle` loadable HTTPServer to handle HTTP requests and assign this server object to variable `application`. That's all! Then just leave other jobs to the `embci.webui subapps auto-loader`.
+Want to integrate an user interface into your application? `EmBCI` provides you a easy-extenable web-based one! Simply create a [`bottle`](https://bottlepy.org/docs/dev/) loadable HTTPServer to handle HTTP requests and assign this server object to a variable named `application` in `__init__.py`. And that's all! Just leave all other jobs to `embci.webui` subapps auto-loader.
 
 ## Note
-- `bottle` loadable HTTPServer means:
+- bottle loadable HTTPServer means:
     - bottle built-in HTTP development servers based on `bottle.ServerAdapter`
-    - [paste](http://pythonpaste.org/), [fapws3](https://github.com/william-os4y/fapws3), [bjoern](https://github.com/jonashaag/bjoern), [gae](https://developers.google.com/appengine/), [cherrypy](http://www.cherrypy.org/)... see `bottle.server_names` for more.
+    - [paste](http://pythonpaste.org/), [fapws3](https://github.com/william-os4y/fapws3), [bjoern](https://github.com/jonashaag/bjoern), [gae](https://developers.google.com/appengine/), [cherrypy](http://www.cherrypy.org/)... run `python -c "import bottle; print(bottle.server_names)"` to see more supported servers.
     - any other [WSGI](http://www.wsgi.org/) capable HTTP server
 
-- URL of user apps will be `http://${EmBCI_WEBUI_HOST}/apps/${MyApp}`
+- URL of user apps will be `http://${EmBCI_WEBUI_HOST}/apps/${MyApp}`. If your server will respond "helloworld" when `index.html` is requested, you will see the "helloworld" string by `GET http://${EmBCI_WEBUI_HOST}/apps/${MyApp}/index.html`
 
 - Neccessary files used in web application must be added to correct folder, such as `js/*` and `css/*`. You can use either local resources or embci.webui global resources, for example:
     - use syntax `<script src="js/common.js"></script>` to access file at `${MyApp}/js/common.js`.
@@ -26,17 +26,35 @@ Want to integrate an user interface into your application? `EmBCI` provides you 
 
 ## Example of bottle built-in server
 ```python
-# content of MyApp/__init__.py
+# content of NewApp/__init__.py
 import os
 import bottle
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
 @bottle.route('/index.html')
 def index(name):
-    return bottle.static_file('index.html', root=__dir__)
+    name = bottle.request.get_cookie('name', 'new_guest')
+    if name == 'new_guest':
+        bottle.respond.set_cookie('name', 'asdf')
+    return bottle.template(os.path.join(__dir__, 'index.html'), name=name)
 
 application = bottle.default_app()
 ```
+
+```html
+# content of NewApp/index.html
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>example</title>
+</head>
+<body>Hello {{name}}! Welcome to my WebApp!</body>
+</html>
+```
+
+Result of accessing URL `http://${EmBCI_WEBUI_HOST}/apps/newapp/index.html` will be string `Hello new_guest! Welcome to my WebApp!`
+
+
 
 ## Example of
 ```python

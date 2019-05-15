@@ -20,7 +20,7 @@ __summary__ = 'EmBCI software Python packages'
 __url__ = 'https://github.com/hankso/EmBCI'
 __author__ = 'Hankso and individual contributors'
 __email__ = 'hankso1106@gmail.com'
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2019 Hankso and individual contributors'
 __keywords__ = (
@@ -39,7 +39,10 @@ from . import utils
 from . import processing
 from .testing import test
 
-del os, absolute_import, unicode_literals
+try:
+    del os, absolute_import, unicode_literals
+except NameError:
+    pass
 
 __all__ = (
     'io', 'viz', 'gyms', 'utils', 'frame', 'classifier', 'processing', 'test'

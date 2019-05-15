@@ -92,7 +92,7 @@ def debug():
 def mount_subapps(applist=subapps):
     '''
     Mount subapps from:
-    1. default argument `appdict`
+    1. default settings of `applist`
     2. embci.apps.__all__
     3. application folders under `/path/to/embci/apps/`
     '''
@@ -104,8 +104,9 @@ def mount_subapps(applist=subapps):
             appname = getattr(appmod, 'APPNAME', appname)
             appobj = appmod.application
         except AttributeError:
-            logger.warn('Load `application` object from app {} failed. '
+            logger.warn('Load `application` object from app `{}` failed. '
                         'Check out `embci.apps.__doc__`.'.format(appname))
+            applist.append(AttributeDict(name=appname, obj=None))
         else:
             applist.append(AttributeDict(
                 name=appname, obj=appobj, target='/apps/' + appname.lower(),
@@ -190,6 +191,7 @@ def make_parser():
     parser.add_argument(
         '--newtab', default=True, type=get_boolean,
         help='boolean, whether to open webpage of WebUI in browser')
+    # TODO: webui: add `--exclude` to mask sub-apps to prevent from loading
     return parser
 
 

@@ -1,11 +1,11 @@
-.. image:: https://raw.github.com/hankso/EmBCI/master/files/images/logo-blue.png
+.. image:: https://raw.github.com/hankso/EmBCI/release/files/images/logo-blue.png
    :alt: EmBCI LOGO
    :align: center
    :target: https://hankso.github.io/EmBCI
 
 -------
 
-.. image:: https://img.shields.io/travis/hankso/EmBCI/master.svg?label=Travis%20CI
+.. image:: https://img.shields.io/travis/hankso/EmBCI/release.svg?label=Travis%20CI
    :alt: Travis CI
    :target: https://travis-ci.org/hankso/EmBCI
 
@@ -19,7 +19,7 @@
 
 .. image:: https://img.shields.io/github/languages/code-size/hankso/EmBCI.svg
    :alt: GitHub code size in bytes
-   :target: https://github.com/hankso/EmBCI/archive/master.zip
+   :target: https://github.com/hankso/EmBCI/archive/release.zip
 
 .. image:: https://img.shields.io/github/license/hankso/EmBCI.svg
    :alt: GitHub License
@@ -54,7 +54,7 @@
 
 Welcome to the EmBCI!
 =====================
-English | `中文 <https://github.com/hankso/EmBCI/blob/master/README_zh.md>`_
+English | `中文 <https://github.com/hankso/EmBCI/blob/release/README_zh.md>`_
 
 This README file is only a quick start.
 Check out full documentation `here <https://embci.readthedocs.io/en/latest>`_.
@@ -121,8 +121,10 @@ It integrates:
 `EmBCI Shield`__ can also be used as extension board.
 
 __ `files/hardware`_
-.. _ADS1299:  https://github.com/hankso/EmBCI/blob/master/tools/ADS1299-Datasheet.pdf
-.. _ESP32:    https://github.com/hankso/EmBCI/tree/master/files/esp32
+
+.. README will be included in docs/readme.rst, so use absolute URL here
+.. _ADS1299:  https://github.com/hankso/EmBCI/blob/release/tools/ADS1299-Datasheet.pdf
+.. _ESP32:    https://github.com/hankso/EmBCI/tree/release/files/esp32
 
 
 
@@ -260,18 +262,18 @@ Files outline
 | `files/service`_  | Linux service configurations                          |
 +-------------------+-------------------------------------------------------+
 
-.. _files/esp32:     https://github.com/hankso/EmBCI/tree/master/files/esp32
-.. _files/cases:     https://github.com/hankso/EmBCI/tree/master/files/cases
-.. _files/hardware:  https://github.com/hankso/EmBCI/tree/master/files/hardware
-.. _files/service:   https://github.com/hankso/EmBCI/tree/master/files/service
+.. _files/esp32:     https://github.com/hankso/EmBCI/tree/release/files/esp32
+.. _files/cases:     https://github.com/hankso/EmBCI/tree/release/files/cases
+.. _files/hardware:  https://github.com/hankso/EmBCI/tree/release/files/hardware
+.. _files/service:   https://github.com/hankso/EmBCI/tree/release/files/service
 
-.. _embci:        https://github.com/hankso/EmBCI/blob/master/embci/__init__.py
-.. _embci.apps:   https://github.com/hankso/EmBCI/tree/master/embci/apps
-.. _embci.gyms:   https://github.com/hankso/EmBCI/tree/master/embci/gyms
-.. _embci.io:     https://github.com/hankso/EmBCI/tree/master/embci/io
-.. _embci.utils:  https://github.com/hankso/EmBCI/tree/master/embci/utils
-.. _embci.viz:    https://github.com/hankso/EmBCI/tree/master/embci/viz
-.. _embci.webui:  https://github.com/hankso/EmBCI/tree/master/embci/webui
+.. _embci:        https://github.com/hankso/EmBCI/blob/release/embci/__init__.py
+.. _embci.apps:   https://github.com/hankso/EmBCI/tree/release/embci/apps
+.. _embci.gyms:   https://github.com/hankso/EmBCI/tree/release/embci/gyms
+.. _embci.io:     https://github.com/hankso/EmBCI/tree/release/embci/io
+.. _embci.utils:  https://github.com/hankso/EmBCI/tree/release/embci/utils
+.. _embci.viz:    https://github.com/hankso/EmBCI/tree/release/embci/viz
+.. _embci.webui:  https://github.com/hankso/EmBCI/tree/release/embci/webui
 
 
 
@@ -297,7 +299,7 @@ License
 =======
 MIT license. See `LICENSE.txt`_
 
-.. _LICENSE.txt:  https://github.com/hankso/EmBCI/blob/master/LICENSE.txt
+.. _LICENSE.txt:  https://github.com/hankso/EmBCI/blob/release/LICENSE.txt
 
 
 

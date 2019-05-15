@@ -320,7 +320,7 @@ def page2_daemon(flag_pause, flag_close, step=1, low=1.5, high=80.0,
             if flag_close.isSet():
                 break
             d = reader.data_channel
-            server.send(d)
+            server.multicast(d)
             data = d[ch]
             filtered = si.bandpass_realtime(si.notch_realtime(data))
             data = center - np.array([data, filtered]) * scale
@@ -354,7 +354,7 @@ def page3_daemon(flag_pause, flag_close, fps=0.6, area=[26, 56, 153, 183]):
         ch = channel_range['n']
         c = RGB_Rainbow[ch]
         d = reader.data_frame
-        server.send(d)
+        server.multicast(d)
         d = si.notch(d[ch])
         s.widget['text', 23]['s'] = '%.2f' % movement_coef(d)
         s.render('text', 23)
