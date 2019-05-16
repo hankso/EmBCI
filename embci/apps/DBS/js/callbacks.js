@@ -90,7 +90,7 @@ function dataCoef() {
         method: "GET",
         url: 'data/coef',
         dataType: 'json',
-        success: function(msg) {
+        success: function (msg) {
             updateCoef({
                 t: msg.data[0],
                 s: msg.data[1],
@@ -117,4 +117,20 @@ function updateCoef(data) {
         if (isNaN(bef) || isNaN(aft)) continue;
         $('#' + name).text(((bef - aft) / bef * 100).toFixed(2) + '%');
     }
+}
+
+function checkRecordingUser() {
+    $.ajax({
+        method: 'GET',
+        url: 'recorder/username',
+        success: function (username) {
+            if (username != 'None') {
+                $('#input-username').val(username);
+                $('#icon-user').addClass('recording');
+            } else {
+                $('#input-username').val('');
+                $('#icon-user').removeClass('recording');
+            }
+        },
+    });
 }

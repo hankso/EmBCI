@@ -56,6 +56,16 @@
         </div>
     </div>
     <div class="plane">
+        <div class="recorder" style="display:none">
+            <form class="collapse" id="username">
+                <span class="fa fa-user fold" id="icon-user"></span>
+                <input type="text" name="username" placeholder="Username" id="input-username">
+                <span class="fa fa-check-circle" id="icon-confirm" style="display:none"></span>
+            </form>
+            <button id="record" data-toggle="collapse" data-target="#username" aria-expanded="false">
+                <span id="icon-record"></span>
+            </button>
+        </div>
         <div class="display">
             <div class="control">
                 <form class="form-inline">
@@ -63,12 +73,14 @@
                         <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="5"> <span class="des">Hz -</span>
                         <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="10"> <span class="des">Hz</span>
                         <button type="button" class="btn btn-default" id="filter">带通滤波</button>
-                        <input type="checkbox" checked="checked" id="notch" class="form-control"> <span class="des">陷波</span>
+                        <input type="checkbox" checked="checked" id="notch" class="form-control"><span class="des">陷波</span>
                         <span class="fa fa-search-plus zoom" id="bigger"></span>
                         <span class="fa fa-search-minus zoom" id="smaller"></span>
+                        <button type="button" class="btn btn-default" started="false" id="start-stop-record">开始录制数据</button>
                     </div>
                 </form>
             </div>
+          
             <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
                 <li role="presentation" id="0" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
                 <li role="presentation" id="1"><a href="" role="tab" data-toggle="tab">CH2</a></li>
@@ -127,11 +139,58 @@
 
     <script type="text/javascript">
         $(function() {
+            $('button#record').click(function() {
+                var expanded = $(this).attr('aria-expanded') == 'true';
+                dataConfig({recorder: !expanded ? 'resume' : 'pause'});
+            });
+            
+            $('#input-username').keypress(function() {
+                $('#icon-confirm').show(300);
+            });
+            
+            $('#icon-user').click(function() {
+                if ($(this).hasClass('recording')) {
+                    checkRecordingUser();
+                }
+                $(this).toggleClass('fold');
+            });
+            
+            $('#icon-confirm').click(function() {
+                var user = $('#input-username').val();
+                if (!user) {
+                    $('#input-username').val('');
+                } else {
+                    dataConfig({recorder: 'username ' + user});
+                    $('#icon-user').click();
+                }
+                $(this).hide(500);
+                setTimeout(checkRecordingUser, 1000);
+            });
+            
+            $('#start-stop-record').click(function() {
+                if ($(this).attr('started') == 'true') {
+                    dataConfig({recorder: 'username none'});
+                    $('.recorder').hide();
+                    $(this).attr('started', 'false');
+                    $(this).text('开始录制数据');
+                    var record = $('button#record');
+                    if (record.attr('aria-expanded') == 'true') {
+                        record.click();
+                    }
+                } else {
+                    dataConfig({recorder: 'start'});
+                    $('.recorder').show();
+                    $(this).attr('started', 'true');
+                    $(this).text('停止录制数据');
+                }
+            });
+            
             $('#notch').click(function() {
                 dataFilter(
                     $('#low').val(),
                     $('#high').val(),
-                    this.checked);
+                    this.checked
+                );
             });
 
             $('#filter').click(function() {
@@ -139,7 +198,7 @@
                     $('#low').val(),
                     $('#high').val(),
                     $('#notch').get(0).checked
-                )
+                );
             });
 
             $('#smaller').click(() => dataScale('minus'));
@@ -188,7 +247,7 @@
             myChart2.setOption(option2);
             window.addEventListener("resize", myChart1.resize);
             window.addEventListener("resize", myChart2.resize);
-
+            
             var t = 0;
 
             function animate(listY, time) {

@@ -81,7 +81,7 @@ def app_index():
 def app_report_html():
     username = bottle.request.get_cookie('name')
     token = bottle.request.get_cookie(
-        'report', secret=base64.b64decode(username))
+        'report', secret=base64.b64encode(username))
     if token is None:
         bottle.abort(408, 'Cache expired or user\'s report not generated yet!')
     return embci.utils.deserialize(base64.b64decode(token))
@@ -106,7 +106,7 @@ def app_generate_pdf(k={}):
     # get user's sEMG data and calculate coefficients
     if 'frame_post' not in saved_data or 'frame_pre' not in saved_data:
         # bottle.abort(400, 'Save two frame of data before generating report!')
-        logger.warn('[Generate Report PDF] using random data')
+        logger.warning('[Generate Report PDF] using random data')
         data_pre = np.random.randn(1, reader.window_size)
         data_post = np.random.randn(1, reader.window_size)
         pt_pre = pt_post = pt
@@ -161,11 +161,19 @@ def app_generate_pdf(k={}):
         max_age=60, httponly=True)
 
 
+@dbs.route('/recorder/<attr>')
+def app_recorder_attr(attr):
+    if not hasattr(recorder, attr):
+        bottle.abort(400, 'Unknown attribute `{}`'.format(attr))
+    return str(getattr(recorder, attr))
+
+
 @dbs.route('/<filename:path>')
 def app_static_files(filename):
     for rootdir in [__dir__, embci.webui.__dir__]:
         if os.path.exists(os.path.join(rootdir, filename)):
             return bottle.static_file(filename, rootdir)
+    return bottle.HTTPError(404, 'File does not exist.')
 
 
 # =============================================================================
@@ -209,11 +217,11 @@ def data_get_websocket():
 
 @dbs.route('/data/freq')
 def data_get_freq():
-    # y_amp: 1ch x length
+    # y_amp: nch x length
     y_amp = signalinfo.fft_amp_only(
         signalinfo.detrend(reader.data_frame[pt.channel_range.n]),
         resolution=pt.fft_resolution)[:]  # this maybe multi-channels
-    y_amp = y_amp[0:pt.fft_range * pt.fft_resolution]
+    y_amp = y_amp[:, 0:pt.fft_range * pt.fft_resolution]
     return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
 
 
@@ -224,20 +232,24 @@ def data_get_coef(data=None):
 
 @dbs.route('/data/status')
 @bottle.view(__status__)
-def data_get_status():
-    msg = []
-    msg.append('Realtime Detrend state: ' + ('ON' if pt.detrend else 'OFF'))
-    msg.append('Realtime Notch state: ' + ('ON' if pt.notch else 'OFF'))
-    msg.append('Realtime Bandpass state: ' + str(pt.bandpass or 'OFF'))
-    msg.append('Data saved for action: {}'.format(saved_data.keys() or None))
-    msg.append('Current input source: ' + reader.input_source)
-    msg.append('Current amplify scale: %fx' % pt.scale_list.a[pt.scale_list.i])
-    msg.append('Current channel num: CH{}'.format(pt.channel_range.n + 1))
-    msg.append('Current Sample rate: {}Hz'.format(reader.sample_rate))
-    msg.append('ADS1299 BIAS output: {}'.format(
-        getattr(reader, 'enable_bias', None)))
-    msg.append('ADS1299 Measure Impedance: {}'.format(
-        getattr(reader, 'measure_impedance', None)))
+def data_get_status(pt=pt):
+    msg = [
+        '********************* Parameters tree **********************',
+        'Realtime Detrend state: ' + ('ON' if pt.detrend else 'OFF'),
+        'Realtime Notch state: ' + ('ON' if pt.notch else 'OFF'),
+        'Realtime Bandpass state: ' + str(pt.bandpass or 'OFF'),
+        'Current amplify scale: %fx' % pt.scale_list.a[pt.scale_list.i],
+        'Current channel num: CH{}'.format(pt.channel_range.n + 1),
+        '*********************** Session data ***********************',
+        'Data saved for action: {}'.format(saved_data.keys() or None),
+        '******************** Reader information ********************',
+        'Current input source: ' + reader.input_source,
+        'Current Sample rate: {}Hz'.format(reader.sample_rate),
+        'ADS1299 BIAS output: {}'.format(
+            getattr(reader, 'enable_bias', None)),
+        'ADS1299 Measure Impedance: {}'.format(
+            getattr(reader, 'measure_impedance', None)),
+    ]
     return {'messages': msg}
 
 
@@ -295,7 +307,7 @@ def data_config_scale():
         scale = int(scale)
         if scale in range(length):
             pt.scale_list.i = int(scale)
-            bottle.redirect('status')
+            return
         bottle.abort(400, 'Invalid scale `{}`! Set scale within [{}, {})'
                           .format(scale, 0, length))
     elif scale.lower() == 'minus':
@@ -305,7 +317,6 @@ def data_config_scale():
     else:
         bottle.abort(400, 'Invalid operation `{}`! '
                           'Choose one from `minus` | `plus`'.format(scale))
-    bottle.redirect('status')
 
 
 @dbs.route('/data/channel')
@@ -318,7 +329,6 @@ def data_config_channel():
     else:
         bottle.abort(400, 'Invalid channel `{}`! Must be int within [{}, {})'
                           .format(channel, *pt.channel_range.r))
-    bottle.redirect('status')
 
 
 @dbs.route('/data/filter')
@@ -332,7 +342,7 @@ def data_config_filter():
             pt.notch = True
         elif notch.lower() == 'false':
             pt.notch = False
-            rst += '<p>Realtime notch filter state: OFF</p>'
+            rst += 'Realtime notch filter state: OFF<br>'
         else:
             bottle.abort(400, 'Invalid notch `{}`! '
                               'Choose one of `true` | `false`'.format(notch))
@@ -343,17 +353,16 @@ def data_config_filter():
             bottle.abort(400, 'Invalid bandpass argument! Only accept number.')
         if low == high == 0:
             pt.bandpass.clear()
-            rst += '<p>Realtime bandpass filter state: OFF</p>'
+            rst += 'Realtime bandpass filter state: OFF<br>'
         elif high < low or low < 0:
             bottle.abort(400, 'Invalid bandpass argument! 0 < Low < High.')
         else:
             pt.bandpass.low, pt.bandpass.high = low, high
             signalinfo.bandpass(reader.data_frame, low, high, register=True)
-            rst += ('<p>Realtime bandpass filter param: '
-                    'low {}Hz -- high {}Hz</p>').format(low, high)
+            rst += ('Realtime bandpass filter param: '
+                    'low {}Hz -- high {}Hz<br>').format(low, high)
     if rst:
         return rst
-    bottle.redirect('status')
 
 
 @dbs.route('/data/config')
@@ -372,7 +381,6 @@ def data_config_misc():
                 error.append(rst)
     if error:
         bottle.abort(500, '\n'.join(['<p>{}</p>'.format(_) for _ in error]))
-    bottle.redirect('status')
 
 
 def config_save(save):
@@ -434,11 +442,12 @@ def config_impedance(impedance):
 def config_recorder(command):
     cmd = shlex.split(command)
     if len(cmd) == 1:
-        recorder.cmd(cmd)
+        recorder.cmd(cmd[0])
     elif len(cmd) == 2:
         recorder.cmd(**{cmd[0]: cmd[1]})
     else:
         return 'Invalid command: {}'.format(command)
+    time.sleep(0.5)
 
 
 # offer application object for Apache2 and embci.webui

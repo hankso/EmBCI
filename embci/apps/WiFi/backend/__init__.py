@@ -97,7 +97,7 @@ for bd in __backends__:
     try:
         mod = importlib.import_module(__name__ + '.' + bd['module'])
     except ImportError as e:
-        logger.warn('Import backend `{}` failed: {}'.format(bd['module'], e))
+        logger.warning('Import backend `{}` failed: {}'.format(bd['module'], e))
         del e
         continue
     logger.debug('Using %s backend.' % bd['name'])

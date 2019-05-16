@@ -50,7 +50,7 @@ class Recorder(LoopTaskInThread):
 
     def recording(self):
         if not self.username:
-            time.sleep(1)
+            time.sleep(0.5)
             return
         while self.reader._index > 5:
             if self._flag_close.is_set():
@@ -78,14 +78,21 @@ class Recorder(LoopTaskInThread):
             logger.debug('add event {} at {}'.format(*self.events[-1]))
         if 'username' in k:
             username = str(k.pop('username'))
-            if username.title() not in ['None', '-', ' ']:
+            if username == self.username:
+                pass
+            elif username.title() in ['None', '-', ' ']:
                 self.pause()
+                time.sleep(0.5)
+                self.save()
+                self.username = None
+                logger.info('username cleared')
+            else:
+                self.pause()
+                time.sleep(0.5)
                 self.save()
                 self.username = username
                 self.resume()
-            else:
-                self.username = None
-            logger.debug('username set to {}'.format(self.username))
+                logger.info('username set to {}'.format(self.username))
         try:
             for act in a:
                 attr = getattr(self, act, None)
