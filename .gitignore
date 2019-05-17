@@ -2,6 +2,9 @@
 # data/*
 # model/*
 *.old
+
+# Cython source files
+*.pyx
 *.src
 
 # Vim swap file

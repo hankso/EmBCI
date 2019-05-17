@@ -18,6 +18,8 @@ from decorator import decorator
 from . import timed, freqd
 from ..io.readers import BaseReader
 
+__all__ = ['SignalInfo', 'Features']
+
 
 @decorator
 def check_shape(func, self, X, *a, **k):
@@ -355,48 +357,6 @@ class Features(object):
         if isinstance(func, str):
             func = getattr(self, func)
         func.pre = True
-
-    @preprocess('notch', 'detrend', 'envelop',
-                ['smooth', {'window_length': 15}])
-    def tremor(self, data, distance=25):
-        d = distance or (self.sample_rate / 10)
-
-        # # peaks on raw data
-        # upper, lower = data.copy(), -data.copy()
-        # upper[data < 0] = lower[data > 0] = 0
-
-        # peaks on envelops
-        #  data = self.si.envelop(data)
-
-        # smooth
-        #  data = self.si.smooth(data, 15)[0]  # combine neighboor peaks
-
-        # # peaks of upper and lower seperately
-        # u_peaks, u_height = scipy.signal.find_peaks(data, (0, None), None, d)
-        # l_peaks, l_height = scipy.signal.find_peaks(data, (None, 0), None, d)
-        # intervals = np.hstack((np.diff(u_peaks), np.diff(l_peaks)))
-        # heights = np.hstack((u_height['peak_heights'],
-        #                      l_height['peak_heights']))
-
-        # peaks of both upper and lower
-        data[data < data.max() / 4] = 0  # filter misleading extramax peaks
-        peaks, heights = scipy.signal.find_peaks(data, 0, distance=d)
-        intervals = np.diff(peaks)
-        heights = heights['peak_heights']
-
-        return (self.sample_rate / np.average(intervals),
-                1000 * np.average(heights))
-
-    @preprocess()
-    def stiffness(self, data, lowpass=10.0):
-        b, a = scipy.signal.butter(4, 10.0 / self.sample_rate)
-        return 1000 * self.si.rms(scipy.signal.lfilter(b, a, data, -1))
-
-    @preprocess(['notch'],
-                ['envelop', {'method': 1}],
-                ['smooth', {'window_length': 10}])
-    def movement(self, data):
-        return 1000 * np.average(data)
 
     def energy(self, X, low=2, high=15, sample_rate=None):
         '''

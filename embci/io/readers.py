@@ -16,7 +16,6 @@ import mmap
 import socket
 import warnings
 import threading
-import traceback
 import multiprocessing as mp
 from ctypes import c_bool, c_char_p, c_uint8, c_uint16, c_float
 
@@ -29,7 +28,7 @@ import pylsl
 import serial
 
 from ..utils import (check_input, find_serial_ports, find_pylsl_outlets,
-                     find_spi_devices, LockedFile, Singleton)
+                     find_spi_devices, LockedFile, Singleton, LoopTaskMixin)
 from ..utils.ads1299_api import ADS1299_API
 from ..utils.esp32_api import ESP32_API
 from . import logger
@@ -43,69 +42,6 @@ __all__ = [
     )
 ]
 __all__.append('FakeDataGenerator')
-
-
-class StreamControlMixin(object):
-    def __init__(self):
-        '''only used for testing'''
-        self._flag_pause = threading.Event()
-        self._flag_close = threading.Event()
-        self._started = False
-        self._status = 'closed'
-
-    def start(self):
-        if self._started:
-            if self._status == 'paused' and self._flag_pause.is_set():
-                self.resume()
-            return
-        self._flag_pause.set()
-        self._flag_close.clear()
-        self._started = True
-        self._status = 'started'
-        self._start_time = time.time()
-
-    def close(self):
-        if not self._started:
-            return
-        self._flag_close.set()
-        self._flag_pause.clear()
-        self._started = False  # you can re-start this reader now, enjoy~~
-        self._status = 'closed'
-
-    def restart(self):
-        if self._started:
-            self.close()
-        self.start()
-
-    def pause(self):
-        if not self._started:
-            return
-        self._flag_pause.clear()
-        self._status = 'paused'
-
-    def resume(self):
-        if not self._started:
-            return
-        self._flag_pause.set()
-        self._status = 'resumed'
-
-    @property
-    def status(self):
-        return self._status
-
-    def loop(self, func, args=(), kwargs={}, before=None, after=None):
-        try:
-            if before is not None:
-                before()
-            while not self._flag_close.is_set():
-                self._flag_pause.wait()
-                func(*args, **kwargs)
-        except Exception:
-            logger.error(traceback.format_exc())
-        finally:
-            self.close()
-            if after is not None:
-                after()
 
 
 class ReaderIOMixin(object):
@@ -149,14 +85,15 @@ class ReaderIOMixin(object):
             return 0
 
     @property
-    def data_channel(self, **k):
+    def data_channel(self):
         '''Pick num_channel x 1 fresh data from FIFO queue'''
         if self.is_streaming():
             t = time.time()
             while self._last_ch == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    logger.warn(self.name + ' there maybe error reading data')
+                    logger.warning(
+                        self.name + ' there maybe error reading data')
                     break
             self._last_ch = self._index
         return self._data[:-1, (self._last_ch - 1) % self.window_size]
@@ -169,7 +106,8 @@ class ReaderIOMixin(object):
             while self._last_fr == self._index:
                 time.sleep(0)
                 if (time.time() - t) > (10.0 / self.sample_rate):
-                    logger.warn(self.name + ' there maybe error reading data')
+                    logger.warning(
+                        self.name + ' there maybe error reading data')
                     break
             self._last_fr = self._index
         return np.concatenate((
@@ -209,7 +147,7 @@ class CompatiableMixin(object):
     #  measure_impedance = False
 
 
-class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
+class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatiableMixin):
     name = '[embci.io.Reader]'
 
     def __init__(self, sample_rate, sample_time, num_channel, name=None,
@@ -231,10 +169,10 @@ class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
         # These values may be accessed in another thread or process.
         # So make them multiprocessing.Value and serve as properties.
         for target, t, v in [('_index', c_uint16, 0),
-                             ('_status', c_char_p, 'closed'),
+                             ('_status', c_char_p, b'closed'),
                              ('_started', c_bool, False),
                              ('_start_time', c_float, time.time()),
-                             ('input_source', c_char_p, 'None'),
+                             ('input_source', c_char_p, b'None'),
                              ('sample_rate', c_uint16, 250),
                              ('sample_time', c_float, 2),
                              ('window_size', c_uint16, 500),
@@ -271,7 +209,7 @@ class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
         self._data = np.ndarray(shape=(self.num_channel + 1, self.window_size),
                                 dtype=np.float32, buffer=self._mmapfile)
 
-        StreamControlMixin.start(self)
+        LoopTaskMixin.start(self)
         args = (self._save_data_in_buffer,)
         kwargs = {
             'before': lambda: self._pidfile.acquire(),
@@ -294,7 +232,7 @@ class BaseReader(StreamControlMixin, ReaderIOMixin, CompatiableMixin):
         raise NotImplementedError(self.name + ' cannot use this directly')
 
     def close(self, *a, **k):
-        StreamControlMixin.close(self)
+        LoopTaskMixin.close(self)
         time.sleep(0.5)
         self._data = self._data.copy()  # remove reference to old data buffer
         self._mmapfile.close()
@@ -376,7 +314,7 @@ class FilesReader(BaseReader):
                     self.num_channel = n
                     self._data = self._data[:(n + 1)]
                 if sample_rate and sample_rate != self.sample_rate:
-                    logger.warn('{} resample source data to {}Hz'.format(
+                    logger.warning('{} resample source data to {}Hz'.format(
                         self.name, self.sample_rate))
                     raise NotImplementedError
                     data = scipy.signal.resample(data, self.sample_rate)

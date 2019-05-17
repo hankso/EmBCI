@@ -140,20 +140,30 @@ def update(*a, **k):
         reboot()
 
 
-scale_list = {'a': [100, 200, 500,
-                    1000, 2000, 5000,
-                    10000, 20000, 50000,
-                    100000, 200000, 500000,
-                    1000000, 2000000, 5000000,
-                    10000000],
-              'i': 2}
+scale_list = {
+    'a': [
+        100, 200, 500,
+        1000, 2000, 5000,
+        10000, 20000, 50000,
+        100000, 200000, 500000,
+        1000000, 2000000, 5000000,
+        10000000
+    ],
+    'i': 2,
+}
 
-channel_range = {'r': (0, 7), 'n': 0, 'step': 1}
+channel_range = {
+    'r': (0, 7),
+    'n': 0,
+    'step': 1,
+}
 
 
-page_list = {'a': ['./files/layouts/layout-DBS-page%d.pcl' % i
-                   for i in range(6)],
-             'i': 0}
+page_list = {
+    'a': [os.path.join(__dir__, 'layouts/layout-DBS-page%d.pcl' % i)
+          for i in range(6)],
+    'i': 0,
+}
 
 
 def range_callback(r, operate, prev=None, after=None, *a, **k):

@@ -69,9 +69,14 @@ def index():
     return bottle.template(os.path.join(__dir__, 'index.html'), **kwargs)
 
 
+@root.route('/log/<filename:path>')
+def log_file(filename):
+    return bottle.static_file(filename, root=embci.configs.LOGDIR)
+
+
 @root.route('/<filename:path>')
 def static(filename):
-    return bottle.static_file(filename=filename, root=__dir__)
+    return bottle.static_file(filename, root=__dir__)
 
 
 @root.route('/reload')
@@ -104,8 +109,8 @@ def mount_subapps(applist=subapps):
             appname = getattr(appmod, 'APPNAME', appname)
             appobj = appmod.application
         except AttributeError:
-            logger.warn('Load `application` object from app `{}` failed. '
-                        'Check out `embci.apps.__doc__`.'.format(appname))
+            logger.warning('Load `application` object from app `{}` failed. '
+                           'Check out `embci.apps.__doc__`.'.format(appname))
             applist.append(AttributeDict(name=appname, obj=None))
         else:
             applist.append(AttributeDict(

@@ -8,18 +8,42 @@
 
 import sys
 
-if __name__ == '__main__' and 'obfuscate' in sys.argv:
+if __name__ == '__main__' and 'build' in sys.argv:
+    # use `python -m embci.apps.DBS build` to update (rebuild) libdbs.so
     import os
-    import re
-    import marshal
-    __dir__ = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(__dir__, 'utils.src'), 'r') as f:
-        codes = [line for line in f.readlines()
-                 if not re.match(r'^\n|( *#)', line)]
-    code = compile(''.join(codes), 'utils.py', 'exec')
-    with open(os.path.join(__dir__, 'utils.bin'), 'w') as f:
-        marshal.dump(code, f)
-    print('Code of `utils.bin` has been updated!')
+    import shutil
+    import tempfile
+    import subprocess
+    from .globalvars import __dir__
+    from .utils import libfile, libpath
+    basedir = os.path.join(__dir__, 'utils')
+    source = os.path.join(basedir, 'libdbs.pyx')
+    result = os.path.join(basedir, 'libdbs.c')
+    target = os.path.splitext(libfile)[0]
+
+    # =========================================================================
+    # `python setup.py build_ext --build-lib tmpdir --build-temp tmpdir`
+    #
+    from Cython.Build import cythonize
+    from distutils.extension import Extension
+    from distutils.core import setup
+    tmpd = tempfile.mkdtemp(dir=basedir)
+    setup(
+        script_args=['build_ext', '-f', '-b', tmpd, '-t', tmpd],  # gcc compile
+        ext_modules=cythonize([
+            Extension(target, [source]),  # cythonize
+        ])
+    )
+    for fn in os.listdir(tmpd):
+        if fn.startswith(target):
+            shutil.move(os.path.join(tmpd, fn), libpath)
+            print('`{}` has been updated!'.format(libpath))
+    try:
+        os.remove(result)
+        shutil.rmtree(tmpd)
+        subprocess.check_output(['strip', libpath])
+    except Exception:
+        pass
     sys.exit(0)
 
 

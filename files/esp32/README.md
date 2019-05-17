@@ -35,38 +35,44 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
 ![ESP32 Pin-out](../images/ESP32-Pinout.png)
 
 
-## Usage
-### Firmware
+## ESP32 Firmware
+
 - Pre-compiled binary firmware files are in folder `firmware`.
     - boot_app0.bin
     - bootloader.bin
     - default.bin
     - ESP32_Sandbox.ino.bin
 
+
 - Or you can compile with `ESP-IDF` and `arduino-esp32`.
-    1. Setup [`ESP-IDF`](https://github.com/espressif/esp-idf) as described in its page.
+    1. Setup [ESP-IDF](https://github.com/espressif/esp-idf) as described in its page.
     ```bash
     # example of setup ESP-IDF (on Debian)
+
     # 1.1 install compiler(toolchain)
     sudo apt-get install gcc git wget make libncurses-dev flex bison gperf python python-serial
     wget https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz -O xtensa-esp32.tar.gz
     tar -xvzf xtensa-esp32.tar.gz
+    
     # 1.2 set toolchains path in environment
     echo PATH="\$PATH:$(pwd)/xtensa-esp32-elf/bin" ~/.profile
+    
     # 1.3 get and config ESP-IDF(headers and libs)
     git clone --recursive https://github.com/espressif/esp-idf.git
     cd esp-idf && git submodule update --init --recursive
     echo IDF_PATH=$(pwd) >> ~/.profile
     ```
 
-    2. Setup [`arduino-esp32`](https://github.com/espressif/arduino-esp32) as one of `ESP-IDF` components.
+    2. Setup [arduino-esp32](https://github.com/espressif/arduino-esp32) as one of `ESP-IDF` components.
     ```bash
     # example of setup arduino-esp32
+    
     # 2.1 setup arduino-esp32
     cd ${IDF_PATH}/examples && mkdir arduino-core && cd arduino-core
     mkdir -p components && cd components && \
     git clone https://github.com/espressif/arduino-esp32.git arduino && \
     cd arduino && git submodule update --init --recursive && cd ../..
+    
     # 2.2 create a new project folder
     MyProjectName=esp32-embci
     mkdir -p ${MyProjectName}/main && cd ${MyProjectName}
@@ -78,11 +84,14 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
     3. Then compile with command `make menuconfig && make all`.
     ```bash
     # example of compile from source
+    
     # 3.1 add access to source file
     rm -rf main
     ln -s ${EMBCI_PATH}/files/esp32/src ./main
+    
     # 3.2 remember to tick on "Autostart Arduino setup and loop on boot"
     make menuconfig && make all
+    
     # 3.3 copy generated binary files into folder `firmware`
     ln -s ${EMBCI_PATH}/files/esp32/firmware ./firmware
     cd build
@@ -91,18 +100,24 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
     ```
 
 ### Flash
-Run `burning.sh` script to flash firmware binary files into on-shield ESP32. Use `sudo` if needed.
-
+```bash
+make flash
+```
+Use `sudo` if needed.
 
 ### Monitor
 ```bash
 miniterm.py /dev/ttyS1 115200
 # or
 screen /dev/ttyS1 115200
+# or
+make monitor
 ```
-or any other serial monitor.
 
-### Serial Interface (Deprecated in v0.1.4)
+## TODO: write doc about function of ESP32
+
+
+## Serial Interface (Deprecated in v0.1.4)
 Example output of serial.
 ```
 ESP32 Firmware XXXX.XX-EmBCI
@@ -122,13 +137,8 @@ Supported commands:
     w - turn on/off serial-to-Wifi redirection
 ```
 
-### UART Console-like Interface
+## UART Console-like Interface (Added in v0.1.5)
+Example output of serial.
+```
 
-
-# TODO
-Write `Makefile`:
-- burn(flash)
-- compile
-- reset
-- sleep
-- wakeup
+```

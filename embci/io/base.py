@@ -144,7 +144,7 @@ def save_data(username, data_dict, suffix='.mat', summary=False):
             if os.path.exists(fn):
                 os.remove(fn)
             num -= 1
-            logger.warn('Save {} failed.\n{}'.format(
+            logger.warning('Save {} failed.\n{}'.format(
                 fn, traceback.format_exc()))
 
     if summary:
@@ -189,7 +189,7 @@ def load_label_data(username, label='default'):
             data_list.append(data)
             logger.info('Load {} data from {}'.format(data.shape, fn))
         except Exception:
-            logger.warn('Load {} failed.\n{}'.format(
+            logger.warning('Load {} failed.\n{}'.format(
                 fn, traceback.format_exc()))
     return data_list
 

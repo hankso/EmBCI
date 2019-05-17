@@ -21,6 +21,10 @@ server = Server()
 signalinfo = SignalInfo(reader.sample_rate)
 recorder = Recorder(reader)
 
+import os
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+del os
+
 # a container that can hold all parameters
 pt = param_tree = AttributeDict()
 

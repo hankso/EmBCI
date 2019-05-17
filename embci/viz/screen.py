@@ -783,10 +783,10 @@ class GUIControlMixin(object):
     def _get_element(self, element=None, id=None):
         elements = [key for key in self.widget.keys() if self.widget[key]]
         if len(elements) == 0:
-            logger.warn('Empty widget bucket now!')
+            logger.warning('Empty widget bucket now!')
             return
         if element not in elements:
-            logger.warn('Choose element from {}'.format(elements))
+            logger.warning('Choose element from {}'.format(elements))
             return
         return self.widget[element, id]
 

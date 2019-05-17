@@ -35,11 +35,10 @@ try:
 except ImportError:
     import configparser
 
-# requirements.txt: drivers: pyserial, wifi
+# requirements.txt: drivers: pyserial
 # requirements.txt: data-processing: pylsl, numpy
 # requirements.txt: necessary: decorator, six, dill
 from serial.tools.list_ports import comports
-import wifi
 import pylsl
 import numpy as np
 from decorator import decorator
@@ -81,6 +80,10 @@ del PytestRunner
 
 # =============================================================================
 # UTILITIES
+
+def null_func(*a, **k):
+    return
+
 
 def mapping(a, low=None, high=None, t_low=0, t_high=255):
     '''
@@ -171,7 +174,14 @@ class AttributeDict(MutableMapping):
 
     def __init__(self, *a, **k):
         # do not directly use self.__dict__
+        recursive = k.pop('__recursive__', True)
         self.__mapping__ = dict(*a, **k)
+        if recursive:
+            for key, value in self.__mapping__.items():
+                if isinstance(value, dict):
+                    self.__mapping__[key] = AttributeDict(value)
+                if isinstance(value, list):
+                    self.__mapping__[key] = AttributeList(value)
 
     def __getitem__(self, items):
         if isinstance(items, tuple):
@@ -187,9 +197,9 @@ class AttributeDict(MutableMapping):
                 # get rid of some ipython magics
                 return
             if self.__mapping__:
-                logger.warn('Choose key from {}'.format(self.keys()))
+                logger.warning('Choose key from {}'.format(self.keys()))
             else:
-                logger.warn('Invalid key {}'.format(items))
+                logger.warning('Invalid key {}'.format(items))
             return
         return self.__mapping__.__getitem__(items)
 
@@ -199,7 +209,7 @@ class AttributeDict(MutableMapping):
     def __delitem__(self, key):
         self.__mapping__.__delitem__(key)
 
-    __getattr__ = MutableMapping.get  # self.__getitem__ + return None
+    __getattr__ = __getitem__
 
     def __setattr__(self, attr, value):
         if attr[0] == attr[-1] == '_':
@@ -231,8 +241,10 @@ class AttributeDict(MutableMapping):
         return self.__mapping__.__str__()
 
     def __repr__(self):
-        return '<{}.{} object at {}>'.format(
-            self.__module__, self.__class__.__name__, hex(id(self)))
+        return '<{}.{} {} at {}>'.format(
+            self.__module__, self.__class__.__name__,
+            str(self), hex(id(self))
+        )
 
     def __iter__(self):
         return self.__mapping__.__iter__()
@@ -243,11 +255,20 @@ class AttributeDict(MutableMapping):
     def __copy__(x):
         return x.__class__(x.__mapping__)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo, cls=None):
+        if '__cls__' not in memo:
+            memo['__cls__'] = cls or self.__class__
         dct = {}
         for key in self:
-            dct[copy.deepcopy(key, memo)] = copy.deepcopy(self[key], memo)
-        return self.__class__(dct)
+            # key may be tuple|int|string...(all hashable objects)
+            key = copy.deepcopy(key, memo)
+            try:
+                # value may be unhashable objects without a __deepcopy__ method
+                dct[key] = copy.deepcopy(self[key], memo)
+            except Exception:
+                logger.debug(traceback.format_exc())
+                dct[key] = self[key]
+        return memo['__cls__'](dct)
 
     def copy(self, cls=None):
         '''
@@ -263,22 +284,38 @@ class AttributeDict(MutableMapping):
         >>> type(AttributeDict(a=1, b=2).copy(dict))
         dict
         >>> def generate_list(a, b):
-            print('elements: ', a, b)
-            return [a, b]
+                print('elements: ', a, b)
+                return [a, b]
         >>> type(AttributeDict(a=1, b=2).copy(generate_list))
         elements: 1, 2
         [1, 2]
         '''
-        return (cls or self.__class__)(self.__class__.__copy__(self))
+        return (cls or self.__class__)(**self.__mapping__)
 
     def deepcopy(self, cls=None):
-        return (cls or self.__class__)(self.__deepcopy__({}))
+        return self.__deepcopy__({}, cls or self.__class__)
+
+    def get(self, key, default=None):
+        'D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None.'
+        try:
+            return self.__mapping__[key]
+        except KeyError:
+            return default
+
+    def pop(self, key, default=None):
+        try:
+            value = self.__mapping__.pop(key)
+        except KeyError:
+            return default
+        else:
+            return value
 
 
 class AttributeList(MutableSequence):
     '''
-    Get elements in list by attributes of them
-    Elements in this list must have an `id` attribute
+    Get elements in list by attributes of them. It works much like a jQuery
+    init list. In this list, elements with an `id` attribute can be selected
+    by normal __getitem__ way.
 
     Examples
     --------
@@ -291,10 +328,30 @@ class AttributeList(MutableSequence):
     ['bob', 'alice', 'tim']
     >>> l.age
     [16, 20, 22]
+
+    >>> l2 = AttributeList([
+        {'id': 999, 'name': 'dot'},
+        {'id': 1, 'name': 'line'}
+        {'id': 2, 'name': 'rect'}
+    ])
+    >>> l2[999]
+    {'id': 999, 'name': 'dot'}
+    >>> l2[0]  # if `id` selector failed, normal list indexing is used
+    {'id': 999, 'name': 'dot'}
+
+    >>> l2[-2] == l2[1]  # minus number is regarded as index
+    True
     '''
 
     def __init__(self, *a, **k):
+        recursive = k.pop('__recursive__', True)
         self.__sequence__ = list(*a, **k)
+        if recursive:
+            for n, element in enumerate(self.__sequence__):
+                if isinstance(element, list):
+                    self.__sequence__[n] = AttributeList(element)
+                if isinstance(element, dict):
+                    self.__sequence__[n] = AttributeDict(element)
 
     def __new__(cls, *a, **k):
         return super(AttributeList, cls).__new__(cls)
@@ -307,20 +364,24 @@ class AttributeList(MutableSequence):
                     break
                 self = self.__getitem__(item)
             return self
-        # items: None | -int | int | slice
-        if isinstance(items, int) and items < 0:
-            index = items
+        # items: None | -int | +int | slice
+        if isinstance(items, int):
+            if items >= 0:
+                if items in self.id:  # this will call self.__getattr__('id')
+                    items = self.id.index(items)
+                elif items > len(self):
+                    return None
+            return self.__sequence__.__getitem__(items)
         elif isinstance(items, slice):
             return self.__class__(self.__sequence__.__getitem__(items))
-        elif items is None or items not in self.id:  # call __getattr__
+        elif items is None:
             if self:
-                logger.warn('Choose index from {}'.format(self.id))
+                logger.warning('Choose index from {}'.format(self.id))
             else:
-                logger.warn('Invalid index {}'.format(items))
-            return None
-        else:  # int
-            index = self.id.index(items)
-        return self.__sequence__.__getitem__(index)
+                logger.warning('Invalid index {}'.format(items))
+        else:  # unsupported type, like string | dict | tuple ...
+            pass
+        return None
 
     def __setitem__(self, index, value):
         self.__sequence__.__setitem__(index. value)
@@ -332,12 +393,15 @@ class AttributeList(MutableSequence):
         try:
             return self.__sequence__.__getattr__(attr)
         except AttributeError:
-            return [getattr(e, attr) for e in self.__sequence__]
+            return [getattr(e, attr, None) for e in self.__sequence__]
 
     def __contains__(self, element):
-        if hasattr(element, 'id'):
-            element = element.id
-        for e in self.__sequence__:
+        ids = self.id
+        if hasattr(element, 'id') and getattr(element, 'id', -1) in ids:
+            return True
+        elif element in ids:
+            return True
+        for e in self:
             if e == element:
                 return True
         return False
@@ -355,36 +419,49 @@ class AttributeList(MutableSequence):
         return self.__sequence__.__str__()
 
     def __repr__(self):
-        return '<{}.{} object at {}>'.format(
-            self.__module__, self.__class__.__name__, hex(id(self)))
+        return '<{}.{} {} at {}>'.format(
+            self.__module__, self.__class__.__name__, str(self), hex(id(self))
+        )
 
     def __iter__(self):
         return self.__sequence__.__iter__()
 
     def index(self, element):
-        return self.id.index(element['id'])
+        if element not in self:
+            #  raise ValueError("'{}' is not in list".format(element))
+            return -1
+        ids = self.id
+        if hasattr(element, 'id') and getattr(element, 'id', -1) in ids:
+            return ids.index(element.id)
+        elif element in ids:
+            return ids.index(element)
+        for n, e in enumerate(self.__sequence__):
+            if e == element:
+                return n
 
-    def pop(self, id):
-        try:
-            index = self.id.index(id)
-        except ValueError:
-            if self:
-                raise IndexError('pop index out of range')
-            else:
-                raise IndexError('pop from empty list')
+    def pop(self, element, default=None):
+        index = self.index(element)
+        if index == -1:
+            return default
         return self.__sequence__.pop(index)
 
     def remove(self, element):
-        self.pop(element['id'])
+        self.pop(element)
 
     def __copy__(x):
-        return x.__class__(x[:])
+        return x.__class__(x.__sequence__)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo, cls=None):
+        if '__cls__' not in memo:
+            memo['__cls__'] = cls or self.__class__
         lst = []
         for element in self:
-            lst.append(copy.deepcopy(element, memo))
-        return self.__class__(lst)
+            try:
+                lst.append(copy.deepcopy(element, memo))
+            except Exception:
+                logger.debug(traceback.format_exc())
+                lst.append(element)
+        return memo['__cls__'](lst)
 
     def copy(self, cls=None):
         '''
@@ -394,10 +471,10 @@ class AttributeList(MutableSequence):
         --------
         AttributeDict.copy
         '''
-        return (cls or self.__class__)(self.__class__.__copy__(self))
+        return (cls or self.__class__)(self.__sequence__)
 
     def deepcopy(self, cls=None):
-        return (cls or self.__class__)(self.__deepcopy__({}))
+        return self.__deepcopy__({}, cls or self.__class__)
 
 
 class BoolString(str):
@@ -485,7 +562,7 @@ class JSONEncoder(json.JSONEncoder):
 
 class MiscJsonEncoder(JSONEncoder):
     '''
-    Extend default json.JSONEncoder will many more features.
+    Extend default json.JSONEncoder with many more features.
 
     Supported types:
     - function
@@ -641,6 +718,126 @@ class MiscJsonDecoder(json.JSONDecoder):
         else:
             fname = dct['__name__'].encode('utf8')
             return types.FunctionType(fcode, globals(), fname)
+
+
+class LoopTaskMixin(object):
+    '''
+    Establish a task to execute a function looply. Stream control methods are
+    integrated, such as `start`, `pause`, `resume`, `close`, etc.
+
+    Examples
+    --------
+    >>> class Clock(LoopTaskMixin):
+            def before(self):
+                print('this is a simple clock')
+            def after(self):
+                print('this function is optional')
+            def display_time(self, name):
+                print("{}: {}".format(name, time.time()))
+                time.sleep(1)
+            def start(self):
+                LoopTaskMixin.__init__(self)
+                self.loop(self.display_time, args=('MyClock', ),
+                          before=self.before, after=self.after)
+    >>> c = Clock()
+    >>> c.start()
+    this is a simple clock
+    >>>
+    MyClock: 1556458048.83
+    MyClock: 1556458049.83
+    MyClock: 1556458050.83
+    c.pause()
+    >>> c.resume()
+    MyClock: 1556458060.83
+    '''
+    def __init__(self):
+        '''only used for testing'''
+        self._flag_pause = threading.Event()
+        self._flag_close = threading.Event()
+        self._started = False
+        self._status = 'closed'
+
+    def start(self):
+        if self._started:
+            if self._status == 'paused' and self._flag_pause.is_set():
+                return self.resume()
+            else:
+                return False
+        self._flag_pause.set()
+        self._flag_close.clear()
+        self._started = True
+        self._status = 'started'
+        self._start_time = time.time()
+        return True
+
+    def close(self):
+        if not self._started:
+            return False
+        self._flag_close.set()
+        self._flag_pause.clear()
+        # you can restart this task now
+        self._started = False
+        self._status = 'closed'
+        return True
+
+    def restart(self):
+        if self._started:
+            self.close()
+        self.start()
+        return True
+
+    def pause(self):
+        if not self._started:
+            return False
+        self._flag_pause.clear()
+        self._status = 'paused'
+        return True
+
+    def resume(self):
+        if not self._started:
+            return False
+        self._flag_pause.set()
+        self._status = 'resumed'
+        return True
+
+    @property
+    def status(self):
+        return self._status
+
+    def loop(self, func, args=(), kwargs={}, before=None, after=None):
+        try:
+            if before is not None:
+                before()
+            while not self._flag_close.is_set():
+                if self._flag_pause.wait(2):
+                    func(*args, **kwargs)
+        except Exception:
+            logger.error(traceback.format_exc())
+        finally:
+            self.close()
+            if after is not None:
+                after()
+
+
+class LoopTaskInThread(threading.Thread, LoopTaskMixin):
+    def __init__(self, func=None, daemon=True, *a, **k):
+        threading.Thread.__init__(self, *a, **k)
+        self.setDaemon(daemon)
+        self.__func = func
+        if getattr(func, 'func_name', None):
+            self.name = 'Loop Task on %s' % func.func_name
+        LoopTaskMixin.__init__(self)
+
+    def start(self):
+        if not self._started:
+            threading.Thread.start(self)
+        return LoopTaskMixin.start(self)
+
+    def run(self):
+        try:
+            self.loop(self.__func)  # , *a, **k, before, after)
+        finally:
+            logger.info('{} stopped.'.format(self))
 
 
 def time_stamp(localtime=None, fm='%Y%m%d-%H:%M:%S'):
@@ -863,7 +1060,10 @@ class LockedFile(object):
 
     def __del__(self):
         '''Ensure file released when garbage collection of instance.'''
-        self.release()
+        try:
+            self.release()
+        except (AttributeError, TypeError):
+            pass
 
 
 class TempStream(object):
@@ -1032,11 +1232,11 @@ def duration(sec, name=None, warning=None):
     ...     testing('now you are executing testing function')
     ...
     time: 32.2s, now you are executing testing function
-    time: 33.2s, cant call so frequently!
-    time: 34.2s, cant call so frequently!
+    cant call so frequently! # time: 33.2s
+    cant call so frequently! # time: 34.2s
     time: 35.2s, now you are executing testing function
-    time: 36.2s, cant call so frequently!
-    time: 37.2s, cant call so frequently!
+    cant call so frequently! # time: 36.2s
+    cant call so frequently! # time: 37.2s
     ...
     '''
     time_dict = {}
@@ -1049,7 +1249,7 @@ def duration(sec, name=None, warning=None):
             return func(*args, **kwargs)
         if (time.time() - time_dict[_name]) < sec:
             if warning:
-                logger.warn(warning)
+                logger.warning(warning)
             return
         else:
             time_dict[_name] = time.time()
@@ -1077,31 +1277,37 @@ class TimeoutException(Exception):
         return msg
 
 
-def input(prompt=None, timeout=None, file=sys.stdin):
+def input(prompt=None, timeout=None, flist=[sys.stdin]):
     '''
-    input([prompt[, timeout]]) -> string
+    input([prompt[, timeout[, flist]]]) -> string
 
-    Read from a specific file-like object (default from sys.stdin) and
-    return raw string as function `raw_input` do.
+    Read from a list of file-like objects (default only from sys.stdin)
+    and return raw string as python2 function `raw_input` do.
 
     The optional second argument specifies a timeout in seconds. Both int
     and float is accepted. If timeout, an error will be thrown out.
 
-    This function is PY2/3 & Linux/Windows compatible
+    This function is PY2/3 & Linux/Windows compatible (On Windows, only
+    sockets are supported; on Unix, all file descriptors can be used.)
     '''
     # from builtins import input
     # return input(propmt)
+
     if prompt is not None:
         stdout.write(prompt)
         stdout.flush()
+    if not isinstance(flist, (tuple, list)):
+        flist = [flist]
     try:
-        rlist, _, _ = select.select([file], [], [], timeout)
+        rlist, _, _ = select.select(flist, [], [], timeout)
     except select.error:
         rlist = []
-    if rlist:
-        return file.readline().rstrip('\n')
-    msg = 'read from {} failed'.format(getattr(file, 'name', str(file)))
-    raise TimeoutException(msg, timeout, '`input`')
+    if not rlist:
+        msg = 'read from {} failed'.format(flist)
+        raise TimeoutException(msg, timeout, '`input`')
+    if isinstance(rlist[0], int):
+        rlist[0] = os.fdopen(rlist[0])
+    return rlist[0].readline().rstrip('\n')
 
 
 def check_input(prompt, answer={'y': True, 'n': False, '': True},
@@ -1146,9 +1352,10 @@ def mkuserdir(func, *a, **k):
     elif 'username' in k:
         username = k.get('username')
     else:
-        logger.warn('Username is not provided, decorator abort.')
+        logger.warning(
+            'Username is not provided, `{}` decorator abort.'.format(func))
         if a or k:
-            logger.warn('args: {}, kwargs: {}'.format(a, k))
+            logger.debug('args: {}, kwargs: {}'.format(a, k))
         return func(*a, **k)
     path = os.path.join(DATADIR, username)
     if not os.path.exists(path):
@@ -1274,6 +1481,7 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
         logger = logging.getLogger(name or get_caller_globals(1)['__name__'])
     logger.setLevel(level)
     format = logging.Formatter(format, kwargs.pop('datefmt', None))
+    addhdlr = kwargs.pop('addhdlr', True)
     hdlrlevel = kwargs.pop('hdlrlevel', level)
     filename = kwargs.pop('filename', None)
     if filename is not None:
@@ -1291,7 +1499,10 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
             hdlr = hdlr(**kwargs)
     hdlr.setLevel(hdlrlevel)
     hdlr.setFormatter(format)
-    logger.addHandler(hdlr)
+    if addhdlr:
+        logger.addHandler(hdlr)
+    else:
+        logger.handlers = [hdlr]
     return logger
 
 
@@ -1524,44 +1735,6 @@ def find_gui_layouts(dir):
             return
     logger.info('{}Select layout `{}`'.format(NAME, layout))
     return layout
-
-
-def find_wifi_hotspots(interface=None):
-    '''
-    scan wifi hotspots with specific interface and return results as list of
-    JS dict, if interface doesn't exists or scan failed(permission denied),
-    return empty list [].
-    '''
-    if interface is not None:
-        interfaces = [interface]
-    else:
-        ifs = []
-        try:
-            with open('/proc/net/wireless', 'r') as f:
-                ifs += [re.findall(r'wl\w+', line)
-                        for line in f.readlines() if '|' not in line]
-            with open('/proc/net/dev', 'r') as f:
-                ifs += [re.findall(r'wl\w+', line)
-                        for line in f.readlines() if '|' not in line]
-        except IOError:
-            pass
-        interfaces = list(set([_[0] for _ in ifs if _]))
-    cells = AttributeList()
-    for interface in interfaces:
-        try:
-            cells.extend([
-                AttributeDict(vars(c)) for c in wifi.Cell.all(interface)
-                if c.address not in cells.address
-            ])
-        except wifi.exceptions.InterfaceError:
-            pass
-        except Exception:
-            logger.error(traceback.format_exc())
-    unique = AttributeList()
-    for cell in sorted(cells, key=lambda cell: cell.signal, reverse=True):
-        if cell.ssid not in unique.ssid:
-            unique.append(cell)
-    return unique
 
 
 def get_self_ip_addr(default='127.0.0.1'):

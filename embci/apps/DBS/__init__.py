@@ -24,7 +24,7 @@ import numpy as np
 
 import embci
 import embci.webui
-from .globalvars import reader, signalinfo, server, recorder, pt
+from .globalvars import reader, signalinfo, server, recorder, pt, __dir__
 from .utils import (generate_pdf, calc_coef,
                     process_register, process_realtime, process_fullarray)
 
@@ -54,7 +54,6 @@ HELP = '''
     - [x] software updating
 '''
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
 __status__ = os.path.join(__dir__, 'status.html')
 __report__ = os.path.join(__dir__, 'report.html')
 __display__ = os.path.join(__dir__, 'display.html')
