@@ -13,7 +13,7 @@ import warnings
 import threading
 
 # requirements.txt: testing: pytest
-# requirements.txt: driver: pyserial
+# requirements.txt: drivers: pyserial
 import pytest
 import serial
 import pylsl

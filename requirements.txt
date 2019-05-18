@@ -16,7 +16,9 @@ gevent-websocket
 gpio4
 pyserial
 spidev
-wifi
+
+# [testing]
+pytest
 
 # [machine-learning]
 keras

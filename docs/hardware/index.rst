@@ -8,4 +8,10 @@ EmBCI Hardware Reference
    EmBCI Shield <hardware>
    On-shield ESP32 <esp32>
    ESP-IDF Reference <https://docs.espressif.com/projects/esp-idf/en/latest/>
-   ADS1299 Datasheet <https://github.com/hankso/EmBCI/blob/master/tools/ADS1299-Datasheet.pdf>
+   ADS1299 Datasheet <https://github.com/hankso/EmBCI/blob/release/tools/ADS1299-Datasheet.pdf>
+
+----
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

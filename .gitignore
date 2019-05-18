@@ -11,10 +11,9 @@
 *.swp
 
 # Pyarmor config files
-.github/.pyarmor*
-.github/_pytransform.so
+.github/*pyarmor*
+# .github/*pytransform*
 .github/licenses/
-.github/pyarmor
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

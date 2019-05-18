@@ -16,7 +16,9 @@ gevent-websocket
 gpio4
 pyserial
 spidev
-wifi
+
+# [testing]
+pytest
 
 # [machine-learning]
 keras
@@ -42,8 +44,11 @@ mne
 
 # [optional]
 argparse
+dbus
 ipython==5.7.0
 matplotlib
+python-networkmanager
 reportlab
+wifi
 
 

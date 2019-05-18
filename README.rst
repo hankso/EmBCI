@@ -61,8 +61,6 @@ Check out full documentation `here <https://embci.readthedocs.io/en/latest>`_.
 
 **EmBCI** is still under developing. Any contributions are welcomed.
 
-**EmBCI** was held on a **gitlab private repo** before. It's fully opened now. Happy Open Source!
-
 .. Contents::
 
 .. - `What is EmBCI?`_

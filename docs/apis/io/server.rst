@@ -1,7 +1,10 @@
+**********
 Network IO
-==========
+**********
+
 Get data from matlab
 --------------------
+
 - Here we use Orange Pi + EmBCI Shield Rev.A7,
 - Make sure Orange Pi and your PC are in same LAN,
 - Example to fetch data through socket in `Matlab`.
@@ -21,8 +24,9 @@ Get data from matlab
     data
 
 
-Get data with Reader
---------------------
+Get data with `embci.io.readers`
+--------------------------------
+
 - EmBCI python package provide two network data reader:
     - `embci.io.SocketTCPReader`
     - `embci.io.SocketUDPReader`
@@ -42,3 +46,10 @@ Get data with Reader
     > 10.0.0.1:80
     >>> reader
     <started - Socket TCP Reader 1: 500Hz, 8chs, 2.0sec, at 0xdeadbeef>
+
+API
+---
+.. autoclass:: embci.io.commanders.SocketTCPServer
+    :members:
+    :inherited-members:
+    :undoc-members:

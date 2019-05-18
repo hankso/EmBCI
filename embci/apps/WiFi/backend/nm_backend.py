@@ -50,8 +50,7 @@ def get_device_by_iface(name='wl', dtype=NetworkManager.NM_DEVICE_TYPE_WIFI):
         pass
 
     for dev in nm.GetAllDevices():
-        if dev.DeviceType == dtype and dev.Managed and \
-                dev.Interface.startswith(name):
+        if dev.DeviceType == dtype and dev.Interface.startswith(name):
             return dev
 
 
@@ -286,6 +285,8 @@ def list_connections():
     cons = AttributeList()
     for con in NetworkManager.Settings.ListConnections():
         con_d = AttributeDict(con.GetSettings(), obj=con)
+        if con_d.connection.get('read-only') is True:
+            continue
         for key, section in con.GetSecrets().items():
             con_d[key].update(section)
         con_d.active = con_d.connection.id in active_ssids
