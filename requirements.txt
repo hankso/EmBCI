@@ -9,32 +9,35 @@
 
 # [network]
 bottle
-gevent-websocket
-bottle-websocket
 gevent
+gevent-websocket
 
 # [drivers]
-wifi
-pyserial
 gpio4
+pyserial
 spidev
+
+# [testing]
+pytest
 
 # [machine-learning]
 keras
 sklearn
 
 # [necessary]
-pillow
 decorator
 dill
-six
+gym
+pillow
 pyhht
 pywavelets
+pyzmq
+six
 
 # [data-processing]
+numpy
 pylsl
 scipy
-numpy
 
 # [bio-signal]
 mne

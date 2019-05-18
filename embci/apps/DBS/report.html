@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>report</title>
-    <script src="/js/jquery-2.0.2.min.js"></script>
+    <title>Report for {{username}}</title>
     <link rel="stylesheet" href="/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/css/font-awesome.min.css" />
     <style>
         .report {
             width: 820px;
@@ -173,8 +173,8 @@
         </div>
     </div>
     <div>
-        <a href="{{pdf_url}}" class="btn btn-default download">下载PDF <span class="glyphicon glyphicon-download-alt"></span></a>
-        <a href="/index.html" class="btn btn-default download">返回首页<span class="glyphicon glyphicon-log-out"></span></a>
+        <a href="{{pdf_url}}" class="btn btn-default download">下载PDF <span class="fa fa-download"></span></a>
+        <a href="/index.html" class="btn btn-default download">返回首页<span class="fa fa-home"></span></a>
     </div>
 </body>
 </html>

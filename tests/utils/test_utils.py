@@ -51,7 +51,7 @@ def test_singleton():
 
 def test_temploglevel():
     with TempLogLevel(logging.ERROR):
-        logger.warn('foo')
+        logger.warning('foo')
         assert get_log_msg() == ''
         logger.error('bar')
         assert get_log_msg() == 'bar'
@@ -84,7 +84,7 @@ def test_mkuserdir(username, clean_userdir):
 
 
 def test_loggerstream(test_msg='some testing meaasge...'):
-    logger.warn(test_msg)
+    logger.warning(test_msg)
     msg1 = get_log_msg()
     print(test_msg, file=LoggerStream(logger, logging.WARN), end='')
     msg2 = get_log_msg()

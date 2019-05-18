@@ -3,7 +3,7 @@ Welcome to EmBCI's User Guide
 
 This documentation is for Embedded Brain-Computer Interface (EmBCI_).
 
-.. _EmBCI:  https://hankso.github.io/embci/
+.. _EmBCI:  https://hankso.github.io/EmBCI/
 
 - Development: https://gitlab.com/hankso/embci/
 - Documentation: https://embci.readthedocs.io/
@@ -28,7 +28,7 @@ Lets `get started <readme.html>`_! [`中文 <readme_zh.html>`_]
    Hardware Reference <hardware/index>
    API Reference <apis/index>
    Linux Service <service>
-   Configurations <configurations>
+   Configurations
    Copyrights
    Changelog
    TODO

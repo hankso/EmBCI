@@ -1,9 +1,9 @@
-![EmBCI Logo](https://raw.github.com/hankso/EmBCI/master/files/images/logo-blue.png)
+![EmBCI Logo](https://raw.github.com/hankso/EmBCI/release/files/images/logo-blue.png)
 
 -------
 
 # 欢迎来到 EmBCI！
-[English](https://github.com/hankso/EmBCI/blob/master/README.rst) | 中文
+[English](https://github.com/hankso/EmBCI/blob/release/README.rst) | 中文
 
 - 本 README 将简要介绍 EmBCI 的组件和功能，请阅读[技术文档](https://embci.readthedocs.io/en/latest)了解更多详细信息
 - EmBCI 仍处在开发过程中，非常欢迎任何形式的贡献

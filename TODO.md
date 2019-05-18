@@ -1,4 +1,3 @@
-## TODO
 
 ### Documents
 - This page & README

@@ -33,7 +33,6 @@ with other alphabets will be ignored.
 
 Rules
 =====
-
 Each script must apply:
 
 - Scripts must be executable.

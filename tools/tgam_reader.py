@@ -89,7 +89,7 @@ class TGAM_Reader(object):
         Start reading data into self.data.
         '''
         if self._mode == 'test':
-            self.logger.warn('TEST mode!')
+            self.logger.warning('TEST mode!')
             try:
                 while 1: print(self._r().encode('hex'), end = ' ')
             except KeyboardInterrupt:
@@ -97,7 +97,7 @@ class TGAM_Reader(object):
 
         elif self._mode == 'run':
             time.sleep(1)
-            self.logger.warn('RUN mode!')
+            self.logger.warning('RUN mode!')
 
             self._start_time = time.time()
             log_file = 'raw_data_%s.csv' % time.strftime('%Y%m%d-%H:%M:%S')
@@ -125,7 +125,7 @@ class TGAM_Reader(object):
 
         elif self._mode == 'mcu':
             time.sleep(1)
-            self.logger.warn('MCU mode!')
+            self.logger.warning('MCU mode!')
             while 1:
                 try:
                     #===================
@@ -216,14 +216,14 @@ class TGAM_Reader(object):
                 continue
         if port_list:
             if len(port_list) == 1:
-                self.logger.warn('Port %s selected'%port_list[0])
+                self.logger.warning('Port %s selected'%port_list[0])
                 return port_list[0]
             self.logger.error('Please choose one from all available ports ')
             self.logger.error(' | '.join(port_list))
             while 1:
                 port = raw_input('Port name: ')
                 if port in port_list:
-                    self.logger.warn('Port %s selected'%port)
+                    self.logger.warning('Port %s selected'%port)
                     return port
                 else:
                     self.logger.error('Invalid input!')

@@ -17,12 +17,12 @@ env:
 
 
 before_install:
-# - ./tools/genrequire.py ./embci -o requirements.txt
+- ./tools/genrequire.py ./embci -o requirements.txt
 
 install:
 - pip install codecov pytest-cov
 - pip install -q -r requirements.txt
-- pip install -q -e .
+- pip install -e .
 
 script:
 - pytest --cov=./

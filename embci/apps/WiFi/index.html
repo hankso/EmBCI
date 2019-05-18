@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EmBCI Network Manager</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="/css/index.css" />
+    <link rel="stylesheet" href="theme.css" />
+    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="utils.js"></script>
+</head>
+
+<body>
+    <div class="top">
+        <img src="/images/logo.png" alt="logo" id="logo" align="middle">
+        <div class="top-bar">
+            <h1>Embedded BCI</h1>
+        </div>
+    </div>
+
+    <div class="console" style="text-align:center">
+        <div class="title">
+            <h3>WiFi</h3>
+            <button class="btn btn-default" id="btn-refresh" onclick="refresh()"><img src="images/refresh.png" height="24px"></button>
+            <input type="checkbox" id="wifi-switch-checkbox" onclick="switch_wifi(this)" hidden checked>
+            <label id="wifi-switch-circle" for="wifi-switch-checkbox">
+                <span id="wifi-switch-dot"></span>
+            </label>
+        </div>
+        <ul class="wifi-list" id="nowifi-placeholder" style="display: none">
+            <li>
+                <button class="btn btn-default ap" id="ap-fake" style="background-color:#eeeeee">No Available Access Points Found</button>
+            </li>
+        </ul>
+        <ul class="wifi-list" id="wifi-container">
+            <li>
+                <button class="btn btn-default ap" id="ap-init">
+                    <img class="signal" src="images/wifi.png">
+                    <span class="ssid">ESSID</span>
+                    <div class="wifi-tags">
+                        <span class="tag enc">WPA</span>
+                        <span class="tag fre">2.4GHz</span>
+                        <span class="tag fre">5GHz</span>
+                    </div>
+                </button>
+            </li>
+        </ul>
+        <a class="btn btn-default" href="/index.html" id="back-to-index" style="margin:10px">回到主页</a>
+    </div>
+    
+    <div class="mask" style="display:none">
+        <ul style="margin:0">
+            <li id="wifi-info">
+                <h3 id="mask-ssid">ESSID</h3>
+                <span class="fa fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#wifi-info-sub"></span>
+                <ul class="collapse" id="wifi-info-sub">
+                    <li>
+                        <h3 class="info-attr">Attr</h3>
+                        <h3 class="info-value">value</h3>
+                    </li>
+                    <li>
+                        <h3 class="info-attr">Attr</h3>
+                        <h3 class="info-value">value</h3>
+                    </li>
+                </ul>
+            </li>
+            <li id="forget-psk">
+                <h3 id="btn-forget">Forget network</h3>
+            </li>
+            <li id="save-modify">
+                <h3 id="save-or-modify">S/M password</h3>
+                <span class="fa fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#psk-form-sub"></span>
+                <form class="collapse" id="psk-form-sub">
+                    <div class="form-group">
+                        <label for="input-user">Username</label>
+                        <input type="text" name="user" class="form-control" id="input-user">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-psk">Password</label>
+                        <input type="password" name="psk" class="form-control" id="input-psk">
+                        <span class="fa fa-eye-slash" id="input-psk-icon"></span>
+                    </div>
+                    <button type="button" class="btn btn-default" id="btn-back" onclick="$('.mask').hide()">返回</button>
+                    <button type="button" class="btn btn-default" id="btn-connect">确认</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+        
+
+    <div class="bottom">
+        <span class="fa fa-user"></span>
+        <span class="fa fa-cloud-upload" id="upgrade"></span>
+        &copy; 2018-2019 <a href="https://github.com/hankso/EmBCI">EmBCI</a> 版权所有
+    </div>
+
+    <script>
+        $(function() {
+            $('#wifi-container').on('click', 'button.ap', function() {
+                var ssid = this.id.slice(3);
+                //var ssid = $(this).children('span.ssid').text();
+                var ap = get_ap_by_ssid(ssid);
+                if (!ap) return;
+                if (ap.status == 'Connected' || (ap.encrypted && !ap.saved)) {
+                    pop_up(ap);
+                } else {
+                    $.ajax({
+                        method: 'POST',
+                        url: 'connect',
+                        dataType: 'json',
+                        data: {
+                            ssid: ssid,
+                        },
+                        success: function(ret) {
+                            if (ret.status) {
+                                setTimeout(refresh, 5000);
+                            } else {
+                                alert(ret.msg);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            $('#wifi-container').on('click', 'span.ssid', function(e) {
+                pop_up(get_ap_by_ssid(this.innerText));
+                e.stopPropagation();
+            });
+            
+            $('.mask').mouseleave(function() {
+                $(this).hide()
+            });
+            
+            $('#btn-connect').click(function() {
+                var ssid = $('#mask-ssid').text();
+                var ap = get_ap_by_ssid(ssid);
+                if (!ap) return;
+                if (ap.encrypted && !$('#input-psk').val()) {
+                    alert('Invalid password!');
+                    return false;
+                }
+                $.ajax({
+                    method: 'POST',
+                    url: 'connect',
+                    dataType: 'json',
+                    data: {
+                        ssid: ssid,
+                        user: $('#input-user').val(),
+                        psk: $('#input-psk').val(),
+                    },
+                    success: function(ret) {
+                        if (ret.status) {
+                            $('.mask').hide();
+                            setTimeout(refresh, 5000);
+                        } else {
+                            alert(ret.msg);
+                        }
+                    }
+                });
+            });
+            
+            $('#btn-forget').click(function() {
+                var ssid = $('#mask-ssid').text();
+                var ap = get_ap_by_ssid(ssid);
+                if (!ap) return;
+                if (!ap.saved) return;
+                $.ajax({
+                    method: 'GET',
+                    url: 'forget',
+                    dataType: 'json',
+                    data: {
+                        ssid: ssid,
+                    },
+                    success: function(ret) {
+                        if (ret.status) {
+                            setTimeout(refresh, 5000);
+                        } else {
+                            alert(ret.msg);
+                        }
+                    }
+                });
+                $('.mask').hide();
+            });
+
+            $('#input-psk-icon').click(function() {
+                $(this).toggleClass('fa-eye');
+                $(this).toggleClass('fa-eye-slash');
+                var type = $('#input-psk').attr('type');
+                $('#input-psk').attr(
+                    'type', type == 'text' ? 'password' : 'text'
+                );
+            });
+            
+            $('#upgrade').click(function() {
+                $.ajax({
+                    method: 'GET',
+                    url: 'upgrade',
+                    dataType: 'json',
+                    success: function(ret) {
+                        alert(ret.msg);
+                    }
+                });
+            });
+
+            update_wifi_status();
+            refresh();
+            setInterval(function() {
+                refresh();
+            }, 10000);
+        })
+    </script>
+</body>
+
+</html>
