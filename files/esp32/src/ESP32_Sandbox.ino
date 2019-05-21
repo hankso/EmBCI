@@ -262,7 +262,7 @@ void setup() {
         sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
     spibufrecv = (char*) heap_caps_malloc(
         sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
-    t = (spi_slave_transaction_t*) malloc(sizeof(spi_slave_transaction_t*));
+    memset(t, 0, sizeof(spi_slave_transaction_t));
     cq = new CyclicQueue<bufftype>(cqbuf,M_BUFFERSIZE);
     for (int i = 0; i < M_BUFFERSIZE; i++) {
         cq->buf[i] = i;
