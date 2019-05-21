@@ -135,14 +135,14 @@ basic_connection = {
     },
     '802-11-wireless-security': {
         #  'auth-alg': '',  # open|shared|leap
-        'key-mgmt': '',  # none(WEP)|ieee8021x(Dynamic WEP)|sae(SAE)|
-                         # wpa-none(Ad-Hoc WPA-PSK)|wpa-psk(infra WPA-PSK)|
-                         # wpa-eap(WPA-Enterprise)
+        #  'key-mgmt': '',  # none(WEP)|ieee8021x(Dynamic WEP)|sae(SAE)|
+        #                   # wpa-none(Ad-Hoc WPA-PSK)|wpa-psk(infra WPA-PSK)|
+        #                   # wpa-eap(WPA-Enterprise)
         #  'psk': '',  # for wpa-psk, [hash|64 hex char] of actual key
         #  'leap-username': '',  # for auth-alg=leap & key-mgmt=ieee8021x
         #  'leap-password': '',  # for auth-alg=leap & key-mgmt=ieee8021x
-        'pairwise': [],  # tkip|ccmp
-        'proto': [],  # wpa|rsn
+        #  'pairwise': [],  # tkip|ccmp
+        #  'proto': [],  # wpa|rsn
     },
     '802-1x': {
         #  'ca-cert': b'',  # CA certificate for eap below

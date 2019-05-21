@@ -144,7 +144,8 @@ Install from source
 +++++++++++++++++++
 .. code:: bash
 
-    git clone -b release https://github.com/hankso/EmBCI.git && cd EmBCI
+    git clone --depth=1 -b release https://github.com/hankso/EmBCI.git
+    cd EmBCI
     sudo python -m pip install -r ./requirements.txt
     python setup.py build && sudo python setup.py install
 

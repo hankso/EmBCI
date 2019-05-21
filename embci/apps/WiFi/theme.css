@@ -191,14 +191,6 @@ ul {
     margin-bottom: 16px;
 }
 
-.mask #save-modify #btn-back {
-    float: left;
-}
-
-.mask #save-modify #btn-connect {
-    float: right;
-}
-
 .connected {
     color: deepskyblue;
 }
