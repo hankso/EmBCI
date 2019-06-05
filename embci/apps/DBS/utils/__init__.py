@@ -55,7 +55,7 @@ libfile = 'libdbs_{pyversion}_{machine}.{suffix}'.format(
 )
 
 libpath = os.path.join(__dir__, libfile)
-print('Using library file `{}`'.format(libpath))
+sys.stderr.write('Using library file `{}`\n'.format(libpath))
 
 libname = __name__ + '.' + os.path.splitext(libfile)[0]
 
@@ -63,10 +63,12 @@ try:
     mod = importlib.import_module(libname)
     for attr in __target__:
         if not hasattr(mod, attr):
-            raise ImportError
+            raise ImportError('No target named: ' + attr)
         setattr(__module__, attr, getattr(mod, attr))
 except ImportError as e:
-    print('Import error, functions will be masked as None: ' + str(e))
+    sys.stderr.write(
+        'Import failed, all functions will be masked as `None`\n%s\n' % str(e)
+    )
     for attr in __target__:
         setattr(__module__, attr, None)
 except Exception as e:

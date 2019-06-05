@@ -25,11 +25,14 @@
  SOFTWARE.
 */
 
-#ifndef ESP32_Sandbox_h
-#define ESP32_Sandbox_h
+#ifndef ESP32_SANDBOX_H
+#define ESP32_SANDBOX_H
 
 // local headers
-#include "ADS1299_ESP32.h"
+#include "globals.h"
+#include "configs.h"
+#include "utils.h"
+#include "console_cmds.h"
 
 // Arduino core @ ${ARDUINO_ESP32}/cores/esp32
 #include "Arduino.h"
@@ -40,15 +43,17 @@
 
 // ESP-IDF SDK @ ${ESP_IDF}/components && ${ARDUINO_ESP32}/tools/sdk/include
 #include "esp_log.h"
-#include "esp_sleep.h"
+#include "esp_system.h"
 #include "esp_vfs_dev.h"
+#include "esp_spi_flash.h"
 #include "esp_task_wdt.h"
 #include "esp_heap_caps.h"
-#include "driver/spi_slave.h"
+#include "driver/adc.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include "freertos/FreeRTOS.h"
+#include "driver/spi_slave.h"
 #include "freertos/task.h"
+#include "freertos/FreeRTOS.h"
 
 #ifdef LOG_LOCAL_LEVEL
     #undef LOG_LOCAL_LEVEL
@@ -56,56 +61,47 @@
     // #define LOGLOCAL_LEVEL ESP_LOG_NONE
 #endif
 
-#define M_BUFFERSIZE     8192
-#define M_BUFFERSIZESPI  256
-#define PACKETSIZE       256
-#define SLAVESENDTIMEOUT 1000
+/******************************************************************************
+ * Global variables definition
+ */
 
-#define VSPI_SS          5
-#define HSPI_SS          15
-#define DRDY_PIN         4
-#define BLINK_PIN        2
-#define ADS_DRDY_PIN     27
+ADS1299 ads = ADS1299(HSPI, GPIO_CS);
 
-#define GPIO_MOSI        23
-#define GPIO_MISO        19
-#define GPIO_SCLK        18
-#define GPIO_CS          5
+bool wifi_echo = WIFI_ECHO;
 
-#define GPIO_WAKEUP      0
-#define UART_CONSOLE     UART_NUM_0
-#define UART_BAUDRATE    115200
-#define CLK_SPI          1000000
+esp_log_level_t log_level = LOG_LEVEL;
 
-#define bufftype float
+const int log_level_min = 0, log_level_max = 5;
 
-/* Constants */
+spi_output_data output_data = ADS_RAW;
+
+spi_slave_status slave_status = IDLE;
+
+CyclicQueue<bufftype> *cq;
+
+MillisClock
+    clkts,
+    clkgen,
+    clkblink,
+    clkslavetimeout;
+
+Counter counter;
+
 const char *NAME = "EmBCI";
+
 const char *prompt = "EmBCI> ";
 
-ADS1299 ads(HSPI, HSPI_SS);
+/******************************************************************************
+ * Constants
+ */
 
-enum spi_data_source {
-    ADS_RAW,
-    ESP_SQUARE,
-    ESP_SINE,
-    ESP_CONST,
-} data_source = ADS_RAW;
-
-const char* const data_source_list[] = {
+const char* const output_data_list[] = {
     "ADS1299 Float32 Raw Wave",
     "ESP Generated Square Wave",
     "ESP Generated Sine Wave",
     "Constant 1.0"
 };
 
-enum spi_slave_status {
-    IDLE, 
-    POLL
-} slave_status = IDLE;
-
-esp_log_level_t log_level = ESP_LOG_INFO;
-const int log_level_min = 0, log_level_max = 5;
 const char* const log_level_list[] = {
     "SILENT", "ERROR", "WARNING", "INFO", "DEBUG", "VERBOSE",
 };
@@ -119,138 +115,103 @@ const int sample_rate_list[] = {
     250, 500, 1000, 2000, 4000, 8000, 16000
 };
 
-bool wifi_echo = false;
+/******************************************************************************
+ * Functions
+ */
 
-/* Utilities */
-// 170 --> 0b"10101010"
-char* itobs(int n, char *buff, int bits=8) {
-    buff += bits;
-    *buff-- = '\0';
-    while (bits--) {
-        *buff-- = (n & 1) + '0';
-        n >>= 1;
-    }
-    return buff;
+void verbose() {
+    log_level = esp_log_level_t( min((log_level + 1), log_level_max) );
+    esp_log_level_set(NAME, log_level);
+    ESP_LOGE(NAME, "Current log level: %s", log_level_list[log_level]);
 }
 
-template<typename T>
-class CyclicQueue {
-    public:
-        T *buf;
-        uint32_t buffersiz;
-        bool overriden = false;
-        uint32_t sp, ep;
-        int32_t len = 0;
-        CyclicQueue(T *bp, uint32_t siz) {
-            buf = bp;
-            buffersiz = siz;
-            clear();
-        }
-        void clear() {
-            sp = 0;
-            ep = 0;
-            len = 0;
-            for (uint32_t i = 0; i < buffersiz; i++) {
-                buf[i] = 0;
-            }
-        }
-        bool push(T val) {
-            buf[sp] = val;
-            sp = (sp + 1) % buffersiz;
-            if (sp == ep) {
-                overriden = true;
-                ep = (ep + 1) % buffersiz;
-                return false;
-            } else {
-                len++;
-                return true;
-            }
-        }
-        bool pop(T *val) {
-            if (ep == sp) {
-                return true;
-            } else {
-                *val = buf[ep];
-                ep = (ep + 1) % buffersiz;
-                len--;
-                return false;
-            }
-        }
-};
+void quiet() {
+    log_level = esp_log_level_t( max((log_level - 1), log_level_min) );
+    esp_log_level_set(NAME, log_level);
+    ESP_LOGE(NAME, "Current log level: %s", log_level_list[log_level]);
+}
 
-CyclicQueue<bufftype> *cq;
-
-class MillisClock {
-    public:
-        uint32_t lasttime;
-        void reset() {
-            lasttime = millis();
-        }
-        uint32_t getdiff() {
-            int32_t diff = millis() - lasttime;
-            if (diff > 0) {
-                return diff;
-            } else {
-                reset();
-                return 0;
+void set_sample_rate(uint32_t rate_or_index) {
+    uint32_t fs = 0;
+    if (rate_or_index < 7) {
+        fs = sample_rate_list[6 - rate_or_index];
+    } else {
+        for (uint8_t i = 0; i < 7; i++) {
+            if (sample_rate_list[i] == rate_or_index) {
+                fs = sample_rate_list[i]; break;
             }
         }
-        uint32_t update() {
-            int32_t diff = millis() - lasttime;
-            reset();
-            if (diff > 0) {
-                return diff;
-            } else {
-                return 0;
-            }
-        }
-};
+    }
+    if (fs) {
+        ads.setSampleRate(fs);
+        ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", fs);
+    } else {
+        ESP_LOGE(NAME, "NOT IMPLEMENTED SAMPLERATE %d", rate_or_index);
+    }
+}
 
-MillisClock
-    clkts,
-    clkgen,
-    // clkblink,
-    clkslavetimeout;
+void clear_fifo_queue() {
+    cq->clear();
+    float bufrate = (float)(cq->len) / M_BUFFERSIZE;
+    ESP_LOGD(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
+}
 
-class Counter {
-    private:
-        uint32_t
-            length = 5,
-            *counters = (uint32_t *)calloc(length, sizeof(uint32_t)),
-            *freezers = (uint32_t *)calloc(length, sizeof(uint32_t));
-    public:
-        void count(uint16_t index = 0) {
-            if (index >= length) {
-                uint32_t
-                    *tmp1 = (uint32_t *)realloc(counters, (index + 5) * sizeof(uint32_t)),
-                    *tmp2 = (uint32_t *)realloc(freezers, (index + 5) * sizeof(uint32_t));
-                if (tmp1 != NULL && tmp2 != NULL) {
-                    counters = tmp1;
-                    freezers = tmp2;
-                    length = index + 5;
-                } else {
-                    ESP_LOGE(NAME, "Error (re)allocating memory");
-                    return;
-                }
-            }
-            counters[index]++;
-        }
-        void reset() {
-            for (int i = 0; i < length; i++) {
-                counters[i] = 0;
-            }
-        }
-        void freeze() {
-            memcpy(freezers, counters, length);
-        }
-        uint32_t value(uint16_t index) {
-            if (index < length) {
-                return freezers[index];
-            }
-            return 0;
-        }
-};
+void version_info() {
+    esp_chip_info_t info;
+    esp_chip_info(&info);
+    ESP_LOGE(NAME, "IDF Version: %s", esp_get_idf_version());
+    ESP_LOGE(NAME, "Chip info:");
+    ESP_LOGE(NAME, "\tmodel: %s", info.model == CHIP_ESP32 ? "ESP32" : "???");
+    ESP_LOGE(NAME, "\tcores: %d", info.cores);
+    ESP_LOGE(NAME, "\tfeature: %s%s%s/%s-Flash: %d MB", 
+        info.features & CHIP_FEATURE_WIFI_BGN ? "/802.11bgn" : "",
+        info.features & CHIP_FEATURE_BLE ? "/BLE" : "",
+        info.features & CHIP_FEATURE_BT ? "/BT" : "",
+        info.features & CHIP_FEATURE_EMB_FLASH ? "Embedded" : "External",
+        spi_flash_get_chip_size() / (1024 * 1024));
+    ESP_LOGE(NAME, "\trevision number: %d", info.revision);
+    ESP_LOGE(NAME, "Firmware Version: 2019.4-EmBCI");
+    ESP_LOGE(NAME, "ARM Board: OrangePi Zero Plus 2");
+    ESP_LOGE(NAME, "EmBCI Shield: EmBCI Rev.B1 Apr 12 2019");
+}
 
-Counter counter;
+int get_battery_level(int times) {
+    long value = 0;
+    for (int i = 0; i < times; i++) {
+        value += adc1_get_raw(ADC1_CHANNEL_5);
+    }
+    value /= times;  // average filter
+    double percent;
+    if (value > 3490) {
+        percent = 60.0 + (value - 3490) / 10.475;
+    }
+    else if (value > 3398) {
+        percent = 10.0 + (value - 3398) / 1.84;
+    }
+    else {
+        percent = (value - 3258) / 104.0;
+    }
+    return max(0, min((int)percent, 100));
+}
 
-#endif // ESP32_Sandbox_h
+
+void summary() {
+    char tmp[8 + 1];
+    itoa(ads.statusBit, tmp, 2);
+    const char *bias = ads.getBias() ? "ON" : "OFF";
+    const char *imped = ads.getImpedance() ? "ON" : "OFF";
+    uint32_t v0 = counter.value(0), v1 = counter.value(1);
+    float bufrate = (float)(cq->len) / M_BUFFERSIZE;
+    ESP_LOGW(NAME, "ADS data header:  0b%s", tmp);
+    ESP_LOGW(NAME, "ADS data source:  %s", ads.getDataSource());
+    ESP_LOGW(NAME, "ADS sample rate:  %d Hz", ads.getSampleRate());
+    ESP_LOGW(NAME, "ADS BIAS|IMPED:   %s | %s", bias, imped);
+    ESP_LOGW(NAME, "ESP valid packet: %d / %d Hz", v1, v0);
+    ESP_LOGW(NAME, "ESP output data:  %s", output_data_list[output_data]);
+    ESP_LOGW(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
+    ESP_LOGW(NAME, "ESP log level:    %s", log_level_list[log_level]);
+    ESP_LOGW(NAME, "Serial to wifi:   %s", wifi_echo ? "ON" : "OFF");
+    ESP_LOGW(NAME, "Battery level:    %2d%%", get_battery_level(5));
+}
+
+#endif // ESP32_SANDBOX_H

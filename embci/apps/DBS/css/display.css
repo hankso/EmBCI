@@ -1,3 +1,9 @@
+.top-bar {
+    height: 64px;
+    background-color: #02b2b5;
+    text-align: center;
+}
+
 .top-bar label {
     text-align: center;
     margin: 0;
@@ -19,10 +25,6 @@
     border: 0;
     padding: 0 4px;
     box-shadow: none;
-}
-
-.top {
-    height: 160px;
 }
 
 .bottom-bar {
@@ -144,12 +146,6 @@
     height: 60px;
 }
 
-.display {
-    width: 100%;
-    height: 935px;
-    float: left;
-}
-
 .lh {
     display: inline-block;
     float: left;
@@ -202,30 +198,24 @@
     line-height: 16px;
 }
 
-#chart1 {
-    height: 400px;
-    width: 100%;
-    float: left;
+.chart {
+    margin: 20px auto;
+    width: 95%;
+    border: 1px solid #E3E3E3;
+    border-radius: 10px;
+    box-shadow:0 0 7px 5px #E3E3E3;
 }
 
-#chart2 {
-    height: 140px;
-    width: 100%;
-    float: left;
-}
-
-.data-display {
+#chart-coef {
     text-align: center;
     height: 300px;
-    width: 100%;
-    float: left;
 }
 
-.data-display ul {
+#chart-coef ul {
     padding: 0;
 }
 
-.data-display li {
+#chart-coef li {
     list-style: none;
     height: 60px;
     padding: 10px 0;
@@ -267,15 +257,8 @@
     color: white;
 }
 
-.top-bar {
-    height: 64px;
-    background-color: #02b2b5;
-    text-align: center;
-}
-
 .plane {
     margin: 0 auto;
-    height: 1000px;
     width: 100%;
     text-align: center;
 }
@@ -345,10 +328,6 @@
 }
 
 @media screen and (min-width: 768px) {
-    .top {
-        height: 210px;
-    }
-
     .even {
         width: 260px;
         padding: 9px;
@@ -396,7 +375,6 @@
     }
 
     .plane {
-        height: 1000px;
         width: 768px;
     }
 

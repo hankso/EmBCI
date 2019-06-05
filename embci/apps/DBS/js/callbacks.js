@@ -36,7 +36,7 @@ function dataChannel(channel) {
     })
 }
 
-function genReport(data, onsuccess) {
+function genReport(data) {
     if (data.username == '' || 
         data.gender == '请选择性别' || 
         data.age == '' || 
@@ -49,7 +49,12 @@ function genReport(data, onsuccess) {
         method: 'GET',
         url: 'report',
         data: data,
-        success: onsuccess,
+        success: function() {
+            console.log('用户数据提交成功');
+            var btn = document.getElementById('submit');
+            btn.text = '查看报告';
+            btn.href = 'report.html';
+        },
     })
 }
 
@@ -115,7 +120,7 @@ function updateCoef(data) {
         var bef = parseFloat($('#b' + name).html());
         var aft = parseFloat($('#a' + name).html());
         if (isNaN(bef) || isNaN(aft)) continue;
-        $('#' + name).text(((bef - aft) / bef * 100).toFixed(2) + '%');
+        $('#' + name).text((Math.abs(bef - aft) / bef * 100).toFixed(2) + '%');
     }
 }
 
@@ -133,4 +138,51 @@ function checkRecordingUser() {
             }
         },
     });
+}
+
+var xIndex = 0;
+var duration = 1 / 500;
+var data = [[], [], [], [], [], [], [], []];
+
+var chart_raw, chart_pwr, ws;
+
+function update2D(arr2d, time) {
+    if (!arr2d[0].length) return;
+    var ch, len, slice = Math.min(10, arr2d[0].length);
+    for (var i = 0; i < slice; i++, xIndex+=duration) {
+        if (xIndex >= 1) {
+            xIndex = 0;
+            setTimeout(function(){
+                chart_raw.setOption(option_raw);
+            }, 1);
+        }
+        for (ch = 0; ch < 8; ch++) {
+            data[ch].push([xIndex, arr2d[ch].splice(0, 1)[0] + ch + 1]);
+        }
+    }
+    for (ch = 0; ch < 8; ch++) {
+        chart_raw.appendData({
+            seriesIndex: ch,
+            data: data[ch]
+        });
+        data[ch].length = 0;
+    }
+    setTimeout(function() {
+        update2D(arr2d, time)
+    }, time);
+}
+
+function loopTask() {
+    $.ajax({
+        method: 'GET',
+        url: 'data/freq',
+        dataType: 'json',
+        success: function(msg) {
+            chart_pwr.setOption({
+                series: {
+                    data: msg.data
+                }
+            });
+        }
+    })
 }

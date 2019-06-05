@@ -45,50 +45,66 @@ import embci.apps
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __port__ = int(get_config('WEBUI_PORT', 80))
 __host__ = get_self_ip_addr(get_config('WEBUI_HOST', '0.0.0.0'))
+__index__ = os.path.join(__dir__, 'index.html')
 __appsdir__ = os.path.join(__dir__, '../apps')
 __pidfile__ = os.path.join(PIDDIR, 'webui.pid')
-DEFAULT_ICON = '/images/icon2.png'
 root = bottle.Bottle()
 logger = logging.getLogger(__name__)
 subapps = AttributeList()
+DEFAULT_ICON = '/images/icon2.png'
+LOGDIRS = [embci.configs.LOGDIR]
+SNIPDIRS = [
+    os.path.join(__dir__, 'snippets'),
+    os.path.join(__dir__, 'auth'),
+]
 
 
 # =============================================================================
 # routes
 #
 @root.route('/')
-def index_r():
+def webui_root():
     bottle.redirect('/index.html')
 
 
 @root.route('/index.html')
-def index():
-    kwargs = {
-        'subapps': [app for app in subapps if app.obj is not None],
-    }
-    return bottle.template(os.path.join(__dir__, 'index.html'), **kwargs)
+@bottle.view(__index__)
+def webui_index():
+    return webui_appinfo()
+
+
+@root.route('/appinfo')
+def webui_appinfo():
+    if get_boolean(bottle.request.query.get('reload')):
+        # TODO: runtime refresh/rescan subapps
+        #  mount_subapps()
+        bottle.abort(500, 'Not implemented yet!')
+    apps = [app.copy(dict) for app in subapps
+            if app.obj is not None and not app.get('hidden')]
+    for app in apps:
+        app.pop('obj')
+    return {'subapps': apps}
+
+
+@root.route('/snippets/<filename:path>')
+def webui_snippets(filename):
+    for root in SNIPDIRS:
+        if os.path.exists(os.path.join(root, filename)):
+            return bottle.static_file(filename, root)
+    bottle.abort(404, 'File does not exist.')
 
 
 @root.route('/log/<filename:path>')
-def log_file(filename):
-    return bottle.static_file(filename, root=embci.configs.LOGDIR)
+def webui_logfiles(filename):
+    for root in LOGDIRS:
+        if os.path.exists(os.path.join(root, filename)):
+            return bottle.static_file(filename, root)
+    bottle.abort(404, 'File does not exist.')
 
 
 @root.route('/<filename:path>')
-def static(filename):
+def webui_static(filename):
     return bottle.static_file(filename, root=__dir__)
-
-
-@root.route('/reload')
-def reload():
-    # TODO: runtime refresh/rescan subapps
-    #  mount_subapps()
-    bottle.abort(500, 'Not implemented yet!')
-
-
-@root.route('/debug')
-def debug():
-    bottle.redirect('http://{}:9999'.format(__host__))
 
 
 # =============================================================================
@@ -102,50 +118,67 @@ def mount_subapps(applist=subapps):
     3. application folders under `/path/to/embci/apps/`
     '''
     for appname in embci.apps.__all__:
-        if appname in applist.name:
-            continue
         try:
             appmod = getattr(embci.apps, appname)
+            apppath = appmod.__path__[0]
+            if apppath in applist.path:
+                continue
             appname = getattr(appmod, 'APPNAME', appname)
             appobj = appmod.application
         except AttributeError:
             logger.warning('Load `application` object from app `{}` failed. '
                            'Check out `embci.apps.__doc__`.'.format(appname))
-            applist.append(AttributeDict(name=appname, obj=None))
+            if appname in applist.name:
+                continue
+            applist.append(AttributeDict(
+                name=appname, obj=None, loader='masked by embci.apps.__all__'
+            ))
         else:
             applist.append(AttributeDict(
-                name=appname, obj=appobj, target='/apps/' + appname.lower(),
-                icon=os.path.join(appmod.__path__[0], 'icon.png')))
+                name=appname, obj=appobj, path=apppath,
+                loader='embci.apps.__all__',
+                hidden=getattr(appmod, 'HIDDEN', False),
+            ))
 
-    for appname in os.listdir(embci.apps.__dir__):
-        if appname in applist.name:
+    for appfolder in os.listdir(embci.apps.__dir__):
+        if appfolder[0] in ['_', '.']:
             continue
-        if appname[0] in ['_', '.']:
+        path = os.path.join(embci.apps.__dir__, appfolder)
+        if not os.path.isdir(path):
             continue
-        if not os.path.isdir(os.path.join(embci.apps.__dir__, appname)):
+        if path in applist.path:
             continue
         # If use `import {appname}` and `embci/apps/{appname}` can not be
         # successfully imported (lack of "__init__.py" for example), python
         # will then try to import {appname} from other paths in sys.path.
         # So here we use `importlib.import_module("embci.apps.{appname}")`
         try:
-            appmod = importlib.import_module('embci.apps.' + appname)
-            appname = getattr(appmod, 'APPNAME', appname)
+            appmod = importlib.import_module('embci.apps.' + appfolder)
+            appname = getattr(appmod, 'APPNAME', appfolder)
             appobj = appmod.application
         except (ImportError, AttributeError):
             pass
         else:
             applist.append(AttributeDict(
-                name=appname, obj=appobj, target='/apps/' + appname.lower(),
-                icon=os.path.join(appmod.__path__[0], 'icon.png')))
+                name=appname, obj=appobj, path=appmod.__path__[0],
+                loader='embci.apps.__dir__',
+                hidden=getattr(appmod, 'HIDDEN', False),
+            ))
 
     for app in applist:
         if app.obj is None:  # skip masked apps
             continue
+        app.target = '/apps/' + app.name.lower()
         root.mount(app.target, app.obj)
-        logger.info('link {} to subapp {}'.format(app.target, app.obj))
+        logger.debug('link `{target}` to `{name}`'.format(**app))
+        app.icon = os.path.join(app.path, 'icon.png')
         if not os.path.exists(app.icon):
             app.icon = DEFAULT_ICON
+        snippets = os.path.join(app.path, 'snippets')
+        if os.path.exists(snippets):
+            app.snippets = snippets
+            if snippets not in SNIPDIRS:
+                SNIPDIRS.append(snippets)
     return applist
 
 
@@ -218,15 +251,17 @@ def main(arg):
     # ensure host address legal
     from socket import inet_aton, inet_ntoa, error
     try:
-        args['host'] = inet_ntoa(inet_aton(
+        globals()['__host__'] = args['host'] = inet_ntoa(inet_aton(
             args.get('host', __host__).replace('localhost', '127.0.0.1')
         ))
     except error:
         parser.error("argument --host: invalid address: '%s'" % args['host'])
+    globals()['__port__'] = args['port']
 
     # config logger with loglevel by counting number of -v
     level = max(logging.WARN - args.get('verbose', 0) * 10, 10)
     if args.get('log') is not None:
+        LOGDIRS.append(os.path.dirname(os.path.abspath(args['log'])))
         kwargs = {
             'filename': args['log'],
             'handler': functools.partial(

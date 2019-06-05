@@ -203,7 +203,7 @@ void setpinstate(int pin, int state) {
             conf.pin_bit_mask = 1ULL << GPIO_NUM_26;
             break;
     }
-    conf.mode = ((state==2) ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT);
+    conf.mode = state == 2 ? GPIO_MODE_INPUT : GPIO_MODE_OUTPUT;
     conf.pull_up_en = GPIO_PULLUP_DISABLE;
     conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     conf.intr_type = GPIO_INTR_DISABLE;

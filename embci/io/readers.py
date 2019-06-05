@@ -168,15 +168,17 @@ class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatiableMixin):
         # Basic stream reader attributes.
         # These values may be accessed in another thread or process.
         # So make them multiprocessing.Value and serve as properties.
-        for target, t, v in [('_index', c_uint16, 0),
-                             ('_status', c_char_p, b'closed'),
-                             ('_started', c_bool, False),
-                             ('_start_time', c_float, time.time()),
-                             ('input_source', c_char_p, b'None'),
-                             ('sample_rate', c_uint16, 250),
-                             ('sample_time', c_float, 2),
-                             ('window_size', c_uint16, 500),
-                             ('num_channel', c_uint8, 1)]:
+        for target, t, v in [
+            ('_index',       c_uint16,  0),
+            ('_status',      c_char_p,  b'closed'),
+            ('_started',     c_bool,    False),
+            ('_start_time',  c_float,   time.time()),
+            ('input_source', c_char_p,  b'None'),
+            ('sample_rate',  c_uint16,  250),
+            ('sample_time',  c_float,   2),
+            ('window_size',  c_uint16,  500),
+            ('num_channel',  c_uint8,   1)
+        ]:
             source = '_mp_{}'.format(target)
             setattr(obj, source, mp.Value(t, v))
             if target in cls.__dict__:
@@ -241,7 +243,9 @@ class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatiableMixin):
 
 
 class FakeDataGenerator(BaseReader):
-    '''Generate random data, same as any Reader defined in io.py'''
+    '''
+    Generate random data, same as any Reader defined in `embci/io/readers.py`
+    '''
     __num__ = 1
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1,

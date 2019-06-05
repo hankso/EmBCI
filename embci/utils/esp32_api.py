@@ -41,6 +41,7 @@ REG_SR   = 0x50  # noqa: E221  sample_rate
 REG_IS   = 0x52  # noqa: E221  input_source
 REG_BIAS = 0x54  # noqa: E221  enable_bias
 REG_IMP  = 0x56  # noqa: E221  measure_impedance
+REG_CH   = 0x58  # noqa: E221  enable / disable channel
 
 
 class ESP32_API(ADS1299_API):
@@ -164,6 +165,12 @@ class ESP32_API(ADS1299_API):
             return
         self.write_register(REG_IS, INPUT_SOURCES[src])
         return src
+
+    def set_channel(self, ch, en=True):
+        if ch < 0 or ch > 8:
+            return
+        self.write_register(REG_CH, 1 if en else 0)
+        return en
 
     @property
     def enable_bias(self):

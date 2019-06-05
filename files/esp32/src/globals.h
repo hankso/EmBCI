@@ -1,10 +1,10 @@
 /*
- File: console_cmds.h
+ File: globals.h
  Author: Hankso
  Webpage: http://github.com/hankso
- Time: Tue 19 Mar 2019 16:53:48 CST
-
- ESP32 console to support command line interface.
+ Time: Sat 20 Apr 2019 00:34:02 CST
+ 
+ Global variables are declared here.
  
  Copyright (c) 2019 EmBCI. All right reserved.
 
@@ -27,53 +27,42 @@
  SOFTWARE.
 */
 
-#ifndef CONSOLE_CMDS_H
-#define CONSOLE_CMDS_H
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
-/*
- *  Currently registered commands:
- *      ADS1299
- *        - sample_rate
- *        - input_source
- *        - bias_output
- *        - impedance
- *      SPI Buffer
- *        - clear
- *        - reset
- *        - output
- *      WiFi
- *        - connect
- *        - disconnect
- *        - echoing
- *      Power management
- *        - sleep
- *        - reboot
- *        - shutdown
- *        - battery
- *      Utilities
- *        - verbose
- *        - quiet
- *        - summary
- *        - version
- *        - tasks
- */
-void register_commands();
+#include "ADS1299_ESP32.h"
 
-/*
- * Config and init console. register_commands is called at the end.
- */
-void initialize_console();
+#include "esp_log.h"
 
-/*
- * (R) Read from console stream (wait until command input).
- * (E) parse and Execute the command. 
- * (P) then Print the result.
- */
-void handle_console();
+extern const char *NAME, *prompt;
+extern ADS1299 ads;
+extern bool wifi_echo;
+extern esp_log_level_t log_level;
+extern const int log_level_min, log_level_max;
 
-/*
- * (L) endless Loop of handle_console.
- */
-void console_loop(void*);
+enum spi_output_data {
+    ADS_RAW,
+    ESP_SQUARE,
+    ESP_SINE,
+    ESP_CONST,
+} extern output_data;
 
-#endif // CONSOLE_CMDS_H
+enum spi_slave_status {
+    IDLE, 
+    POLL
+} extern slave_status;
+
+extern const char* const output_data_list[];
+extern const char* const log_level_list[];
+extern const char* const wakeup_reason_list[];
+extern const int sample_rate_list[];
+
+extern void verbose();
+extern void quiet();
+extern void set_sample_rate(uint32_t);
+extern void clear_fifo_queue();
+extern void version_info();
+extern void summary();
+extern int get_battery_level(int times = 8);
+
+#endif // GLOBALS_H

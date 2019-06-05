@@ -289,6 +289,13 @@ class ADS1299_API(spidev.SpiDev):
         self.write(RDATAC)
         return src
 
+    @ensure_start
+    def set_channel(self, ch, en=True):
+        if ch < 0 or ch > 8:
+            return
+        raise NotImplementedError
+        # TODO: ads1299_api set channel enable/disable
+
     @property
     def enable_bias(self):
         return self._enable_bias
