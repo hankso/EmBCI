@@ -59,19 +59,19 @@ ${GIT} add . && ${GIT} commit -m 'release tag'
 # ${GIT} push
 
 BRANCH=release
-mkdir ${REPO_PATH}/dist && ${GIT} archive --format=tar.gz --prefix=EmBCI/ \
+mkdir -p ${REPO_PATH}/dist && ${GIT} archive --format=tar.gz --prefix=EmBCI/ \
     -v -9 -o ${REPO_PATH}/dist/EmBCI-${BRANCH}.tar.gz ${BRANCH}
 
 #
 #  Build documentation
 #
 
-make -C ${REPO_PATH}/docs html
-${GIT} checkout gh-pages
-# ${GIT} checkout release .gitignore
-rsync -av --del \
-    --exclude-from=${DIR}/excludes.txt \
-    --exclude-from=${EMBCI_PATH}/.gitignore \
-    ${REPO_PATH}/docs/_build/html/ ${REPO_PATH}/
-${GIT} add . && ${GIT} commit -m 'build documentation for tag'
-# ${GIT} push
+# make -C ${REPO_PATH}/docs html
+# ${GIT} checkout gh-pages
+# # ${GIT} checkout release .gitignore
+# rsync -av --del \
+#     --exclude-from=${DIR}/excludes.txt \
+#     --exclude-from=${EMBCI_PATH}/.gitignore \
+#     ${REPO_PATH}/docs/_build/html/ ${REPO_PATH}/
+# ${GIT} add . && ${GIT} commit -m 'build documentation for tag'
+# # ${GIT} push

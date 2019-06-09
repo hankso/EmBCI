@@ -26,17 +26,15 @@ function dataScale(action) {
     })
 }
 
-function dataChannel(channel) {
+function dataChannel(opt) {
     $.ajax({
         method: "GET",
         url: 'data/channel',
-        data: {
-            channel: channel
-        },
+        data: opt
     })
 }
 
-function genReport(data, onsuccess) {
+function genReport(data) {
     if (data.username == '' || 
         data.gender == '请选择性别' || 
         data.age == '' || 
@@ -49,7 +47,12 @@ function genReport(data, onsuccess) {
         method: 'GET',
         url: 'report',
         data: data,
-        success: onsuccess,
+        success: function() {
+            console.log('用户数据提交成功');
+            var btn = document.getElementById('submit');
+            btn.text = '查看报告';
+            btn.href = 'report.html';
+        },
     })
 }
 
@@ -62,7 +65,7 @@ function dataConfig(data) {
 }
 
 var btnCount = 0;
-var coefInterval = 0;
+var coefInterval;
 var coefBtns = [];
 
 function stateCoef(button) {
@@ -77,9 +80,8 @@ function stateCoef(button) {
         btnCount++;
     }
     if (btnCount == 0) {
-        clearInterval(coefInterval);
-        coefInterval = 0;
-    } else if (coefInterval == 0) {
+        coefInterval = clearInterval(coefInterval);
+    } else if (!coefInterval) {
         coefInterval = setInterval(dataCoef, 1200);
     }
 }
@@ -90,11 +92,11 @@ function dataCoef() {
         method: "GET",
         url: 'data/coef',
         dataType: 'json',
-        success: function (msg) {
+        success: function (list) {
             updateCoef({
-                t: msg.data[0],
-                s: msg.data[1],
-                m: msg.data[2],
+                t: list[0],
+                s: list[1],
+                m: list[2],
             });
         },
     });
@@ -115,7 +117,7 @@ function updateCoef(data) {
         var bef = parseFloat($('#b' + name).html());
         var aft = parseFloat($('#a' + name).html());
         if (isNaN(bef) || isNaN(aft)) continue;
-        $('#' + name).text(((bef - aft) / bef * 100).toFixed(2) + '%');
+        $('#' + name).text((Math.abs(bef - aft) / bef * 100).toFixed(2) + '%');
     }
 }
 
@@ -133,4 +135,68 @@ function checkRecordingUser() {
             }
         },
     });
+}
+
+var ws, chart_raw, chart_pwr, channel_pwr=0;
+var _interval;
+
+function loopTask() {
+    $.ajax({
+        method: 'GET',
+        url: 'data/freq',
+        dataType: 'json',
+        success: function(list) {
+            chart_pwr.setOption({
+                series: {
+                    name: channel_pwr,
+                    data: list
+                }
+            });
+        }
+    })
+}
+
+function echartPause(option) {
+    var f = option.toolbox.feature.myLoopTask;
+    if (f.title == '开始') {
+        f.icon = 'path://M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z';
+        f.title = '暂停';
+        _interval = setInterval(loopTask, 1500);
+    } else {
+        f.icon = 'path://M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z';
+        f.title = '开始';
+        clearInterval(_interval);
+    }
+}
+
+var xIndex = 0;
+var duration = 1 / 500;
+var xMaxValue = 2;
+var data = [[], [], [], [], [], [], [], []];
+
+
+function update2D(arr2d, time) {
+    if (!arr2d[0].length) return;
+    var ch, len, slice = Math.min(10, arr2d[0].length);
+    for (var i = 0; i < slice; i++, xIndex+=duration) {
+        if (xIndex >= xMaxValue) {
+            xIndex = 0;
+//            setTimeout(function(){
+            chart_raw.setOption(option_raw);
+//            }, 1);
+        }
+        for (ch = 0; ch < 8; ch++) {
+            data[ch].push([xIndex, arr2d[ch].splice(0, 1)[0] + ch + 1]);
+        }
+    }
+    for (ch = 0; ch < 8; ch++) {
+        chart_raw.appendData({
+            seriesIndex: ch,
+            data: data[ch]
+        });
+        data[ch].length = 0;
+    }
+    setTimeout(function() {
+        update2D(arr2d, time)
+    }, time);
 }

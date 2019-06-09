@@ -1,3 +1,9 @@
+.top-bar {
+    height: 64px;
+    background-color: #02b2b5;
+    text-align: center;
+}
+
 .top-bar label {
     text-align: center;
     margin: 0;
@@ -21,14 +27,14 @@
     box-shadow: none;
 }
 
-.top {
-    height: 160px;
+.plane {
+    margin: auto;
+    width: 100%;
 }
 
 .bottom-bar {
     padding-top: 10px;
     width: 100%;
-    float: left;
     height: 60px;
 }
 
@@ -103,6 +109,7 @@
     line-height: 30px;
     font-size: 25px;
     color: grey;
+    text-align: center;
 }
 
 .recorder form#username span#icon-user.recording {
@@ -142,12 +149,6 @@
     width: 324px;
     margin: 5px auto;
     height: 60px;
-}
-
-.display {
-    width: 100%;
-    height: 935px;
-    float: left;
 }
 
 .lh {
@@ -202,117 +203,36 @@
     line-height: 16px;
 }
 
-#chart1 {
-    height: 400px;
-    width: 100%;
-    float: left;
+.chart {
+    margin: 20px auto;
+    width: 95%;
+    border: 1px solid #E3E3E3;
+    border-radius: 10px;
+    box-shadow:0 0 7px 5px #E3E3E3;
 }
 
-#chart2 {
-    height: 140px;
-    width: 100%;
-    float: left;
-}
-
-.data-display {
+#chart-coef {
     text-align: center;
-    height: 300px;
-    width: 100%;
-    float: left;
+    padding: 10px;
 }
 
-.data-display ul {
+#chart-coef ul {
     padding: 0;
+    margin-bottom: 0;
 }
 
-.data-display li {
+#chart-coef li {
     list-style: none;
     height: 60px;
     padding: 10px 0;
 }
 
-.odd {
-    width: 160px;
-    height: 32px;
-    float: left;
-}
-
-.even {
-    width: 160px;
-    height: 32px;
-    float: right;
-}
-
-.top-bar form {
-    width: 320px;
-    margin: 0 auto;
-    height: 64px;
-}
-
-.list::-webkit-input-placeholder {
-    color: white;
-}
-
-.list:-moz-placeholder {
-    /* Firefox 18- */
-    color: white;
-}
-
-.list::-moz-placeholder {
-    /* Firefox 19+ */
-    color: white;
-}
-
-.list:-ms-input-placeholder {
-    color: white;
-}
-
-.top-bar {
-    height: 64px;
-    background-color: #02b2b5;
-    text-align: center;
-}
-
-.plane {
-    margin: 0 auto;
-    height: 1000px;
-    width: 100%;
-    text-align: center;
-}
-
 .digital {
     width: 22%;
     margin: 0 1%;
-    /* padding: 6px 0 !important; */
     padding: 6px 0;
-    text-align: center;
     font-size: 15px;
     font-weight: bold;
-}
-
-.col1 {
-    background-color: rgba(51, 122, 183, 0.75);
-    color: #222222;
-}
-
-.col2 {
-    background-color: rgba(91, 192, 222, 0.75);
-    color: #222222;
-}
-
-.col3 {
-    background-color: rgba(92, 184, 92, 0.8);
-    color: #222222;
-}
-
-.save {
-    width: 25%;
-    height: 35px;
-    font-size: 15px;
-    font-weight: bold;
-    margin: 0 2%;
-    /* padding: 3px 0 !important; */
-    padding: 3px 0;
 }
 
 .term {
@@ -325,11 +245,6 @@
 
 .tleft {
     width: 36px;
-    margin: 0;
-}
-
-.ttop {
-    margin-top: 15px;
 }
 
 .tab li {
@@ -345,22 +260,6 @@
 }
 
 @media screen and (min-width: 768px) {
-    .top {
-        height: 210px;
-    }
-
-    .even {
-        width: 260px;
-        padding: 9px;
-        height: 50px;
-    }
-
-    .odd {
-        width: 260px;
-        padding: 9px;
-        height: 50px;
-    }
-
     .top-bar {
         margin-top: 20px;
         height: 100px;
@@ -396,8 +295,7 @@
     }
 
     .plane {
-        height: 1000px;
-        width: 768px;
+        max-width: 768px;
     }
 
     .tab li {

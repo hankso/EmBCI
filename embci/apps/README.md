@@ -42,7 +42,7 @@ application = bottle.default_app()
 ```
 
 ```html
-# content of NewApp/index.html
+<!--# content of NewApp/index.html-->
 <html>
 <head>
     <meta charset="utf-8">
@@ -56,7 +56,7 @@ Result of accessing URL `http://${EmBCI_WEBUI_HOST}/apps/newapp/index.html` will
 
 
 
-## Example of
+## Example of Flask
 ```python
 # content of MyApp/server.py
 

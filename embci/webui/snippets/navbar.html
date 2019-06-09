@@ -1,0 +1,49 @@
+<nav id="headbar" class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="/index.html">
+        <img src="/images/logo-e.png" width="40" alt="">
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#header-navbar">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="header-navbar">
+        <div class="navbar-nav navbar-links">
+            <a class="nav-item nav-link active" href="/index.html">Home</a>
+            <a class="nav-item nav-link" href="#">Documentation</a>
+            <a class="nav-item nav-link" href="#" hidden>Link</a>
+            <div class="dropdown">
+                <a class="nav-item nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true">Applications</a>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#">Example</a>
+                    <a class="dropdown-item" href="#">Auth</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#">Something else here</a>
+                </div>
+            </div>
+            <div class="dropdown">
+                <a class="nav-item nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true">System</a>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="/apps/system/shutdown">Shutdown</a>
+                    <a class="dropdown-item" href="/apps/system/reboot">Reboot</a>
+                </div>
+            </div>
+            <div class="dropdown">
+                <a class="nav-item nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"><span class="fa fa-user"></span></a>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="/apps/auth/login">Login</a>
+                    <a class="dropdown-item" href="/apps/auth/logout">Logout</a>
+                </div>
+            </div>
+            <div id="batteryBar" style="height:38px;width:38px;margin:auto 10px;cursor:pointer">
+                <!-- TODO: runtime load javascript -->
+                <button class="btn" onclick="var s1 = document.createElement('script'), s2 = document.createElement('script'); var head = document.getElementsByTagName('head')[0]; s1.src = '/js/progressbar.min.js'; head.append(s1); s2.src = '/js/batterybar.js'; head.append(s2);">Battery</button>
+            </div>
+        </div>
+        <div hidden>
+            <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</nav>

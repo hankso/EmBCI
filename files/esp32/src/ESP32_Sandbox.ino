@@ -30,13 +30,9 @@
  SOFTWARE.
 */
 
-// local headers
 #include "ESP32_Sandbox.h"
-#include "ADS1299_ESP32.h"
-#include "console_cmds.h"
 
 int drdypulsetime = 10;
-long wavei = 0;
 char *spibufrecv;
 bool blinkstat = false;
 
@@ -46,28 +42,34 @@ WiFiClient client;
 bufftype cqbuf[M_BUFFERSIZE];
 bufftype *spibuf;
 
-spi_slave_transaction_t *t;
+spi_slave_transaction_t t;
+spi_slave_transaction_t *p = &t;
 
 
 void read_from_ads1299() {
+    static long wavei;
     float res[8];
     ads.readData(res);
     counter.count(0);
     if ((ads.statusBit & 0xF00000) != 0xC00000) return;
     counter.count(1);
-    for (int i = 0; i < 8; i++) {
-        switch (data_source) {
-        case ADS_RAW:
-            cq->push(res[i]); break;
-        case ESP_SQUARE:
-            cq->push((float)((wavei / 100) % 2));
-            wavei++; break;
-        case ESP_SINE:
-            cq->push(sin(wavei / 10));
-            wavei++; break;
-        case ESP_CONST:
-            cq->push(1.0); break;
+    switch (output_data) {
+    case ADS_RAW:
+        for (int i = 0; i < 8; i++) { cq->push(res[i]); }
+        break;
+    case ESP_SQUARE:
+        for (int i = 0; i < 8; i++, wavei++) {
+            cq->push((float)(wavei >> 7 & 1));
         }
+        break;
+    case ESP_SINE:
+        for (int i = 0; i < 8; i++, wavei++) {
+            cq->push(sin(wavei / 10));
+        }
+        break;
+    case ESP_CONST:
+        for (int i = 0; i < 8; i++) { cq->push(1.0); }
+        break;
     }
 }
 
@@ -100,53 +102,57 @@ void handle_spi_command() {
     }
     if (spibufrecv[0] == 0x40) {
         ESP_LOGD(NAME, "INSTRUCTION: WREG");
-        switch(spibufrecv[1]) {
+        uint8_t reg = spibufrecv[1], cmd = spibufrecv[2];
+        switch (reg) {
         case 0x50:
             ESP_LOGD(NAME, "REGISTER: SAMPLE RATE: ");
-            if (spibufrecv[2] <= 6) {
-                int samplerate = sample_rate_list[6 - spibufrecv[2]];
-                ads.setSampRate(samplerate);
-                ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", samplerate);
-            } else {
-                ESP_LOGD(NAME, "NOT IMPLEMENTED SAMPLERATE %d", spibufrecv[2]);
-            }
+            set_sample_rate(cmd);
             break;
         case 0x52:
             ESP_LOGD(NAME, "REGISTER: INPUT SOURCE: ");
-            if (spibufrecv[2] == 0x05) {
-                ads.setTestSignal(true);
-                ESP_LOGD(NAME, "TEST SIGNAL ENABLED");
-            } else if (spibufrecv[2] == 0x00) {
-                ads.setTestSignal(false);
-                ESP_LOGD(NAME, "NORMAL SIGNAL ENABLED");
+            if (cmd > 6) {
+                ESP_LOGE(NAME, "NOT IMPLEMENTED SIGNAL %d", cmd);
             } else {
-                ESP_LOGD(NAME, "NOT IMPLEMENTED SIGNAL %d", spibufrecv[2]);
+                ads.setDataSource(cmd);
+                ESP_LOGD(NAME, "%s SIGNAL ENABLED", ads.getDataSource());
             }
             break;
         case 0x54:
             ESP_LOGD(NAME, "REGISTER: BIAS: ");
-            if (spibufrecv[2] == 0x01) {
+            if (cmd == 0x01) {
                 ads.setBias(true);
                 ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
-            } else if (spibufrecv[2] == 0x00) {
+            } else if (cmd == 0x00) {
                 ads.setBias(false);
                 ESP_LOGD(NAME, "BIAS OUTPUT DISABLED");
             } else {
-                ESP_LOGD(NAME, "NOT IMPLEMENTED BIAS CMD %d", spibufrecv[2]);
+                ESP_LOGD(NAME, "NOT IMPLEMENTED BIAS CMD %d", cmd);
             }
             break;
         case 0x56:
             ESP_LOGD(NAME, "REGISTER: IMPEDANCE: ");
-            if (spibufrecv[2] == 0x01) {
+            if (cmd == 0x01) {
                 ads.setImpedance(true);
                 ESP_LOGD(NAME, "IMPEDANCE ENABLED");
-            } else if (spibufrecv[2] == 0x00) {
+            } else if (cmd == 0x00) {
                 ads.setImpedance(false);
                 ESP_LOGD(NAME, "IMPEDANCE DISABLED");
             } else {
-                ESP_LOGD(NAME, "NOT IMPLEMENTED IMPEDANCE CMD %d", spibufrecv[2]);
+                ESP_LOGE(NAME, "NOT IMPLEMENTED IMPEDANCE CMD %d", cmd);
             }
             break;
+        case 0x58:
+            ESP_LOGD(NAME, "REGISTER: CHANNEL: ");
+            if (cmd < 8) {
+                ads.setChannel(cmd, (bool)spibufrecv[3]);
+                ESP_LOGD(NAME, "CHANNEL %d %s",
+                    cmd, ads.getChannel(cmd) ? "ON" : "OFF");
+            } else {
+                ESP_LOGD(NAME, "NOT IMPLEMENTED CHANNEL %d", cmd);
+            }
+            break;
+        default:
+            ESP_LOGE(NAME, "REGISTER: NOT IMPLEMENTED");
         }
     } else {
         ESP_LOGD(NAME, "INSTRUCTION: NOT IMPLEMENTED");
@@ -155,67 +161,56 @@ void handle_spi_command() {
 
 void handle_spi() {
     switch (slave_status) {
-        case IDLE:
-            // Put data into spi_slave_queue, waiting spi_master to read
-            if (cq->len <= PACKETSIZE) break;
-            // SPI slave satatus reset to poll
-            slave_status = POLL;
-            digitalWrite(DRDY_PIN, LOW);
-            drdypulsetime = 10;
-            for (int i = 0; i < PACKETSIZE; i++) {
-                cq->pop(&(spibuf[i]));
-            }
-            spibufrecv[0] = '\0';
-            t->length = sizeof(bufftype) * PACKETSIZE * 8;
-            t->trans_len = t->length;
-            t->tx_buffer = (char*)spibuf;
-            t->rx_buffer = (char*)spibufrecv;
-            spi_slave_queue_trans(VSPI_HOST, t, portMAX_DELAY);
-            if (cq->overriden) {
-                ESP_LOGD(NAME, "BUFFER OVERFLOW");
-                cq->overriden = false;
-            }
-            clkslavetimeout.reset();
-            break;
-        case POLL:
-            // Data has not been read by SPI master yet
-            if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
-                clkslavetimeout.reset();
-                digitalWrite(DRDY_PIN, LOW);
-                drdypulsetime = 10;
-                ESP_LOGV(NAME, "SPI TIMED OUT, RESENDING");
-            }
-            // SPI master has read data, set slave status back to idle
-            if (spi_slave_get_trans_result(VSPI_HOST, &t, 0) != ESP_ERR_TIMEOUT) {
-                slave_status = IDLE;
-                handle_spi_command();
-            }
-            break;
-    }
-}
-
-/*
-void blinkTest() {
-    ESP_LOGV(NAME, "Begin blink test");
-    if (clkblink.getdiff() >= 1000) {
-        clkblink.reset();
-        if (blinkstat == true) {
-            digitalWrite(BLINK_PIN, HIGH);
-            blinkstat = false;
-        } else {
-            digitalWrite(BLINK_PIN, LOW);
-            blinkstat = true;
+    case IDLE:
+        // Put data into spi_slave_queue, waiting spi_master to read
+        if (cq->len <= PACKETSIZE) break;
+        // SPI slave satatus reset to poll
+        slave_status = POLL;
+        digitalWrite(PIN_DRDY, LOW);
+        drdypulsetime = 10;
+        for (int i = 0; i < PACKETSIZE; i++) {
+            cq->pop(&(spibuf[i]));
         }
+        spibufrecv[0] = '\0';
+        t.length = sizeof(bufftype) * PACKETSIZE * 8;
+        t.trans_len = t.length;
+        t.tx_buffer = (char*)spibuf;
+        t.rx_buffer = (char*)spibufrecv;
+        spi_slave_queue_trans(VSPI_HOST, &t, portMAX_DELAY);
+        if (cq->overriden) {
+            ESP_LOGD(NAME, "BUFFER OVERFLOW");
+            cq->overriden = false;
+        }
+        clkslavetimeout.reset();
+        break;
+    case POLL:
+        // Data has not been read by SPI master yet
+        if (clkslavetimeout.getdiff() > SLAVESENDTIMEOUT) {
+            clkslavetimeout.reset();
+            digitalWrite(PIN_DRDY, LOW);
+            drdypulsetime = 10;
+            ESP_LOGV(NAME, "SPI TIMED OUT, RESENDING");
+        }
+        // SPI master has read data, set slave status back to idle
+        if (spi_slave_get_trans_result(VSPI_HOST, &p, 0) != ESP_ERR_TIMEOUT) {
+            slave_status = IDLE;
+            handle_spi_command();
+        }
+        break;
     }
-    ESP_LOGV(NAME, "End blink test");
 }
-*/
 
+void blinkTest() {
+    if (clkblink.getdiff() < 1000) return;
+    if (digitalRead(PIN_BLINK) == LOW) {
+        digitalWrite(PIN_BLINK, HIGH);
+    } else {
+        digitalWrite(PIN_BLINK, LOW);
+    }
+    clkblink.reset();
+}
 
 void setup() {
-    ESP_LOGD(NAME, "ESP32 Firmware 2018.10-EmBCI");
-    ESP_LOGD(NAME, "Board:  OrangePi Zero Plus 2");
-    ESP_LOGD(NAME, "Shield: EmBCI Rev.A7 Oct 22 2018");
     ESP_LOGD(NAME, "Booting...");
 
 #ifdef CONFIG_TASK_WDT
@@ -231,6 +226,7 @@ void setup() {
     ESP_LOGD(NAME, "Init Serial... ");
     uart_config_t uart_config = {
         .baud_rate = 115200,
+        // .baud_rate = 500000,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -244,14 +240,17 @@ void setup() {
     setvbuf(stdin, NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);
     // Serial1.begin(500000);
+    version_info();
     ESP_LOGD(NAME, "done");
 
     ESP_LOGD(NAME, "Init GPIO... ");
-    pinMode(DRDY_PIN, OUTPUT);
-    digitalWrite(DRDY_PIN, HIGH);
-    pinMode(BLINK_PIN, OUTPUT);
-    digitalWrite(BLINK_PIN, LOW);
-    pinMode(ADS_DRDY_PIN, INPUT);
+    pinMode(PIN_DRDY, OUTPUT);
+    digitalWrite(PIN_DRDY, HIGH);
+    pinMode(PIN_BLINK, OUTPUT);
+    digitalWrite(PIN_BLINK, LOW);
+    pinMode(GPIO_DRDY, INPUT);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_6);
     ESP_LOGD(NAME, "done");
 
     ESP_LOGD(NAME, "Init SPI... ");
@@ -262,7 +261,7 @@ void setup() {
         sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
     spibufrecv = (char*) heap_caps_malloc(
         sizeof(bufftype) * M_BUFFERSIZESPI, MALLOC_CAP_DMA);
-    memset(t, 0, sizeof(spi_slave_transaction_t));
+    memset(&t, 0, sizeof(spi_slave_transaction_t));
     cq = new CyclicQueue<bufftype>(cqbuf,M_BUFFERSIZE);
     for (int i = 0; i < M_BUFFERSIZE; i++) {
         cq->buf[i] = i;
@@ -278,7 +277,7 @@ void setup() {
         .flags = 0
     };
     spi_slave_interface_config_t slvcfg = {
-        .spics_io_num = GPIO_CS,
+        .spics_io_num = PIN_CS,
         .flags = 0,
         .queue_size = 3,
         .mode = 0,
@@ -313,7 +312,7 @@ void setup() {
     clkgen.reset();
     clkts.reset();
     // clkblink.reset();
-    attachInterrupt(ADS_DRDY_PIN, read_from_ads1299, FALLING);
+    attachInterrupt(GPIO_DRDY, read_from_ads1299, FALLING);
     ESP_LOGI(NAME, "Type `help` for commands message");
     xTaskCreatePinnedToCore(console_loop, "console", 3000, NULL, 2, NULL, 0);
     ESP_LOGD(NAME, "End setup");
@@ -325,7 +324,7 @@ void loop() {
     handle_spi();
 
     if (drdypulsetime <= 0) {
-        digitalWrite(DRDY_PIN, HIGH);
+        digitalWrite(PIN_DRDY, HIGH);
     } else {
         drdypulsetime--;
     }
