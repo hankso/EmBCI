@@ -10,14 +10,10 @@
     <link rel="stylesheet" href="/css/index.css">
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/jquery.min.js"></script>
+    <script src="/js/sniploader.js"></script>
 </head>
 <body>
-    <div class="top">
-        <img src="/images/logo.png" alt="logo" id="logo" align="middle">
-        <div class="top-bar">
-            <h1>Embedded BCI</h1>
-        </div>
-    </div>
+    <div data-include="navbar.html"></div>
     <div class="console">
         <div class="content">
             <div class="content-left">
@@ -37,9 +33,6 @@
             </div>
         </div>
     </div>
-    <div class="bottom"> &copy; 2019 
-        <a href="https://hankso.github.io/EmBCI">EmBCI</a> 版权所有
-        <a href="/debug" style="display: none">debug</a>
-    </div>
+    <div data-include="bottom.html"></div>
 </body>
 </html>

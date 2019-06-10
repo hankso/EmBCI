@@ -9,9 +9,14 @@
 '''
 webui
 '''
-
 # built-in
 from __future__ import absolute_import
+
+# requirements.txt: network: gevent
+from gevent import monkey; monkey.patch_all(select=False, thread=False) # noqa
+from gevent.pywsgi import WSGIServer
+
+# built-in
 import os
 import sys
 import logging
@@ -23,7 +28,7 @@ from logging.handlers import RotatingFileHandler
 # requirements.txt: network: bottle, gevent, gevent-websocket
 # requirements.txt: optional: argparse
 import bottle
-import gevent
+
 from geventwebsocket.handler import WebSocketHandler
 try:
     import argparse
@@ -186,7 +191,7 @@ class GeventWebsocketServer(bottle.ServerAdapter):
     '''Gevent websocket server using local logger.'''
     def run(self, app):
         _logger = self.options.get('logger', logger)
-        server = gevent.pywsgi.WSGIServer(
+        server = WSGIServer(
             listener=(self.host, self.port),
             application=app,
             # Fix WebSocketHandler log_request, see more below:

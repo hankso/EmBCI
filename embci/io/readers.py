@@ -27,8 +27,9 @@ import scipy.signal
 import pylsl
 import serial
 
-from ..utils import (check_input, find_serial_ports, find_pylsl_outlets,
-                     find_spi_devices, LockedFile, Singleton, LoopTaskMixin)
+from ..utils import (check_input, get_boolean,
+                     find_serial_ports, find_pylsl_outlets, find_spi_devices,
+                     LockedFile, Singleton, LoopTaskMixin)
 from ..utils.ads1299_api import ADS1299_API
 from ..utils.esp32_api import ESP32_API
 from . import logger
@@ -142,6 +143,9 @@ class CompatiableMixin(object):
     def set_input_source(self, src):
         self.input_source = src
         return True
+
+    def set_channel(self, ch, en):
+        print('Reader setting: {}, {}'.format(ch, en))
 
     #  enable_bias = False
     #  measure_impedance = False
@@ -528,6 +532,14 @@ class ADS1299SPIReader(BaseReader):
     def __del__(self):
         Singleton.remove(self.__class__)
 
+    def set_channel(self, ch, en):
+        if self._api.set_channel(ch, get_boolean(en)):
+            logger.debug('{} channel {} {}'.format(
+                self.name, ch, 'enabled' if en else 'disabled'))
+            return True
+        logger.error(self.name + ' invalid channel {}'.format(ch))
+        return False
+
     def set_sample_rate(self, rate, time=None):
         rst = self._api.set_sample_rate(rate)
         if rst is not None:
@@ -545,7 +557,7 @@ class ADS1299SPIReader(BaseReader):
             self.input_source = src
             logger.info(self.name + ' input source set to {}'.format(rst))
             return True
-        logger.error(self.name + ' invalid input source {}'.fotmat(src))
+        logger.error(self.name + ' invalid input source {}'.format(src))
         return False
 
     def start(self, device=None, *a, **k):

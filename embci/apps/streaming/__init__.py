@@ -38,7 +38,7 @@ if platform.machine() in ['arm', 'aarch64']:
 else:
     from embci.io import FakeDataGenerator as Reader
 from embci.utils.ads1299_api import INPUT_SOURCES
-from embci.utils import get_boolean, get_config
+from embci.utils import get_boolean, get_config, strtypes
 
 
 # =============================================================================
@@ -69,10 +69,10 @@ Examples:
     >>> while 1:
     ...     q.send(raw_input('console@E01:$ '))
     ...     print(q.recv())
-    console@E01:$ enable_bias
+    console@E01:$ bias_output
     True
-    console@E01:$ enable_bias False
-    console@E01:$ enable_bias
+    console@E01:$ bias_output False # Choose one from ON|off|False|true|1|0
+    console@E01:$ bias_output
     False
 
 See `<command> -h` for more information on each command.
@@ -141,6 +141,13 @@ def _set_measure_impedance(param):
     reader.measure_impedance = param
 
 
+def _set_channel(args):
+    if args.action is None:
+        return 'Not implemented yet: get channel status'
+    reader.set_channel(args.param, args.action)
+    return 'Channel {} set to {}'.format(args.param, args.action)
+
+
 def init_parser():
     parser = argparse.ArgumentParser(
         prog=__name__, description=HELP, epilog=EPILOG, add_help=False,
@@ -158,6 +165,15 @@ def init_parser():
     subparsers.add_parser(
         'help', aliases=['h'], help='show this help message and exit'
     ).set_defaults(func=lambda args: parser.format_help())
+
+    # Command: set channel
+    sparser = subparsers.add_parser(
+        'set_channel', aliases=['ch'], epilog=_set_channel.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help='enable/disable specific channel')
+    sparser.add_argument('param', type=int)
+    sparser.add_argument('action', nargs='?', type=get_boolean)
+    sparser.set_defaults(func=_set_channel)
 
     # Command: sample rate
     sparser = subparsers.add_parser(
@@ -194,7 +210,7 @@ def init_parser():
 
     # Command: measure impedance
     sparser = subparsers.add_parser(
-        'measure_impedance', aliases=['ipd'],
+        'impedance', aliases=['ipd'],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_set_measure_impedance.__doc__,
         help='Measure impedance of channels')
@@ -204,7 +220,7 @@ def init_parser():
     # Command: exit
     subparsers.add_parser(
         'exit', help='terminate this task!!!'
-    ).set_defaults(func=lambda args: FLAG.set())
+    ).set_defaults(func=lambda args: FLAG.set() or 'exit')
 
     return parser
 
@@ -237,17 +253,20 @@ def repl(flag_term):
             except SystemExit:
                 # handle parse error
                 if cmd:
-                    ret = msg.getvalue()
+                    ret = msg.getvalue().strip()
                     msg.truncate(0)
             else:
                 # execute command
                 ret = args.func(args)
+                log = msg.getvalue().strip()
+                msg.truncate(0)
+                if log:
+                    ret += '\n' + log
 
             # 3 return result of command
-            if ret is None:
-                # exit will return None
+            if ret in ['exit', 'quit']:
                 break
-            reply.send(str(ret) + '\n')
+            reply.send(str(ret or '') + '\n')
         except zmq.ZMQError:
             print(TASK + 'zmq socket error', file=stdout)
         except KeyboardInterrupt:
@@ -281,5 +300,27 @@ def main(arg):
     #  threading.Thread(target=repl, args=(FLAG)).start()
     #  reader.start(method='block')
 
+
+def consumer():
+    q = zmq.Context().socket(zmq.REQ)
+    q.connect(ADDR)
+    return q
+
+
+def send_message(cmd_or_args):
+    if not cmd_or_args:
+        return ''
+    if isinstance(cmd_or_args, (list, tuple)):
+        cmd = ' '.join([str(arg) for arg in cmd_or_args])
+    elif not isinstance(cmd_or_args, strtypes):
+        cmd = str(cmd_or_args)
+    else:
+        cmd = cmd_or_args
+    q = consumer()
+    q.send(cmd)
+    time.sleep(0.2)
+    ret = q.recv()
+    q.close()
+    return ret
 
 # THE END

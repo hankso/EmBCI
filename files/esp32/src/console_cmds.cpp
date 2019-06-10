@@ -174,7 +174,7 @@ esp_console_cmd_t ads_input_source = {
                 return 1;
             }
             if (input_source_args.channel->count) {
-                ads.setDataSource(source, input_source_args.channel->ival[0]);
+                ads.setDataSource(input_source_args.channel->ival[0], source);
             } else {
                 ads.setDataSource(source);
             }
@@ -218,10 +218,10 @@ esp_console_cmd_t ads_impedance = {
             ch = bool_args.channel->ival[0];
         }
         if (ret == 0) {
-            ads.setImpedance(false, ch);
+            ads.setImpedance(ch, false);
             ESP_LOGD(NAME, "IMPEDANCE DISABLED");
         } else if (ret == 1) {
-            ads.setImpedance(true, ch);
+            ads.setImpedance(ch, true);
             ESP_LOGD(NAME, "IMPEDANCE ENABLED");
         }
         ESP_LOGI(NAME, "Current ADS1299 IMPEDANCE: %s",

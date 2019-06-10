@@ -118,8 +118,9 @@ class ADS1299 {
          *  Enable or disable channel
          */
         bool setChannel(bool en);
-        bool setChannel(uint8_t ch, bool en);
-        bool getChannel(uint8_t ch = 0) {
+        bool setChannel(int ch, bool en);
+        bool getChannel(int ch = 0) {
+            if (ch < 0) ch = 0; // TODO: all channel
             return (bool)(rreg(ADS_CH1SET + ch) & 0x80);
         }
 
@@ -127,22 +128,31 @@ class ADS1299 {
          *  Set and get data source (test/temp/normal/...)
          */
         bool setDataSource(uint8_t src);
-        bool setDataSource(uint8_t ch, uint8_t src);
-        const char* getDataSource(uint8_t ch = 0) { return _source[ch]; }
+        bool setDataSource(int ch, uint8_t src);
+        const char* getDataSource(int ch = 0) {
+            if (ch < 0) ch = 0; // TODO: all channel
+            return _source[ch];
+        }
 
         /* 
          *  Set and get gain (default 24x)
          */
         bool setGain(uint8_t idx);
-        bool setGain(uint8_t ch, uint8_t idx);
-        int getGain(uint8_t ch = 0) { return _gain[ch]; }
+        bool setGain(int ch, uint8_t idx);
+        int getGain(int ch = 0) {
+            if (ch < 0) ch = 0; // TODO: all channel
+            return _gain[ch];
+        }
 
         /* 
          *  Enable or disable impedance measurement
          */
         bool setImpedance(bool en);
-        bool setImpedance(uint8_t ch, bool en);
-        bool getImpedance(uint8_t ch = 0) { return _imped[ch]; }
+        bool setImpedance(int ch, bool en);
+        bool getImpedance(int ch = 0) {
+            if (ch < 0) ch = 0; // TODO: all channel
+            return _imped[ch];
+        }
 
         /* 
          *  Enable or disable BIAS output

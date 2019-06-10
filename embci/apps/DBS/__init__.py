@@ -14,16 +14,15 @@ import shlex
 import base64
 import traceback
 
-# requirements.txt: network: bottle, gevent, gevent-websocket
+# requirements.txt: network: bottle, gevent-websocket
 # requirements.txt: data-processing: numpy, pylsl
-from gevent import monkey
-monkey.patch_all(select=False, thread=False)
 from geventwebsocket import WebSocketError
 import bottle
 import numpy as np
 
 import embci
 import embci.webui
+from ..streaming import send_message
 from .globalvars import reader, signalinfo, server, recorder, pt, __dir__
 from .utils import (generate_pdf, calc_coef,
                     process_register, process_realtime, process_fullarray)
@@ -197,10 +196,10 @@ def data_get_websocket():
                 data = process_realtime(reader.data_channel)
                 server.multicast(data)
                 data_list.append(data)
-            data = np.float32(data_list).T[pt.channel_range.n]
+            data = np.float32(data_list).T
             if pt.detrend and reader.input_source != 'test':
                 data = signalinfo.detrend(data)
-            data = data[0] * pt.scale_list.a[pt.scale_list.i]
+            data *= pt.scale_list.a[pt.scale_list.i]
             ws.send(bytearray(data))
             data_list = []
     except WebSocketError:
@@ -214,13 +213,19 @@ def data_get_websocket():
         'websocket @ {REMOTE_ADDR}:{REMOTE_PORT} closed'.format(**env))
 
 
+@dbs.route('/data/test')
+def data_test():
+    return ''
+
+
 @dbs.route('/data/freq')
 def data_get_freq():
     # y_amp: nch x length
     y_amp = signalinfo.fft_amp_only(
         signalinfo.detrend(reader.data_frame[pt.channel_range.n]),
         resolution=pt.fft_resolution)[:]  # this maybe multi-channels
-    y_amp = y_amp[:, 0:pt.fft_range * pt.fft_resolution]
+    y_amp = y_amp[:, 0:pt.fft_range * pt.fft_resolution] * 1000
+    # TODO: minimize serialize of list
     return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
 
 
@@ -238,7 +243,7 @@ def data_get_status(pt=pt):
         'Realtime Notch state: ' + ('ON' if pt.notch else 'OFF'),
         'Realtime Bandpass state: ' + str(pt.bandpass or 'OFF'),
         'Current amplify scale: %fx' % pt.scale_list.a[pt.scale_list.i],
-        'Current channel num: CH{}'.format(pt.channel_range.n + 1),
+        'Current freq channel num: CH{}'.format(pt.channel_range.n + 1),
         '*********************** Session data ***********************',
         'Data saved for action: {}'.format(saved_data.keys() or None),
         '******************** Reader information ********************',
@@ -300,7 +305,7 @@ def data_stream_resume():
 def data_config_scale():
     scale = bottle.request.query.get('scale')
     if scale is None:
-        return pt.scale_list
+        return pt.scale_list.copy(dict)
     length = len(pt.scale_list.a)
     if scale.isdigit():
         scale = int(scale)
@@ -320,9 +325,12 @@ def data_config_scale():
 
 @dbs.route('/data/channel')
 def data_config_channel():
+    action = bottle.request.query.get('action', '')
     channel = bottle.request.query.get('channel')
+    if action != '' and channel is not None:
+        return send_message(['set_channel', channel, action])
     if channel is None:
-        return pt.channel_range
+        return pt.channel_range.copy(dict)
     if channel.isdigit() and int(channel) in range(*pt.channel_range.r):
         pt.channel_range.n = int(channel)
     else:

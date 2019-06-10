@@ -26,13 +26,11 @@ function dataScale(action) {
     })
 }
 
-function dataChannel(channel) {
+function dataChannel(opt) {
     $.ajax({
         method: "GET",
         url: 'data/channel',
-        data: {
-            channel: channel
-        },
+        data: opt
     })
 }
 
@@ -140,21 +138,53 @@ function checkRecordingUser() {
     });
 }
 
+var ws, chart_raw, chart_pwr, channel_pwr=0;
+var _interval;
+
+function loopTask() {
+    $.ajax({
+        method: 'GET',
+        url: 'data/freq',
+        dataType: 'json',
+        success: function(msg) {
+            chart_pwr.setOption({
+                series: {
+                    name: channel_pwr,
+                    data: msg.data
+                }
+            });
+        }
+    })
+}
+
+function echartPause(option) {
+    var f = option.toolbox.feature.myLoopTask;
+    if (f.title == '开始') {
+        f.icon = 'path://M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z';
+        f.title = '暂停';
+        _interval = setInterval(loopTask, 1500);
+    } else {
+        f.icon = 'path://M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z';
+        f.title = '开始';
+        clearInterval(_interval);
+    }
+}
+
 var xIndex = 0;
 var duration = 1 / 500;
+var xMaxValue = 2;
 var data = [[], [], [], [], [], [], [], []];
 
-var chart_raw, chart_pwr, ws;
 
 function update2D(arr2d, time) {
     if (!arr2d[0].length) return;
     var ch, len, slice = Math.min(10, arr2d[0].length);
     for (var i = 0; i < slice; i++, xIndex+=duration) {
-        if (xIndex >= 1) {
+        if (xIndex >= xMaxValue) {
             xIndex = 0;
-            setTimeout(function(){
-                chart_raw.setOption(option_raw);
-            }, 1);
+//            setTimeout(function(){
+            chart_raw.setOption(option_raw);
+//            }, 1);
         }
         for (ch = 0; ch < 8; ch++) {
             data[ch].push([xIndex, arr2d[ch].splice(0, 1)[0] + ch + 1]);
@@ -170,19 +200,4 @@ function update2D(arr2d, time) {
     setTimeout(function() {
         update2D(arr2d, time)
     }, time);
-}
-
-function loopTask() {
-    $.ajax({
-        method: 'GET',
-        url: 'data/freq',
-        dataType: 'json',
-        success: function(msg) {
-            chart_pwr.setOption({
-                series: {
-                    data: msg.data
-                }
-            });
-        }
-    })
 }

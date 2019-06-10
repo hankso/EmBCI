@@ -168,9 +168,9 @@ class ESP32_API(ADS1299_API):
 
     def set_channel(self, ch, en=True):
         if ch < 0 or ch > 8:
-            return
+            return False
         self.write_register(REG_CH, 1 if en else 0)
-        return en
+        return True
 
     @property
     def enable_bias(self):

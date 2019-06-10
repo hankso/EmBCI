@@ -97,7 +97,8 @@ bool ADS1299::setChannel(bool en) {
     return true;
 }
 
-bool ADS1299::setChannel(uint8_t ch, bool en) {
+bool ADS1299::setChannel(int ch, bool en) {
+    if (ch < 0) return setChannel(en);
     if (ch > 7) return false;
     sdatac();
     byte reg = rreg(ADS_CH1SET + ch);
@@ -120,7 +121,8 @@ bool ADS1299::setDataSource(uint8_t src) {
     return true;
 }
 
-bool ADS1299::setDataSource(uint8_t ch, uint8_t src) {
+bool ADS1299::setDataSource(int ch, uint8_t src) {
+    if (ch < 0) return setDataSource(src);
     if (ch > 7 || src > 7) return false;
     const char *srcName = ads1299_data_source[src];
     if (!strcmp(_source[ch], srcName)) return true;
@@ -146,7 +148,8 @@ bool ADS1299::setGain(uint8_t idx) {
     return true;
 }
 
-bool ADS1299::setGain(uint8_t ch, uint8_t idx) {
+bool ADS1299::setGain(int ch, uint8_t idx) {
+    if (ch < 0) return setGain(idx);
     if (ch > 7 || idx > 7) return false;
     int idxAmp = gain_list[idx];
     if (_gain[ch] == idxAmp) return true;
@@ -171,7 +174,8 @@ bool ADS1299::setImpedance(bool en) {
     return true;
 }
 
-bool ADS1299::setImpedance(uint8_t ch, bool en) {
+bool ADS1299::setImpedance(int ch, bool en) {
+    if (ch < 0) return setImpedance(en);
     if (ch > 7) return false;
     if (_imped[ch] == en) return true;
     _imped[ch] = en;

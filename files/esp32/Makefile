@@ -11,7 +11,10 @@
 # to use `reset_esp.py` to reset ESP32 by GPIO EN && BOOT.
 
 ifneq ($(shell whoami), root)
-$(error "run as root please")
+$(error Run as root please)
+endif
+ifneq ($(shell uname -m), aarch64)
+$(warning This Makefile can only be used on embedded devices)
 endif
 
 #################################################################################
@@ -38,13 +41,12 @@ PORT       = /dev/ttyS2
 else
 PORT       = /dev/ttyS1
 endif
-BAUD       = 115200
 
 #################################################################################
 # flags
 #
 ESP_FALG   := --chip auto --before no_reset --after no_reset
-ESP_FLAG   += --port ${PORT} --baud $(BAUD)
+ESP_FLAG   += --port ${PORT} --baud 921600
 
 FLASH_FLAG := --compress --flash_freq 80m --flash_mode dio --flash_size detect
 

@@ -6,18 +6,17 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-    <title>Display</title>
+    <title>DBS Coef Display</title>
     <link rel="stylesheet" href="/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/font-awesome.min.css" />
-    <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="css/display.css">
     <script src="/js/jquery.min.js"></script>
     <script src="/js/echarts.min.js"></script>
     <script src="/js/macarons.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/sniploader.js"></script>
-    <script src="js/callbacks.js?dev=0"></script>
-    <script src="js/echart-options.js?dev=1"></script>
+    <script src="js/callbacks.js"></script>
+    <script src="js/echart-options.js"></script>
 </head>
 
 <body>
@@ -65,40 +64,28 @@
         </button>
     </div>
     <div class="plane">
-        <div class="control">
+        <div id="control">
             <form class="form-inline">
                 <div class="form-group notchtab">
                     <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="5"> <span class="des">Hz -</span>
                     <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="10"> <span class="des">Hz</span>
                     <button type="button" class="btn btn-default" id="filter">带通滤波</button>
                     <input type="checkbox" checked="checked" id="notch" class="form-control"><span class="des">陷波</span>
-                    <span class="fa fa-search-plus zoom" id="bigger"></span>
-                    <span class="fa fa-search-minus zoom" id="smaller"></span>
+                    <span class="fa fa-search-plus zoom" id="bigger" onclick="dataScale('plus')"></span>
+                    <span class="fa fa-search-minus zoom" id="smaller" onclick="dataScale('minus')"></span>
                     <button type="button" class="btn btn-default" started="false" id="start-stop-record">开始录制数据</button>
                 </div>
             </form>
         </div>
-
-        <ul class="nav nav-tabs tab" role="tablist" id="checkboard">
-            <li role="presentation" id="0" class="active"><a href="" role="tab" data-toggle="tab">CH1</a></li>
-            <li role="presentation" id="1"><a href="" role="tab" data-toggle="tab">CH2</a></li>
-            <li role="presentation" id="2"><a href="" role="tab" data-toggle="tab">CH3</a></li>
-            <li role="presentation" id="3"><a href="" role="tab" data-toggle="tab">CH4</a></li>
-            <li role="presentation" id="4"><a href="" role="tab" data-toggle="tab">CH5</a></li>
-            <li role="presentation" id="5"><a href="" role="tab" data-toggle="tab">CH6</a></li>
-            <li role="presentation" id="6"><a href="" role="tab" data-toggle="tab">CH7</a></li>
-            <li role="presentation" id="7"><a href="" role="tab" data-toggle="tab">CH8</a></li>
-        </ul>
-
         <div class="chart" id="chart-raw"></div>
         <div class="chart" id="chart-pwr"></div>
         <div class="chart" id="chart-coef">
             <ul>
                 <li>
-                    <div class="term tleft ttop digital invisible"></div>
-                    <div class="term ttop digital">术前</div>
-                    <div class="term ttop digital">术后</div>
-                    <div class="term ttop digital">改善率</div>
+                    <div class="digital term tleft invisible"></div>
+                    <div class="term digital">术前</div>
+                    <div class="term digital">术后</div>
+                    <div class="term digital">改善率</div>
                 </li>
                 <li>
                     <div class="digital term tleft">震颤</div>
@@ -119,19 +106,49 @@
                     <button class="btn btn-success digital col3" id="m">%</button>
                 </li>
                 <li>
-                    <button class="btn btn-primary save" id="save-before">保存</button>
-                    <button class="btn btn-info save" id="save-after">保存</button>
+                    <div class="digital term tleft invisible"></div>
+                    <button class="btn btn-primary digital col1" id="save-before" onclick="dataConfig({save: 'before'})">保存</button>
+                    <button class="btn btn-info digital col2" id="save-after" onclick="dataConfig({save: 'after'})">保存</button>
+                    <a href="#" class="btn btn-success digital col3" id="submit">生成报告</a>
                 </li>
             </ul>
         </div>
-
-        <div class="bottom-bar">
-            <a href="/index.html" class="btn btn-info back digital">返回主页</a>
-            <a class="btn btn-info report digital" id="submit">生成报告</a>
-        </div>
     </div>
-    <div class="bottom">
-        &copy; 2018-2019 <a href="http://www.cheitech.com/">杭州航弈生物科技有限责任公司</a> 版权所有
+
+    <div data-desc="custom-bottom">
+        <footer id="footer">
+            <style>
+                footer#footer {
+                    padding:40px;
+                    font-size:15px;
+                    color:#6c757d;
+                    background-color:#F8F8F8;
+                }
+                footer#footer a {
+                    font-weight:600;
+                    color:#495057;
+                }
+                div#footer-links {
+                    margin-bottom:10px;
+                }
+                div#footer-links a + a {
+                    margin-left:20px;
+                }
+                div#footer-states p {
+                    margin-bottom: 0;
+                }
+            </style>
+            <div id="footer-links">
+                <a href="http://www.cheitech.com">Cheitech</a>
+                <a href="https://embci.readthedocs.io/en/latest">EmBCI</a>
+                <a href="/index.html">Home</a>
+            </div>
+            <div id="footer-states">
+                <p style="margin-bottom:5px">&copy; 2018-2019 <a href="http://www.cheitech.com">杭州航弈生物科技有限责任公司</a> 版权所有</p>
+                <p>Based on project <a href="#">EmBCI</a>, an embedded biosignal acquisition and processing platform.</p>
+                <p>Currently v0.1.5. Code licensed MIT, docs <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></p>
+            </div>
+        </footer>
     </div>
     <script type="text/javascript">
         $(function() {
@@ -205,16 +222,7 @@
                 );
             });
 
-            $('#smaller').click(() => dataScale('minus'));
-
-            $('#bigger').click(() => dataScale('plus'));
-
-            $('#checkboard>li').click(function() {
-                var nowColor = colors[this.id];
-                dataChannel(this.id);
-            });
-
-            $('.col3').click(function() {
+            $('button.col3').click(function() {
                 $(this).text('%');
             });
 
@@ -224,14 +232,6 @@
                 age: $('#age').val(),
                 id: $('#id').val()
             }));
-
-            $('#save-before').click(() => dataConfig({
-                save: 'before'
-            }));
-
-            $('#save-after').click(() => dataConfig({
-                save: 'after'
-            }));
             
             $('#bt').click(() => stateCoef($('#bt').get(0)));
             $('#bs').click(() => stateCoef($('#bs').get(0)));
@@ -239,7 +239,6 @@
             $('#at').click(() => stateCoef($('#at').get(0)));
             $('#as').click(() => stateCoef($('#as').get(0)));
             $('#am').click(() => stateCoef($('#am').get(0)));
-
             
             chart_raw = echarts.init(
                 document.getElementById('chart-raw'),
@@ -247,12 +246,28 @@
             );
             chart_pwr = echarts.init(
                 document.getElementById('chart-pwr'),
-                'macarons', {height: 10 + 35 + 1 * 105}
+                'macarons', {height: 30 + 35 + 210}
             );
             chart_raw.setOption(option_raw);
             chart_pwr.setOption(option_pwr);
             window.addEventListener("resize", chart_raw.resize);
             window.addEventListener("resize", chart_pwr.resize);
+            chart_raw.on('legendselectchanged', (msg) => {
+                dataChannel({
+                    channel: msg.name,
+                    action: msg.selected[msg.name]
+                });
+            });
+            chart_pwr.on('legendselectchanged', (msg) => {
+                var raw_selected = chart_raw.getOption().legend[0].selected;
+                channel_pwr = parseInt(msg.name);
+                if (!raw_selected[channel_pwr]) {
+                    // First enable channel
+                    dataChannel({channel: channel_pwr, action: true});
+                }
+                // then change to this channel
+                dataChannel({channel: channel_pwr});
+            });
             
             if (!window.WebSocket) {
                 alert('您的浏览器不支持websocket，请更换更高级的浏览器');
