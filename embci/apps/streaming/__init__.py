@@ -307,7 +307,7 @@ def consumer():
     return q
 
 
-def send_message(cmd_or_args):
+def send_message_streaming(cmd_or_args):
     if not cmd_or_args:
         return ''
     if isinstance(cmd_or_args, (list, tuple)):

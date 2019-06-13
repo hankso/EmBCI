@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav id="headbar" class="navbar navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="/index.html">
         <img src="/images/logo-e.png" width="40" alt="">
     </a>
@@ -34,10 +34,16 @@
                     <a class="dropdown-item" href="/apps/auth/logout">Logout</a>
                 </div>
             </div>
+            <div id="batteryBar" style="height:38px;width:38px;margin:auto 10px;cursor:pointer">
+                <!-- TODO: runtime load javascript -->
+                <button class="btn" onclick="var s1 = document.createElement('script'), s2 = document.createElement('script'); var head = document.getElementsByTagName('head')[0]; s1.src = '/js/progressbar.min.js'; head.append(s1); s2.src = '/js/batterybar.js'; head.append(s2);">Battery</button>
+            </div>
         </div>
-        <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="search" placeholder="Search">
+        <div hidden>
+            <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search">
             <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
+            </form>
+        </div>
     </div>
 </nav>

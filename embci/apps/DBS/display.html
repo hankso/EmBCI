@@ -287,7 +287,7 @@
                 var data = new Float32Array(msg.data);
                 var len = data.length / 8, list = [];
                 for (var i = 0; i < 8; i++) {
-                    list.push(Array.from(data.slice(0, len)));
+                    list.push(Array.from(data.slice(len * i, len * (i + 1))));
                 }
                 update2D(list, 10);
             };

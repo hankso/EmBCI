@@ -231,8 +231,9 @@ class SocketTCPServer(LoopTaskInThread):
         self._server.bind((host, port))
         self._server.listen(5)
         self._server.settimeout(0.5)
+        self.host, self.port = self._server.getsockname()
         logger.info('{} binding socket server at {}:{}'.format(
-            self.name, host, port))
+            self.name, self.host, self.port))
 
     def _manage_connections(self):
         '''

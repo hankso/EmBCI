@@ -22,7 +22,7 @@ import numpy as np
 
 import embci
 import embci.webui
-from ..streaming import send_message
+from ..streaming import send_message_streaming
 from .globalvars import reader, signalinfo, server, recorder, pt, __dir__
 from .utils import (generate_pdf, calc_coef,
                     process_register, process_realtime, process_fullarray)
@@ -43,13 +43,13 @@ HELP = '''
     - [ ] energy of stiffness
     - [x] movement
 - visualization
-    - [ ] display 8-chs signal simultaneously in single chart
+    - [x] display 8-chs signal simultaneously in single chart
     - [x] coeffs and freq domain amp
 - console
     - [x] realtime data status
     - [x] parameters setting
 - update
-    - [ ] connect to WiFi/proxy/git-server
+    - [x] connect to WiFi/proxy/git-server
     - [x] software updating
 '''
 
@@ -59,7 +59,8 @@ __display__ = os.path.join(__dir__, 'display.html')
 
 dbs = bottle.Bottle()
 logger = embci.utils.config_logger('apps.DBS')
-x_freq = np.arange(0, pt.fft_range, 1.0 / pt.fft_resolution)[None, :]
+minimize = embci.utils.MiscJsonEncoder(
+    indent=None, separators=(',', ':')).encode
 
 saved_data = {}
 
@@ -166,6 +167,15 @@ def app_recorder_attr(attr):
     return str(getattr(recorder, attr))
 
 
+@dbs.route('/server')
+@bottle.view(__status__)
+def app_server_info():
+    msg = [
+        ['Address', '{}:{}'.format(server.host, server.port)],
+    ]
+    return {'messages': msg}
+
+
 @dbs.route('/<filename:path>')
 def app_static_files(filename):
     for rootdir in [__dir__, embci.webui.__dir__]:
@@ -193,7 +203,7 @@ def data_get_websocket():
     try:
         while 1:
             while len(data_list) < pt.batch_size:
-                data = process_realtime(reader.data_channel)
+                data = process_realtime(reader.data_channel, pt)
                 server.multicast(data)
                 data_list.append(data)
             data = np.float32(data_list).T
@@ -213,11 +223,6 @@ def data_get_websocket():
         'websocket @ {REMOTE_ADDR}:{REMOTE_PORT} closed'.format(**env))
 
 
-@dbs.route('/data/test')
-def data_test():
-    return ''
-
-
 @dbs.route('/data/freq')
 def data_get_freq():
     # y_amp: nch x length
@@ -225,34 +230,33 @@ def data_get_freq():
         signalinfo.detrend(reader.data_frame[pt.channel_range.n]),
         resolution=pt.fft_resolution)[:]  # this maybe multi-channels
     y_amp = y_amp[:, 0:pt.fft_range * pt.fft_resolution] * 1000
-    # TODO: minimize serialize of list
-    return {'data': np.concatenate((x_freq, y_amp)).T.tolist()}
+    x_freq = np.arange(0, pt.fft_range, 1.0 / pt.fft_resolution).reshape(1, -1)
+    return minimize(np.concatenate((x_freq, y_amp)).T.tolist())
 
 
 @dbs.route('/data/coef')
 def data_get_coef(data=None):
-    return {'data': calc_coef(reader.data_frame[pt.channel_range.n])}
+    return minimize(calc_coef(data or reader.data_frame[pt.channel_range.n]))
 
 
 @dbs.route('/data/status')
 @bottle.view(__status__)
 def data_get_status(pt=pt):
     msg = [
-        '********************* Parameters tree **********************',
-        'Realtime Detrend state: ' + ('ON' if pt.detrend else 'OFF'),
-        'Realtime Notch state: ' + ('ON' if pt.notch else 'OFF'),
-        'Realtime Bandpass state: ' + str(pt.bandpass or 'OFF'),
-        'Current amplify scale: %fx' % pt.scale_list.a[pt.scale_list.i],
-        'Current freq channel num: CH{}'.format(pt.channel_range.n + 1),
-        '*********************** Session data ***********************',
-        'Data saved for action: {}'.format(saved_data.keys() or None),
-        '******************** Reader information ********************',
-        'Current input source: ' + reader.input_source,
-        'Current Sample rate: {}Hz'.format(reader.sample_rate),
-        'ADS1299 BIAS output: {}'.format(
-            getattr(reader, 'enable_bias', None)),
-        'ADS1299 Measure Impedance: {}'.format(
-            getattr(reader, 'measure_impedance', None)),
+        ['SPLITBAR', 'Parameters tree'],
+        ['Realtime Detrend state', 'ON' if pt.detrend else 'OFF'],
+        ['Realtime Notch state', 'ON' if pt.notch else 'OFF'],
+        ['Realtime Bandpass state', pt.bandpass or 'OFF'],
+        ['Current amplify scale', '%.4fx' % pt.scale_list.a[pt.scale_list.i]],
+        ['Current freq channel num', 'CH%d' % (pt.channel_range.n + 1)],
+        ['SPLITBAR', 'Session data'],
+        ['Data saved for action', saved_data.keys() or None],
+        ['Parameter tree', pt],
+        ['SPLITBAR', 'Reader information'],
+        ['Current input source', reader.input_source],
+        ['Current Sample rate', str(reader.sample_rate) + 'Hz'],
+        ['ADS1299 BIAS output', getattr(reader, 'enable_bias', None)],
+        ['ADS1299 Impedance', getattr(reader, 'measure_impedance', None)],
     ]
     return {'messages': msg}
 
@@ -328,7 +332,7 @@ def data_config_channel():
     action = bottle.request.query.get('action', '')
     channel = bottle.request.query.get('channel')
     if action != '' and channel is not None:
-        return send_message(['set_channel', channel, action])
+        return send_message_streaming(['set_channel', channel, action])
     if channel is None:
         return pt.channel_range.copy(dict)
     if channel.isdigit() and int(channel) in range(*pt.channel_range.r):
@@ -444,6 +448,15 @@ def config_impedance(impedance):
     except ValueError:
         return ('Invalid impedance: `{}`! '.format(impedance) +
                 'Choose one from `True` | `False`')
+
+
+def config_fftfreq(fftfreq):
+    if fftfreq.isdigit() and 0 < int(fftfreq) < reader.sample_rate / 2:
+        pt.fft_range = int(fftfreq)
+    else:
+        return ('Invalid FFT frequency `{}`!' +
+                'Choose a positive number from [0-{}]'.format(
+                    fftfreq, reader.sample_rate / 2))
 
 
 def config_recorder(command):

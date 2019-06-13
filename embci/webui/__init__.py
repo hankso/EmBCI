@@ -136,7 +136,8 @@ def mount_subapps(applist=subapps):
             if appname in applist.name:
                 continue
             applist.append(AttributeDict(
-                name=appname, obj=None, loader='masked by embci.apps.__all__'
+                name=appname, obj=None, path='',
+                loader='masked by embci.apps.__all__'
             ))
         else:
             applist.append(AttributeDict(

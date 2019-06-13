@@ -65,7 +65,7 @@ function dataConfig(data) {
 }
 
 var btnCount = 0;
-var coefInterval = 0;
+var coefInterval;
 var coefBtns = [];
 
 function stateCoef(button) {
@@ -80,9 +80,8 @@ function stateCoef(button) {
         btnCount++;
     }
     if (btnCount == 0) {
-        clearInterval(coefInterval);
-        coefInterval = 0;
-    } else if (coefInterval == 0) {
+        coefInterval = clearInterval(coefInterval);
+    } else if (!coefInterval) {
         coefInterval = setInterval(dataCoef, 1200);
     }
 }
@@ -93,11 +92,11 @@ function dataCoef() {
         method: "GET",
         url: 'data/coef',
         dataType: 'json',
-        success: function (msg) {
+        success: function (list) {
             updateCoef({
-                t: msg.data[0],
-                s: msg.data[1],
-                m: msg.data[2],
+                t: list[0],
+                s: list[1],
+                m: list[2],
             });
         },
     });
@@ -146,11 +145,12 @@ function loopTask() {
         method: 'GET',
         url: 'data/freq',
         dataType: 'json',
-        success: function(msg) {
+        success: function(list) {
+            console.log(list);
             chart_pwr.setOption({
                 series: {
                     name: channel_pwr,
-                    data: msg.data
+                    data: list
                 }
             });
         }

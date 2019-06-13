@@ -13,7 +13,7 @@
 ifneq ($(shell whoami), root)
 $(error Run as root please)
 endif
-ifneq ($(shell uname -m), aarch64)
+ifeq ($(filter $(shell uname -m), arm aarch64),)
 $(warning This Makefile can only be used on embedded devices)
 endif
 
@@ -22,14 +22,14 @@ endif
 #
 ROOTDIR    := $(patsubst %/,%, $(dir $(abspath $(MAKEFILE_LIST))))
 TOOLDIR    := $(realpath $(ROOTDIR)/../../tools)
-ESPTOOL    := $(TOOLDIR)/esptool.py
-RESET_ESP  := $(TOOLDIR)/reset_esp.py
-BINDIR     := $(ROOTDIR)/firmware
+BINDIR     = $(ROOTDIR)/firmware
+ESPTOOL    = $(TOOLDIR)/esptool.py
+RESET_ESP  = $(TOOLDIR)/reset_esp.py
 
-# MONITOR    = screen -h 200
+# MONITOR    := screen -h 200
 MONITOR    := python -m serial.tools.miniterm --rts 0 --dtr 0 --raw
 
-FIRMWARE   := \
+FIRMWARE   = \
 	0x1000  $(BINDIR)/bootloader.bin \
 	0x8000  $(BINDIR)/default.bin \
     0xe000  $(BINDIR)/boot_app0.bin \
@@ -41,12 +41,13 @@ PORT       = /dev/ttyS2
 else
 PORT       = /dev/ttyS1
 endif
+BAUD       = 921600
 
 #################################################################################
 # flags
 #
 ESP_FALG   := --chip auto --before no_reset --after no_reset
-ESP_FLAG   += --port ${PORT} --baud 921600
+ESP_FLAG   += --port ${PORT} --baud $(BAUD)
 
 FLASH_FLAG := --compress --flash_freq 80m --flash_mode dio --flash_size detect
 

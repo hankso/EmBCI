@@ -923,6 +923,8 @@ def serialize(obj, method='dill'):
         return dill.dumps(obj)
     elif method == 'json':
         return MiscJsonEncoder().encode(obj)
+    elif method == 'minimize':
+        return MiscJsonEncoder(indent=None, separators=(',', ':')).encode(obj)
     else:
         raise ValueError('serialization method `%s` is not supported' % method)
 
@@ -930,7 +932,7 @@ def serialize(obj, method='dill'):
 def deserialize(string, method='dill'):
     if method == 'dill':
         return dill.loads(string)
-    elif method == 'json':
+    elif method in ['json', 'minimize']:
         return MiscJsonDecoder().decode(string)
     else:
         raise ValueError('serialization method `%s` is not supported' % method)
@@ -1364,7 +1366,7 @@ def mkuserdir(func, *a, **k):
 
 
 @verbose
-def virtual_serial(verbose=20, timeout=120):
+def virtual_serial(verbose=logging.INFO, timeout=120):
     '''
     Generate a pair of virtual serial port at /dev/pts/*.
     Super useful when debugging without a real UART device.
@@ -1400,7 +1402,7 @@ def virtual_serial(verbose=20, timeout=120):
     7
     >>> m.read_until()
     'hello?\\n'
-    >>> flag.set()
+    >>> flag[0].set()
     '''
     master1, slave1 = os.openpty()
     master2, slave2 = os.openpty()
@@ -1838,7 +1840,7 @@ def load_configs(*fns):
             for section in config.sections()}
 
 
-def get_config(key, default=None, section=None):
+def get_config(key, default=None, section=None, fn=None):
     '''
     Get configurations from environment variables or config files.
     EmBCI use `INI-Style <https://en.wikipedia.org/wiki/INI_file>`_
@@ -1860,7 +1862,7 @@ def get_config(key, default=None, section=None):
         return os.getenv(key)
     if key in dir(embci.configs):
         return getattr(embci.configs, key)
-    configs = load_configs()
+    configs = load_configs(fn) if fn else load_configs()
     if section is not None and key in configs.get(section, {}):
         return configs[section][key]
     for d in configs.values():

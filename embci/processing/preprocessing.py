@@ -121,11 +121,10 @@ class SignalInfo(object):
     @check_shape
     def skewness(self, X):
         '''
-        Skewness's definition from wiki:
-            In probability theory and statistics, skewness is a measure of the
-            asymmetry of the probability distribution of a real-valued random
-            variable about its mean. The skewness value can be positive or
-            negative, or undefined.
+        In probability theory and statistics, skewness is a measure of the
+        asymmetry of the probability distribution of a real-valued random
+        variable about its mean. The skewness value can be positive or
+        negative, or undefined.
 
         Returns
         -------
@@ -138,10 +137,9 @@ class SignalInfo(object):
     @check_shape
     def kurtosis(self, X):
         '''
-        Kurtosis's definition from wiki:
-            In probability theory and statistics, kurtosis is a measure of the
-            "tailedness" of the probability distribution of a real-valued
-            random variable.
+        In probability theory and statistics, kurtosis is a measure of the
+        "tailedness" of the probability distribution of a real-valued random
+        variable.
 
         Returns
         -------
@@ -156,8 +154,8 @@ class SignalInfo(object):
         '''
         Covariance shows the level of which two random variables vary together.
         Here it represent how much two channel time-series EEG data have
-        similar changing trend. This might be useful when to handle
-        Motion Imaginary EEG data where FP3 and FP4 series vary
+        similar changing trend. This might be useful when to handle Motion
+        Imaginary EEG data where channel FP3 and FP4 series vary together.
 
         Input shape:  X n_channel x window_size
         Output shape: C n_channel x n_channel
@@ -179,6 +177,7 @@ class SignalInfo(object):
     @check_shape
     def bandpass(self, X, low, high, order=5,
                  sample_rate=None, register=False):
+        '''Bandpass Butterworth IIR filter.'''
         nyq = float(sample_rate or self.sample_rate) / 2
         b, a = scipy.signal.butter(order, (low / nyq, high / nyq), 'band')
         if register:
@@ -190,7 +189,7 @@ class SignalInfo(object):
     def bandpass_realtime(self, x):
         '''
         sample_rate, b, a, and low/high param are all registed by calling
-        `SignalInfo.Bandpass_Filter(X, low, high, order, sample_rate)` and
+        `SignalInfo.bandpass(X, low, high, order, sample_rate)` and
         will be updated by recalling `Bandpass_Filter`
         '''
         assert self._b.get('band') is not None, 'call `bandpass` first!'
@@ -200,13 +199,13 @@ class SignalInfo(object):
         return x
 
     @check_shape
-    def notch(self, X, Hz=50, Q=10, sample_rate=None, register=False):
+    def notch(self, X, Hz=50, Q=100, sample_rate=None, register=False):
         '''
         Input shape:  n_channel x window_size
         Output shape: n_channel x window_size
         sample_rate: in Hz unit
         Q: Quality factor
-        Hz: target frequence to be notched
+        Hz: Target frequence to be notched
         '''
         nyq = float(sample_rate or self.sample_rate) / 2
         if register:

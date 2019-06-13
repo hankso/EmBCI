@@ -34,8 +34,8 @@ __keywords__ = (
 
 from . import io
 from . import viz
-from . import gyms
 from . import utils
+from . import configs
 from . import processing
 from .testing import test
 
@@ -45,5 +45,5 @@ except NameError:
     pass
 
 __all__ = (
-    'io', 'viz', 'gyms', 'utils', 'frame', 'classifier', 'processing', 'test'
+    'io', 'viz', 'utils', 'configs', 'processing', 'test'
 )

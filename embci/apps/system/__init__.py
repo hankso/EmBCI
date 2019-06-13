@@ -9,16 +9,18 @@
 '''System commands API'''
 
 import os
+import re
 import subprocess
 
 import bottle
 
 from embci.configs import BASEDIR
+from embci.utils.esp32_api import send_message_esp32
 
 
 @bottle.route('/')
 def system_index():
-    return 'You can reboot / shutdown the device. TODO: doc'
+    return 'You can reboot / shutdown the device. # TODO: doc'
 
 
 @bottle.route('/debug')
@@ -50,6 +52,16 @@ def system_update(*a, **k):
         if k.get('reboot', False):
             system_reboot()
         return 'Update success!\n' + output
+
+
+@bottle.route('/battery')
+def system_battery():
+    '''Example of ESP32 return value: `Battery level: 98%`'''
+    ret = send_message_esp32('battery')
+    level = re.findall(r'(\d+)%', ret)
+    if level:
+        return level[0]
+    bottle.abort(500, 'Can not read battery level')
 
 
 application = bottle.app()

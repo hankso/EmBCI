@@ -152,6 +152,10 @@ esp_console_cmd_t ads_input_source = {
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
         if (!arg_noerror(argc, argv, (void **) &input_source_args)) return 1;
+        int ch = -1;
+        if (input_source_args.channel->count) {
+            ch = input_source_args.channel->ival[0];
+        }
         if (input_source_args.source->count) {
             const char *carr = input_source_args.source->sval[0];
             char *end = NULL;
@@ -173,14 +177,10 @@ esp_console_cmd_t ads_input_source = {
                 ESP_LOGE(NAME, "Invalid ADS1299 data source: %s", carr);
                 return 1;
             }
-            if (input_source_args.channel->count) {
-                ads.setDataSource(input_source_args.channel->ival[0], source);
-            } else {
-                ads.setDataSource(source);
-            }
+            ads.setDataSource(ch, source);
         }
-        ESP_LOGI(NAME, "Current ADS1299 data source: %s",
-                 ads.getDataSource());
+        ESP_LOGI(NAME, "ADS1299 data source CH%d: %s",
+                 ch, ads.getDataSource(ch));
         return 0;
     },
     .argtable = &input_source_args
@@ -200,7 +200,7 @@ esp_console_cmd_t ads_bias_output = {
             ads.setBias(true);
             ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
         }
-        ESP_LOGI(NAME, "Current ADS1299 BIAS: %s",
+        ESP_LOGI(NAME, "ADS1299 BIAS: %s",
                  ads.getBias() ? "ON" : "OFF");
         return 0;
     },
@@ -224,8 +224,32 @@ esp_console_cmd_t ads_impedance = {
             ads.setImpedance(ch, true);
             ESP_LOGD(NAME, "IMPEDANCE ENABLED");
         }
-        ESP_LOGI(NAME, "Current ADS1299 IMPEDANCE: %s",
-                 ads.getImpedance(ch) ? "ON" : "OFF");
+        ESP_LOGI(NAME, "ADS1299 Impedance CH%d: %s",
+                 ch, ads.getImpedance(ch) ? "ON" : "OFF");
+        return 0;
+    },
+    .argtable = &bool_args
+};
+
+esp_console_cmd_t ads_channel = {
+    .command = "channel",
+    .help = "Enable/disable channel. Get channel status.",
+    .hint = NULL,
+    .func = [](int argc, char **argv) -> int {
+        if (!arg_noerror(argc, argv, (void **) &bool_args)) return 1;
+        int ch = -1; int ret = get_action_value(bool_args);
+        if (bool_args.channel->count) {
+            ch = bool_args.channel->ival[0];
+        }
+        if (ret == 0) {
+            ads.setChannel(ch, false);
+            ESP_LOGD(NAME, "CHANNEL DISABLED");
+        } else if (ret == 1) {
+            ads.setChannel(ch, true);
+            ESP_LOGD(NAME, "CHANNEL ENABLED");
+        }
+        ESP_LOGI(NAME, "ADS1299 CH%d: %s",
+                 ch, ads.getChannel(ch) ? "ON" : "OFF");
         return 0;
     },
     .argtable = &bool_args
@@ -536,6 +560,7 @@ void register_commands() {
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_input_source) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_bias_output) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_impedance) );
+    ESP_ERROR_CHECK( esp_console_cmd_register(&ads_channel) );
 
     ESP_ERROR_CHECK( esp_console_cmd_register(&spi_clear) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&spi_reset) );

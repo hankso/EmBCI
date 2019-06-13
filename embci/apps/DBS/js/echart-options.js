@@ -49,7 +49,7 @@ var option_raw = {
     yAxis: [{
         gridIndex: 0,
         type: 'value',
-        name: 'Voltage / V',
+        name: 'Channel',
         nameLocation: 'end',
         nameTextStyle: {
             padding: [0, 10, -5, 0],

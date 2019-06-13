@@ -191,4 +191,45 @@ class ESP32_API(ADS1299_API):
         self._measure_impedance = boolean
 
 
+# =============================================================================
+# ESP32 Communication
+#
+# WARNING! If you are not using this liberary inside EmBCI (On EmBCI-Board),
+#          this section is useless and can be deleted safely.
+#
+
+import serial
+from embci.utils import get_config, strtypes
+esp_serial = serial.Serial(
+    baudrate=int(get_config('BAUD_ESP32', 115200))
+)
+esp_serial.port = get_config('PORT_ESP32', '/dev/ttyS2')
+
+
+def send_message_esp32(cmd_or_args):
+    if not cmd_or_args:
+        return ''
+    if isinstance(cmd_or_args, (list, tuple)):
+        cmd = ' '.join([str(arg) for arg in cmd_or_args])
+    elif not isinstance(cmd_or_args, strtypes):
+        cmd = str(cmd_or_args)
+    else:
+        cmd = cmd_or_args
+    if not esp_serial.isOpen():
+        try:
+            esp_serial.open()
+            time.sleep(0.1)
+        except serial.SerialException:
+            return ''
+    esp_serial.flushInput()
+    esp_serial.flushOutput()
+    time.sleep(0.1)
+    esp_serial.write(cmd + '\n')
+    esp_serial.flush()
+    time.sleep(0.2)
+    ret = esp_serial.read_all()
+    esp_serial.close()
+    return ret
+
+
 # THE END
