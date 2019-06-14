@@ -154,7 +154,7 @@ class ESP32_API(ADS1299_API):
             print('[ESP32 API] choose one from supported rate!')
             print(' | '.join(list(SAMPLE_RATE.keys())))
             return
-        self.write_register(REG_SR, SAMPLE_RATE[rate])
+        self.write_register(REG_SR, 6 - SAMPLE_RATE[rate])
         self._sample_rate = rate
         return rate
 
@@ -169,7 +169,7 @@ class ESP32_API(ADS1299_API):
     def set_channel(self, ch, en=True):
         if ch < 0 or ch > 8:
             return False
-        self.write_register(REG_CH, 1 if en else 0)
+        self.write_registers(REG_CH, [ch, 1 if en else 0])
         return True
 
     @property

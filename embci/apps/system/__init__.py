@@ -25,18 +25,20 @@ def system_index():
 
 @bottle.route('/debug')
 def system_debug():
-    bottle.redirect('http://10.0.0.1:9999')
+    return 'Not implemented yet. # TODO: js terminal'
 
 
 @bottle.route('/shutdown')
 def system_shutdown():
-    os.system('$(sleep 2; shutdown -P now) &')
+    print('Executing command: shutdown -P now')
+    print('Result: {}'.format(os.system('$(sleep 2; shutdown -P now) &')))
     return 'Shutting down'
 
 
 @bottle.route('/reboot')
 def system_reboot():
-    os.system('$(sleep 2; shutdown -r now) &')
+    print('Executing command: shutdown -r now')
+    print('Result: {}'.format(os.system('$(sleep 2; shutdown -r now) &')))
     return 'Rebooting'
 
 

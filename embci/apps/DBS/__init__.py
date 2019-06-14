@@ -70,8 +70,8 @@ saved_data = {}
 #
 @dbs.route('/')
 def app_index():
-    data_stream_init()
-    data_stream_start()
+    app_reader_init()
+    app_reader_control('start')
     bottle.redirect('display.html')
 
 
@@ -176,6 +176,36 @@ def app_server_info():
     return {'messages': msg}
 
 
+@dbs.route('/reader/<method>')
+def app_reader_control(method):
+    if method == 'start':
+        if not reader.start():
+            return 'data stream already started'
+        time.sleep(1.5)
+        process_register(reader.data_frame)
+        return 'data stream started'
+    elif method in ['stop', 'pause', 'resume']:
+        getattr(reader, method)()
+        return 'data stream ' + reader.status
+    elif not hasattr(reader, method):
+        bottle.abort(400, 'Unknown method `{}`'.format(method))
+    func = getattr(reader, method)
+    if not callable(func):
+        bottle.abort(400, 'Cannot execute method `{}`'.format(method))
+    return str(func())
+
+
+def app_reader_init():
+    reader.start(method='process',
+                 args=('starts-with(source_id, "spi")'),
+                 kwargs={'type': 'Reader Outlet'})
+    time.sleep(1.5)
+    signalinfo.sample_rate = reader.sample_rate
+    recorder.start()
+    server.start()
+    process_register(reader.data_frame)
+
+
 @dbs.route('/<filename:path>')
 def app_static_files(filename):
     for rootdir in [__dir__, embci.webui.__dir__]:
@@ -191,14 +221,13 @@ def app_static_files(filename):
 def data_get_websocket():
     ws = bottle.request.environ.get('wsgi.websocket')
     if reader.status == 'closed':
-        data_stream_init()
+        app_reader_init()
     elif reader.status == 'paused':
-        data_stream_resume()
-    env = ws.environ
+        app_reader_control('resume')
     logger.debug(
         'websocket @ {REMOTE_ADDR}:{REMOTE_PORT} {REQUEST_METHOD} '
         '"{SERVER_NAME}:{SERVER_PORT}{PATH_INFO}" from {HTTP_USER_AGENT}'
-        .format(**env))
+        .format(**ws.environ))
     data_list = []
     try:
         while 1:
@@ -218,9 +247,9 @@ def data_get_websocket():
         logger.error(traceback.format_exc())
     finally:
         ws.close()
-        data_stream_pause()
+        app_reader_control('pause')
     logger.debug(
-        'websocket @ {REMOTE_ADDR}:{REMOTE_PORT} closed'.format(**env))
+        'websocket @ {REMOTE_ADDR}:{REMOTE_PORT} closed'.format(**ws.environ))
 
 
 @dbs.route('/data/freq')
@@ -236,7 +265,8 @@ def data_get_freq():
 
 @dbs.route('/data/coef')
 def data_get_coef(data=None):
-    return minimize(calc_coef(data or reader.data_frame[pt.channel_range.n]))
+    data = process_fullarray(data or reader.data_frame[pt.channel_range.n])
+    return minimize(calc_coef(data))
 
 
 @dbs.route('/data/status')
@@ -259,47 +289,6 @@ def data_get_status(pt=pt):
         ['ADS1299 Impedance', getattr(reader, 'measure_impedance', None)],
     ]
     return {'messages': msg}
-
-
-# =============================================================================
-# Stream control API
-#
-def data_stream_init():
-    reader.start(method='process',
-                 args=('starts-with(source_id, "spi")'),
-                 kwargs={'type': 'Reader Outlet'})
-    time.sleep(1.5)
-    signalinfo.sample_rate = reader.sample_rate
-    recorder.start()
-    server.start()
-    process_register(reader.data_frame)
-
-
-@dbs.route('/data/start')
-def data_stream_start():
-    if not reader.start():
-        return 'data stream already started'
-    time.sleep(1.5)
-    process_register(reader.data_frame)
-    return 'data stream started'
-
-
-@dbs.route('/data/stop')
-def data_stream_stop():
-    reader.close()
-    return 'data stream stoped'
-
-
-@dbs.route('/data/pause')
-def data_stream_pause():
-    reader.pause()
-    return 'data stream paused'
-
-
-@dbs.route('/data/resume')
-def data_stream_resume():
-    reader.resume()
-    return 'data stream resumed'
 
 
 # =============================================================================

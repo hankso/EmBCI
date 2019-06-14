@@ -67,10 +67,10 @@
         <div id="control">
             <form class="form-inline">
                 <div class="form-group notchtab">
-                    <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="5"> <span class="des">Hz -</span>
-                    <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="10"> <span class="des">Hz</span>
+                    <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="0"> <span class="des">Hz-</span>
+                    <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="0"> <span class="des">Hz</span>
                     <button type="button" class="btn btn-default" id="filter">带通滤波</button>
-                    <input type="checkbox" checked="checked" id="notch" class="form-control"><span class="des">陷波</span>
+                    <input type="checkbox" id="notch" class="form-control"><span class="des">陷波</span>
                     <span class="fa fa-search-plus zoom" id="bigger" onclick="dataScale('plus')"></span>
                     <span class="fa fa-search-minus zoom" id="smaller" onclick="dataScale('minus')"></span>
                     <button type="button" class="btn btn-default" started="false" id="start-stop-record">开始录制数据</button>
@@ -226,12 +226,15 @@
                 $(this).text('%');
             });
 
-            $('#submit').click(() => genReport({
-                username: $('#name').val(),
-                gender: $('#gender').val(),
-                age: $('#age').val(),
-                id: $('#id').val()
-            }));
+            $('#submit').click(function(e) {
+                e.preventDefault();
+                genReport({
+                    username: $('#name').val(),
+                    gender: $('#gender').val(),
+                    age: $('#age').val(),
+                    id: $('#id').val()
+                });
+            });
             
             $('#bt').click(() => stateCoef($('#bt').get(0)));
             $('#bs').click(() => stateCoef($('#bs').get(0)));
@@ -265,7 +268,7 @@
                     // First enable channel
                     dataChannel({channel: channel_pwr, action: true});
                 }
-                // then change to this channel
+                // Then change to this channel
                 dataChannel({channel: channel_pwr});
             });
             

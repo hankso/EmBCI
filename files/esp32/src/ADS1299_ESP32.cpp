@@ -91,7 +91,7 @@ bool ADS1299::setChannel(bool en) {
     sdatac();
     for (int ch = 0; ch < 8; ch++) {
         byte reg = rreg(ADS_CH1SET + ch);
-        wreg(ADS_CH1SET + ch, en ? (reg | 0x80) : (reg & 0x7F));
+        wreg(ADS_CH1SET + ch, en ? (reg & 0x7F) : (reg | 0x80));
     }
     rdatac();
     return true;
@@ -102,9 +102,22 @@ bool ADS1299::setChannel(int ch, bool en) {
     if (ch > 7) return false;
     sdatac();
     byte reg = rreg(ADS_CH1SET + ch);
-    wreg(ADS_CH1SET + ch, en ? (reg | 0x80) : (reg & 0x7F));
+    wreg(ADS_CH1SET + ch, en ? (reg & 0x7F) : (reg | 0x80));
     rdatac();
     return true;
+}
+
+uint8_t ADS1299::getChannel(int ch) {
+    if (ch > 7) return 0;
+    uint8_t state = 0;
+    sdatac();
+    for (uint8_t i = 0; i < 8; i++) {
+        if (rreg(ADS_CH1SET + i) & 0x80) continue;
+        state |= 1 << i;
+    }
+    rdatac();
+    if (ch < 0) return state;
+    return state & (1 << ch);
 }
 
 bool ADS1299::setDataSource(uint8_t src) {

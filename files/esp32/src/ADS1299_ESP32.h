@@ -119,10 +119,7 @@ class ADS1299 {
          */
         bool setChannel(bool en);
         bool setChannel(int ch, bool en);
-        bool getChannel(int ch = 0) {
-            if (ch < 0) ch = 0; // TODO: all channel
-            return (bool)(rreg(ADS_CH1SET + ch) & 0x80);
-        }
+        uint8_t getChannel(int ch = -1);
 
         /* 
          *  Set and get data source (test/temp/normal/...)

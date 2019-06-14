@@ -751,66 +751,78 @@ class LoopTaskMixin(object):
     MyClock: 1556458060.83
     '''
     def __init__(self):
-        '''only used for testing'''
-        self._flag_pause = threading.Event()
-        self._flag_close = threading.Event()
-        self._started = False
-        self._status = 'closed'
+        '''
+        A mixin class should not be used directly. This __init__ is only
+        for testing. If you need to subclass this Mixin and use your own
+        __init__, remember to call LoopTaskMixin.__init__(self) or config
+        the properties correctly.
+        '''
+        self.__flag_pause__ = threading.Event()
+        self.__flag_close__ = threading.Event()
+        self.__started__ = False
+        self.__status__ = 'closed'
 
     def start(self):
-        if self._started:
-            if self._status == 'paused' and self._flag_pause.is_set():
+        if self.__started__:
+            if self.status == 'paused' and self.__flag_pause__.is_set():
                 return self.resume()
             else:
                 return False
-        self._flag_pause.set()
-        self._flag_close.clear()
-        self._started = True
-        self._status = 'started'
+        self.__flag_pause__.set()
+        self.__flag_close__.clear()
+        self.__started__ = True
+        self.__status__ = 'started'
         self._start_time = time.time()
         return True
 
     def close(self):
-        if not self._started:
+        if not self.__started__:
             return False
-        self._flag_close.set()
-        self._flag_pause.clear()
+        self.__flag_close__.set()
+        self.__flag_pause__.clear()
         # you can restart this task now
-        self._started = False
-        self._status = 'closed'
+        self.__started__ = False
+        self.__status__ = 'closed'
         return True
 
     def restart(self):
-        if self._started:
+        if self.started:
             self.close()
         self.start()
         return True
 
     def pause(self):
-        if not self._started:
+        if not self.started:
             return False
-        self._flag_pause.clear()
-        self._status = 'paused'
+        self.__flag_pause__.clear()
+        self.__status__ = 'paused'
         return True
 
     def resume(self):
-        if not self._started:
+        if not self.started:
             return False
-        self._flag_pause.set()
-        self._status = 'resumed'
+        self.__flag_pause__.set()
+        self.__status__ = 'resumed'
         return True
 
     @property
     def status(self):
-        return self._status
+        '''status of the loopTask is read-only'''
+        return self.__status__
+
+    @property
+    def started(self):
+        return self.__started__
 
     def loop(self, func, args=(), kwargs={}, before=None, after=None):
         try:
             if before is not None:
                 before()
-            while not self._flag_close.is_set():
-                if self._flag_pause.wait(2):
+            while not self.__flag_close__.is_set():
+                if self.__flag_pause__.wait(2):
                     func(*args, **kwargs)
+        except KeyboardInterrupt:
+            pass
         except Exception:
             logger.error(traceback.format_exc())
         finally:
@@ -821,15 +833,19 @@ class LoopTaskMixin(object):
 
 class LoopTaskInThread(threading.Thread, LoopTaskMixin):
     def __init__(self, func=None, daemon=True, *a, **k):
-        threading.Thread.__init__(self, *a, **k)
-        self.setDaemon(daemon)
+        self.__tdaemon, self.__targs, self.__tkwargs = daemon, a, k
+        self.__init_thread__()  # you can call __init_thread__ to reinit
         self.__func = func
-        if getattr(func, 'func_name', None):
-            self.name = 'Loop Task on %s' % func.func_name
+        if getattr(self.__func, 'func_name', None):
+            self.name = 'Loop Task on %s' % self.__func.func_name
         LoopTaskMixin.__init__(self)
 
+    def __init_thread__(self):
+        threading.Thread.__init__(self, *self.__targs, **self.__tkwargs)
+        self.setDaemon(self.__tdaemon)
+
     def start(self):
-        if not self._started:
+        if not self.started:
             threading.Thread.start(self)
         return LoopTaskMixin.start(self)
 

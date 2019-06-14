@@ -146,7 +146,6 @@ function loopTask() {
         url: 'data/freq',
         dataType: 'json',
         success: function(list) {
-            console.log(list);
             chart_pwr.setOption({
                 series: {
                     name: channel_pwr,

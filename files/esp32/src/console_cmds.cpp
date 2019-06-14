@@ -46,46 +46,82 @@
  * Common
  */
 
-static struct arg_str *action = arg_str0(
-        NULL, NULL, "<on|off>", "action can also be <true|false>");
-static struct arg_int *channel = arg_int0(
-        "c", "channel", "<0-7>", "specify channel number, default all");
-
 /* The argtables of each sub-commands are defined as a struct, containing 
  * declaration of arguments. When an argtable is initialized by
  * `struct XXX_args_t xxx_args = { ... }`, arguments are defined, too.
  * In this way it's not necessary to make argument variables global because
  * they can be accessed by `xxx_args.yyy`
  */
-static struct bool_args_t {
+static struct arg_str *action = arg_str0(
+        NULL, NULL, "<on|off>", "action can also be <true|false>");
+static struct arg_int *channel = arg_int0(
+        "c", "channel", "<0-7>", "specify channel number, default all");
+
+
+// static struct action_args_t {
+//     struct arg_str *action;
+//     struct arg_end *end;
+// } bool_args = {
+//     .action = action,
+//     .end = arg_end(1)
+// };
+
+typedef struct {
     struct arg_str *action;
     struct arg_int *channel;
     struct arg_end *end;
-} bool_args = {
-    .action = action,
-    .channel = channel,
-    .end = arg_end(2)
-};
+} action_channel_args_t;
+
+action_channel_args_t
+    action_args = {
+        .action = action,
+        .channel = arg_int0(NULL, NULL, "", NULL),
+        .end = arg_end(1)
+    },
+    channel_args = {
+        .action = action,
+        .channel = channel,
+        .end = arg_end(2),
+    };
 
 /* @brief   Get action value of commands, same as `bool(str) -> 0|1|2`
  * @return
- *          - 0 : Turn off (false)
- *          - 1 : Turn on (true)
- *          - 2 : Invalid action or argument not specified
- * */
-static int get_action_value(struct bool_args_t argt) {
-    if (argt.action->count) {
-        const char *action = argt.action->sval[0];
-        if (!strcmp(action, "true") || !strcmp(action, "on")) {
+ *          - 0     : Turn off (false)
+ *          - 1     : Turn on (true)
+ *          - other : Invalid action or argument not specified
+ */
+static int get_action(action_channel_args_t argtable) {
+    if (argtable.action->count) {
+        String action = String(argtable.action->sval[0]);
+        if (action.equalsIgnoreCase("true") || 
+            action.equalsIgnoreCase("on")) {
             return 1;
-        } else if (!strcmp(action, "false") || !strcmp(action, "off")) {
+        } 
+        if (action.equalsIgnoreCase("false") ||
+            action.equalsIgnoreCase("off")) {
             return 0;
-        } else {
-            ESP_LOGE(NAME, "Invalid action: %s", action);
-            return 2;
         }
+        ESP_LOGE(NAME, "Invalid action: %s", action.c_str());
     }
-    return 2;
+    return -1;
+}
+
+/* @brief   Get channel value of commands, valid channel number is [0-7]
+ * @return
+ *          - -1  : invalid channel
+ *          - num : channel number
+ */
+// static int get_channel(void **argtable) {
+    // struct arg_hdr **table = (struct arg_hdr **) argtable;
+static int get_channel(action_channel_args_t argtable) {
+    if (argtable.channel->count) {
+        int channel = argtable.channel->ival[0];
+        if (-1 < channel && channel < 8) {
+            return channel;
+        }
+        ESP_LOGE(NAME, "Invalid channel: %d", channel);
+    }
+    return -1;
 }
 
 /* @brief   Parse command line arguments into argtable and catch any errors
@@ -152,35 +188,34 @@ esp_console_cmd_t ads_input_source = {
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
         if (!arg_noerror(argc, argv, (void **) &input_source_args)) return 1;
-        int ch = -1;
-        if (input_source_args.channel->count) {
-            ch = input_source_args.channel->ival[0];
-        }
+        int ch = input_source_args.channel->count ? (
+            input_source_args.channel->ival[0]
+        ) : -1;
+        if (ch > 7) { ch = -1; }
         if (input_source_args.source->count) {
-            const char *carr = input_source_args.source->sval[0];
-            char *end = NULL;
-            uint8_t source = strtol(carr, &end, 10);
-            if (end != (carr + sizeof(carr) - 1)) {
-                bool str_match = false;
-                for (uint8_t i = 0; i < 6; i++) {
-                    if (!strcmp(carr, ads1299_data_source[i])) {
-                        str_match = true;
-                        source = i; break;
-                    }
-                }
-                if (!str_match) {
-                    ESP_LOGE(NAME, "Invalid ADS1299 data source: %s", carr);
-                    return 1;
+            String str = String(input_source_args.source->sval[0]);
+            uint8_t source = str.toInt();
+            uint8_t length = 
+                sizeof(ads1299_data_source) / sizeof(ads1299_data_source[0]);
+            bool strtol = true;
+            if (source == 0 && !str.equals("0")) {
+                strtol = false;
+                for (uint8_t i = 0; i < length; i++) {
+                    if (!str.equalsIgnoreCase(ads1299_data_source[i])) continue;
+                    strtol = true; source = i; break;
                 }
             }
-            if (source > 6) {
-                ESP_LOGE(NAME, "Invalid ADS1299 data source: %s", carr);
+            if (!strtol) {
+                ESP_LOGE(NAME, "Invalid ADS1299 Source Name: %s", str.c_str());
+                return 1;
+            }
+            if (source > length) {
+                ESP_LOGE(NAME, "Invalid ADS1299 Source Index: %d", source);
                 return 1;
             }
             ads.setDataSource(ch, source);
         }
-        ESP_LOGI(NAME, "ADS1299 data source CH%d: %s",
-                 ch, ads.getDataSource(ch));
+        ESP_LOGI(NAME, "ADS1299 Source CH%d: %s", ch, ads.getDataSource(ch));
         return 0;
     },
     .argtable = &input_source_args
@@ -191,20 +226,19 @@ esp_console_cmd_t ads_bias_output = {
     .help = "Print or set ADS1299 BIAS output state",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
-        if (!arg_noerror(argc, argv, (void **) &bool_args)) return 1;
-        int ret = get_action_value(bool_args);
-        if (ret == 0) {
+        if (!arg_noerror(argc, argv, (void **) &action_args)) return 1;
+        int act = get_action(action_args);
+        if (act == 0) {
             ads.setBias(false);
             ESP_LOGD(NAME, "BIAS OUTPUT DISABLED");
-        } else if (ret == 1) {
+        } else if (act == 1) {
             ads.setBias(true);
             ESP_LOGD(NAME, "BIAS OUTPUT ENABLED");
         }
-        ESP_LOGI(NAME, "ADS1299 BIAS: %s",
-                 ads.getBias() ? "ON" : "OFF");
+        ESP_LOGI(NAME, "ADS1299 BIAS: %s", ads.getBias() ? "ON" : "OFF");
         return 0;
     },
-    .argtable = &bool_args
+    .argtable = &action_args
 };
 
 esp_console_cmd_t ads_impedance = {
@@ -212,15 +246,12 @@ esp_console_cmd_t ads_impedance = {
     .help = "Print or set ADS1299 impedance measurement",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
-        if (!arg_noerror(argc, argv, (void **) &bool_args)) return 1;
-        int ch = -1; int ret = get_action_value(bool_args);
-        if (bool_args.channel->count) {
-            ch = bool_args.channel->ival[0];
-        }
-        if (ret == 0) {
+        if (!arg_noerror(argc, argv, (void **) &channel_args)) return 1;
+        int ch = get_channel(channel_args), act = get_action(channel_args);
+        if (act == 0) {
             ads.setImpedance(ch, false);
             ESP_LOGD(NAME, "IMPEDANCE DISABLED");
-        } else if (ret == 1) {
+        } else if (act == 1) {
             ads.setImpedance(ch, true);
             ESP_LOGD(NAME, "IMPEDANCE ENABLED");
         }
@@ -228,7 +259,7 @@ esp_console_cmd_t ads_impedance = {
                  ch, ads.getImpedance(ch) ? "ON" : "OFF");
         return 0;
     },
-    .argtable = &bool_args
+    .argtable = &channel_args
 };
 
 esp_console_cmd_t ads_channel = {
@@ -236,23 +267,25 @@ esp_console_cmd_t ads_channel = {
     .help = "Enable/disable channel. Get channel status.",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
-        if (!arg_noerror(argc, argv, (void **) &bool_args)) return 1;
-        int ch = -1; int ret = get_action_value(bool_args);
-        if (bool_args.channel->count) {
-            ch = bool_args.channel->ival[0];
-        }
-        if (ret == 0) {
+        if (!arg_noerror(argc, argv, (void **) &channel_args)) return 1;
+        int ch = get_channel(channel_args), act = get_action(channel_args);
+        if (act == 0) {
             ads.setChannel(ch, false);
             ESP_LOGD(NAME, "CHANNEL DISABLED");
-        } else if (ret == 1) {
+        } else if (act == 1) {
             ads.setChannel(ch, true);
             ESP_LOGD(NAME, "CHANNEL ENABLED");
         }
-        ESP_LOGI(NAME, "ADS1299 CH%d: %s",
-                 ch, ads.getChannel(ch) ? "ON" : "OFF");
+        uint8_t chs = ads.getChannel(ch);
+        if (ch == -1) {
+            char tmp[8 + 1]; itoa(chs, tmp, 2);
+            ESP_LOGI(NAME, "ADS1299 All Channels: %s", tmp);
+        } else {
+            ESP_LOGI(NAME, "ADS1299 CH%d: %s", ch, chs ? "ON" : "OFF");
+        }
         return 0;
     },
-    .argtable = &bool_args
+    .argtable = &channel_args
 };
 
 /******************************************************************************
@@ -288,13 +321,15 @@ static struct {
     struct arg_int *source;
     struct arg_end *end;
 } output_args = {
-    .source = arg_int0("d", "data", "<0|1|2|3>", "specify data source"),
+    .source = arg_int0(
+            "d", "data", "<0|1|2|3>", "choose data source from one of "
+            "[ADS1299 Raw, ESP Square, ESP Sine, Const 1.0]"),
     .end = arg_end(1)
 };
 
 esp_console_cmd_t spi_output = {
     .command = "output",
-    .help = "Display or change esp output data source",
+    .help = "Display or change ESP output data source",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
         if (!arg_noerror(argc, argv, (void **) &output_args)) return 1;
@@ -306,8 +341,7 @@ esp_console_cmd_t spi_output = {
             }
             output_data = static_cast<spi_output_data>(source);
         }
-        ESP_LOGI(NAME, "Current output data: %s",
-                 output_data_list[output_data]);
+        ESP_LOGI(NAME, "Current output data: %s", output_data_list[output_data]);
         return 0;
     },
     .argtable = &output_args
@@ -338,13 +372,13 @@ esp_console_cmd_t wifi_direction = {
     .help = "Turn on/off serial-to-Wifi direction",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
-        if (!arg_noerror(argc, argv, (void **) &bool_args)) return 1;
-        int ret = get_action_value(bool_args);
-        wifi_echo = ret == 0 ? false : (ret == 1 ? true : wifi_echo);
+        if (!arg_noerror(argc, argv, (void **) &action_args)) return 1;
+        int act = get_action(action_args);
+        wifi_echo = act == 0 ? false : (act == 1 ? true : wifi_echo);
         ESP_LOGI(NAME, "Serial-to-wifi echo: %s", wifi_echo ? "ON" : "OFF");
         return 0;
     },
-    .argtable = &bool_args,
+    .argtable = &action_args,
 };
 
 /******************************************************************************
@@ -365,7 +399,7 @@ static struct {
     .wakeup_gpio_level = 
         arg_intn("l", "level", "<0|1>", 0, 8,
                  "GPIO level to trigger wakeup"),
-    .sleep = arg_str0(NULL, "method", "<light/deep>", "sleep method"),
+    .sleep = arg_str0(NULL, "method", "<light/deep>", "sleep mode"),
     .end = arg_end(4)
 };
 

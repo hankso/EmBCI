@@ -41,12 +41,12 @@ PORT       = /dev/ttyS2
 else
 PORT       = /dev/ttyS1
 endif
-BAUD       = 921600
+BAUD       = 500000
 
 #################################################################################
 # flags
 #
-ESP_FALG   := --chip auto --before no_reset --after no_reset
+ESP_FALG   := --chip auto --before default_reset --after hard_reset
 ESP_FLAG   += --port ${PORT} --baud $(BAUD)
 
 FLASH_FLAG := --compress --flash_freq 80m --flash_mode dio --flash_size detect
@@ -70,7 +70,7 @@ flash:
 	@$(RESET_ESP)               # reset esp to normal mode
 
 monitor:
-	@$(MONITOR) $(PORT) $(BAUD)
+	@$(MONITOR) $(PORT) 115200
 
 sleep:
 	@echo "not implemented yet"

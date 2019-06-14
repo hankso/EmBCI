@@ -134,7 +134,7 @@ void quiet() {
 void set_sample_rate(uint32_t rate_or_index) {
     uint32_t fs = 0;
     if (rate_or_index < 7) {
-        fs = sample_rate_list[6 - rate_or_index];
+        fs = sample_rate_list[rate_or_index];
     } else {
         for (uint8_t i = 0; i < 7; i++) {
             if (sample_rate_list[i] == rate_or_index) {
@@ -205,13 +205,13 @@ void summary() {
     ESP_LOGW(NAME, "ADS data header:  0b%s", tmp);
     ESP_LOGW(NAME, "ADS data source:  %s", ads.getDataSource());
     ESP_LOGW(NAME, "ADS sample rate:  %d Hz", ads.getSampleRate());
-    ESP_LOGW(NAME, "ADS BIAS|IMPED:   %s | %s", bias, imped);
+    ESP_LOGW(NAME, "ADS BIAS | IMPED: %s | %s", bias, imped);
     ESP_LOGW(NAME, "ESP valid packet: %d / %d Hz", v1, v0);
     ESP_LOGW(NAME, "ESP output data:  %s", output_data_list[output_data]);
     ESP_LOGW(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
     ESP_LOGW(NAME, "ESP log level:    %s", log_level_list[log_level]);
     ESP_LOGW(NAME, "Serial to wifi:   %s", wifi_echo ? "ON" : "OFF");
-    ESP_LOGW(NAME, "Battery level:    %2d%%", get_battery_level(5));
+    ESP_LOGW(NAME, "Battery level:    %d%%", get_battery_level(5));
 }
 
 #endif // ESP32_SANDBOX_H

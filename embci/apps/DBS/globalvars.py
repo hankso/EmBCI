@@ -28,12 +28,12 @@ del os
 # a container that can hold all parameters
 pt = param_tree = AttributeDict()
 
-pt.notch = rtnotch = True
+pt.notch = rtnotch = False
 pt.detrend = rtdetrend = True
-pt.bandpass = rtbandpass = AttributeDict({'low': 4, 'high': 10})
+pt.bandpass = rtbandpass = AttributeDict({})
 
 pt.batch_size = 50  # send 8x50 data as a chunk
 pt.fft_resolution = 4  # points/Hz
 pt.fft_range = 50  # 0-50Hz
-pt.scale_list = AttributeDict(a=tuple(pow(4, x) for x in range(-3, 10)), i=3)
+pt.scale_list = AttributeDict(a=tuple(pow(4, x) for x in range(-3, 10)), i=5)
 pt.channel_range = AttributeDict(r=(0, 8), n=0)

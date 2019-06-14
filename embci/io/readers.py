@@ -51,7 +51,7 @@ class ReaderIOMixin(object):
         if sample_time is not None and sample_time > 0:
             self.sample_time = sample_time
         self.window_size = int(self.sample_rate * self.sample_time)
-        if self._status in ['started', 'resumed']:
+        if self.status in ['started', 'resumed']:
             warnings.warn('Runtime sample rate changing is not suggested.')
             # TODO: change info and re-config self._data etc. at runtime.
             #  self.restart()
@@ -61,7 +61,7 @@ class ReaderIOMixin(object):
         self.num_channel = num_channel
         self.channels = ['ch%d' % i for i in range(1, num_channel + 1)]
         self.channels += ['time']
-        if self._status in ['started', 'resumed']:
+        if self.status in ['started', 'resumed']:
             warnings.warn('Runtime channel num changing is not suggested.')
             #  self.restart()
         return True
@@ -71,7 +71,7 @@ class ReaderIOMixin(object):
             alive = self._task.is_alive()
         else:
             alive = False
-        return self._started and self._flag_pause.is_set() and alive
+        return self.status not in ['closed', 'paused'] and alive
 
     @property
     def realtime_samplerate(self):
@@ -127,13 +127,13 @@ class ReaderIOMixin(object):
 
     def __repr__(self):
         if not hasattr(self, 'status'):
-            msg = 'not initialized - {}'.format(self.name[1:-1])
+            msg = 'not initialized - {}'.format(self.name.strip('[ ]'))
         else:
-            msg = '{} - {}'.format(self._status, self.name[1:-1])
+            msg = '{} - {}'.format(self.status, self.name.strip('[ ]'))
             msg += ': {}Hz'.format(self.sample_rate)
             msg += ', {}chs'.format(self.num_channel)
             msg += ', {}sec'.format(self.sample_time)
-            if self._started:
+            if self.status != 'closed':
                 msg += ', {}B'.format(self._data[:-1].nbytes)
         return '<{}, at {}>'.format(msg, hex(self.__hash__()))
 
@@ -173,15 +173,15 @@ class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatiableMixin):
         # These values may be accessed in another thread or process.
         # So make them multiprocessing.Value and serve as properties.
         for target, t, v in [
-            ('_index',       c_uint16,  0),
-            ('_status',      c_char_p,  b'closed'),
-            ('_started',     c_bool,    False),
-            ('_start_time',  c_float,   time.time()),
-            ('input_source', c_char_p,  b'None'),
-            ('sample_rate',  c_uint16,  250),
-            ('sample_time',  c_float,   2),
-            ('window_size',  c_uint16,  500),
-            ('num_channel',  c_uint8,   1)
+            ('_index',         c_uint16,  0),
+            ('_start_time',    c_float,   time.time()),
+            ('__status__',     c_char_p,  b'closed'),
+            ('__started__',    c_bool,    False),
+            ('input_source',   c_char_p,  b'None'),
+            ('sample_rate',    c_uint16,  250),
+            ('sample_time',    c_float,   2),
+            ('window_size',    c_uint16,  500),
+            ('num_channel',    c_uint8,   1)
         ]:
             source = '_mp_{}'.format(target)
             setattr(obj, source, mp.Value(t, v))
@@ -196,8 +196,8 @@ class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatiableMixin):
                 'property ' + target
             ))
         # stream control used flags
-        obj._flag_pause = mp.Event()
-        obj._flag_close = mp.Event()
+        obj.__flag_pause__ = mp.Event()
+        obj.__flag_close__ = mp.Event()
         return obj
 
     def start(self, method='process', *a, **k):
@@ -262,7 +262,7 @@ class FakeDataGenerator(BaseReader):
         self._send_to_pylsl = send_to_pylsl
 
     def start(self, *a, **k):
-        if self._started:
+        if self.started:
             self.resume()
             return
         if self._send_to_pylsl:
@@ -298,7 +298,7 @@ class FilesReader(BaseReader):
         self.input_source = self.filename = filename
 
     def start(self, *a, **k):
-        if self._started:
+        if self.started:
             self.resume()
             return
         # 1. try to open data file and load data into RAM
@@ -387,7 +387,7 @@ class PylslReader(BaseReader):
                   applications would only buffer as much as they need to
                   perform their next calculation. (default 360)
         '''
-        if self._started:
+        if self.started:
             self.resume()
             return
         # 1. find available streaming info and build an inlet
@@ -449,7 +449,7 @@ class SerialReader(BaseReader):
         self._send_to_pylsl = send_to_pylsl
 
     def start(self, port=None, baudrate=115200, *a, **k):
-        if self._started:
+        if self.started:
             self.resume()
             return
         # 1. find serial port and connect to it
@@ -544,7 +544,7 @@ class ADS1299SPIReader(BaseReader):
         rst = self._api.set_sample_rate(rate)
         if rst is not None:
             super(ADS1299SPIReader, self).set_sample_rate(rate, time)
-            if self._started:
+            if self.started:
                 logger.info('{} sample rate set to {}, you may want to '
                             'restart reader now.'.format(self.name, rst))
             return True
@@ -561,7 +561,7 @@ class ADS1299SPIReader(BaseReader):
         return False
 
     def start(self, device=None, *a, **k):
-        if self._started:
+        if self.started:
             self.resume()
             return
         # 1. find avalable spi devices
@@ -615,7 +615,7 @@ class SocketTCPReader(BaseReader):
         SocketTCPReader.__num__ += 1
 
     def start(self, *a, **k):
-        if self._started:
+        if self.started:
             self.resume()
             return
         # 1. IP addr and port are offered by user, connect to that host:port
