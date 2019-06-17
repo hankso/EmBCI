@@ -161,10 +161,15 @@ esp_console_cmd_t ads_sample_rate = {
     .func = [](int argc, char **argv) -> int {
         if (!arg_noerror(argc, argv, (void **) &sample_rate_args)) return 1;
         if (sample_rate_args.rate->count) {
-            set_sample_rate(sample_rate_args.rate->ival[0]);
+            uint16_t rate_or_idx = sample_rate_args.rate->ival[0];
+            if (rate_or_idx < 7) {
+                rate_or_idx = ads1299_sample_rate[6 - rate_or_idx];
+            }
+            if (!ads.setSampleRate(rate_or_idx)) {
+                ESP_LOGE(NAME, "Invalid sample rate: %d", rate_or_idx);
+            }
         }
-        ESP_LOGI(NAME, "Current ADS1299 sample rate: %d",
-                 ads.getSampleRate());
+        ESP_LOGI(NAME, "Current ADS1299 sample rate: %d", ads.getSampleRate());
         return 0;
     },
     .argtable = &sample_rate_args
@@ -182,7 +187,7 @@ static struct {
     .end = arg_end(2)
 };
 
-esp_console_cmd_t ads_input_source = {
+esp_console_cmd_t ads_source = {
     .command = "input_source",
     .help = "Print or set ADS1299 data source",
     .hint = NULL,
@@ -191,7 +196,10 @@ esp_console_cmd_t ads_input_source = {
         int ch = input_source_args.channel->count ? (
             input_source_args.channel->ival[0]
         ) : -1;
-        if (ch > 7) { ch = -1; }
+        if (ch > 7) {
+            ESP_LOGE(NAME, "Invalid channel: %d", ch);
+            return 1;
+        }
         if (input_source_args.source->count) {
             String str = String(input_source_args.source->sval[0]);
             uint8_t source = str.toInt();
@@ -209,19 +217,25 @@ esp_console_cmd_t ads_input_source = {
                 ESP_LOGE(NAME, "Invalid ADS1299 Source Name: %s", str.c_str());
                 return 1;
             }
-            if (source > length) {
+            if (source >= length) {
                 ESP_LOGE(NAME, "Invalid ADS1299 Source Index: %d", source);
                 return 1;
             }
             ads.setDataSource(ch, source);
         }
-        ESP_LOGI(NAME, "ADS1299 Source CH%d: %s", ch, ads.getDataSource(ch));
+        const char *src = ads.getDataSource(ch);
+        if (ch == -1) {
+            ESP_LOGI(NAME, "ADS1299 Sources: %s", src);
+            // TODO: List ADS1299 Sources
+        } else {
+            ESP_LOGI(NAME, "ADS1299 Source CH%d: %s", ch, src);
+        }
         return 0;
     },
     .argtable = &input_source_args
 };
 
-esp_console_cmd_t ads_bias_output = {
+esp_console_cmd_t ads_bias = {
     .command = "bias_output",
     .help = "Print or set ADS1299 BIAS output state",
     .hint = NULL,
@@ -255,8 +269,13 @@ esp_console_cmd_t ads_impedance = {
             ads.setImpedance(ch, true);
             ESP_LOGD(NAME, "IMPEDANCE ENABLED");
         }
-        ESP_LOGI(NAME, "ADS1299 Impedance CH%d: %s",
-                 ch, ads.getImpedance(ch) ? "ON" : "OFF");
+        uint8_t chs = ads.getChannel(ch);
+        if (ch == -1) {
+            char tmp[8 + 1]; itoa(chs, tmp, 2);
+            ESP_LOGI(NAME, "ADS1299 Impedance: 0b%s", tmp);
+        } else {
+            ESP_LOGI(NAME, "ADS1299 Impedance CH%d: %s", ch, chs ? "ON" : "OFF");
+        }
         return 0;
     },
     .argtable = &channel_args
@@ -279,7 +298,7 @@ esp_console_cmd_t ads_channel = {
         uint8_t chs = ads.getChannel(ch);
         if (ch == -1) {
             char tmp[8 + 1]; itoa(chs, tmp, 2);
-            ESP_LOGI(NAME, "ADS1299 All Channels: %s", tmp);
+            ESP_LOGI(NAME, "ADS1299 All Channels: 0b%s", tmp);
         } else {
             ESP_LOGI(NAME, "ADS1299 CH%d: %s", ch, chs ? "ON" : "OFF");
         }
@@ -309,7 +328,7 @@ esp_console_cmd_t spi_reset = {
     .help = "Reset ads1299 and read id register",
     .hint = NULL,
     .func = [](int argc, char **argv) -> int {
-        char tmp[24 + 1];
+        char tmp[8 + 1];
         itoa(ads.init(), tmp, 2);
         ESP_LOGI(NAME, "ADS first register value: 0b%s", tmp);
         return 0;
@@ -323,7 +342,7 @@ static struct {
 } output_args = {
     .source = arg_int0(
             "d", "data", "<0|1|2|3>", "choose data source from one of "
-            "[ADS1299 Raw, ESP Square, ESP Sine, Const 1.0]"),
+            "[ADS1299 Raw, ADS1299 Notch, ESP Square, ESP Sine]"),
     .end = arg_end(1)
 };
 
@@ -345,6 +364,30 @@ esp_console_cmd_t spi_output = {
         return 0;
     },
     .argtable = &output_args
+};
+
+static struct {
+    struct arg_int *freq;
+    struct arg_end *end;
+} sinfreq_args = {
+    .freq = arg_int0(
+            "f", "freq", "<int>", "center frequency of generated fake wave"),
+    .end = arg_end(1)
+};
+
+esp_console_cmd_t spi_sinfreq = {
+    .command = "sinfreq",
+    .help = "Set/get ESP Sinc fake data frequency",
+    .hint = NULL,
+    .func = [](int argc, char **argv) -> int {
+        if (!arg_noerror(argc, argv, (void **) &sinfreq_args)) return 1;
+        if (sinfreq_args.freq->count) {
+            sinc_freq = sinfreq_args.freq->ival[0];
+        }
+        ESP_LOGI(NAME, "Current center frequency: %d", sinc_freq);
+        return 0;
+    },
+    .argtable = &sinfreq_args
 };
 
 /******************************************************************************
@@ -591,14 +634,15 @@ esp_console_cmd_t utils_tasks = {
 
 void register_commands() {
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_sample_rate) );
-    ESP_ERROR_CHECK( esp_console_cmd_register(&ads_input_source) );
-    ESP_ERROR_CHECK( esp_console_cmd_register(&ads_bias_output) );
+    ESP_ERROR_CHECK( esp_console_cmd_register(&ads_source) );
+    ESP_ERROR_CHECK( esp_console_cmd_register(&ads_bias) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_impedance) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&ads_channel) );
 
     ESP_ERROR_CHECK( esp_console_cmd_register(&spi_clear) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&spi_reset) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&spi_output) );
+    ESP_ERROR_CHECK( esp_console_cmd_register(&spi_sinfreq) );
 
     ESP_ERROR_CHECK( esp_console_cmd_register(&wifi_connect) );
     ESP_ERROR_CHECK( esp_console_cmd_register(&wifi_disconnect) );

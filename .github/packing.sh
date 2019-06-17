@@ -50,12 +50,12 @@ rsync -av --del \
 #
 
 ${PYARMOR} build --force -O ${REPO_PATH} ${DIR}
-# ${PYARMOR} licenses -e 2020-01-01 ${LICENSE} -O ${DIR}
-# cp -v ${DIR}/licenses/${LICENSE}/license.lic ${REPO_PATH}/embci/
+${PYARMOR} licenses -e 2019-08-01 ${LICENSE} -O ${DIR}
+cp -v ${DIR}/licenses/${LICENSE}/license.lic ${REPO_PATH}/embci/
 cp -v ${DIR}/_pytransform_$(uname -m).so ${REPO_PATH}/embci/_pytransform.so
 find ${REPO_PATH}/embci -type f -name "*.pyc" -delete
 
-${GIT} add . && ${GIT} commit -m 'release tag'
+# ${GIT} add . && ${GIT} commit -m 'release tag'
 # ${GIT} push
 
 BRANCH=release

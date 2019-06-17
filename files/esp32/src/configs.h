@@ -32,7 +32,7 @@
 // FIFO data queue
 #define M_BUFFERSIZE     8192
 #define M_BUFFERSIZESPI  256
-#define bufftype float
+#define bufftype int32_t
 
 // Blink test pin
 #define PIN_BLINK        2

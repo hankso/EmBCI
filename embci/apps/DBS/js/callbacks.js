@@ -1,18 +1,20 @@
+function alertError(e) {
+    alert(e.responseText);
+}
+
 function dataFilter(low, high, notch) {
-    if (low == '' || high == '') {
-        alert('输入不能为空');
-        return;
+    var data = {};
+    if (low != undefined && high != undefined) {
+        data.low = parseFloat(low);
+        data.high = parseFloat(high);
     }
-    low = parseFloat(low).toFixed(1);
-    high = parseFloat(high).toFixed(1);
+    if (notch != undefined) {
+        data.notch = notch;
+    }
     $.ajax({
         method: 'GET',
         url: 'data/filter',
-        data: {
-            notch: notch,
-            low: low,
-            high: high
-        },
+        data: data
     })
 }
 
@@ -20,10 +22,20 @@ function dataScale(action) {
     $.ajax({
         method: 'GET',
         url: 'data/scale',
+        dataType: 'json',
         data: {
             scale: action
         },
-    })
+        success: function(obj) {
+            var scale = obj.a[obj.i];
+            if (parseFloat(scale) != NaN) {
+                $('#scale-text').text(scale + 'x');
+            } else {
+                $('#scale-text').text('E');
+                console.error('scale: ', scale);
+            }
+        }
+    });
 }
 
 function dataChannel(opt) {
@@ -34,33 +46,26 @@ function dataChannel(opt) {
     })
 }
 
+function dataConfig(data) {
+    $.ajax({
+        method: 'GET',
+        url: 'data/config',
+        data: data
+    })
+}
+
 function genReport(data) {
-    if (data.username == '' || 
-        data.gender == '请选择性别' || 
-        data.age == '' || 
-        data.age < 0 || 
-        data.id == '') {
-        alert('您填写的数据有误，请检查后重新提交');
-        return;
-    }
     $.ajax({
         method: 'GET',
         url: 'report',
         data: data,
         success: function() {
-            console.log('用户数据提交成功');
-            var btn = document.getElementById('submit');
-            btn.text = '查看报告';
-            btn.href = 'report.html';
+            $('#submit')
+                .text('查看报告')
+                .attr('href', 'report.html')
+                .off('click.generate');
         },
-    })
-}
-
-function dataConfig(data) {
-    $.ajax({
-        method: 'GET',
-        url: 'data/config',
-        data: data,
+        error: alertError
     })
 }
 
@@ -81,7 +86,7 @@ function stateCoef(button) {
     }
     if (btnCount == 0) {
         coefInterval = clearInterval(coefInterval);
-    } else if (!coefInterval) {
+    } else if (coefInterval == undefined) {
         coefInterval = setInterval(dataCoef, 1200);
     }
 }
@@ -121,6 +126,18 @@ function updateCoef(data) {
     }
 }
 
+function setRecordingUser(user) {
+    if (!user) {
+        $('#input-username').val('');
+    } else {
+        dataConfig({
+            recorder: 'username ' + user
+        });
+    }
+    $('#icon-user').addClass('fold');
+    setTimeout(checkRecordingUser, 1000);
+}
+
 function checkRecordingUser() {
     $.ajax({
         method: 'GET',
@@ -137,8 +154,7 @@ function checkRecordingUser() {
     });
 }
 
-var ws, chart_raw, chart_pwr, channel_pwr=0;
-var _interval;
+var channel_pwr = 0, loop_interval = 0;
 
 function loopTask() {
     $.ajax({
@@ -157,15 +173,18 @@ function loopTask() {
 }
 
 function echartPause(option) {
+    if (!option.toolbox) option.toolbox = {feature: {}};
+    if (!option.toolbox.feature.myLoopTask) option.toolbox.feature.myLoopTask = {};
     var f = option.toolbox.feature.myLoopTask;
     if (f.title == '开始') {
         f.icon = 'path://M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z';
         f.title = '暂停';
-        _interval = setInterval(loopTask, 1500);
+        loopTask();
+        loop_interval = setInterval(loopTask, 1500);
     } else {
         f.icon = 'path://M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z';
         f.title = '开始';
-        clearInterval(_interval);
+        clearInterval(loop_interval);
     }
 }
 

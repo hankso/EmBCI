@@ -33,12 +33,13 @@ byte ADS1299::init() {
     reset();
     sdatac();
     byte id = rreg(ADS_ID);
-    wreg(ADS_CONFIG2, 0xD0);
+    wreg(ADS_CONFIG2, 0xD5);
     wreg(ADS_CONFIG3, 0xE0);
     wreg(ADS_MISC1, 0x20);
     for (int ch = 0; ch < 8; ch++) {
         wreg(ADS_CH1SET + ch, 0x60);
     }
+    sampleRate = getSampleRate(); // update variable sampleRate
     start();
     rdatac();
     return id;
@@ -54,8 +55,6 @@ void ADS1299::begin() {
 void ADS1299::reset() {
     _spiSend(ADS_RESET);
     delay(1000);
-    _bias = false;
-    _fs = 250;
     for (int ch = 0; ch < 8; ch++) {
         _imped[ch] = false;
         _gain[ch] = 24;
@@ -63,7 +62,7 @@ void ADS1299::reset() {
     }
 }
 
-void ADS1299::readData(float res[]) {
+uint32_t ADS1299::readData(int32_t res[]) {
     byte tobesent[27];
     byte received[27];
     int32_t data[8];
@@ -78,13 +77,11 @@ void ADS1299::readData(float res[]) {
                 (received[5 + 3*i])
         );
     }
-    for(int i = 0; i < 8; i++) {
-        //res[i]=((float)data[i])*2.0*4.5/gain/16777216.0;
-        res[i]=*((float*)(data+i));
+    for (int i = 0; i < 8; i++) {
+        res[i] = *(data+i);
     }
-    statusBit = (received[0] << 16) | \
-                (received[1] << 8) | \
-                (received[2]);
+    statusBit = (received[0] << 16) | (received[1] << 8) | (received[2]);
+    return statusBit;
 }
 
 bool ADS1299::setChannel(bool en) {
@@ -147,9 +144,14 @@ bool ADS1299::setDataSource(int ch, uint8_t src) {
     return true;
 }
 
+const char* ADS1299::getDataSource(int ch) {
+    if (ch < 0) ch = 0; // TODO: all channel
+    return _source[ch];
+}
+
 bool ADS1299::setGain(uint8_t idx) {
     if (idx > 7) return false;
-    int idxAmp = gain_list[idx];
+    int idxAmp = ads1299_gain_list[idx];
     sdatac();
     for (uint8_t ch = 0; ch < 8; ch++) {
         if (_gain[ch] == idxAmp) continue;
@@ -164,7 +166,7 @@ bool ADS1299::setGain(uint8_t idx) {
 bool ADS1299::setGain(int ch, uint8_t idx) {
     if (ch < 0) return setGain(idx);
     if (ch > 7 || idx > 7) return false;
-    int idxAmp = gain_list[idx];
+    int idxAmp = ads1299_gain_list[idx];
     if (_gain[ch] == idxAmp) return true;
     _gain[ch] = idxAmp;
     sdatac();
@@ -172,6 +174,11 @@ bool ADS1299::setGain(int ch, uint8_t idx) {
     wreg(ADS_CH1SET + ch, (reg & ~0x70) | (idx << 4));
     rdatac();
     return true;
+}
+
+int ADS1299::getGain(int ch) {
+    if (ch < 0) ch = 0; // TODO: all channel
+    return _gain[ch];
 }
 
 bool ADS1299::setImpedance(bool en) {
@@ -201,49 +208,50 @@ bool ADS1299::setImpedance(int ch, bool en) {
     return true;
 }
 
-bool ADS1299::setBias(bool en) {
-    if (_bias == en) return true;
-    _bias = en;
+uint8_t ADS1299::getImpedance(int ch) {
+    if (ch > 7) return 0;
     sdatac();
+    uint8_t state = rreg(ADS_LOFF_SENSP);
+    rdatac();
+    if (ch < 0) return state;
+    return state & (1 << ch);
+}
+
+bool ADS1299::setBias(bool en) {
     wreg(ADS_BIAS_SENSP, en ? 0xFF : 0x00);
     wreg(ADS_BIAS_SENSN, en ? 0xFF : 0x00);
     wreg(ADS_CONFIG3,    en ? 0xEC : 0xE0);
+    return getBias() == en;
+}
+
+bool ADS1299::getBias() {
+    sdatac();
+    byte reg = rreg(ADS_CONFIG3) & 0x0C;
     rdatac();
-    return true;
+    return (bool)reg;
 }
 
 bool ADS1299::setSampleRate(uint16_t rate) {
-    byte lowbyte;
-    switch (rate) {
-    case 250:
-        lowbyte = 0x06;
-        break;
-    case 500:
-        lowbyte = 0x05;
-        break;
-    case 1000:
-        lowbyte = 0x04;
-        break;
-    case 2000:
-        lowbyte = 0x03;
-        break;
-    case 4000:
-        lowbyte = 0x02;
-        break;
-    case 8000:
-        lowbyte = 0x01;
-        break;
-    case 16000:
-        lowbyte = 0x00;
-        break;
-    default:
-        return false;
+    byte lowbyte = 255;
+    for (int i = 0; i < 7; i++) {
+        if (ads1299_sample_rate[i] == rate) {
+            lowbyte = i; break;
+        }
     }
-    _fs = rate;
+    if (lowbyte > 7) return false;
     sdatac();
-    wreg(ADS_CONFIG1, 0x90 | lowbyte);
+    byte reg = rreg(ADS_CONFIG1) & ~0x07;
+    wreg(ADS_CONFIG1, reg | lowbyte);
     rdatac();
-    return true;
+    return getSampleRate() == rate;
+}
+
+uint16_t ADS1299::getSampleRate() {
+    sdatac();
+    byte reg = rreg(ADS_CONFIG1) & 0x07;
+    rdatac();
+    sampleRate = reg < 7 ? ads1299_sample_rate[reg] : 0;
+    return sampleRate;
 }
 
 /******************************************************************
@@ -258,10 +266,30 @@ byte ADS1299::rreg(byte addr) {
     return received[2];
 }
 
+void ADS1299::rregs(byte addr, uint8_t num, byte received[]) {
+    byte tobesent[2 + num];
+    tobesent[0] = ADS_RREG | addr;
+    tobesent[1] = num - 1;
+    _spiSend(tobesent, 2 + num, received);
+}
+
 void ADS1299::wreg(byte addr, byte data) {
+    // byte array[] = {data};
+    // wregs(addr, 1, array);
     byte tobesent[3] = {0x00, 0x00, 0x00};
     byte received[3];
     tobesent[0] = ADS_WREG | addr;
     tobesent[2] = data;
     _spiSend(tobesent, 3, received);
+}
+
+void ADS1299::wregs(byte addr, uint8_t num, byte data[]) {
+    byte tobesent[2 + num];
+    tobesent[0] = ADS_WREG | addr;
+    tobesent[1] = num - 1;
+    for (int i = 0; i < num; i++) {
+        tobesent[2 + i] = data[i];
     }
+    byte received[2 + num];
+    _spiSend(tobesent, 2 + num, received);
+}

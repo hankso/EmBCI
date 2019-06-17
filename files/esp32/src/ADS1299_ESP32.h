@@ -71,18 +71,28 @@
 #define ADS_MISC2       0x16
 
 const char* const ads1299_data_source[] = {
-    "Normal", "BIAS", "Shorted", "MVDD", "Temprature", "Test",
+    "Normal",
+    "Shorted",
+    "BIAS_MEA",
+    "MVDD",
+    "Temp",
+    "Test",
+    "BIAS_DRP",
+    "BIAS_DRN"
 };
 
-const int gain_list[] = {
+const int ads1299_gain_list[] = {
     1, 2, 4, 6, 8, 12, 24, 0,
+};
+
+const int ads1299_sample_rate[] = {
+    // 250, 500, 1000, 2000, 4000, 8000, 16000, // DO NOT USE 0b111 (0SPS)
+    16000, 8000, 4000, 2000, 1000, 500, 250, // DO NOT USE 0b111 (0SPS)
 };
 
 
 class ADS1299 {
     public:
-        uint32_t statusBit = 0;
-
         //initialization with spi type
         ADS1299(int spitype, int sspin) {
             _spi = new SPIClass(spitype);
@@ -97,10 +107,13 @@ class ADS1299 {
 
         ~ADS1299() {}
 
+        uint32_t statusBit = 0;
+        uint16_t sampleRate = 250;
+
         byte init();
         void begin();
         void reset();
-        void readData(float res[]);
+        uint32_t readData(int32_t res[]);
 
         void wakeup()   { _spiSend(ADS_WAKEUP);  delay(10); }
         void standby()  { _spiSend(ADS_STANDBY); delay(1); }
@@ -126,42 +139,37 @@ class ADS1299 {
          */
         bool setDataSource(uint8_t src);
         bool setDataSource(int ch, uint8_t src);
-        const char* getDataSource(int ch = 0) {
-            if (ch < 0) ch = 0; // TODO: all channel
-            return _source[ch];
-        }
+        const char* getDataSource(int ch = 0);
 
         /* 
          *  Set and get gain (default 24x)
          */
         bool setGain(uint8_t idx);
         bool setGain(int ch, uint8_t idx);
-        int getGain(int ch = 0) {
-            if (ch < 0) ch = 0; // TODO: all channel
-            return _gain[ch];
-        }
+        int getGain(int ch = 0);
 
         /* 
          *  Enable or disable impedance measurement
          */
         bool setImpedance(bool en);
         bool setImpedance(int ch, bool en);
-        bool getImpedance(int ch = 0) {
-            if (ch < 0) ch = 0; // TODO: all channel
-            return _imped[ch];
-        }
+        uint8_t getImpedance(int ch = 0);
 
         /* 
          *  Enable or disable BIAS output
          */
         bool setBias(bool en);
-        bool getBias() { return _bias; }
+        bool getBias();
+        bool getBiasConnected() {
+            return !(rreg(ADS_CONFIG3) & 0x01);
+        }
+
 
         /* 
          *  Enable or disable ADS1299 sample rate
          */
         bool setSampleRate(uint16_t rate);
-        int getSampleRate() { return _fs; }
+        uint16_t getSampleRate();
 
     private:
         SPIClass* _spi = NULL;
@@ -172,7 +180,9 @@ class ADS1299 {
         const char * _source[8];
 
         byte rreg(byte addr);
+        void rregs(byte addr, uint8_t num, byte received[]);
         void wreg(byte addr, byte data);
+        void wregs(byte addr, uint8_t num, byte data[]);
 
         inline byte _spiSend(const byte dat) {
             byte recv;
