@@ -23,10 +23,6 @@
     right: 10%;
 }
 
-.btn {
-    border-color: #E3E3E3;
-}
-
 .recorder {
     position: fixed;
     right: 3%;
@@ -116,53 +112,6 @@
     padding: 0;
 }
 
-#filter-low, #filter-high {
-    max-width: 60px;
-}
-
-#filter-bandpass {
-/*    float: left;*/
-    line-height: 16px;
-    font-size: 15px;
-    height: 30px;
-}
-
-#filter-notch {
-    float: left;
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
-    line-height: 20px;
-    display: inline-block;
-    margin-left: 10px;
-    margin-top: 6px;
-}
-
-#scale {
-    margin: 0 5px;
-}
-
-#scale button {
-    margin: auto 3px;
-    padding: 0;
-    height: 25px;
-    width: 25px;
-    border-radius: 50%;
-}
-
-#scale span {
-    color: skyblue;
-    line-height: 24px;
-    font-size: 23px;
-}
-
-#start-stop-record {
-    float: left;
-    height: 30px;
-    font-size: 15px;
-    line-height: 16px;
-}
-
 .chart {
     margin: 20px auto;
     width: 95%;
@@ -207,56 +156,18 @@
     width: 36px;
 }
 
-.tab li {
-    width: 12.5%;
-    font-weight: bold;
-}
-
-.tab a {
-    font-size: 16px;
-    color: #02b2b5;
-    /* padding: 5px 1px !important; */
-    padding: 5px 1px;
-}
-
 @media screen and (min-width: 768px) {
     .plane {
-        max-width: 768px;
-    }
-
-    .tab li {
-        width: 96px;
-        font-weight: bold;
-    }
-
-    .tab a {
-        font-size: 18px;
-        color: #02b2b5;
+        width: 65%;
     }
 
     .digital {
         width: 18%;
         margin: 0 3%;
-        font-size: 18px;
-    }
-
-    .ttop {
-        margin-top: 15px;
     }
 
     .tleft {
         width: 36px;
         margin: 0;
-    }
-
-    .notchtab {
-        height: 40px;
-        line-height: 30px;
-        width: 768px;
-    }
-
-    #filter-notch {
-        float: left;
-        margin-left: 30px;
     }
 }

@@ -1,3 +1,7 @@
+function alertError(e) {
+    alert(e.responseText);
+}
+
 function dataFilter(low, high, notch) {
     var data = {};
     if (low != undefined && high != undefined) {
@@ -15,13 +19,19 @@ function dataFilter(low, high, notch) {
 }
 
 function dataScale(action) {
+    var scale = '';
     $.ajax({
         method: 'GET',
         url: 'data/scale',
+        dataType: 'json',
         data: {
             scale: action
         },
-    })
+        success: function(obj) {
+            scale = obj.a[obj.i];
+        }
+    });
+    return parseFloat(scale);
 }
 
 function dataChannel(opt) {
@@ -41,25 +51,17 @@ function dataConfig(data) {
 }
 
 function genReport(data) {
-    if (data.username == '' || 
-        data.gender == '请选择性别' || 
-        data.age == '' || 
-        data.age < 0 || 
-        data.id == '') {
-        alert('您填写的数据有误，请检查后重新提交');
-        return;
-    }
+    var success = false;
     $.ajax({
         method: 'GET',
         url: 'report',
         data: data,
         success: function() {
-            console.log('用户数据提交成功');
-            var btn = document.getElementById('submit');
-            btn.text = '查看报告';
-            btn.href = 'report.html';
+            success = true;
         },
+        error: alertError
     })
+    return success;
 }
 
 var btnCount = 0;
@@ -172,6 +174,7 @@ function echartPause(option) {
     if (f.title == '开始') {
         f.icon = 'path://M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z';
         f.title = '暂停';
+        loopTask();
         loop_interval = setInterval(loopTask, 1500);
     } else {
         f.icon = 'path://M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z';

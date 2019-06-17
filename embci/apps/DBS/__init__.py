@@ -49,8 +49,8 @@ HELP = '''
     - [x] realtime data status
     - [x] parameters setting
 - update
-    - [x] connect to WiFi/proxy/git-server
-    - [x] software updating
+    - [ ] connect to WiFi/proxy/git-server
+    - [ ] software updating
 '''
 
 __status__ = os.path.join(__dir__, 'status.html')
@@ -301,23 +301,24 @@ def data_get_status(pt=pt):
 @dbs.route('/data/scale')
 def data_config_scale():
     scale = bottle.request.query.get('scale')
-    if scale is None:
-        return pt.scale_list.copy(dict)
     length = len(pt.scale_list.a)
-    if scale.isdigit():
-        scale = int(scale)
-        if scale in range(length):
+    if scale is None:
+        pass
+    elif scale.isdigit():
+        if int(scale) in range(length):
             pt.scale_list.i = int(scale)
-            return
-        bottle.abort(400, 'Invalid scale `{}`! Set scale within [{}, {})'
-                          .format(scale, 0, length))
+        else:
+            bottle.abort(400, 'Invalid scale `{}`! Set scale within [{}, {})'
+                         .format(scale, 0, length))
     elif scale.lower() == 'minus':
         pt.scale_list.i = (pt.scale_list.i - 1) % length
     elif scale.lower() == 'plus':
         pt.scale_list.i = (pt.scale_list.i + 1) % length
     else:
-        bottle.abort(400, 'Invalid operation `{}`! '
-                          'Choose one from `minus` | `plus`'.format(scale))
+        bottle.abort(400, 'Invalid operation `{}`! Must be number within '
+                          '[{}, {}) or one of `minus` | `plus`'
+                          .format(scale, 0, length))
+    return pt.scale_list.copy(dict)
 
 
 @dbs.route('/data/channel')
@@ -327,12 +328,13 @@ def data_config_channel():
     if action != '' and channel is not None:
         return send_message_streaming(['set_channel', channel, action])
     if channel is None:
-        return pt.channel_range.copy(dict)
-    if channel.isdigit() and int(channel) in range(*pt.channel_range.r):
+        pass
+    elif channel.isdigit() and int(channel) in range(*pt.channel_range.r):
         pt.channel_range.n = int(channel)
     else:
         bottle.abort(400, 'Invalid channel `{}`! Must be int within [{}, {})'
                           .format(channel, *pt.channel_range.r))
+    return pt.channel_range.copy(dict)
 
 
 @dbs.route('/data/filter')

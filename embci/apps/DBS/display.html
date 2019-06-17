@@ -36,50 +36,68 @@
     
     <div class="plane">
         <div style="margin:20px">
-            <form class="form-row">
+            <form class="form-row" id="user-info">
                 <div class="form-group col-3">
-                    <label for="name">姓名</label>
-                    <input class="form-control" type="text" placeholder="请输入姓名" id="name">
+                    <label class="sr-only" for="user-name">姓名</label>
+                    <input class="form-control" type="text" placeholder="Username" id="user-name">
                 </div>
                 <div class="form-group col-3">
-                    <label for="gender">性别</label>
-                    <select class="form-control" id="gender">
-                        <option style="display: none">请选择性别</option>
+                    <label class="sr-only" for="user-gender">性别</label>
+                    <select class="form-control" id="user-gender">
+                        <option style="display: none">Gender</option>
                         <option>男</option>
                         <option>女</option>
                     </select>
                 </div>
                 <div class="form-group col-3">
-                    <label for="age">年龄</label>
-                    <input class="form-control" type="number" placeholder="请输入年龄" min="0" id="age">
+                    <label class="sr-only" for="user-age">年龄</label>
+                    <input class="form-control" type="number" placeholder="Age" min="0" id="user-age">
                 </div>
                 <div class="form-group col-3">
-                    <label for="id">ID</label>
-                    <input class="form-control" type="text" placeholder="请输入ID" id="id">
+                    <label class="sr-only" for="user-id">ID</label>
+                    <input class="form-control" type="text" placeholder="e.g. 123456" id="user-id">
                 </div>
             </form>
             <form class="form-inline form-row">
-                <div class="form-group col-6">
-                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-low">
-                    <span class="form-text">Hz</span>
-                    <span class="form-text">--</span>
-                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-high">
-                    <span class="form-text">Hz</span>
-                    <button class="btn btn-default" type="button" id="filter-bandpass" style="margin:10px">带通滤波</button>
+                <div class="input-group col-auto">
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-low" style="max-width:70px">
+                    <div class="input-group-append">
+                        <span class="input-group-text">Hz</span>
+                        <button class="btn btn-outline-info" type="button" disabled hidden>to</button>
+                    </div>
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-high" style="max-width:70px">
+                    <div class="input-group-append">
+                        <span class="input-group-text">Hz</span>
+                        <button class="btn btn-outline-primary" type="button" id="filter-bandpass">带通滤波</button>
+                    </div>
                 </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="checkbox" id="filter-notch">
-                    <label class="form-check-label" for="filter-notch">陷波</label>
+                <div class="input-group col-auto">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="filter-notch">
+                        </div>
+                    </div>
+                    <select class="form-control">
+                        <option value="50" selected>50Hz</option>
+                        <option value="60">60Hz</option>
+                    </select>
+                    <div class="input-group-append">
+                        <label class="input-group-text" for="filter-notch">陷波</label>
+                    </div>
                 </div>
-                <div id="scale">
-                    <button type="button" class="btn">
-                        <span class="fas fa-plus-circle" onclick="dataScale('plus')"></span>
-                    </button>
-                    <button type="button" class="btn">
-                        <span class="fas fa-minus-circle" onclick="dataScale('minus')"></span>
-                    </button>
+                <div class="input-group col-auto" id="scale">
+                    <div class="input-group-prepend">
+                        <button type="button" class="btn btn-outline-primary fas fa-plus-circle" data-action="plus"></button>
+                    </div>
+                    <span class="input-group-text" id="scale-text">缩放</span>
+                    <select class="form-control" hidden>
+                        <option value="0">0x</option>
+                    </select>
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-primary fas fa-minus-circle" data-action="minus"></button>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-default" id="start-stop-record" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">开始录制数据</button>
+                <button type="button" class="btn btn-outline-secondary col-auto" id="start-stop-record" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">开始录制数据</button>
             </form>
         </div>
         <div class="chart" id="chart-raw"></div>
@@ -112,9 +130,9 @@
                 </li>
                 <li>
                     <div class="digital term tleft invisible"></div>
-                    <button class="btn btn-primary digital col1" id="save-before" onclick="dataConfig({save: 'before'})">保存</button>
-                    <button class="btn btn-info digital col2" id="save-after" onclick="dataConfig({save: 'after'})">保存</button>
-                    <a href="#" class="btn btn-success digital col3" id="submit">生成报告</a>
+                    <button class="btn btn-primary digital" id="save-before" onclick="dataConfig({save: 'before'})">保存</button>
+                    <button class="btn btn-info digital" id="save-after" onclick="dataConfig({save: 'after'})">保存</button>
+                    <a href="#" class="btn btn-success digital" id="submit">生成报告</a>
                 </li>
             </ul>
         </div>
@@ -204,6 +222,11 @@
                     this.checked
                 );
             });
+            
+            $('#scale').on('click', 'button[data-action]', function() {
+                var scale = dataScale($(this).data('action'));
+                $('#scale-text').text(scale ? (scale + 'x') : 'E');
+            });
 
             $('#start-stop-record').click(function() {
                 if ($(this).prop('started')) {
@@ -236,14 +259,31 @@
                 $(this).text('%');
             });
 
-            $('#submit').click(function(e) {
+            $('#submit').on('click.generate', function(e) {
                 e.preventDefault();
-                genReport({
-                    username: $('#name').val(),
-                    gender: $('#gender').val(),
-                    age: $('#age').val(),
-                    id: $('#id').val()
-                });
+                var data = {
+                    username: $('#user-name').val(),
+                    gender: $('#user-gender').val(),
+                    age: $('#user-age').val(),
+                    id: $('#user-id').val()
+                };
+                if (data.username == '' || data.gender == '请选择性别' || 
+                    data.age == '' || data.age < 0 || data.id == '') {
+                    alert('您填写的数据有误，请检查后重新提交');
+                    $('html, body').animate({
+                        scrollTop: $('#user-info').offset().top
+                    }, 200);
+                    setTimeout(function() {
+                        $('#user-info')
+                            .animate({opacity: 0}, 500)
+                            .animate({opacity: 1}, 500)
+                    }, 200);
+                    return;
+                }
+                if (genReport(data) != true) return;
+                this.text = '查看报告';
+                this.href = 'report.html';
+                $(this).off('click.generate');
             });
             
             chart_raw = echarts.init(
