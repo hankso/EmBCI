@@ -30,15 +30,25 @@ def system_debug():
 
 @bottle.route('/shutdown')
 def system_shutdown():
-    print('Executing command: shutdown -P now')
-    print('Result: {}'.format(os.system('$(sleep 2; shutdown -P now) &')))
+    try:
+        ret = os.system('/bin/bash -c "sleep 2; shutdown -P now" &')
+    except Exception as e:
+        return 'Cannot shutdown: ' + str(e)
+    else:
+        if ret != 0:
+            return 'Cannot shutdown'
     return 'Shutting down'
 
 
 @bottle.route('/reboot')
 def system_reboot():
-    print('Executing command: shutdown -r now')
-    print('Result: {}'.format(os.system('$(sleep 2; shutdown -r now) &')))
+    try:
+        ret = os.system('/bin/bash -c "sleep 2; shutdown -r now" &')
+    except Exception as e:
+        return 'Cannot reboot: ' + str(e)
+    else:
+        if ret != 0:
+            return 'Cannot reboot'
     return 'Rebooting'
 
 

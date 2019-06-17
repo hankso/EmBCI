@@ -8,26 +8,21 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
     <link rel="stylesheet" href="/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/font-awesome.min.css" />
-    <link rel="stylesheet" href="/css/index.css" />
+    <link rel="stylesheet" href="/css/fontawesome.min.css" />
     <link rel="stylesheet" href="theme.css" />
-    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/sniploader.js"></script>
     <script src="utils.js"></script>
 </head>
 
 <body>
-    <div class="top">
-        <img src="/images/logo.png" alt="logo" id="logo" align="middle">
-        <div class="top-bar">
-            <h1>Embedded BCI</h1>
-        </div>
-    </div>
+    <div data-include="navbar.html"></div>
 
-    <div class="console" style="text-align:center">
+    <div class="console">
         <div class="title">
-            <h3>WiFi</h3>
-            <button class="btn btn-default" id="btn-refresh" onclick="refresh()"><img src="images/refresh.png" height="24px"></button>
+            <h3>WiFi List</h3>
+            <button class="btn btn-default" id="btn-refresh"><span class="fas fa-sync"></span></button>
             <input type="checkbox" id="wifi-switch-checkbox" onclick="switch_wifi(this)" hidden checked>
             <label id="wifi-switch-circle" for="wifi-switch-checkbox">
                 <span id="wifi-switch-dot"></span>
@@ -53,12 +48,12 @@
         </ul>
         <a class="btn btn-default" href="/index.html" id="back-to-index" style="margin:10px">回到主页</a>
     </div>
-    
+
     <div class="mask" style="display:none">
         <ul style="margin:0">
             <li id="wifi-info">
                 <h3 id="mask-ssid">ESSID</h3>
-                <span class="fa fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#wifi-info-sub"></span>
+                <span class="fas fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#wifi-info-sub"></span>
                 <ul class="collapse" id="wifi-info-sub">
                     <li>
                         <h3 class="info-attr">Attr</h3>
@@ -75,7 +70,7 @@
             </li>
             <li id="save-modify">
                 <h3 id="save-or-modify">S/M password</h3>
-                <span class="fa fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#psk-form-sub"></span>
+                <span class="fas fa-caret-down" onclick="$(this).toggleClass('fa-rotate-180')" style="cursor:pointer" data-toggle="collapse" data-target="#psk-form-sub"></span>
                 <form class="collapse" id="psk-form-sub">
                     <div class="form-group">
                         <label for="input-user">Username</label>
@@ -84,7 +79,7 @@
                     <div class="form-group">
                         <label for="input-psk">Password</label>
                         <input type="password" name="psk" class="form-control" id="input-psk">
-                        <span class="fa fa-eye-slash" id="input-psk-icon"></span>
+                        <span class="fas fa-eye-slash" id="input-psk-icon"></span>
                     </div>
                     <button type="button" class="btn btn-default" style="float:left" id="btn-back" onclick="$('.mask').hide()">返回</button>
                     <button type="button" class="btn btn-default" style="float:right" id="btn-connect">确认</button>
@@ -92,19 +87,14 @@
             </li>
         </ul>
     </div>
-        
 
-    <div class="bottom">
-        <span class="fa fa-user"></span>
-        <span class="fa fa-cloud-upload" style="cursor:pointer" id="upgrade"></span>
-        &copy; 2018-2019 <a href="https://github.com/hankso/EmBCI">EmBCI</a> 版权所有
-    </div>
+    <div data-include="bottom.html"></div>
 
     <script>
         $(function() {
             $('#wifi-container').on('click', 'button.ap', function() {
                 var ssid = this.id.slice(3);
-                //var ssid = $(this).children('span.ssid').text();
+                //var ssid = $(this).find('span.ssid').text();
                 var ap = get_ap_by_ssid(ssid);
                 if (!ap) return;
                 if (ap.status == 'Connected' || (ap.encrypted && !ap.saved)) {
@@ -127,16 +117,25 @@
                     });
                 }
             });
-            
+
             $('#wifi-container').on('click', 'span.ssid', function(e) {
                 pop_up(get_ap_by_ssid(this.innerText));
                 e.stopPropagation();
             });
-            
+
             $('.mask').mouseleave(function() {
                 $(this).hide()
             });
-            
+
+            $('#btn-refresh').click(function() {
+                var icon = $(this).children('span');
+                icon.toggleClass('fa-spin', true);
+                refresh();
+                setTimeout(function() {
+                    icon.toggleClass('fa-spin', false);
+                }, 2000);
+            });
+
             $('#btn-connect').click(function() {
                 var ssid = $('#mask-ssid').text();
                 var ap = get_ap_by_ssid(ssid);
@@ -164,7 +163,7 @@
                     }
                 });
             });
-            
+
             $('#btn-forget').click(function() {
                 var ssid = $('#mask-ssid').text();
                 var ap = get_ap_by_ssid(ssid);
@@ -196,17 +195,6 @@
                     'type', type == 'text' ? 'password' : 'text'
                 );
             });
-            
-            $('#upgrade').click(function() {
-                $.ajax({
-                    method: 'GET',
-                    url: 'upgrade',
-                    dataType: 'json',
-                    success: function(ret) {
-                        alert(ret.msg);
-                    }
-                });
-            });
 
             update_wifi_status();
             refresh();
@@ -214,6 +202,7 @@
                 refresh();
             }, 10000);
         })
+
     </script>
 </body>
 

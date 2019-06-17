@@ -208,6 +208,10 @@ def app_reader_init():
 
 @dbs.route('/<filename:path>')
 def app_static_files(filename):
+    '''
+    In order to support DBS run standalone (without embci.webui app-loader),
+    embci.webui.__dir__ is added in v0.1.5
+    '''
     for rootdir in [__dir__, embci.webui.__dir__]:
         if os.path.exists(os.path.join(rootdir, filename)):
             return bottle.static_file(filename, rootdir)
@@ -333,19 +337,17 @@ def data_config_channel():
 
 @dbs.route('/data/filter')
 def data_config_filter():
+    rst = []
+    notch = bottle.request.query.get('notch')
+    if notch is not None:
+        try:
+            pt.notch = embci.utils.get_boolean(notch)
+            rst.append('Realtime notch filter state: {}'.format(
+                'ON' if pt.notch else 'OFF'))
+        except ValueError as e:
+            bottle.abort(400, str(e))
     low = bottle.request.query.get('low')
     high = bottle.request.query.get('high')
-    notch = bottle.request.query.get('notch')
-    rst = ''
-    if notch is not None:
-        if notch.lower() == 'true':
-            pt.notch = True
-        elif notch.lower() == 'false':
-            pt.notch = False
-            rst += 'Realtime notch filter state: OFF<br>'
-        else:
-            bottle.abort(400, 'Invalid notch `{}`! '
-                              'Choose one of `true` | `false`'.format(notch))
     if None not in [low, high]:
         try:
             low, high = float(low), float(high)
@@ -353,16 +355,16 @@ def data_config_filter():
             bottle.abort(400, 'Invalid bandpass argument! Only accept number.')
         if low == high == 0:
             pt.bandpass.clear()
-            rst += 'Realtime bandpass filter state: OFF<br>'
+            rst.append('Realtime bandpass filter state: OFF')
         elif high < low or low < 0:
             bottle.abort(400, 'Invalid bandpass argument! 0 < Low < High.')
         else:
             pt.bandpass.low, pt.bandpass.high = low, high
-            signalinfo.bandpass(reader.data_frame, low, high, register=True)
-            rst += ('Realtime bandpass filter param: '
-                    'low {}Hz -- high {}Hz<br>').format(low, high)
+            process_register(reader.data_frame, pt)
+            rst.append('Realtime bandpass filter param: {low}Hz -- {high}Hz'
+                       .format(**pt.bandpass))
     if rst:
-        return rst
+        return minimize(rst)
 
 
 @dbs.route('/data/config')

@@ -39,12 +39,13 @@ extern ADS1299 ads;
 extern bool wifi_echo;
 extern esp_log_level_t log_level;
 extern const int log_level_min, log_level_max;
+extern uint32_t sinc_freq;
 
 enum spi_output_data {
     ADS_RAW,
+    ADS_NOTCH,
     ESP_SQUARE,
     ESP_SINE,
-    ESP_CONST,
 } extern output_data;
 
 enum spi_slave_status {

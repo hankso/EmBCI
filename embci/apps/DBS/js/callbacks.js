@@ -1,18 +1,16 @@
 function dataFilter(low, high, notch) {
-    if (low == '' || high == '') {
-        alert('输入不能为空');
-        return;
+    var data = {};
+    if (low != undefined && high != undefined) {
+        data.low = parseFloat(low);
+        data.high = parseFloat(high);
     }
-    low = parseFloat(low).toFixed(1);
-    high = parseFloat(high).toFixed(1);
+    if (notch != undefined) {
+        data.notch = notch;
+    }
     $.ajax({
         method: 'GET',
         url: 'data/filter',
-        data: {
-            notch: notch,
-            low: low,
-            high: high
-        },
+        data: data
     })
 }
 
@@ -31,6 +29,14 @@ function dataChannel(opt) {
         method: "GET",
         url: 'data/channel',
         data: opt
+    })
+}
+
+function dataConfig(data) {
+    $.ajax({
+        method: 'GET',
+        url: 'data/config',
+        data: data
     })
 }
 
@@ -56,14 +62,6 @@ function genReport(data) {
     })
 }
 
-function dataConfig(data) {
-    $.ajax({
-        method: 'GET',
-        url: 'data/config',
-        data: data,
-    })
-}
-
 var btnCount = 0;
 var coefInterval;
 var coefBtns = [];
@@ -81,7 +79,7 @@ function stateCoef(button) {
     }
     if (btnCount == 0) {
         coefInterval = clearInterval(coefInterval);
-    } else if (!coefInterval) {
+    } else if (coefInterval == undefined) {
         coefInterval = setInterval(dataCoef, 1200);
     }
 }
@@ -121,6 +119,18 @@ function updateCoef(data) {
     }
 }
 
+function setRecordingUser(user) {
+    if (!user) {
+        $('#input-username').val('');
+    } else {
+        dataConfig({
+            recorder: 'username ' + user
+        });
+    }
+    $('#icon-user').addClass('fold');
+    setTimeout(checkRecordingUser, 1000);
+}
+
 function checkRecordingUser() {
     $.ajax({
         method: 'GET',
@@ -137,8 +147,7 @@ function checkRecordingUser() {
     });
 }
 
-var ws, chart_raw, chart_pwr, channel_pwr=0;
-var _interval;
+var channel_pwr = 0, loop_interval = 0;
 
 function loopTask() {
     $.ajax({
@@ -157,15 +166,17 @@ function loopTask() {
 }
 
 function echartPause(option) {
+    if (!option.toolbox) option.toolbox = {feature: {}};
+    if (!option.toolbox.feature.myLoopTask) option.toolbox.feature.myLoopTask = {};
     var f = option.toolbox.feature.myLoopTask;
     if (f.title == '开始') {
         f.icon = 'path://M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z';
         f.title = '暂停';
-        _interval = setInterval(loopTask, 1500);
+        loop_interval = setInterval(loopTask, 1500);
     } else {
         f.icon = 'path://M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z';
         f.title = '开始';
-        clearInterval(_interval);
+        clearInterval(loop_interval);
     }
 }
 

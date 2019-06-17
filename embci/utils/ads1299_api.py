@@ -398,4 +398,8 @@ class ADS1299_API(spidev.SpiDev):
         return value
 
 
+def voltage_to_celsius(raw):
+    return (raw * 1e6 - 145300) / 490 + 25
+
+
 # THE END

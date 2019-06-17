@@ -154,7 +154,7 @@ class ESP32_API(ADS1299_API):
             print('[ESP32 API] choose one from supported rate!')
             print(' | '.join(list(SAMPLE_RATE.keys())))
             return
-        self.write_register(REG_SR, 6 - SAMPLE_RATE[rate])
+        self.write_register(REG_SR, SAMPLE_RATE[rate])
         self._sample_rate = rate
         return rate
 

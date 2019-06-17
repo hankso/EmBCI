@@ -8,12 +8,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
     <title>DBS Coef Display</title>
     <link rel="stylesheet" href="/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="/css/fontawesome.min.css" />
     <link rel="stylesheet" href="css/display.css">
     <script src="/js/jquery.min.js"></script>
     <script src="/js/echarts.min.js"></script>
-    <script src="/js/macarons.min.js"></script>
+    <script src="/js/echarts.macarons.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/sniploader.js"></script>
     <script src="js/callbacks.js"></script>
     <script src="js/echart-options.js"></script>
@@ -21,60 +22,64 @@
 
 <body>
     <div data-include="navbar.html"></div>
-    <div class="top-bar">
-        <form class="form-inline content-center">
-            <div class="odd">
-                <div class="from-group">
-                    <label for="name">姓名</label>
-                    <input type="text" placeholder="请输入姓名" class="form-control list" id="name">
-                </div>
-            </div>
-            <div class="even">
-                <div class="from-group">
-                    <label for="gender">性别</label>
-                    <select id="gender" class="from-control list" style="background-color: #02b2b5;">
-                        <option style="display: none">请选择性别</option>
-                        <option>男</option>
-                        <option>女</option>
-                    </select>
-                </div>
-            </div>
-            <div class="odd">
-                <div class="form-group">
-                    <label for="age">年龄</label>
-                    <input type="number" placeholder="请输入年龄" min="0" max="140" class="form-control list" id="age">
-                </div>
-            </div>
-            <div class="even">
-                <div class="form-group">
-                    <label for="id">ID</label>
-                    <input type="text" placeholder="请输入id" class="form-control list" id="id">
-                </div>
-            </div>
-        </form>
-    </div>
+    
     <div class="recorder" style="display:none">
         <form class="collapse" id="username">
-            <span class="fa fa-user fold" id="icon-user"></span>
+            <span class="fas fa-user fold" id="icon-user"></span>
             <input type="text" name="username" placeholder="Username" id="input-username">
-            <span class="fa fa-check-circle" id="icon-confirm" style="display:none"></span>
+            <span class="fas fa-check-circle" id="icon-confirm" style="display:none"></span>
         </form>
         <button id="record" data-toggle="collapse" data-target="#username" aria-expanded="false">
             <span id="icon-record"></span>
         </button>
     </div>
+    
     <div class="plane">
-        <div id="control">
-            <form class="form-inline">
-                <div class="form-group notchtab">
-                    <input type="number" min="0" max="20" step="0.1" id="low" class="form-control lh" value="0"> <span class="des">Hz-</span>
-                    <input type="number" min="0" max="20" step="0.1" id="high" class="form-control lh" value="0"> <span class="des">Hz</span>
-                    <button type="button" class="btn btn-default" id="filter">带通滤波</button>
-                    <input type="checkbox" id="notch" class="form-control"><span class="des">陷波</span>
-                    <span class="fa fa-search-plus zoom" id="bigger" onclick="dataScale('plus')"></span>
-                    <span class="fa fa-search-minus zoom" id="smaller" onclick="dataScale('minus')"></span>
-                    <button type="button" class="btn btn-default" started="false" id="start-stop-record">开始录制数据</button>
+        <div style="margin:20px">
+            <form class="form-row">
+                <div class="form-group col-3">
+                    <label for="name">姓名</label>
+                    <input class="form-control" type="text" placeholder="请输入姓名" id="name">
                 </div>
+                <div class="form-group col-3">
+                    <label for="gender">性别</label>
+                    <select class="form-control" id="gender">
+                        <option style="display: none">请选择性别</option>
+                        <option>男</option>
+                        <option>女</option>
+                    </select>
+                </div>
+                <div class="form-group col-3">
+                    <label for="age">年龄</label>
+                    <input class="form-control" type="number" placeholder="请输入年龄" min="0" id="age">
+                </div>
+                <div class="form-group col-3">
+                    <label for="id">ID</label>
+                    <input class="form-control" type="text" placeholder="请输入ID" id="id">
+                </div>
+            </form>
+            <form class="form-inline form-row">
+                <div class="form-group col-6">
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-low">
+                    <span class="form-text">Hz</span>
+                    <span class="form-text">--</span>
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-high">
+                    <span class="form-text">Hz</span>
+                    <button class="btn btn-default" type="button" id="filter-bandpass" style="margin:10px">带通滤波</button>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="filter-notch">
+                    <label class="form-check-label" for="filter-notch">陷波</label>
+                </div>
+                <div id="scale">
+                    <button type="button" class="btn">
+                        <span class="fas fa-plus-circle" onclick="dataScale('plus')"></span>
+                    </button>
+                    <button type="button" class="btn">
+                        <span class="fas fa-minus-circle" onclick="dataScale('minus')"></span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-default" id="start-stop-record" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">开始录制数据</button>
             </form>
         </div>
         <div class="chart" id="chart-raw"></div>
@@ -150,8 +155,14 @@
             </div>
         </footer>
     </div>
+    
     <script type="text/javascript">
         $(function() {
+            $('[data-toggle="popover"]').popover({
+                container: 'body',
+                placement: 'auto'
+            });
+
             $('button#record').click(function() {
                 var expanded = $(this).attr('aria-expanded') == 'true';
                 dataConfig({
@@ -159,68 +170,67 @@
                 });
             });
 
-            $('#input-username').keypress(function() {
-                $('#icon-confirm').show(300);
-            });
+            $('#input-username').focus(() => $('#icon-confirm').show(300));
+            $('#input-username').blur(() => $('#icon-confirm').hide(300));
 
             $('#icon-user').click(function() {
-                if ($(this).hasClass('recording')) {
+                var e = $(this);
+                if (e.hasClass('recording')) {
                     checkRecordingUser();
                 }
-                $(this).toggleClass('fold');
+                if (!e.hasClass('fold') && !e.hasClass('recording')) {
+                    setRecordingUser($('#input-username').val());
+                } else {
+                    $(this).toggleClass('fold');
+                }
             });
 
             $('#icon-confirm').click(function() {
-                var user = $('#input-username').val();
-                if (!user) {
-                    $('#input-username').val('');
-                } else {
-                    dataConfig({
-                        recorder: 'username ' + user
-                    });
-                    $('#icon-user').click();
-                }
-                $(this).hide(500);
-                setTimeout(checkRecordingUser, 1000);
+                setRecordingUser($('#input-username').val());
+            });
+
+            $('#filter-bandpass').click(function() {
+                dataFilter(
+                    $('#filter-low').val(),
+                    $('#filter-high').val(),
+                    $('#filter-notch').prop('checked')
+                );
+            });
+
+            $('#filter-notch').click(function() {
+                dataFilter(
+                    $('#filter-low').val(),
+                    $('#filter-high').val(),
+                    this.checked
+                );
             });
 
             $('#start-stop-record').click(function() {
-                if ($(this).attr('started') == 'true') {
-                    dataConfig({
-                        recorder: 'username none'
-                    });
+                if ($(this).prop('started')) {
+                    dataConfig({recorder: 'username none'});
                     $('.recorder').hide();
-                    $(this).attr('started', 'false');
+                    $(this).prop('started', false);
                     $(this).text('开始录制数据');
                     var record = $('button#record');
                     if (record.attr('aria-expanded') == 'true') {
                         record.click();
                     }
+                    $(this).popover('enable');
                 } else {
-                    dataConfig({
-                        recorder: 'start'
-                    });
+                    dataConfig({recorder: 'start'});
                     $('.recorder').show();
-                    $(this).attr('started', 'true');
+                    $(this).prop('started', true);
                     $(this).text('停止录制数据');
+                    $(this).popover('disable');
                 }
             });
-
-            $('#notch').click(function() {
-                dataFilter(
-                    $('#low').val(),
-                    $('#high').val(),
-                    this.checked
-                );
-            });
-
-            $('#filter').click(function() {
-                dataFilter(
-                    $('#low').val(),
-                    $('#high').val(),
-                    $('#notch').get(0).checked
-                );
-            });
+            
+            $('#bt').click(() => stateCoef($('#bt').get(0)));
+            $('#bs').click(() => stateCoef($('#bs').get(0)));
+            $('#bm').click(() => stateCoef($('#bm').get(0)));
+            $('#at').click(() => stateCoef($('#at').get(0)));
+            $('#as').click(() => stateCoef($('#as').get(0)));
+            $('#am').click(() => stateCoef($('#am').get(0)));
 
             $('button.col3').click(function() {
                 $(this).text('%');
@@ -235,13 +245,6 @@
                     id: $('#id').val()
                 });
             });
-            
-            $('#bt').click(() => stateCoef($('#bt').get(0)));
-            $('#bs').click(() => stateCoef($('#bs').get(0)));
-            $('#bm').click(() => stateCoef($('#bm').get(0)));
-            $('#at').click(() => stateCoef($('#at').get(0)));
-            $('#as').click(() => stateCoef($('#as').get(0)));
-            $('#am').click(() => stateCoef($('#am').get(0)));
             
             chart_raw = echarts.init(
                 document.getElementById('chart-raw'),
