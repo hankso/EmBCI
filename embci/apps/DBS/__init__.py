@@ -361,7 +361,8 @@ def data_config_filter():
         elif high < low or low < 0:
             bottle.abort(400, 'Invalid bandpass argument! 0 < Low < High.')
         else:
-            pt.bandpass.low, pt.bandpass.high = low, high
+            pt.bandpass.low = max(1, low)
+            pt.bandpass.high = min(reader.sample_rate / 2 - 1, high)
             process_register(reader.data_frame, pt)
             rst.append('Realtime bandpass filter param: {low}Hz -- {high}Hz'
                        .format(**pt.bandpass))

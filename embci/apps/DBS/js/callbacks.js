@@ -19,7 +19,6 @@ function dataFilter(low, high, notch) {
 }
 
 function dataScale(action) {
-    var scale = '';
     $.ajax({
         method: 'GET',
         url: 'data/scale',
@@ -28,10 +27,15 @@ function dataScale(action) {
             scale: action
         },
         success: function(obj) {
-            scale = obj.a[obj.i];
+            var scale = obj.a[obj.i];
+            if (parseFloat(scale) != NaN) {
+                $('#scale-text').text(scale + 'x');
+            } else {
+                $('#scale-text').text('E');
+                console.error('scale: ', scale);
+            }
         }
     });
-    return parseFloat(scale);
 }
 
 function dataChannel(opt) {
@@ -51,17 +55,18 @@ function dataConfig(data) {
 }
 
 function genReport(data) {
-    var success = false;
     $.ajax({
         method: 'GET',
         url: 'report',
         data: data,
         success: function() {
-            success = true;
+            $('#submit')
+                .text('查看报告')
+                .attr('href', 'report.html')
+                .off('click.generate');
         },
         error: alertError
     })
-    return success;
 }
 
 var btnCount = 0;

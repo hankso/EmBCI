@@ -132,7 +132,7 @@ class Counter {
             }
         }
         void freeze() {
-            memcpy(freezers, counters, length);
+            memcpy(freezers, counters, length * sizeof(uint32_t));
         }
         uint32_t value(uint16_t index) {
             if (index < length) {

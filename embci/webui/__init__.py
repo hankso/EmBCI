@@ -125,7 +125,7 @@ def mount_subapps(applist=subapps):
     for appname in embci.apps.__all__:
         try:
             appmod = getattr(embci.apps, appname)
-            apppath = appmod.__path__[0]
+            apppath = os.path.abspath(appmod.__path__[0])
             if apppath in applist.path:
                 continue
             appname = getattr(appmod, 'APPNAME', appname)
@@ -149,7 +149,7 @@ def mount_subapps(applist=subapps):
     for appfolder in os.listdir(embci.apps.__dir__):
         if appfolder[0] in ['_', '.']:
             continue
-        path = os.path.join(embci.apps.__dir__, appfolder)
+        path = os.path.join(embci.apps.__dir__, appfolder)  # abspath
         if not os.path.isdir(path):
             continue
         if path in applist.path:
@@ -166,7 +166,8 @@ def mount_subapps(applist=subapps):
             pass
         else:
             applist.append(AttributeDict(
-                name=appname, obj=appobj, path=appmod.__path__[0],
+                name=appname, obj=appobj,
+                path=os.path.abspath(appmod.__path__[0]),
                 loader='embci.apps.__dir__',
                 hidden=getattr(appmod, 'HIDDEN', False),
             ))

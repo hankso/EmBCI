@@ -183,13 +183,16 @@ void summary() {
     ESP_LOGD(NAME, "Checking Impedance measurement...");
     const char *imped = ads.getImpedance() ? "ON" : "OFF";
     ESP_LOGD(NAME, "Checking valid packets...");
-    uint32_t v0 = counter.value(0), v1 = counter.value(1);
+    uint32_t
+        v0 = counter.value(0),
+        v1 = counter.value(1),
+        v2 = counter.value(2);
     float bufrate = (float)(cq.len) / M_BUFFERSIZE;
     ESP_LOGW(NAME, "ADS data header:  0b%s", tmp);
     ESP_LOGW(NAME, "ADS data source:  %s", ads.getDataSource());
     ESP_LOGW(NAME, "ADS sample rate:  %d Hz", ads.getSampleRate());
     ESP_LOGW(NAME, "ADS BIAS | IMPED: %s | %s", bias, imped);
-    ESP_LOGW(NAME, "ESP valid packet: %d / %d Hz", v1, v0);
+    ESP_LOGW(NAME, "ESP valid packet: %d / %d / %d Hz", v2, v1, v0);
     ESP_LOGW(NAME, "ESP output data:  %s", output_data_list[output_data]);
     ESP_LOGW(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
     ESP_LOGW(NAME, "ESP log level:    %s", log_level_list[log_level]);

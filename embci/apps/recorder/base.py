@@ -52,10 +52,10 @@ class Recorder(LoopTaskInThread):
         if not self.username:
             time.sleep(0.5)
             return
+        if not self.started or not self.reader.streaming:
+            return
         while self.reader._index > 5:
-            if self._flag_close.is_set():
-                return
-            time.sleep(0.001)
+            time.sleep(0.01)
         data = self.reader._data.copy()
         time.sleep(0.5)
         event = []

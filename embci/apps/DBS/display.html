@@ -224,8 +224,7 @@
             });
             
             $('#scale').on('click', 'button[data-action]', function() {
-                var scale = dataScale($(this).data('action'));
-                $('#scale-text').text(scale ? (scale + 'x') : 'E');
+                dataScale($(this).data('action'));
             });
 
             $('#start-stop-record').click(function() {
@@ -280,10 +279,7 @@
                     }, 200);
                     return;
                 }
-                if (genReport(data) != true) return;
-                this.text = '查看报告';
-                this.href = 'report.html';
-                $(this).off('click.generate');
+                genReport(data);
             });
             
             chart_raw = echarts.init(

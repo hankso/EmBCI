@@ -58,9 +58,9 @@ void read_from_ads1299() {
     static long wavei;
     int32_t res[8];
     uint32_t statusBit = ads.readData(res);
-    counter.count(0);
-    if ((statusBit & 0xF00000) != 0xC00000) return;
     counter.count(1);
+    if ((statusBit & 0xF00000) != 0xC00000) return;
+    counter.count(2);
     switch (output_data) {
     case ADS_RAW:
         for (int i = 0; i < 8; i++) { cq.push(res[i]); }
@@ -251,7 +251,7 @@ void setup() {
     esp_vfs_dev_uart_use_driver(UART_CONSOLE);
     setvbuf(stdin, NULL, _IONBF, 0);
     setvbuf(stdout, NULL, _IONBF, 0);
-    // Serial1.begin(500000);
+    Serial1.begin(500000);
     version_info();
     ESP_LOGD(NAME, "done");
 
@@ -324,8 +324,8 @@ void setup() {
     clkgen.reset();
     clkts.reset();
     // clkblink.reset();
-    attachInterrupt(GPIO_DRDY, read_from_ads1299, FALLING);
-    xTaskCreatePinnedToCore(console_loop, "console", 3000, NULL, 2, NULL, 1);
+    /* attachInterrupt(GPIO_DRDY, read_from_ads1299, FALLING); */
+    xTaskCreatePinnedToCore(console_loop, "console", 8192, NULL, 2, NULL, 0);
     ESP_LOGD(NAME, "End setup");
     ESP_LOGI(NAME, "Type `help` for commands message");
 }
@@ -333,7 +333,11 @@ void setup() {
 void loop() {
     // blinkTest();
     // handle_usrt_message();
-    handle_spi();
+    handle_spi(); // SPI_Slave
+    counter.count(0);
+    if (digitalRead(GPIO_DRDY) == LOW) {
+        read_from_ads1299(); // SPI_Master
+    }
 
     if (drdypulsetime <= 0) {
         digitalWrite(PIN_DRDY, HIGH);
