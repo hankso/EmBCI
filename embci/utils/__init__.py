@@ -728,27 +728,31 @@ class LoopTaskMixin(object):
     Examples
     --------
     >>> class Clock(LoopTaskMixin):
-            def before(self):
+            def loop_before(self):  # optional function
                 print('this is a simple clock')
-            def after(self):
-                print('this function is optional')
-            def display_time(self, name):
+            def loop_after(self):  # optional function
+                print('clock end')
+            def loop_display_time(self, name):
                 print("{}: {}".format(name, time.time()))
                 time.sleep(1)
             def start(self):
-                LoopTaskMixin.__init__(self)
-                self.loop(self.display_time, args=('MyClock', ),
-                          before=self.before, after=self.after)
+                if LoopTaskMixin.start(self) is False:
+                    return 'this clock is already started'
+                self.loop(func=self.loop_display_time, args=('MyClock', ),
+                          before=self.loop_before, after=self.loop_after)
     >>> c = Clock()
     >>> c.start()
     this is a simple clock
-    >>>
     MyClock: 1556458048.83
     MyClock: 1556458049.83
     MyClock: 1556458050.83
-    c.pause()
-    >>> c.resume()
-    MyClock: 1556458060.83
+    ^C (KeyboardInterrupt Ctrl+C)
+    clock end
+
+    See Also
+    --------
+    embci.utils.LoopTaskInThread
+    embci.io.readers.BaseReader
     '''
     def __init__(self):
         '''
@@ -760,10 +764,20 @@ class LoopTaskMixin(object):
         self.__flag_pause__ = threading.Event()
         self.__flag_close__ = threading.Event()
         self.__started__ = False
-        self.__status__ = 'closed'
+        self.__status__ = b'closed'  # use bytes for c_char_p compatiable
 
-    def start(self):
-        if self.__started__:
+    @property
+    def status(self):
+        '''Status of the loopTask is read-only'''
+        return ensure_unicode(self.__status__)
+
+    @property
+    def started(self):
+        '''Started of the loopTask is read-only'''
+        return self.__started__
+
+    def start(self, *a, **k):
+        if self.started:
             if self.status == 'paused' and self.__flag_pause__.is_set():
                 return self.resume()
             else:
@@ -771,48 +785,39 @@ class LoopTaskMixin(object):
         self.__flag_pause__.set()
         self.__flag_close__.clear()
         self.__started__ = True
-        self.__status__ = 'started'
+        self.__status__ = b'started'
         self._start_time = time.time()
         return True
 
     def close(self):
-        if not self.__started__:
+        if not self.started:
             return False
         self.__flag_close__.set()
         self.__flag_pause__.clear()
         # you can restart this task now
         self.__started__ = False
-        self.__status__ = 'closed'
+        self.__status__ = b'closed'
         return True
 
-    def restart(self):
+    def restart(self, *args, **kwargs):
         if self.started:
             self.close()
-        self.start()
+        self.start(*args, **kwargs)
         return True
 
     def pause(self):
         if not self.started:
             return False
         self.__flag_pause__.clear()
-        self.__status__ = 'paused'
+        self.__status__ = b'paused'
         return True
 
     def resume(self):
         if not self.started:
             return False
         self.__flag_pause__.set()
-        self.__status__ = 'resumed'
+        self.__status__ = b'resumed'
         return True
-
-    @property
-    def status(self):
-        '''status of the loopTask is read-only'''
-        return self.__status__
-
-    @property
-    def started(self):
-        return self.__started__
 
     def loop(self, func, args=(), kwargs={}, before=None, after=None):
         try:
@@ -822,7 +827,7 @@ class LoopTaskMixin(object):
                 if self.__flag_pause__.wait(2):
                     func(*args, **kwargs)
         except KeyboardInterrupt:
-            pass
+            logger.info('KeyboardInterrupt detected.')
         except Exception:
             logger.error(traceback.format_exc())
         finally:
@@ -834,13 +839,15 @@ class LoopTaskMixin(object):
 class LoopTaskInThread(threading.Thread, LoopTaskMixin):
     def __init__(self, func=None, daemon=True, *a, **k):
         self.__tdaemon, self.__targs, self.__tkwargs = daemon, a, k
-        self.__init_thread__()  # you can call __init_thread__ to reinit
-        self.__func = func
-        if getattr(self.__func, 'func_name', None):
-            self.name = 'Loop Task on %s' % self.__func.func_name
+        self.__init_thread()  # you can call this function to reinit thread
+        self._func_ = func
+        self._before_ = k.pop('before', None)
+        self._after_ = k.pop('after', None)
+        self.name = self._name = 'Loop Task on {}'.format(
+            getattr(self._func_, 'func_name', self._name))
         LoopTaskMixin.__init__(self)
 
-    def __init_thread__(self):
+    def __init_thread(self):
         threading.Thread.__init__(self, *self.__targs, **self.__tkwargs)
         self.setDaemon(self.__tdaemon)
 
@@ -849,15 +856,20 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
             threading.Thread.start(self)
         return LoopTaskMixin.start(self)
 
+    def close(self):
+        if not LoopTaskMixin.close(self):
+            return 'already closed task'
+        # TODO: LoopTaskInThread: make Thread restartable
+
     def run(self):
         try:
-            self.loop(self.__func)  # , *a, **k, before, after)
+            self.loop(self._func_, before=self._before_, after=self._after_)
         finally:
             logger.info('{} stopped.'.format(self))
 
 
-def time_stamp(localtime=None, fm='%Y%m%d-%H:%M:%S'):
-    return time.strftime(fm, localtime if localtime else time.localtime())
+def time_stamp(localtime=None, fmt='%Y%m%d-%H:%M:%S'):
+    return time.strftime(fmt, localtime or time.localtime())
 
 
 def ensure_unicode(*a):
@@ -896,6 +908,18 @@ def ensure_unicode(*a):
     if len(a) == 1:
         return a[0]
     return a
+
+
+def ensure_bytes(*a):
+    a = list(a)
+    for n, i in enumerate(a):
+        if not isinstance(i, strtypes):
+            raise TypeError('cannot convert non-string type `{}` to bytes'
+                            .format(type(i).__name__))
+        if not isinstance(i, bytes):  # py2 unicode or py3 str
+            a[n] = i.encode('utf8')   # py2 str or py3 bytes
+            # a[n] = b'{}'.format(a[n])
+    return a[0] if len(a) == 1 else a
 
 
 def format_size(*a, **k):

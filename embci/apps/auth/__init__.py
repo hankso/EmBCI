@@ -10,7 +10,7 @@
 
 import os
 
-# requirements.txt: network: bottle, bottle-cork
+# requirements.txt: network: bottle, bottle-cork, beaker
 import bottle
 import cork
 from beaker.middleware import SessionMiddleware

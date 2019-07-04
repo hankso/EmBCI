@@ -38,7 +38,8 @@ if platform.machine() in ['arm', 'aarch64']:
 else:
     from embci.io import FakeDataGenerator as Reader
 from embci.utils.ads1299_api import INPUT_SOURCES
-from embci.utils import get_boolean, get_config, strtypes
+from embci.utils import (get_boolean, get_config,
+                         strtypes, ensure_bytes, ensure_unicode)
 
 
 # =============================================================================
@@ -52,6 +53,7 @@ LISTEN_PORT = int(get_config('STREAMING_CMD_PORT', 9997))
 ADDR = 'tcp://{}:{}'.format(LISTEN_HOST, LISTEN_PORT)
 TASK = '[{}] '.format(__name__)
 FLAG = threading.Event()
+CONT = zmq.Context()
 
 HELP = '''
 Task data-streaming started by {filename} script in EmBCI. Streaming
@@ -88,8 +90,6 @@ input_source = 'normal'
 measure_impedance = False
 stream_control = 'start'
 
-reader = Reader(sample_rate, sample_time=1, num_channel=8, send_to_pylsl=True)
-
 
 # =============================================================================
 # Callback functions
@@ -101,8 +101,8 @@ def summary(args):
     ret += 'bias_output:\t{}\n'.format(
         'enabled' if bias_output else 'disabled')
     ret += 'input_source:\t{}\n'.format(input_source)
-    ret += 'stream_control:\t{}ed\n'.format(reader.status)
-    ret += 'measure_impedance:\t{}\n'.format(
+    ret += 'stream_control:\t{}\n'.format(reader.status)
+    ret += 'impedance:\t{}\n'.format(
         'enabled' if measure_impedance else 'disabled')
     return ret
 
@@ -226,7 +226,7 @@ def init_parser():
 
 
 def repl(flag_term):
-    reply = zmq.Context().socket(zmq.REP)
+    reply = CONT.socket(zmq.REP)
     reply.bind(ADDR)
     print(TASK + 'Listening on `%s`' % ADDR)
     poller = zmq.Poller()
@@ -281,7 +281,11 @@ def repl(flag_term):
 
 
 def main(arg):
+    globals()['reader'] = reader = Reader(
+        sample_rate, sample_time=1,
+        num_channel=8, send_to_pylsl=True)
     # TODO: embci.apps.streaming: pick random port number
+    # BUG: embci.apps.streaming: python3 pylsl cannot create outlet?
     # task can safely exit if killed by `kill command` or `user log out`
     signal.signal(signal.SIGTERM, lambda *a: FLAG.set())
     signal.signal(signal.SIGHUP, lambda *a: FLAG.set())
@@ -302,7 +306,7 @@ def main(arg):
 
 
 def consumer():
-    q = zmq.Context().socket(zmq.REQ)
+    q = CONT.socket(zmq.REQ)
     q.connect(ADDR)
     return q
 
@@ -317,10 +321,10 @@ def send_message_streaming(cmd_or_args):
     else:
         cmd = cmd_or_args
     q = consumer()
-    q.send(cmd)
+    q.send(ensure_bytes(cmd))
     time.sleep(0.2)
     ret = q.recv()
     q.close()
-    return ret
+    return ensure_unicode(ret)
 
 # THE END

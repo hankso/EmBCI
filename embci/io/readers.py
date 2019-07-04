@@ -27,7 +27,7 @@ import scipy.signal
 import pylsl
 import serial
 
-from ..utils import (check_input, get_boolean,
+from ..utils import (check_input, get_boolean, ensure_bytes,
                      find_serial_ports, find_pylsl_outlets, find_spi_devices,
                      LockedFile, Singleton, LoopTaskMixin)
 from ..utils.ads1299_api import ADS1299_API
@@ -141,7 +141,7 @@ class ReaderIOMixin(object):
 class CompatiableMixin(object):
     '''Methods defined here are for compatibility between all Readers.'''
     def set_input_source(self, src):
-        self.input_source = src
+        self.input_source = ensure_bytes(src)
         return True
 
     def set_channel(self, ch, en):
@@ -258,7 +258,7 @@ class FakeDataGenerator(BaseReader):
             sample_rate, sample_time, num_channel,
             '[Fake data generator %d]' % FakeDataGenerator.__num__)
         FakeDataGenerator.__num__ += 1
-        self.input_source = 'random'
+        self.input_source = ensure_bytes('random')
         self._send_to_pylsl = send_to_pylsl
 
     def start(self, *a, **k):
@@ -295,7 +295,7 @@ class FilesReader(BaseReader):
             sample_rate, sample_time, num_channel,
             '[Files reader %d]' % FilesReader.__num__)
         FilesReader.__num__ += 1
-        self.input_source = self.filename = filename
+        self.input_source = self.filename = ensure_bytes(filename)
 
     def start(self, *a, **k):
         if self.started:
@@ -400,7 +400,8 @@ class PylslReader(BaseReader):
             self.set_sample_rate(fs)
         # 1.2 set channel num
         nch = info.channel_count()
-        self.input_source = '{} @ {}'.format(info.name(), info.source_id())
+        self.input_source = ensure_bytes(
+            '{} @ {}'.format(info.name(), info.source_id()))
         if nch < self.num_channel:
             logger.info(
                 '{} You want {} channels data but only {} is provided by '
@@ -457,7 +458,8 @@ class SerialReader(BaseReader):
         self._serial.port = port or find_serial_ports()
         self._serial.baudrate = baudrate
         self._serial.open()
-        self.input_source = 'Serial @ {}'.format(self._serial.port)
+        self.input_source = ensure_bytes(
+            'Serial @ {}'.format(self._serial.port))
         logger.debug(self.name + ' `%s` opened.' % port)
         n = len(self._serial.read_until().strip().split(','))
         if n < self.num_channel:
@@ -526,7 +528,7 @@ class ADS1299SPIReader(BaseReader):
         )
         self.enable_bias = enable_bias
         self.measure_impedance = measure_impedance
-        self.input_source = 'normal'
+        self.input_source = ensure_bytes('normal')
         return self
 
     def __del__(self):
@@ -554,7 +556,7 @@ class ADS1299SPIReader(BaseReader):
     def set_input_source(self, src):
         rst = self._api.set_input_source(src)
         if rst is not None:
-            self.input_source = src
+            self.input_source = ensure_bytes(src)
             logger.info(self.name + ' input source set to {}'.format(rst))
             return True
         logger.error(self.name + ' invalid input source {}'.format(src))
@@ -641,7 +643,7 @@ class SocketTCPReader(BaseReader):
         # TCP IPv4 socket connection
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client.connect((host, int(port)))
-        self.input_source = ':'.join([host, port])
+        self.input_source = ensure_bytes(':'.join([host, port]))
         # 2. read data in another thread
         super(SocketTCPReader, self).start(*a, **k)
 

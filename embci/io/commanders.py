@@ -224,7 +224,7 @@ class SocketTCPServer(LoopTaskInThread):
         self._conns = []
         self._addrs = []
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        LoopTaskInThread.__init__(self, self._manage_connections, daemon=True)
+        LoopTaskInThread.__init__(self, self._manage_connections)
         # Reset name of this Thread
         self.name = '[Socket server %d]' % SocketTCPServer.__num__
         SocketTCPServer.__num__ += 1

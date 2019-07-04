@@ -30,7 +30,7 @@ class Recorder(LoopTaskInThread):
         self.reader = reader
         self.username = username
         self.start_time = self.reader._start_time
-        super(Recorder, self).__init__(self.recording, daemon=False)
+        super(Recorder, self).__init__(self.recording, daemon=True)
         logger.info('Recorder inited on {}.'.format(self.reader))
         self.cmd(*a, **k)
 
