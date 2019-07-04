@@ -29,7 +29,7 @@ before_install:
   - tools/genrequire.py -v embci -o requirements.txt
 
 install:
-  - pip install codecov pytest-cov
+  - pip install pytest codecov pytest-cov
   - pip install --user -r requirements.txt
   - pip install -e .
 

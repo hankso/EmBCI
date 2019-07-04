@@ -117,6 +117,7 @@ def auth_reset_password_request():
     auth.send_password_reset_email(
         POSTD().username, POSTD().email,
         email_template=__reset_email__,
+        base_url="http://10.0.0.1/apps/auth/reset_password"
     )
     return 'Confirmation email has been sent. Please check your mailbox.'
 
@@ -126,7 +127,7 @@ def auth_reset_password_request():
 def auth_reset_password_form(code):
     '''
     Step Two: Copy your unique `reset_code` (like a token) from URL to
-    form HTML, where you can input your new password.
+    forms in HTML, where you can input your new password.
     '''
     return {'reset_code': code}
 
@@ -135,6 +136,7 @@ def auth_reset_password_form(code):
 def auth_reset_password_check():
     '''
     Step Three: POST your form data here to update your password.
+    Reset code should be validated before password reset.
     '''
     auth.reset_password(POSTD().reset_code, POSTD().password)
     bottle.redirect('/login')

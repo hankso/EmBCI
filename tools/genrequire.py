@@ -184,13 +184,17 @@ def genrequire(dirs, output):
         output = open(output, 'w')
         extra = open(extra, 'w')
 
+    logging.debug('Writing requirements to `{}`'.format(output))
     print(header + body + conflicts, file=output)
     if 'extra' in locals():
         print(header + body + conflicts + optional, file=extra)
         extra.close()
     else:
         print(optional, file=output)
-        output.close()
+        output.flush()
+    logging.debug('\n' + '=' * 80 + '\n')
+    logging.info('Generation of requirements done.')
+    logging.debug('\n' + '=' * 80)
 
 
 class HelpArgumentParser(argparse.ArgumentParser):

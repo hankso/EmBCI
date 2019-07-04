@@ -7,8 +7,8 @@
 - ESP32
     - Serial connection higher baudrate (like 921600)
     - Act as a portable WiFi card: WiFi-echo (through Serial/I2C)
-    - Change command interface from SPI to Serial
-- ADS1299 better de-noising
+    - [x] Change command interface from SPI to Serial
+- [x] ADS1299 better de-noising
 - PCB shielding cases
 
 ### Algorithums
@@ -16,7 +16,11 @@
 - ERP/EDP
 - Motor Imagery
 
+### Apps
+- DBS multicast websocket manager
+- Recording snippets
+
 ### Application
-- Parkinson DBS treatment recovery
+- [x] Parkinson DBS treatment recovery
 - Online SSVEP mind-typing
 - Sign language sEMG recognition

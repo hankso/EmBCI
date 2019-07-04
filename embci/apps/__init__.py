@@ -26,8 +26,7 @@ from . import WiFi; WiFi.APPNAME = 'Network'
 # If subapps has attr `HIDDEN` (bool), this will control whether the app will
 # be display on HTML (embci.webui still can correctly load it).
 from . import auth; auth.HIDDEN = True
-from . import system; system.HIDDEN = True
 
-__all__ = ['Example', 'WiFi', 'aaa', 'auth', 'system']
+__all__ = ['Example', 'WiFi', 'aaa', 'auth']
 
 del os

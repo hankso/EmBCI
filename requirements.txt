@@ -9,6 +9,7 @@
 
 # [network]
 bottle
+bottle-cork
 gevent
 gevent-websocket
 

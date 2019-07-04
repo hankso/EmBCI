@@ -66,10 +66,7 @@ void read_from_ads1299() {
         for (int i = 0; i < 8; i++) { cq.push(res[i]); }
         break;
     case ADS_NOTCH:
-        for (int i = 0; i < 8; i++) {
-            cq.push(filters[i].process(res[i]));
-            cq.push(res[i]);
-        }
+        for (int i = 0; i < 8; i++) { cq.push(filters[i].process(res[i])); }
         break;
     case ESP_SQUARE:
         for (int i = 0; i < 8; i++, wavei++) {
@@ -176,7 +173,7 @@ void handle_spi() {
     case IDLE:
         // Put data into spi_slave_queue, waiting spi_master to read
         if (cq.len <= PACKETSIZE) break;
-        // SPI slave satatus reset to poll
+        // SPI slave status reset to poll
         slave_status = POLL;
         digitalWrite(PIN_DRDY, LOW);
         drdypulsetime = 10;
