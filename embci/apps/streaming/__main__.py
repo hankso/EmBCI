@@ -6,10 +6,8 @@
 # Webpage: https://github.com/hankso
 # Time: Sun 10 Mar 2019 04:06:40 CST
 
-'''__doc__'''
-
 import sys
-from . import main
+from .base import main
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

@@ -94,13 +94,14 @@ for bd in __backends__:
             importlib.import_module(req)
     except ImportError:
         continue
+    __backend__ = __name__ + '.' + bd['module']
     try:
-        mod = importlib.import_module(__name__ + '.' + bd['module'])
+        mod = importlib.import_module(__backend__)
     except ImportError as e:
-        logger.warning('Import backend `{}` failed: {}'.format(bd['module'], e))
+        logger.warning('Importing `{}` failed: {}'.format(__backend__, e))
         del e
         continue
-    logger.debug('Using %s backend.' % bd['name'])
+    logger.debug('Using %s backend from %s.' % (bd['name'], __backend__))
 
     # =========================================================================
     # runtime `from .xxx_backend import *`
@@ -121,6 +122,10 @@ for bd in __backends__:
     # method 2
     # TODO: WiFi.backend: importlib.__import__ doesn't support relative import
     #  importlib.__import__(bd['module'], globals(), locals(), mod.__all__)
+
+for entry in __all__:
+    if not hasattr(__module__, entry):
+        raise RuntimeError('Cannot load backend. Terminate.')
 
 try:
     del sys, logging, importlib, __module__, bd, mod, req, entry

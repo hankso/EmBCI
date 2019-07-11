@@ -56,8 +56,7 @@ def get_device_by_iface(name='wl', dtype=NetworkManager.NM_DEVICE_TYPE_WIFI):
 
 wlan0 = get_device_by_iface()
 if wlan0 is None:
-    print(__file__ + ' No valid wireless network device.')
-    sys.exit(1)
+    sys.exit(__file__ + ' No valid wireless network device.')
 
 
 STATE_STATUS_MAPPING = {
