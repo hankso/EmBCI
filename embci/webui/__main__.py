@@ -7,7 +7,7 @@
 # Time: Mon 26 Nov 2018 16:50:46
 
 import sys
-from embci.webui import main
+from . import main
 
 if __name__ == '__main__':
     main(sys.argv[1:])

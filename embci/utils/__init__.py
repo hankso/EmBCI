@@ -197,7 +197,7 @@ class AttributeDict(MutableMapping):
                 # get rid of some ipython magics
                 return
             if self.__mapping__:
-                logger.warning('Choose key from {}'.format(self.keys()))
+                logger.warning('Choose key from {}'.format(list(self.keys())))
             else:
                 logger.warning('Invalid key {}'.format(items))
             return
@@ -507,8 +507,8 @@ class JSONEncoder(json.JSONEncoder):
     '''
     This class is a dirty fix to make JSONEncoder support custom jsonifying
     of nested and inherited default types such as dict, list and tuple etc.
-    By overwriting method `isinstance` and method `iterencode`, it changed
-    behaviour on types inside tuple `masked`.
+    By overwriting method `json.JSONEncoder.iterencode`, it changed default
+    behaviour on types inside tuple `self.masked`.
 
     More at [this page](https://stackoverflow.com/questions/16405969/).
     '''
@@ -525,7 +525,7 @@ class JSONEncoder(json.JSONEncoder):
             k['indent'] = 4
         super(JSONEncoder, self).__init__(*a, **k)
 
-    def floatstr(self, o, _inf=float('inf')):
+    def _floatstr(self, o, _inf=float('inf')):
         if o != o:
             text = 'NaN'
         elif abs(o) is _inf:
@@ -537,7 +537,7 @@ class JSONEncoder(json.JSONEncoder):
                              'compliant: ' + repr(o))
         return text
 
-    def encoder(self, o):
+    def _encoder(self, o):
         if self.encoding != 'utf-8' and isinstance(o, strtypes):
             o = o.decode(self.encoding)
         if self.ensure_ascii:
@@ -545,19 +545,17 @@ class JSONEncoder(json.JSONEncoder):
         else:
             return json.encoder.encode_basestring(o)
 
-    def isinstance(self, o, cls):
+    def _isinstance(self, o, cls):
         if isinstance(o, self.masked):
             return False
         return isinstance(o, cls)
 
     def iterencode(self, o, _one_shot=False):
-        '''
-        '''
         return json.encoder._make_iterencode(
-            {} if self.check_circular else None, self.default, self.encoder,
-            self.indent, self.floatstr, self.key_separator,
+            {} if self.check_circular else None, self.default, self._encoder,
+            self.indent, self._floatstr, self.key_separator,
             self.item_separator, self.sort_keys, self.skipkeys,
-            _one_shot=False, isinstance=self.isinstance)(o, 0)
+            _one_shot=False, isinstance=self._isinstance)(o, 0)
 
 
 class MiscJsonEncoder(JSONEncoder):
@@ -586,7 +584,7 @@ class MiscJsonEncoder(JSONEncoder):
             def default(self, o):
                 if isinstance(o, MyClass):
                     return jsonify_MyClass(o)
-                super(Test, self).default(o)
+                return super(Test, self).default(o)
 
     or you can define `jsonify_xxx_hook`(object type in lower case!)
 
@@ -616,23 +614,25 @@ class MiscJsonEncoder(JSONEncoder):
 
     def default(self, o):
         if callable(o):
-            try:
-                fstr = marshal.dumps(o.func_code)
-            except ValueError:
-                fstr = dill.dumps(o)
-            return {
-                '__callable__': bytearray(fstr),
-                '__module__': o.__module__,
-                '__class__': o.__class__.__name__,
-                '__name__': o.__name__
-            }
-        hook = 'jsonify_%s_hook' % getattr(type(o), '__name__', 'unknown')
-        try:
-            enc_func = getattr(self, hook.lower())
-        except AttributeError:
-            return json.JSONEncoder.default(self, o)
+            o_type = 'function'
         else:
-            return enc_func(o)
+            o_type = getattr(type(o), '__name__', 'unknown').lower()
+        try:
+            return getattr(self, 'jsonify_%s_hook' % o_type)(o)
+        except AttributeError:
+            return super(MiscJsonEncoder, self).default(o)
+
+    def jsonify_function_hook(self, o):
+        try:
+            fstr = marshal.dumps(o.func_code)
+        except ValueError:
+            fstr = dill.dumps(o)
+        return {
+            '__callable__': bytearray(fstr),
+            '__module__': o.__module__,
+            '__class__': o.__class__.__name__,
+            '__name__': o.__name__
+        }
 
     def jsonify_attributedict_hook(self, o):
         return {'__module__': o.__module__,
@@ -657,27 +657,28 @@ class MiscJsonEncoder(JSONEncoder):
 
 class MiscJsonDecoder(json.JSONDecoder):
     '''
-    JSON string decoder. :method:`decode_xxx_hook` should handle all exception.
+    JSON string decoder. :method:`unjsonify_xxx_hook` should handle
+    all exception and always return object or None.
 
     See Also
     --------
     MiscJsonEncoder
     '''
-    hook_pattern = re.compile(r'decode_(\w)+_hook')
-
     def __init__(self, *a, **k):
         super(MiscJsonDecoder, self).__init__(
             encoding='utf8', object_hook=self.object_hook)
 
+    _hook_pattern = re.compile(r'unjsonify_(\w)+_hook')
+
     @property
     def decode_hooks(self):
         return [hook_name for hook_name in MiscJsonDecoder.__dict__
-                if self.hook_pattern.match(hook_name)]
+                if self._hook_pattern.match(hook_name)]
 
     def object_hook(self, dct):
         '''
-        This function will be used by method `decode` to convert dict
-        composed of strings into object, which is known as unjsonify.
+        This function will be used by method `decode` to convert
+        dict into object. It is the last step of unjsonify.
         '''
         for hook in self.decode_hooks:
             try:
@@ -691,16 +692,16 @@ class MiscJsonDecoder(json.JSONDecoder):
                     return obj
         return dct
 
-    def decode_bytearray_hook(self, dct):
+    def unjsonify_bytearray_hook(self, dct):
         return zlib.decompress(dct['__bytearray__'].encode(dct['encoding']))
 
-    def decode_ndarray_hook(self, dct):
+    def unjsonify_ndarray_hook(self, dct):
         return np.frombuffer(
             dct['__ndarray__'],
             np.dtype(dct['dtype'])
         ).reshape(*dct['shape'])
 
-    def decode_instance_hook(self, dct):
+    def unjsonify_instance_hook(self, dct):
         module = importlib.import_module(dct['__module__'])
         try:
             cls = getattr(module, dct['__class__'])
@@ -709,7 +710,7 @@ class MiscJsonDecoder(json.JSONDecoder):
         else:
             return cls(dct['object'])
 
-    def decode_callable__hook(self, dct):
+    def unjsonify_callable__hook(self, dct):
         fstr = dct['__callable__']
         try:
             fcode = marshal.loads(fstr)
@@ -1051,51 +1052,46 @@ class LockedFile(object):
        descriptor refers to a file opened for writing.
     4. fcntl locks will be released after file is closed or by fcntl.LOCK_UN.
     '''
-    def __init__(self, filename=None, autoclean=True, *a, **k):
-        self.file_obj = StringIO()
-        self.path = os.path.abspath(filename or tempfile.mkstemp()[1])
-        self._autoclean = autoclean
-        self.__dict__.update(k)
-
-    def acquire(self):
+    def __init__(self, filename=None, *a, **k):
         '''
         Create file directory if not exists.
-        Create file and lock it with fcntl.flock.
         Write current process's id to file if it's used as a PIDFILE.
         '''
+        self.path = os.path.abspath(filename or tempfile.mkstemp()[1])
         d = os.path.dirname(self.path)
         if not os.path.exists(d):
             os.makedirs(d)
         #  self.file_obj = os.fdopen(
         #      os.open(self.path, os.O_CREAT | os.O_RDWR))
         self.file_obj = open(self.path, 'a+')  # 'a' will not truncate file
+        if k.get('pidfile', False):
+            self.file_obj.truncate(0)
+            self.file_obj.seek(0)
+            self.file_obj.write(str(os.getpid()))
+            self.file_obj.flush()
+        k.setdefault('autoclean', True)
+        self.__dict__.update(k)
+
+    def acquire(self):
+        '''Lock the file object with fcntl.flock'''
         try:
             fcntl.flock(self.file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
             raise RuntimeError('file `%s` has been used!' % self.path)
-        self.file_obj.truncate(0)
-
-        if getattr(self, 'pidfile', False):
-            self.file_obj.write(str(os.getpid()))
-            self.file_obj.flush()
-
         return self.file_obj
 
-    def release(self):
+    def release(self, *a, **k):
         self.file_obj.close()
-        if not self._autoclean or not os.path.exists(self.path):
+        if not self.autoclean or not os.path.exists(self.path):
             return
-        logger.debug('removeing locked file ' + self.path)
         try:
             os.remove(self.path)
+            logger.debug('Locked file `%s` removed.' % self.path)
         except OSError:
             pass
 
-    def __enter__(self):
-        return self.acquire()
-
-    def __exit__(self, exc_type=None, exc_value=None, exc_tb=None):
-        self.release()
+    __enter__ = acquire
+    __exit__  = release
 
     def __str__(self):
         return '<{0.__class__.__name__} {1}>'.format(self, self.path)
@@ -1114,48 +1110,108 @@ class TempStream(object):
 
     Examples
     --------
-    >>> with TempStream(stdout='/var/log/foo'):
-            print('bar')
-    >>> open('var/log/foo').read()
+    You can redirect standard output to a file just like shell command
+    `$ python test.py > /var/log/foo.log`:
+
+    >>> with TempStream(stdout='/var/log/foo.log'):
+            print('bar', file=sys.stdout)
+    >>> open('var/log/foo.log').read()
     bar
+
+    If no target stream (file-like object) specified, a StringIO buffer is
+    used to collect message from origin stream. All string from buffers will
+    be saved in an AttributeDict and returned for easier usage.
+
+    >>> # mask stdout and stderr to a string buffer
     >>> with TempStream('stdout', 'stderr') as ts:
-            print('error', sys.stderr)
-            print('hello', sys.stdout)
+            print('hello', file=sys.stdout, end='')
+            print('error', file=sys.stderr)
+    >>> type(ts)
+    embci.utils.AttributeDict
     >>> str(ts)
-    {'stderr': 'error', 'stdout': 'hello'}
-    >>> ts.stdout, ts['stderr']
-    ('hello', 'error')
+    "{'stderr': 'error\\n', 'stdout': 'hello'}"
+    >>> ts.stdout + ' ' + ts['stderr']
+    'hello error\n'
     '''
+    _disabled = False
+    _target = {
+        'stdout': sys.stdout,
+        'stderr': sys.stderr,
+        'stdin':  sys.stdin
+    }
 
     def __init__(self, *args, **kwargs):
         self._replace = {}
-        self._target = {}
+        self._savepos = {}
+        self._message = AttributeDict()
         for arg in args:
             if arg not in kwargs:
                 kwargs[arg] = None
-        while kwargs:
-            key, value = kwargs.popitem()
-            if key not in ['stdout', 'stderr', 'stdin']:
-                raise ValueError('No such stream: {}'.format(key))
-            if value is None:
-                value = StringIO()
-            elif isinstance(value, str):
-                value = open(value, 'w+')
-            self._replace[key] = value
+        for name, stream in kwargs.items():
+            if name not in ['stdout', 'stderr', 'stdin']:
+                logger.error('Invalid stream name: `{}`'.format(name))
+                continue
+            if stream is None:
+                stream = StringIO()
+            elif isinstance(stream, strtypes):
+                stream = open(stream, 'w+')
+            elif not hasattr(stream, 'write'):
+                raise TypeError('Invalid stream: `{}`'.format(stream))
+            self._replace[name] = stream
+            self._savepos[stream] = 0
 
-    def __enter__(self):
-        for t in self._replace:
-            self._target[t] = getattr(sys, t)
-            setattr(sys, t, self._replace[t])
-        self._message = AttributeDict()
+    def enable(self):
+        assert not self._disabled, 'Cannot re-enable a disabled TempStream'
+        # replace origin streams with new streams
+        for name, stream in self._replace.items():
+            setattr(sys, name, stream)
         return self._message
 
-    def __exit__(self, *a):
-        for t in self._target:
-            setattr(sys, t, self._target[t])
-            self._replace[t].flush()
-            self._replace[t].seek(0)
-            self._message[t] = self._replace[t].read()
+    def disable(self, *a):
+        for name, stream in self._replace.items():
+            # recover origin stream
+            setattr(sys, name, self._target[name])
+            # check if new stream is one of origins
+            if stream in self._target.values():
+                continue
+            # fetch message as string from new streams
+            self._message[name] = self.get_string(stream)
+            stream.close()
+        self._disabled = True
+
+    def get_string(self, stream=None, clean=False):
+        '''
+        Current stream position is saved so that next time it will read from
+        where it left this time without cleaning.
+        '''
+        if stream is None:
+            for name, stream in self._replace.items():
+                self._message[name] = self.get_string(stream, clean=True)
+            return self._message
+        elif stream in self._replace:
+            stream = self._replace[stream]
+        elif stream not in self._replace.values():
+            raise ValueError('Not masked stream: `{}`'.format(stream))
+        stream.flush()
+        # Get current cursor position
+        pos = stream.tell()
+        # Move cursor to last position
+        stream.seek(self._savepos[stream] if not clean else 0)
+        msg = stream.read()
+        # Default it will not clean the buffer
+        if clean:
+            stream.truncate(0)
+            pos = 0
+        stream.seek(pos)
+        self._savepos[stream] = pos
+        return msg
+
+    @classmethod
+    def disable_all(cls):
+        cls._disabled = True
+
+    __enter__ = enable
+    __exit__ = disable
 
 
 class TempLogLevel(object):
@@ -1433,7 +1489,7 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
 
     Examples
     --------
-    >>> flag = virtual_serial(timeout=-1)
+    >>> flag = virtual_serial(timeout=-1)[0]
 
     Suppose it's /dev/pts/0 <==> /dev/pts/1
     >>> s = serial.Serial('/dev/pts/1',115200)
@@ -1442,7 +1498,7 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
     7
     >>> m.read_until()
     'hello?\\n'
-    >>> flag[0].set()
+    >>> flag.set()
     '''
     master1, slave1 = os.openpty()
     master2, slave2 = os.openpty()
@@ -1506,12 +1562,10 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
 
     >>> # content of bar.py
     >>> from foo import do_config_logger
-    >>> logger1 = do_config_logger()
-    >>> logger2 = config_logger()
-    >>> print(logger1.name, logger2.name)
-
-    Then run `python bar.py`
-    ('foo', 'bar')
+    >>> l1 = do_config_logger()
+    >>> l2 = config_logger()
+    >>> print('logger from foo.py: %s, from bar.py: %s' % (l1.name, l2.name))
+    logger from foo.py: foo, from bar.py: bar
 
     See Also
     --------

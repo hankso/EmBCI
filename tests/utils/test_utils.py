@@ -27,8 +27,7 @@ logger = config_logger(level=logging.INFO, format='%(message)s', stream=logmsg)
 
 
 def get_log_msg(f=logmsg):
-    msg = f.getvalue()
-    f.truncate(0)
+    msg = f.getvalue(); f.truncate(0); f.seek(0)  # noqa: E702
     return msg.strip()
 
 

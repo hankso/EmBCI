@@ -48,15 +48,17 @@ class BaseCommander(object):
             logger.warning(
                 '[Command Dict] current command dict does not have a '
                 'key named _desc to describe itself. please add it.')
-        # alias `write` to make instance a file-like object
-        self.write = self.send
-        self.flush = self.seek = self.truncate = lambda *a, **k: None
 
     def start(self):
         raise NotImplementedError('you can not directly use this class')
 
     def send(self, key, *args, **kwargs):
         raise NotImplementedError('you can not directly use this class')
+
+    # alias `send` as `write` to make instances file-like object
+    write = send
+    flush, read = lambda: None, lambda *a: ''
+    seek = truncate = tell = lambda *a: 0
 
     def get_command(self, cmd, warning=True):
         if cmd not in self._command_dict:
