@@ -839,18 +839,19 @@ class LoopTaskMixin(object):
 
 class LoopTaskInThread(threading.Thread, LoopTaskMixin):
     def __init__(self, func=None, daemon=True, *a, **k):
-        self.__tdaemon, self.__targs, self.__tkwargs = daemon, a, k
-        self.__init_thread()  # you can call this function to reinit thread
-        self._func_ = func
-        self._before_ = k.pop('before', None)
-        self._after_ = k.pop('after', None)
-        self.name = self._name = 'Loop Task on {}'.format(
-            getattr(self._func_, 'func_name', self._name))
+        self._tdaemon_, self._targs_, self._tkwargs_ = daemon, a, k
+        self._init_thread_()  # you can call this function to reinit thread
+        self._floop_ = func
+        self._fbefore_ = k.pop('before', None)
+        self._fafter_ = k.pop('after', None)
+        self.name = getattr(self, '_name', getattr(self, '__name', 'Unknown'))
+        self.name = self._name = self.__name = 'Loop Task on {}'.format(
+            getattr(self._floop_, 'func_name', self.name))
         LoopTaskMixin.__init__(self)
 
-    def __init_thread(self):
-        threading.Thread.__init__(self, *self.__targs, **self.__tkwargs)
-        self.setDaemon(self.__tdaemon)
+    def _init_thread_(self):
+        threading.Thread.__init__(self, *self._targs_, **self._tkwargs_)
+        self.setDaemon(self._tdaemon_)
 
     def start(self):
         if not self.started:
@@ -859,12 +860,12 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
 
     def close(self):
         if not LoopTaskMixin.close(self):
-            return 'already closed task'
+            return False  # already closed task
         # TODO: LoopTaskInThread: make Thread restartable
 
     def run(self):
         try:
-            self.loop(self._func_, before=self._before_, after=self._after_)
+            self.loop(self._floop_, before=self._fbefore_, after=self._fafter_)
         finally:
             logger.info('{} stopped.'.format(self))
 
@@ -2011,8 +2012,8 @@ if hasattr(inspect, 'signature'):
         # deprecated. inspect.signature is suggested to use, but it needs
         # some extra steps to fetch our wanted info
         args, defaults = [], []
-        for name, param in inspect.signature(func).parameters:
-            if kwonlywarn and param.kind is param.kwonlyargs:
+        for name, param in inspect.signature(func).parameters.items():
+            if kwonlywarn and param.kind is param.KEYWORD_ONLY:
                 warnings.warn(
                     "Keyword only arguments are not suggested in functions, "
                     "because it keeps your script from python2 and 3 "

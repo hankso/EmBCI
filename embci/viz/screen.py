@@ -29,9 +29,9 @@ from decorator import decorator
 from ..configs import BASEDIR
 from ..io import SerialCommander
 from ..utils.ili9341_api import ILI9341_API, rgb565to888, rgb888to565
-from ..utils import (time_stamp, find_gui_layouts, ensure_unicode, get_config,
-                     serialize, deserialize, get_func_args,
-                     AttributeDict, AttributeList, Singleton)
+from ..utils import (time_stamp, find_gui_layouts, ensure_unicode,
+                     get_config, serialize, deserialize, get_func_args,
+                     AttributeDict, AttributeList, Singleton, LoopTaskInThread)
 from ..constants import (command_dict_uart_screen_winbond_v1,
                          colormapper_uart_screen_winbond_v1,
                          colormapper_spi_screen_ili9341,
@@ -44,23 +44,30 @@ from . import logger
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 __all__ = ['Colormap', 'SerialScreenGUI', 'SPIScreenGUI']
 
-DEFAULT_WIDGET = AttributeDict({
-    'point': AttributeList(), 'text': AttributeList(), 'img': AttributeList(),
-    'button': AttributeList(), 'line': AttributeList(),
-    'circle': AttributeList(), 'circlef': AttributeList(),
-    'round': AttributeList(), 'roundf': AttributeList(),
-    'rect': AttributeList(), 'rectf': AttributeList(),
-    'round_rect': AttributeList(), 'round_rectf': AttributeList()
-})
 
-DEFAULT_COLOR = AttributeDict({
-    'point': 'blue', 'text': 'black', 'bg': 'white',
-    'press': ['red', 'cyan'], 'line': 'red',
-    'circle': 'red', 'circlef': 'red',
-    'round': 'yellow', 'roundf': 'cyan',
-    'rect': 'pink', 'rectf': 'orange',
-    'round_rect': 'purple', 'round_rectf': 'purple'
-})
+def DEFAULT_WIDGET():
+    '''Create and return a new object instead of using `deepcopy`'''
+    return AttributeDict({
+        'point': AttributeList(), 'img': AttributeList(),
+        'text': AttributeList(),
+        'button': AttributeList(), 'line': AttributeList(),
+        'circle': AttributeList(), 'circlef': AttributeList(),
+        'round': AttributeList(), 'roundf': AttributeList(),
+        'rect': AttributeList(), 'rectf': AttributeList(),
+        'round_rect': AttributeList(), 'round_rectf': AttributeList()
+    })
+
+
+def DEFAULT_COLOR():
+    '''Create and return a new object instead of using `deepcopy`'''
+    return AttributeDict({
+        'point': 'blue', 'text': 'black', 'bg': 'white',
+        'press': ['red', 'cyan'], 'line': 'red',
+        'circle': 'red', 'circlef': 'red',
+        'round': 'yellow', 'roundf': 'cyan',
+        'rect': 'pink', 'rectf': 'orange',
+        'round_rect': 'purple', 'round_rectf': 'purple'
+    })
 
 
 # ===============================================================================
@@ -73,7 +80,7 @@ class Colormap(object):
 
     Examples
     --------
-    >>> mapper = ColorMapping()
+    >>> mapper = Colormap()
     >>> mapper(0xff0000)
     (255, 0, 0)
     >>> mapper([0, 255, 0])
@@ -163,10 +170,14 @@ class DrawElementMixin(object):
     width, height = 320, 240
 
     def __init__(self):
-        '''only used for testing'''
+        '''For testing only.'''
+        self._init_
+
+    def _init_(self):
+        '''Remember to call this or set attribute manually.'''
         # cannot directly draw on DEFAULT_WIDGET, it's used as a template
-        self.widget = DEFAULT_WIDGET.deepcopy()
-        self.color = DEFAULT_COLOR.deepcopy()
+        self.widget = DEFAULT_WIDGET()
+        self.color = DEFAULT_COLOR()
 
     def _pre_draw_check(name):
         '''
@@ -227,15 +238,15 @@ class DrawElementMixin(object):
             raise ValueError('element `{}` is not supported'.format(name))
         return args
 
-    def __repr__(self):
+    def __str__(self):
         info, maxlen = '', 12
         for key in self.widget:
             id_str = ', '.join(map(str, self.widget[key].id))
-            info += ' {:11s} | {}\n'.format(key, id_str if id_str else None)
+            info += '  {:11s} | {}\n'.format(key, id_str if id_str else None)
             maxlen = max(maxlen, len(id_str))
         return ('<%s at %s\n' % (self.name, hex(id(self))) +
-                ' Widget summary:\n elements    | id\n' +
-                ' %s+%s\n%s>' % ('-' * 11, '-' * maxlen, info))
+                '  Widget summary:\n  elements    | id\n' +
+                '  %s+%s\n%s>' % ('-' * 11, '-' * maxlen, info))
 
     def default_callback(self, x, y, bt):
         '''default button callback'''
@@ -356,6 +367,7 @@ class DrawElementMixin(object):
             1       90 - 180 degree:  left upper corner
             2      180 - 270 degree:  left lower corner
             3      270 - 360 degree: right lower corner
+
         color : str or int, optional
             Color of rounded corner.
         fill : bool, optional
@@ -450,7 +462,7 @@ class DrawElementMixin(object):
             img = filename_or_img
         else:
             return
-        self.freeze_frame()
+        self.frame_freeze()
 
         # adjust img size
         w, h = img.size
@@ -481,7 +493,7 @@ class DrawElementMixin(object):
             self._touch_pause.set()  # resume _touchscreen_handler thread
         else:
             time.sleep(5)
-        self.recover_frame()
+        self.frame_recover()
 
     def getsize(self, s, *a):
         '''Get width and height pixel of string.'''
@@ -492,9 +504,10 @@ class DrawElementMixin(object):
         # render all
         if None in [element, id]:
             self.clear()  # clear all screen
-            for element in self.widget:
-                for e in self.widget[element]:
-                    self.render(element, e.id, clear=False)
+            for name in self.widget:
+                for e in self.widget[name]:
+                    self.render(name, e.id, clear=False)
+            return
         # render one element
         e = self.widget[element, id]
         if e is None:
@@ -503,7 +516,7 @@ class DrawElementMixin(object):
             self.clear(**e)  # clear specific element
         try:
             getattr(self, 'render_%s_hook' % element)(e)
-        except TypeError:
+        except (AttributeError, TypeError):
             self.send(element, **e)
 
     def render_button_hook(self, e):
@@ -529,8 +542,8 @@ class DrawElementMixin(object):
         >>> gui = GUIClass()
         >>> gui.draw_line(0, 0, 100, 100, color='blue')
         >>> gui.clear(20, 20, 40, 40, 'black')  # clear area with black color
-        >>> gui.clear(**gui.widget['line', 1])  # clear element line.1
-        >>> gui.clear(bg='green')  # clear whole screen green
+        >>> gui.clear(**gui.widget['line', 1])  # clear area element line.1
+        >>> gui.clear(bg='green')               # clear whole screen with green
         '''
         if None in [x1, y1, x2, y2]:
             self.send('clear', c=(bg or self.color['bg']))
@@ -540,7 +553,7 @@ class DrawElementMixin(object):
                       x2=max(x1, x2), y2=max(y1, y2))
 
     def send(self, *a, **k):
-        warnings.warn(RuntimeWarning('Not implemented yet.'))
+        warnings.warn(RuntimeWarning('Cannot directly use Mixin class.'))
         logger.debug('=' * 80)
         logger.debug(a, k)
         logger.debug('=' * 80)
@@ -548,34 +561,49 @@ class DrawElementMixin(object):
 
 class TouchScreenMixin(object):
     '''
-    Touch Screen
-    ------------
-    touch_sense             -- Touch sensibility (max frequency).
-    touch_button_animation  -- Whether display animation after button clicked.
-    touch_screen_animation  -- Whether display animation after screen touched.
-    touchscreen_start       -- Start handler thread to run button callbacks.
-    touchscreen_close       -- Close touchscreen connection and stop handler.
-    touchscreen_calibration -- Run calibrate guide to correct touch point.
+    Resistive touchscreen touch point can be accessed by Analog-to-Digital
+    Converter(ADC). In EmBCI hardware we use ESP32 to read it and transfer
+    touch info to embedded Linux by UART connection.
+
+    Touch Screen Configuration
+    --------------------------
+    touch_sense              -- Touch sensibility (max frequency).
+    touch_animation_button   -- Whether display animation after button clicked.
+    touch_animation_screen   -- Whether display animation after screen touched.
+
+    Touch Screen Methods
+    --------------------
+    touch_screen_start       -- Start handler thread to run button callbacks.
+    touch_screen_close       -- Close touchscreen connection and stop handler.
+    touch_screen_pause       -- Pause touch handler thread.
+    touch_screen_resume      -- Resume touch handler thread.
+    touch_screen_calibration -- Run calibrate guide to correct touch point.
     '''
-    _touch_lock = threading.Lock()
-    _touch_epoll = select.epoll()
-    _touch_prevx, _touch_prevy = 0, 0
     _cali_matrix = np.array([[1, 1], [0, 0]])
     touch_sense = 1
-    touch_button_animation = True
-    touch_screen_animation = True
+    touch_animation_button = True
+    touch_animation_screen = True
 
     def __init__(self):
-        '''only used for testing'''
-        self.widget = DEFAULT_WIDGET.deepcopy()
-        self.color = DEFAULT_COLOR.deepcopy()
-        self._touch_started = False
+        '''For testing only.'''
+        DrawElementMixin._init_(self)
+        self._init_()
 
-    def touchscreen_start(self, port, baud=115200, block=False):
+    def _init_(self):
+        '''Remember to call this or set attribute manually.'''
+        self._touch_lock = threading.Lock()
+        self._touch_serial = serial.Serial()
+        self._touch_epoll = select.epoll()
+        self._touch_prevp = [0, 0]       # previous touch point
+        self._touch_prevt = time.time()  # previous touch time
+        self._touch_task = LoopTaskInThread(self._touch_screen_handler)
+        self.touch_screen_pause  = self._touch_task.pause
+        self.touch_screen_resume = self._touch_task.resume
+        self._callback_threads = []
+
+    def touch_screen_start(self, port, baud=115200, block=False):
         '''
-        Resistive touchscreen touch point can be accessed by Analog-to-Digital
-        Converter(ADC). In EmBCI hardware we use ESP32 to read it and transfer
-        touch info to embedded Linux by UART connection.
+        Start touch screen loop task in new thread.
 
         Parameters
         ----------
@@ -583,51 +611,46 @@ class TouchScreenMixin(object):
             Port name to establish serial connection.
         baud : int, optional
             Default baudrate is 115200.
+        block: bool, optional
+            Whether to block current caller thread (usually main thread) by
+            looply sleep, until `touch_task.close` or `self.close` is called.
+            This is useful for debugging touch screen functionality or leave
+            the context control to touch_task temperorily. KeyboardInterrupt
+            can be issued to stop blocking safely. Default `False`.
         '''
-        if self._touch_started:
-            return
-        self._touch_serial = serial.Serial(port, baud)
+        if self._touch_task.started:
+            return False
+
+        self._touch_serial.port = port
+        self._touch_serial.baudrate = baud
+        self._touch_serial.open()
         self._touch_serial.flushInput()
-
         self._touch_epoll.register(self._touch_serial, select.EPOLLIN)
-        self._touch_close = threading.Event()
-        self._touch_close.clear()
-        self._touch_pause = threading.Event()
-        self._touch_pause.set()
 
-        self._callback_threads = []
-        self._touch_thread = threading.Thread(target=self._handle_touch)
-        self._touch_thread.setDaemon(True)
-        self._touch_thread.start()
-
-        self._last_touch = time.time()
-        self._touch_started = True
-
-        # block current thread(usually main thread) by looply sleep, until
-        # `self.close` is called or `self._flag_close` is set.
-        if block:
-            while not self._touch_close.isSet():
+        ret = self._touch_task.start()
+        if not block:
+            return ret
+        while self._touch_task.started:
+            try:
                 time.sleep(1)
+            except KeyboardInterrupt:
+                break
 
-    def touchscreen_close(self):
-        if not self._touch_started:
-            return
-        self._touch_close.set()
-        self._touch_pause.clear()
-        time.sleep(1.1)
+    def touch_screen_close(self):
+        if not self._touch_task.close():
+            return False
         self._touch_epoll.unregister(self._touch_serial)
         self._touch_serial.write('\xaa\xaa\xaa\xaa')  # send close signal
-        time.sleep(0.5)
+        self._touch_serial.flush(); time.sleep(0.3)  # noqa: E702
         self._touch_serial.close()
         self._callback_threads = []
-        self._touch_started = False
 
-    def touchscreen_calibration(self, *a, **k):
-        if not self._touch_started:
-            logging.error('[Screen GUI] touch screen not initialized yet!')
+    def touch_screen_calibration(self, *a, **k):
+        if not self._touch_task.started:
+            logging.error('[Screen GUI] touch screen task not started yet!')
             return
-        self._touch_pause.clear()  # pause _touchscreen_handler thread
-        self.freeze_frame()
+        self._touch_task.pause()
+        self.frame_freeze()
         self.touch_sense = 1
         self._cali_matrix = np.array([[1, 1], [0, 0]])
         time.sleep(1.1)
@@ -658,8 +681,8 @@ class TouchScreenMixin(object):
         except Exception:
             logger.error(traceback.format_exc())
         finally:
-            self.recover_frame()
-            self._touch_pause.set()  # resume _touchscreen_handler thread
+            self.frame_recover()
+            self._touch_task.resume()
 
     def _get_touch_point(self, timeout=-1):
         '''
@@ -678,7 +701,7 @@ class TouchScreenMixin(object):
             Return (-1, -1) if timeout or touch too frequently.
             Return (x, y) coordinates in pixel after calibration normally.
         '''
-        if self._touch_close.isSet():
+        if not self._touch_task.started:
             return None, None
         # avoid being called from multiple threads
         with self._touch_lock:
@@ -687,10 +710,10 @@ class TouchScreenMixin(object):
                 return -1, -1
             raw = self._touch_serial.read_until().strip()
             self._touch_serial.flushInput()
-            # avoid touch screen too frequently(sensible)
-            if (time.time() - self._last_touch) < (1.0 / self.touch_sense):
+            # avoid touch screen too frequently (touch_sense)
+            if (time.time() - self._touch_prevt) < (1.0 / self.touch_sense):
                 return -1, -1
-            self._last_touch = time.time()
+            self._touch_prevt = time.time()
             # raw string should be like "y, x, presure"
             try:
                 y, x, _ = map(int, raw.split(','))
@@ -712,7 +735,7 @@ class TouchScreenMixin(object):
         return [self.widget.button[id] for id in
                 np.array(self.widget.button.id)[list(map(all, pick))]]
 
-    def _touch_button_animate(self, bt):
+    def _touch_animate_button(self, bt):
         '''display animation on clicked button(blink~)'''
         if bt.ct != self.color['press'][0]:
             c = self.color['press'][0]
@@ -730,67 +753,68 @@ class TouchScreenMixin(object):
             self.send('rect', **bt)
         del bt.c
 
-    def _touch_screen_animate(self, x, y):
+    def _touch_animate_screen(self, x, y):
         '''act like a mouse pointer'''
-        self.send('point', self._touch_prevx,
-                  self._touch_prevy, self.color['bg'])
+        self.send('point',
+                  self._touch_prevp[0],
+                  self._touch_prevp[1],
+                  self.color['bg'])
         self.send('point', x, y, self.color['point'])
-        self._touch_prevx, self._touch_prevy = x, y
+        self._touch_prevp = [x, y]
 
-    def _touchscreen_handler(self):
-        while not self._touch_close.isSet():
-            self._touch_pause.wait()
-            x, y = self._get_touch_point(timeout=1)
-            if None in [x, y]:
-                raise RuntimeError('touch screen device read error')
-            if x == y == -1:
-                continue
-            for bt in self._get_clicked_buttons(x, y):
-                self._callback_threads.append(
-                    threading.Thread(target=bt.callback, args=(x, y, bt)))
-                self._callback_threads[-1].start()
-                if self.touch_button_animation:
-                    self._touch_button_animate(bt)
-            if self.touch_screen_animation:
-                self._touch_screen_animate(x, y)
+    def _touch_screen_handler(self):
+        '''This function will be looply executed.'''
+        x, y = self._get_touch_point(timeout=2)
+        if x == y == -1:
+            return
+        if None in [x, y]:
+            raise RuntimeError('touch screen device read error')
+        for bt in self._get_clicked_buttons(x, y):
+            self._callback_threads.append(
+                threading.Thread(target=bt.callback, args=(x, y, bt)))
+            self._callback_threads[-1].start()
+            if self.touch_animation_button:
+                self._touch_animate_button(bt)
+        if self.touch_animation_screen:
+            self._touch_animate_screen(x, y)
         logger.info('[Touch Screen] touch handler thread exit.')
 
     def send(self, *a, **k):
-        warnings.warn(RuntimeWarning('Not implemented yet.'))
-        logger.debug('=' * 80)
-        logger.debug(a, k)
-        logger.debug('=' * 80)
+        DrawElementMixin.send(self, *a, **k)
 
 
 class GUIControlMixin(object):
     '''
     GUI Control
     -----------
-    move_element   -- Move element to specific position (x, y) in pixel.
-    remove_element -- Delete element by `name` and `id`.
-    save_frame     -- Save current widgets into a layout file.
-    load_frame     -- Load widgets from specific layout file.
-    freeze_frame   -- Stack current frame widgets to background.
-    recover_frame  -- Recover lastest frame widgets from background.
-    empty_frame    -- Clear current frame by emptying widget dict.
+    element_move   -- Move element to specific position (x, y) in pixel.
+    element_remove -- Delete element by `name` and `id`.
+    frame_save     -- Save current widgets into a layout file.
+    frame_load     -- Load widgets from specific layout file.
+    frame_freeze   -- Stack current frame widgets to background.
+    frame_recover  -- Recover lastest frame widgets from background.
+    frame_clear    -- Clear current frame by emptying widget dict.
     '''
 
     def __init__(self):
         '''only used for testing'''
-        self.widget = DEFAULT_WIDGET.deepcopy()
-        self._frame_fifo = []
+        self.widget = DEFAULT_WIDGET()
+        self._init_()
+
+    def _init_(self):
+        self._frame_stack = []
 
     def _get_element(self, element=None, id=None):
         elements = [key for key in self.widget.keys() if self.widget[key]]
         if len(elements) == 0:
             logger.warning('Empty widget bucket now!')
-            return
+            return None
         if element not in elements:
             logger.warning('Choose element from {}'.format(elements))
-            return
+            return None
         return self.widget[element, id]
 
-    def move_element(self, element=None, id=None, x=0, y=0):
+    def element_move(self, element=None, id=None, x=0, y=0):
         e = self._get_element(element, id)
         if e is None:
             return
@@ -799,14 +823,14 @@ class GUIControlMixin(object):
             e.x, e.y = e.x + x, e.y + y
         self.render()
 
-    def remove_element(self, element=None, id=None):
+    def element_remove(self, element=None, id=None):
         e = self._get_element(element, id)
         if e is None:
             return
         self.widget[element].remove(e)
         self.render()
 
-    def save_frame(self, dir_or_file, method='dill', overwrite=True):
+    def frame_save(self, dir_or_file, method='dill', overwrite=True):
         '''
         Save current frame into a layout file.
 
@@ -824,15 +848,15 @@ class GUIControlMixin(object):
         More detail about `dill` is available at
         https://github.com/uqfoundation/dill
         '''
-        d = os.path.dirname(dir_or_file)
-        if not os.path.exists(d):
-            os.makedirs(d)
+        parent_dir = os.path.dirname(dir_or_file)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
         # dir_or_file: non-exist file | exist file | exist directory
         if os.path.isdir(dir_or_file):
             fn = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
         elif os.path.exists(dir_or_file) and not overwrite:
-            fn = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
+            fn = os.path.join(parent_dir, 'layout-%s.pcl' % time_stamp())
         else:
             fn = dir_or_file
 
@@ -849,7 +873,7 @@ class GUIControlMixin(object):
             logger.info(self.name + 'save layout `{}` failed.'.format(fn))
             logger.error(traceback.format_ext())
 
-    def load_frame(self, dir_or_file, method='dill', extend=False):
+    def frame_load(self, dir_or_file, method='dill', extend=False):
         '''
         Load widgets from specific layout file.
 
@@ -897,20 +921,20 @@ class GUIControlMixin(object):
             self.widget = tmp
         self.render()
 
-    def freeze_frame(self):
+    def frame_freeze(self):
         '''Stack current frame widgets to background'''
-        self._frame_fifo.append(self.widget)
-        self.empty_frame()
+        self._frame_stack.append(self.widget)
+        self.frame_clear()
 
-    def recover_frame(self):
+    def frame_recover(self):
         '''Recover lastest frame widgets from background'''
-        if self._frame_fifo:
-            self.widget = self._frame_fifo.pop(0)
+        if self._frame_stack:
+            self.widget = self._frame_stack.pop()
         self.render()
 
-    def empty_frame(self):
+    def frame_clear(self):
         '''clear current frame by emptying widget dict'''
-        self.widget = DEFAULT_WIDGET.deepcopy()
+        self.widget = DEFAULT_WIDGET()
         self.render()
 
     def render(self, *a, **k):
@@ -941,9 +965,9 @@ def uartscreen_winbond_v1_carray(v):
         raise ValueError('invalid array color `{}`'.format(v))
 
 
-class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin,
-                      SerialCommander):
+class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
     __doc__ = 'GUI class of UART controlled screen.\n' + __guidoc__
+    _started = False
 
     # Drawing configs
     encoding = 'gbk'
@@ -986,15 +1010,13 @@ class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin,
             if (key in ['height', 'width', 'encoding', 'touch_sense']
                     and k[key] is not None):
                 setattr(self, key, k[key])
-        self.widget = widget or DEFAULT_WIDGET.deepcopy()
-        self.color = color or DEFAULT_COLOR.deepcopy()
-        self._started = False
-        self._touch_started = False
-        self._frame_fifo = []
-
         self.name = name or '[Serial Screen GUI Commander {}]'.format(
             SerialCommander.__num__)
         self._api = (API or self.API)(self.name, *a, **k)
+
+        DrawElementMixin._init_(self)
+        TouchScreenMixin._init_(self)
+        GUIControlMixin._init_(self)
 
     def start(self, port='/dev/ttyS1', baudrate=115200):
         if self._started:
@@ -1095,6 +1117,7 @@ def spiscreen_ili9341_carray(v):
 class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
     __doc__ = 'GUI class of SPI controlled screen.\n' + __guidoc__
     __metaclass__ = Singleton
+    _started = False
     name = '[SPI Screen GUI Commander]'
 
     # Drawing configs
@@ -1136,16 +1159,14 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
             if (key in ['height', 'width', 'encoding', 'touch_sense']
                     and k[key] is not None):
                 setattr(self, key, k[key])
-        self.widget = widget or DEFAULT_WIDGET.deepcopy()
-        self.color = color or DEFAULT_COLOR.deepcopy()
-        self._started = False
-        self._touch_started = False
-        self._frame_fifo = []
-
         self._api = (API or self.API)(*a, **k)
         self.setsize = self._api.setsize
         self.setfont = self._api.setfont
         self.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
+
+        DrawElementMixin._init_(self)
+        TouchScreenMixin._init_(self)
+        GUIControlMixin._init_(self)
 
     def start(self):
         if self._started:
