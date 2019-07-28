@@ -9,54 +9,37 @@
 # built-in
 from __future__ import print_function, absolute_import, unicode_literals
 import os
-import re
 import sys
 import copy
 import math
-import json
-import zlib
-import glob
 import time
-import types
 import fcntl
 import select
-import socket
-import inspect
-import marshal
 import logging
 import tempfile
-import warnings
-import importlib
 import threading
 import traceback
 from collections import MutableMapping, MutableSequence
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
-# requirements.txt: drivers: pyserial
-# requirements.txt: data-processing: pylsl, numpy
-# requirements.txt: necessary: decorator, six, dill
-from serial.tools.list_ports import comports
-import pylsl
+# requirements.txt: data-processing: numpy
+# requirements.txt: necessary: decorator, six
 import numpy as np
 from decorator import decorator
-from six import StringIO
-import dill
+from six.moves import StringIO, configparser
 
 from ..constants import BOOLEAN_TABLE
 from ..configs import DATADIR, LOGFORMAT, DEFAULT_CONFIG_FILES
 import embci.configs
 
+__all__ = []
 
 # =============================================================================
-# CONSTANTS
+# Constants
 
 __doc__ = 'Some utility functions and classes.'
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
-# save 0,1,2 files so that TempStream will not replace these variables.
+# save 0, 1, 2 files so that TempStream will not replace these variables.
 stdout, stderr, stdin = sys.stdout, sys.stderr, sys.stdin
 
 # example for mannualy create a logger
@@ -64,14 +47,14 @@ logger = logging.getLogger(__name__)
 hdlr = logging.StreamHandler(stdout)
 hdlr.setFormatter(logging.Formatter(LOGFORMAT))
 logger.handlers = [hdlr]
-logger.setLevel(logging.WARN)
+logger.setLevel(logging.INFO)
 del hdlr
-# you can use config_logger instead, which is better
+# you can use embci.utils._logging.config_logger instead, which is better
 
 if sys.version_info > (3, 0):
-    strtypes = (bytes, str)  # noqa: E602
+    strtypes = (bytes, str,)  # noqa: E602
 else:
-    strtypes = (basestring)  # noqa: E602
+    strtypes = (basestring,)  # noqa: E602
 
 from ..testing import PytestRunner
 test = PytestRunner(__name__)
@@ -79,7 +62,12 @@ del PytestRunner
 
 
 # =============================================================================
-# UTILITIES
+# Utilities
+
+
+def debug(v=True):
+    logger.setLevel('DEBUG' if get_boolean(v) else 'INFO')
+
 
 def null_func(*a, **k):
     return
@@ -241,10 +229,7 @@ class AttributeDict(MutableMapping):
         return self.__mapping__.__str__()
 
     def __repr__(self):
-        return '<{}.{} {} at {}>'.format(
-            self.__module__, self.__class__.__name__,
-            str(self), hex(id(self))
-        )
+        return '<%s %s at 0x%x>' % (self.__class__.__name__, self, id(self))
 
     def __iter__(self):
         return self.__mapping__.__iter__()
@@ -419,9 +404,7 @@ class AttributeList(MutableSequence):
         return self.__sequence__.__str__()
 
     def __repr__(self):
-        return '<{}.{} {} at {}>'.format(
-            self.__module__, self.__class__.__name__, str(self), hex(id(self))
-        )
+        return '<%s %s at 0x%x>' % (self.__class__.__name__, self, id(self))
 
     def __iter__(self):
         return self.__sequence__.__iter__()
@@ -501,224 +484,6 @@ class BoolString(str):
         return get_boolean(self, table)
 
     __bool__ = __nonzero__
-
-
-class JSONEncoder(json.JSONEncoder):
-    '''
-    This class is a dirty fix to make JSONEncoder support custom jsonifying
-    of nested and inherited default types such as dict, list and tuple etc.
-    By overwriting method `json.JSONEncoder.iterencode`, it changed default
-    behaviour on types inside tuple `self.masked`.
-
-    More at [this page](https://stackoverflow.com/questions/16405969/).
-    '''
-    item_separator = ','
-    key_separator = ': '
-    masked = ()
-
-    def __init__(self, *a, **k):
-        if 'ensure_ascii' not in k:
-            k['ensure_ascii'] = False
-        if 'sort_keys' not in k:
-            k['sort_keys'] = True
-        if 'indent' not in k:
-            k['indent'] = 4
-        super(JSONEncoder, self).__init__(*a, **k)
-
-    def _floatstr(self, o, _inf=float('inf')):
-        if o != o:
-            text = 'NaN'
-        elif abs(o) is _inf:
-            text = {_inf: 'Infinity', -_inf: '-Infinity'}[o]
-        else:
-            return repr(o)
-        if not self.allow_nan:
-            raise ValueError('Out of range float values are not JSON'
-                             'compliant: ' + repr(o))
-        return text
-
-    def _encoder(self, o):
-        if self.encoding != 'utf-8' and isinstance(o, strtypes):
-            o = o.decode(self.encoding)
-        if self.ensure_ascii:
-            return json.encoder.encode_basestring_ascii(o)
-        else:
-            return json.encoder.encode_basestring(o)
-
-    def _isinstance(self, o, cls):
-        if isinstance(o, self.masked):
-            return False
-        return isinstance(o, cls)
-
-    def iterencode(self, o, _one_shot=False):
-        return json.encoder._make_iterencode(
-            {} if self.check_circular else None, self.default, self._encoder,
-            self.indent, self._floatstr, self.key_separator,
-            self.item_separator, self.sort_keys, self.skipkeys,
-            _one_shot=False, isinstance=self._isinstance)(o, 0)
-
-
-class MiscJsonEncoder(JSONEncoder):
-    '''
-    Extend default json.JSONEncoder with many more features.
-
-    Supported types:
-    - function
-        1 builtin_function_or_method - dill
-        2 instancemethod - dill
-        3 function.func_code - marshal
-    - numpy.ndarray
-    - subclass of MutableMapping and MutableSequence
-    - subclass of default supported types like dict and list etc.(see notes)
-
-    Notes
-    -----
-    If you want to extend this class to support more types of object,
-    1 add the type into class's `masked` tuple
-    2 overwrite `default` or define `jsonify_xxx_hook`
-
-    >>> class Test(MiscJsonEncoder):
-            def __init__(self):
-                self.masked += (MyClass, )
-                super(Test, self).__init__()
-            def default(self, o):
-                if isinstance(o, MyClass):
-                    return jsonify_MyClass(o)
-                return super(Test, self).default(o)
-
-    or you can define `jsonify_xxx_hook`(object type in lower case!)
-
-    >>> class Test(MiscJsonEncoder):
-            masked = MiscJsonEncoder.masked + (MyClass, )
-            def jsonify_myclass_hook(self, o):
-                return jsonify_MyClass(o)
-
-    then you can use it as normal json encoder
-
-    >>> Test().masked
-    [builtin_function_or_method,
-     function,
-     instancemethod,
-     numpy.ndarray,
-     embci.utils.AttributeDict,
-     embci.utils.AttributeList,
-     bytearray,
-     __main__.MyClass]
-    >>> Test().encode(MyClass()) ==> string
-    '''
-    bytearray_encoding = 'cp437'
-    masked = (
-        types.BuiltinFunctionType, types.FunctionType, types.MethodType,
-        np.ndarray, AttributeDict, AttributeList, bytearray
-    )
-
-    def default(self, o):
-        if callable(o):
-            o_type = 'function'
-        else:
-            o_type = getattr(type(o), '__name__', 'unknown').lower()
-        try:
-            return getattr(self, 'jsonify_%s_hook' % o_type)(o)
-        except AttributeError:
-            return super(MiscJsonEncoder, self).default(o)
-
-    def jsonify_function_hook(self, o):
-        try:
-            fstr = marshal.dumps(o.func_code)
-        except ValueError:
-            fstr = dill.dumps(o)
-        return {
-            '__callable__': bytearray(fstr),
-            '__module__': o.__module__,
-            '__class__': o.__class__.__name__,
-            '__name__': o.__name__
-        }
-
-    def jsonify_attributedict_hook(self, o):
-        return {'__module__': o.__module__,
-                '__class__': o.__class__.__name__,
-                'object': o.copy(dict)}
-
-    def jsonify_attributelist_hook(self, o):
-        return {'__module__': o.__module__,
-                '__class__': o.__class__.__name__,
-                'object': o.copy(list)}
-
-    def jsonify_ndarray_hook(self, o):
-        return {'__ndarray__': bytearray(o.tobytes()),
-                'shape': o.shape,
-                'dtype': str(o.dtype)}
-
-    def jsonify_bytearray_hook(self, o):
-        o = zlib.compress(str(o), 9)
-        return {'__bytearray__': o.decode(self.bytearray_encoding),
-                'encoding': self.bytearray_encoding}
-
-
-class MiscJsonDecoder(json.JSONDecoder):
-    '''
-    JSON string decoder. :method:`unjsonify_xxx_hook` should handle
-    all exception and always return object or None.
-
-    See Also
-    --------
-    MiscJsonEncoder
-    '''
-    def __init__(self, *a, **k):
-        super(MiscJsonDecoder, self).__init__(
-            encoding='utf8', object_hook=self.object_hook)
-
-    _hook_pattern = re.compile(r'unjsonify_(\w)+_hook')
-
-    @property
-    def decode_hooks(self):
-        return [hook_name for hook_name in MiscJsonDecoder.__dict__
-                if self._hook_pattern.match(hook_name)]
-
-    def object_hook(self, dct):
-        '''
-        This function will be used by method `decode` to convert
-        dict into object. It is the last step of unjsonify.
-        '''
-        for hook in self.decode_hooks:
-            try:
-                obj = getattr(self, hook)(dct)
-            except KeyError:
-                continue
-            except Exception:
-                logger.error(traceback.format_exc())
-            else:
-                if obj is not None:
-                    return obj
-        return dct
-
-    def unjsonify_bytearray_hook(self, dct):
-        return zlib.decompress(dct['__bytearray__'].encode(dct['encoding']))
-
-    def unjsonify_ndarray_hook(self, dct):
-        return np.frombuffer(
-            dct['__ndarray__'],
-            np.dtype(dct['dtype'])
-        ).reshape(*dct['shape'])
-
-    def unjsonify_instance_hook(self, dct):
-        module = importlib.import_module(dct['__module__'])
-        try:
-            cls = getattr(module, dct['__class__'])
-        except AttributeError:
-            return
-        else:
-            return cls(dct['object'])
-
-    def unjsonify_callable__hook(self, dct):
-        fstr = dct['__callable__']
-        try:
-            fcode = marshal.loads(fstr)
-        except ValueError:
-            return dill.loads(fstr)
-        else:
-            fname = dct['__name__'].encode('utf8')
-            return types.FunctionType(fcode, globals(), fname)
 
 
 class LoopTaskMixin(object):
@@ -867,7 +632,7 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
         try:
             self.loop(self._floop_, before=self._fbefore_, after=self._fafter_)
         finally:
-            logger.info('{} stopped.'.format(self))
+            logger.debug('{} stopped.'.format(self))
 
 
 def time_stamp(localtime=None, fmt='%Y%m%d-%H:%M:%S'):
@@ -960,24 +725,74 @@ def format_size(*a, **k):
     return a
 
 
-def serialize(obj, method='dill'):
-    if method == 'dill':
-        return dill.dumps(obj)
-    elif method == 'json':
-        return MiscJsonEncoder().encode(obj)
-    elif method == 'minimize':
-        return MiscJsonEncoder(indent=None, separators=(',', ':')).encode(obj)
-    else:
-        raise ValueError('serialization method `%s` is not supported' % method)
+def get_boolean(v, table=BOOLEAN_TABLE):
+    '''convert string to boolean'''
+    t = str(v).title()
+    if t not in table:
+        raise ValueError('Invalid boolean value: {}'.format(v))
+    return table[t]
 
 
-def deserialize(string, method='dill'):
-    if method == 'dill':
-        return dill.loads(string)
-    elif method in ['json', 'minimize']:
-        return MiscJsonDecoder().decode(string)
-    else:
-        raise ValueError('serialization method `%s` is not supported' % method)
+def typename(obj):
+    return type(obj).__name__
+
+
+def load_configs(*fns):
+    '''
+    Configurations priority(from low to high):
+    - On Unix-like system:
+        project config file: "${EmBCI}/files/service/embci.conf"
+         system config file: "/etc/embci/embci.conf"
+           user config file: "~/.embci/embci.conf"
+    - On Windows system:
+        project config file: "${EmBCI}/files/service/embci.conf"
+         system config file: "${APPDATA}/embci.conf"
+           user config file: "${USERPROFILE}/.embci/embci.conf"
+    '''
+    fns = ensure_unicode(*(fns or DEFAULT_CONFIG_FILES))
+    # fns: [] | ufilename | [ufilename, ...]
+    if not isinstance(fns, list):
+        fns = [fns]
+    config = configparser.ConfigParser()
+    config.optionxform = str
+    loaded = config.read(fns)
+    for fn in fns:
+        if fn not in loaded:
+            raise IOError("Cannot load config file: '%s'" % fn)
+    # for python2 & 3 compatible, use config.items and config.sections
+    return {section: dict(config.items(section))
+            for section in config.sections()}
+
+
+def get_config(key, default=None, section=None, fn=None):
+    '''
+    Get configurations from environment variables or config files.
+    EmBCI use `INI-Style <https://en.wikipedia.org/wiki/INI_file>`_
+    configuration files with extention of `.conf`.
+
+    Parameters
+    ----------
+    key : str
+    default : str | None, optional
+        Return `default` if key is not in configuration files or environ,
+    section : str | None, optional
+        Section to search for key. Default None, search for each section.
+
+    See Also
+    --------
+    `configparser <https://en.wikipedia.org/wiki/INI_file>`_
+    '''
+    if key in os.environ:
+        return os.getenv(key)
+    if key in dir(embci.configs):
+        return getattr(embci.configs, key)
+    configs = load_configs(fn) if fn else load_configs()
+    if section is not None and key in configs.get(section, {}):
+        return configs[section][key]
+    for d in configs.values():
+        if key in d:
+            return d[key]
+    return default
 
 
 class Singleton(type):
@@ -1039,7 +854,7 @@ class Singleton(type):
 
 
 # =============================================================================
-# DECORATORS
+# Decorators
 
 class LockedFile(object):
     '''
@@ -1215,24 +1030,22 @@ class TempStream(object):
     __exit__ = disable
 
 
-class TempLogLevel(object):
+class CachedProperty(object):
     '''
-    Context manager to temporarily change log level and auto set back.
+    Descriptor class to construct a property that is only computed once and
+    then replaces itself as an ordinary attribute. Deleting the attribute
+    resets the property.
     '''
+    def __init__(self, func):
+        self.__func = func
+        self.__name = func.__name__
+        self.__doc__ = getattr(func, '__doc__')
 
-    def __init__(self, level):
-        self._logger = logging.getLogger(get_caller_globals(1)['__name__'])
-        self._old_level = self._logger.level
-        if isinstance(level, str):
-            level = level.upper()
-        self._level = level
-
-    def __enter__(self):
-        self._logger.setLevel(self._level)
-        return self._logger
-
-    def __exit__(self, *a):
-        self._logger.setLevel(self._old_level)
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        obj.__dict__[self.__name] = self.__func(obj)
+        return getattr(obj, self.__name)
 
 
 @decorator
@@ -1247,8 +1060,8 @@ def verbose(func, *args, **kwargs):
     Examples
     --------
     >>> @verbose
-        def echo(s):
-            logger.info(s)
+    ... def echo(s):
+    ...     logger.info(s)
     >>> echo('set log level to warning', verbose='WARN')
     >>> echo('set log level to debug', verbose='DEBUG')
     set log level to debug
@@ -1259,43 +1072,46 @@ def verbose(func, *args, **kwargs):
 
     Notes
     -----
-    Verbose level may comes from(sorted by prority):
+    Verbose level may comes from ways listed below (sorted by prority),
+    which also means this function can be used under these situations.
 
-    1. default argument
+    1. class default verbosity
+    >>> class Testing(object):
+    ...     def __init__(self):
+    ...         self.verbose = 'INFO'
+    ...     @verbose
+    ...     def echo(self, s, verbose=None):
+    ...         # verbose = verbose or self.verbose
+    ...         logger.info(s)
+
+    2. default argument
     >>> @verbose
         def echo(s, verbose=True):
             logger.info(s)
     >>> echo('hello')
     hello
 
-    2. class default
-    >>> @verbose
-        def echo(self, s, verbose=None):
-            verbose = verbose or self.verbose
-            logger.info(s)
-
     3. positional argument
     >>> echo('hello', None)
 
     4. keyword argument
     >>> echo('hello', verbose=False)
-
-    All above will be overwritten by specifying `verbose` argument.
     '''
     level = None
     argnames, defaults = get_func_args(func)
+
+    if len(argnames) and argnames[0] in ('self', 'cls'):
+        level = getattr(args[0], 'verbose', level)        # situation 1
     if 'verbose' in argnames:
         idx = argnames.index('verbose')
         try:
-            level = defaults[idx - len(argnames)]         # situation 1
+            level = defaults[idx - len(argnames)]         # situation 2
         except IndexError:
             pass  # default not defined in function
         try:
             level = args[idx]                             # situation 3
         except IndexError:
             pass  # verbose not provided by user
-    if level is None and len(argnames) and argnames[0] == 'self':
-        level = getattr(args[0], 'verbose', level)        # situation 2
     level = kwargs.pop('verbose', level)                  # situation 4
     if isinstance(level, bool):
         level = 'ERROR' if level else 'NOTSET'
@@ -1443,23 +1259,49 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True},
     return ''
 
 
-@decorator
-def mkuserdir(func, *a, **k):
-    '''Create user folder at ${DATADIR}/${username} if it doesn't exists.'''
-    if a and isinstance(a[0], strtypes):
-        username = ensure_unicode(a[0])
-    elif 'username' in k:
-        username = k.get('username')
-    else:
-        logger.warning(
-            'Username is not provided, `{}` decorator abort.'.format(func))
-        if a or k:
-            logger.debug('args: {}, kwargs: {}'.format(a, k))
-        return func(*a, **k)
-    path = os.path.join(DATADIR, username)
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return func(*a, **k)
+def mkuserdir(func):
+    '''
+    Create user folder at ${DATADIR}/${username} if it doesn't exists.
+
+    Examples
+    --------
+    When used as a decorator, it will automatically detect arguments of wrapped
+    function to get the specified `username` argument and create its folder.
+    >>> @mkuserdir
+    ... def save_user_data(username):
+    ...     path = os.path.join(DATADIR, username, 'data-1.csv')
+    ...     write_data_to_csv(path, data)
+    >>> save_user_data('bob')   # folder ${DATADIR}/bob is already created
+    >>> save_user_data('jack')  # write_data_to_csv don't need to care this
+
+    Or use it with username directly:
+    >>> mkuserdir('john')
+    >>> os.listdir(DATADIR)
+    ['example', 'bob', 'jack', 'john']
+    '''
+    if callable(func):
+        def param_collector(*a, **k):
+            username = k.get(
+                'username', a[0] if a and isinstance(a[0], strtypes) else None)
+            if username is not None:
+                mkuserdir(username)
+            else:
+                logger.warning(
+                    'Username is not detected, `%s` decorator abort.' % func)
+                if a or k:
+                    logger.debug('args: {}, kwargs: {}'.format(a, k))
+            return func(*a, **k)
+        return param_collector
+    elif isinstance(func, strtypes):
+        func = ensure_unicode(func)
+        path = os.path.join(DATADIR, func)
+        if os.path.exists(path):
+            logger.debug('User %s\'s folder at %s exist,' % (func, path))
+        else:
+            os.makedirs(path)
+            logger.debug('User %s\'s folder at %s created.' % (func, path))
+        return
+    raise TypeError('function or string wanted, but got `%s`' % typename(func))
 
 
 @verbose
@@ -1475,7 +1317,7 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
         count infomation to terminal. Default logging.INFO.
     timeout : int
         Virtual serial connection will auto-break to save system resources
-        after waiting until timeout. -1 specifing never timeout. Default is
+        after waiting until timeout. -1 specifying never timeout. Default is
         120 seconds (2 mins).
 
     Returns
@@ -1538,525 +1380,28 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
     return flag_close, port1, port2
 
 
-def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
-    '''
-    Create/config a `logging.Logger` with current namespace's `__name__`.
-
-    Parameters
-    ----------
-    name : str or logging.Logger, optional
-        Name of logger. Default `__name__` of function caller's module.
-    level : int or str, optional
-        Logging level. Default `logging.INFO`, i.e. 20.
-    format : str, optional
-        Format string for handlers. Default `embci.configs.LOGFORMAT`
-
-    And more in `kwargs` will be parsed as logging.basicConfig do.
-
-    Notes
-    -----
-    Do not wrap or call `config_logger` indirectly, because it will always
-    execute on direct caller's __name__, e.g.:
-    >>> # content of foo.py
-    >>> def do_config_logger():
-            return config_logger()
-
-    >>> # content of bar.py
-    >>> from foo import do_config_logger
-    >>> l1 = do_config_logger()
-    >>> l2 = config_logger()
-    >>> print('logger from foo.py: %s, from bar.py: %s' % (l1.name, l2.name))
-    logger from foo.py: foo, from bar.py: bar
-
-    See Also
-    --------
-    logging.basicConfig
-    '''
-    if isinstance(name, logging.getLoggerClass()):
-        logger = name
-    else:
-        logger = logging.getLogger(name or get_caller_globals(1)['__name__'])
-    logger.setLevel(level)
-    format = logging.Formatter(format, kwargs.pop('datefmt', None))
-    addhdlr = kwargs.pop('addhdlr', True)
-    hdlrlevel = kwargs.pop('hdlrlevel', level)
-    filename = kwargs.pop('filename', None)
-    if filename is not None:
-        filename = os.path.abspath(os.path.expanduser(filename))
-        filedir = os.path.dirname(filename)
-        if not os.path.exists(filedir):
-            os.makedirs(filedir)
-        hdlr = kwargs.pop('handler', logging.FileHandler)
-        hdlr = hdlr(filename, mode=kwargs.pop('filemode', 'a'), **kwargs)
-    else:
-        hdlr = kwargs.pop('handler', logging.StreamHandler)
-        if hdlr is logging.StreamHandler:
-            hdlr = hdlr(kwargs.pop('stream', sys.stdout), **kwargs)
-        else:
-            hdlr = hdlr(**kwargs)
-    hdlr.setLevel(hdlrlevel)
-    hdlr.setFormatter(format)
-    if addhdlr:
-        logger.addHandler(hdlr)
-    else:
-        logger.handlers = [hdlr]
-    return logger
-
-
-class LoggerStream(object):
-    '''
-    Wrap `logging.Logger` instance into a file-like object.
-
-    Parameters
-    ----------
-    logger : logging.Logger
-        Logger that will be masked to a stream.
-    level : int
-        Log level :method:`write` will use, default `logging.INFO` (20).
-    '''
-    __slots__ = ('_logger', '_level', '_string')
-
-    def __init__(self, logger, level=logging.INFO):
-        self._logger = logger
-        self._oldcaller = logger.findCaller
-        logger.findCaller = self.findCaller
-        self._level = level
-        self._string = StringIO()  # a file must can be read
-
-    def findCaller(self, rv=("(unknown file)", 0, "(unknown function)")):
-        '''
-        Some little hacks here to ensure LoggerStream wrapped instance
-        log with correct lineno, filename and funcname.
-        '''
-        f = inspect.currentframe()
-        srcfiles = [
-            logging._srcfile,
-            os.path.abspath(__file__).replace('.pyc', '.py')
-        ]
-        while hasattr(f, "f_code"):
-            co = f.f_code
-            fn = os.path.normcase(os.path.abspath(co.co_filename))
-            if fn not in srcfiles:
-                rv = (co.co_filename, f.f_lineno, co.co_name)
-                break
-            f = f.f_back
-        return rv
-
-    def __getattr__(self, attr):
-        try:
-            return getattr(self._logger, attr)
-        except AttributeError:
-            return getattr(self._string, attr)
-
-    def __setattr__(self, attr, value):
-        if attr in LoggerStream.__slots__:
-            object.__setattr__(self, attr, value)
-        else:
-            setattr(self._logger, attr, value)
-
-    def __delattr__(self, attr):
-        delattr(self._logger, attr)
-
-    def write(self, msg):
-        self._logger.log(self._level, msg.strip())
-        self._string.write(msg + '\n')
-
-    def writelines(self, lines):
-        for line in lines:
-            self.write(line)
-
-    @property
-    def level(self):
-        return self._level
-
-    @level.setter
-    def level(self, level):
-        self._level = logging._checkLevel(level)
-
-
 # =============================================================================
-# RESOLVING
+# Local Modules
 
-def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
-    '''
-    This function is easier to use than func `pylsl.resolve_stream`.
+from ._resolve import (
+    get_caller_globals, get_func_args, get_self_ip_addr,
+    find_pylsl_outlets, find_serial_ports, find_spi_devices, find_gui_layouts
+)
 
-    Examples
-    --------
-    >>> find_pylsl_outlets()
-    >>> # same as pylsl.resolve_streams()
-    >>> find_pylsl_outlets(1)
-    >>> # same as pylsl.resolve_streams(timeout=1)
+from ._json import (
+    MiscJsonEncoder, MiscJsonDecoder,
+    dumps, loads, serialize, deserialize
+)
 
-    >>> find_pylsl_outlets('type', 'EEG_Data')  # Error
-    >>> find_pylsl_outlets("type='EEG_Data'")  # Good
-    >>> # same as pylsl.resolve_bypred("type='EEG_Data'")
-    >>> find_pylsl_outlets(type='EEG_Data')
-    >>> # same as pylsl.resolve_byprop('type', 'EEG_Data')
+from ._logging import config_logger, LoggerStream, TempLogLevel
 
-    If no wanted pylsl stream outlets found, `sys.exit` will be
-    called to exit python.
-    '''
-    timeout = kwargs.pop('timeout', 1)
-    NAME = '[Find Pylsl Outlets] '
-    if not args:
-        if kwargs:
-            stream_list = []
-        else:
-            stream_list = pylsl.resolve_streams(timeout)
-    elif isinstance(args[0], (int, float)):
-        timeout = args[0]
-        stream_list = pylsl.resolve_streams(timeout)
-    elif isinstance(args[0], str):
-        stream_list = pylsl.resolve_bypred(args[0], 0, timeout)
-    else:
-        stream_list = []
-    for key in set(kwargs).intersection({
-            'name', 'type', 'channel_count', 'nominal_srate',
-            'channel_format', 'source_id'}):
-        stream_list += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
-    if len(stream_list) == 0:
-        if kwargs.get('exit', True):
-            sys.exit(NAME + 'No stream available! Abort.')
-        return []
-    elif len(stream_list) == 1:
-        stream = stream_list[0]
-    else:
-        dv = [stream.name() for stream in stream_list]
-        ds = [stream.type() for stream in stream_list]
-        prompt = (
-            '{}Please choose one from all available streams:\n    ' +
-            '\n    '.join(['%d %s - %s' % (i, j, k)
-                           for i, (j, k) in enumerate(zip(dv, ds))]) +
-            '\nstream num(default 0): ').format(NAME)
-        answer = {str(i): stream for i, stream in enumerate(stream_list)}
-        answer[''] = stream_list[0]
-        try:
-            stream = check_input(prompt, answer, timeout)
-        except KeyboardInterrupt:
-            stream = None
-    if not stream:
-        if kwargs.get('exit', True):
-            sys.exit(NAME + 'No stream available! Abort.')
-        return []
-    logger.info(
-        '{}Select stream `{}` -- {} channel {} {} data from {} on server {}'
-        .format(
-            NAME, stream.name(), stream.channel_count(), stream.type(),
-            stream.channel_format(), stream.source_id(), stream.hostname()))
-    return stream
-
-
-def find_serial_ports(timeout=3):
-    '''
-    This fucntion will guide user to choose one port. Wait `timeout` seconds
-    for devices to be detected. If no ports found, return None
-    '''
-    # scan for all available serial ports
-    NAME = '[Find Serial Ports] '
-    port = None
-    while timeout > 0:
-        timeout -= 1
-        port_list = comports()
-        if len(port_list) == 0:
-            time.sleep(1)
-            logger.debug(
-                '{}rescanning available ports... {}'.format(NAME, timeout))
-            continue
-        elif len(port_list) == 1:
-            port = port_list[0]
-        else:
-            tmp = [(port.device, port.description) for port in port_list]
-            prompt = (
-                '{}Please choose one from all available ports:\n    ' +
-                '\n    '.join(['%d %s - %s' % (i, dv, ds)
-                               for i, (dv, ds) in enumerate(tmp)]) +
-                '\nport num(default 0): '
-            ).format(NAME)
-            answer = {str(i): port for i, port in enumerate(port_list)}
-            answer[''] = port_list[0]
-            port = check_input(prompt, answer)
-    if not port:
-        sys.exit(NAME + 'No serail port available! Abort.')
-    logger.info('{}Select port `{}` -- {}'
-                .format(NAME, port.device, port.description))
-    return port.device
-
-
-def find_spi_devices():
-    '''If there is no spi devices, exit python'''
-    NAME = '[Find SPI Devices] '
-    dev_list = glob.glob('/dev/spidev*')
-    if len(dev_list) == 0:
-        device = None
-    elif len(dev_list) == 1:
-        device = dev_list[0]
-    else:
-        prompt = ('{}Please choose one from all available devices:\n    ' +
-                  '\n    '.join(['%d %s' % (i, dev)
-                                 for i, dev in enumerate(dev_list)]) +
-                  '\ndevice num(default 0): ').format(NAME)
-        answer = {str(i): dev for i, dev in enumerate(dev_list)}
-        answer[''] = dev_list[0]
-        try:
-            device = check_input(prompt, answer)
-        except KeyboardInterrupt:
-            sys.exit(NAME + 'No divice available! Abort.')
-    if not device:
-        sys.exit(NAME + 'No divice available! Abort.')
-    dev = (re.findall(r'/dev/spidev([0-9])\.([0-9])', device) or [(0, 0)])[0]
-    logger.info('{}Select device `{}` -- BUS: {}, CS: {}'
-                .format(NAME, device, *dev))
-    return int(dev[0]), int(dev[1])
-
-
-def find_gui_layouts(dir):
-    '''If no layouts found, return None.'''
-    NAME = '[Find GUI Layouts] '
-    layout_list = glob.glob(os.path.join(dir, 'layout*.pcl'))
-    layout_list.sort(reverse=True)
-    if len(layout_list) == 0:
-        return
-    elif len(layout_list) == 1:
-        layout = layout_list[0]
-    else:
-        prompt = ('{}Please choose one from all available layouts:\n    ' +
-                  '\n    '.join(['%d %s' % (i, os.path.basename(j))
-                                 for i, j in enumerate(layout_list)]) +
-                  '\nlayout num(default 0): ').format(NAME)
-        answer = {str(i): layout for i, layout in enumerate(layout_list)}
-        answer[''] = layout_list[0]
-        try:
-            layout = check_input(prompt, answer)
-        except KeyboardInterrupt:
-            return
-    logger.info('{}Select layout `{}`'.format(NAME, layout))
-    return layout
-
-
-def get_self_ip_addr(default='127.0.0.1'):
-    '''
-    UDP socket can connect to any hosts even they are unreachable, or
-    broadcast data even there are no listeners. Here create an UDP socket
-    and connect to '8.8.8.8:80' google public DNS server to resolve self
-    IP address.
-    '''
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        host, _ = s.getsockname()
-    except socket.error:
-        host = default
-    finally:
-        s.close()
-    return host
-
-
-@mkuserdir
-def get_label_dict(username):
-    '''
-    Count all saved data files under user's directory that match a pattern:
-    ${DATADIR}/${username}/${label}-${num}.${suffix}
-
-    Returns
-    -------
-    out : tuple
-        label_dict and summary string
-
-    Examples
-    --------
-    >>> get_label_dict('test')
-    ({
-         'left': 16,
-         'right': 21,
-         'thumb_cross': 10,
-    }, 'There are 3 actions with 47 records.\\n')
-    '''
-    label_dict = {}
-    name_dict = {}
-    for filename in sorted(os.listdir(os.path.join(DATADIR, username))):
-        fn, ext = os.path.splitext(filename)
-        if ext == '.gz':
-            fn, ext = os.path.splitext(fn)
-        if ext not in ['.mat', '.fif', '.csv'] or '-' not in fn:
-            continue
-        label, num = fn.split('-')
-        if label in label_dict:
-            label_dict[label] += 1
-            name_dict[label].append(filename)
-        else:
-            label_dict[label] = 1
-            name_dict[label] = [filename]
-
-    # construct a neat summary report
-    summary = '\nThere are {} actions with {} data recorded.'.format(
-        len(label_dict), sum(label_dict.values()))
-    if label_dict:
-        maxname = max([len(_) for _ in label_dict]) + 8
-        summary += (
-            '\n  * ' + '\n  * '.join([k.ljust(maxname) + str(label_dict[k]) +
-                                      '\n    ' + '\n    '.join(name_dict[k])
-                                      for k in label_dict]))
-    return label_dict, summary
-
-
-def get_boolean(v, table=BOOLEAN_TABLE):
-    '''convert string to boolean'''
-    t = str(v).title()
-    if t not in table:
-        raise ValueError('Invalid boolean value: {}'.format(v))
-    return table[t]
-
-
-def load_configs(*fns):
-    '''
-    Configurations priority(from low to high):
-    - On Unix-like system:
-        project config file: "${EmBCI}/files/service/embci.conf"
-         system config file: "/etc/embci/embci.conf"
-           user config file: "~/.embci/embci.conf"
-    - On Windows system:
-        project config file: "${EmBCI}/files/service/embci.conf"
-         system config file: "${APPDATA}/embci.conf"
-           user config file: "${USERPROFILE}/.embci/embci.conf"
-    '''
-    fns = ensure_unicode(*(fns or DEFAULT_CONFIG_FILES))
-    # fns: [] | ufilename | [ufilename, ...]
-    if not isinstance(fns, list):
-        fns = [fns]
-    config = configparser.ConfigParser()
-    config.optionxform = str
-    loaded = config.read(fns)
-    for fn in fns:
-        if fn not in loaded:
-            raise IOError("Cannot load config file: '%s'" % fn)
-    # for python2 & 3 compatible, use config.items and config.sections
-    return {section: dict(config.items(section))
-            for section in config.sections()}
-
-
-def get_config(key, default=None, section=None, fn=None):
-    '''
-    Get configurations from environment variables or config files.
-    EmBCI use `INI-Style <https://en.wikipedia.org/wiki/INI_file>`_
-    configuration files with extention of `.conf`.
-
-    Parameters
-    ----------
-    key : str
-    default : str | None, optional
-        Return `default` if key is not in configuration files or environ,
-    section : str | None, optional
-        Section to search for key. Default None, search for each section.
-
-    See Also
-    --------
-    `configparser <https://en.wikipedia.org/wiki/INI_file>`_
-    '''
-    if key in os.environ:
-        return os.getenv(key)
-    if key in dir(embci.configs):
-        return getattr(embci.configs, key)
-    configs = load_configs(fn) if fn else load_configs()
-    if section is not None and key in configs.get(section, {}):
-        return configs[section][key]
-    for d in configs.values():
-        if key in d:
-            return d[key]
-    return default
-
-
-def get_caller_globals(depth=0):
-    '''
-    Only support `CPython` implemention. Use with cautious!
-
-    Parameters
-    ----------
-    depth : int
-        Extra levels outer than caller frame, default 0.
-
-    Examples
-    --------
-    >>> a = 1
-    >>> get_caller_globals()['a']
-    1
-
-    and if you run by commandline:
-        python -c "import embci; print(embci.utils.get_caller_globals())"
-    {'__builtins__': <module '__builtin__' (built-in)>, '__name__': '__main__',
-    'embci': <module 'embci' from 'embci/__init__.pyc'>, '__doc__': None,
-    '__package__': None}
-
-    See Also
-    --------
-    sys._getframe([depth])
-    '''
-    # f = sys._getframe(1)
-    f = inspect.currentframe()
-    if f is None:
-        warnings.warn(RuntimeWarning(
-            'Only CPython implement stack frame supports.'))
-        return globals()
-    for i in range(depth + 1):
-        if f.f_back is None:
-            warnings.warn(RuntimeWarning(
-                'No outer frame of {} at depth {}!'.format(f, i)))
-            return f.f_globals
-        f = f.f_back
-    return f.f_globals
-
-
-if hasattr(inspect, 'signature'):
-    def get_func_args(func, kwonlywarn=True):  # noqa E301
-        # In python3.5+ inspect.getargspec & inspect.getfullargspec are
-        # deprecated. inspect.signature is suggested to use, but it needs
-        # some extra steps to fetch our wanted info
-        args, defaults = [], []
-        for name, param in inspect.signature(func).parameters.items():
-            if kwonlywarn and param.kind is param.KEYWORD_ONLY:
-                warnings.warn(
-                    "Keyword only arguments are not suggested in functions, "
-                    "because it keeps your script from python2 and 3 "
-                    "compatibility.\nKeyword only `{}` in function `{}`"
-                    .format(param, func))
-            if param.kind not in [param.VAR_POSITIONAL, param.VAR_KEYWORD]:
-                args.append(param.name)
-                if param.default is not param.empty:
-                    defaults.append(param.default)
-        return args, tuple(defaults)
-
-elif hasattr(inspect, 'getfullargspec'):
-    def get_func_args(func, kwonlywarn=True):  # noqa E301
-        # python3.0-3.5 use inspect.getfullargspec
-        argspec = inspect.getfullargspec(func)
-        if kwonlywarn and argspec.kwonlyargs:
-            warnings.warn(
-                "Keyword only arguments are not suggested in functions, "
-                "because it keeps your script from python2 and 3 "
-                "compatibility.\nKeyword only `{}` in function `{}`"
-                .format(argspec.kwonlyargs, func))
-        return argspec.args or [], argspec.defaults or ()
-
-else:
-    def get_func_args(func):  # noqa E301
-        # python2.7-3.0 use inspect.getargspec
-        argspec = inspect.getargspec(func)
-        return argspec.args or [], argspec.defaults or ()
-
-get_func_args.__doc__ = '''
-Get names and default values of a function's arguments.
-
-Returns
--------
-names : list
-defaults : tuple
-
-Examples
---------
->>> get_func_args(lambda x, y=1, verbose=None, *a, **k: None)
-(['x', 'y', 'verbose'], (1, None))
->>> get_func_args(get_func_args)
-(['func', 'kwonlywarn'], (True, ))
-'''
+__all__ += [
+    'get_caller_globals', 'get_func_args', 'get_self_ip_addr',
+    'find_pylsl_outlets', 'find_serial_ports',
+    'find_spi_devices', 'find_gui_layouts',
+    'MiscJsonEncoder', 'MiscJsonDecoder',
+    'dumps', 'loads', 'serialize', 'deserialize',
+    'config_logger', 'LoggerStream', 'TempLogLevel',
+]
 
 # THE END
