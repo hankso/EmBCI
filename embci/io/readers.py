@@ -135,7 +135,7 @@ class ReaderIOMixin(object):
             msg += ', {}sec'.format(self.sample_time)
             if self.status != 'closed':
                 msg += ', {}B'.format(self._data[:-1].nbytes)
-        return '<{}, at {}>'.format(msg, hex(self.__hash__()))
+        return '<%s at 0x%x>' % (msg, id(self))
 
 
 class CompatiableMixin(object):

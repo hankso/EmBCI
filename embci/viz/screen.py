@@ -244,7 +244,7 @@ class DrawElementMixin(object):
             id_str = ', '.join(map(str, self.widget[key].id))
             info += '  {:11s} | {}\n'.format(key, id_str if id_str else None)
             maxlen = max(maxlen, len(id_str))
-        return ('<%s at %s\n' % (self.name, hex(id(self))) +
+        return ('<%s at 0x%x\n' % (self.name, id(self)) +
                 '  Widget summary:\n  elements    | id\n' +
                 '  %s+%s\n%s>' % ('-' * 11, '-' * maxlen, info))
 

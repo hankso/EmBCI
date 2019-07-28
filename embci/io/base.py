@@ -21,15 +21,63 @@ import numpy as np
 import scipy.io
 import mne
 
-from ..utils import mkuserdir, check_input, get_label_dict, TempStream
+from ..utils import mkuserdir, check_input, TempStream
 from ..configs import DATADIR
 from . import logger
 
 __all__ = [
-    'create_data_dict', 'save_data',
-    'load_label_data', 'load_data',
+    'create_data_dict', 'get_label_dict',
+    'save_data', 'load_data', 'load_label_data',
     'save_action',
 ]
+
+
+@mkuserdir
+def get_label_dict(username):
+    '''
+    Count all saved data files under user's directory that match a pattern:
+    ${DATADIR}/${username}/${label}-${num}.${suffix}
+
+    Returns
+    -------
+    out : tuple
+        label_dict and summary string
+
+    Examples
+    --------
+    >>> get_label_dict('test')
+    ({
+         'left': 16,
+         'right': 21,
+         'thumb_cross': 10,
+    }, 'There are 3 actions with 47 records.\\n')
+    '''
+    label_dict = {}
+    name_dict = {}
+    for filename in sorted(os.listdir(os.path.join(DATADIR, username))):
+        fn, ext = os.path.splitext(filename)
+        if ext == '.gz':
+            fn, ext = os.path.splitext(fn)
+        if ext not in ['.mat', '.fif', '.csv'] or '-' not in fn:
+            continue
+        label, num = fn.split('-')
+        if label in label_dict:
+            label_dict[label] += 1
+            name_dict[label].append(filename)
+        else:
+            label_dict[label] = 1
+            name_dict[label] = [filename]
+
+    # construct a neat summary report
+    summary = '\nThere are {} actions with {} data recorded.'.format(
+        len(label_dict), sum(label_dict.values()))
+    if label_dict:
+        maxname = max([len(_) for _ in label_dict]) + 8
+        summary += (
+            '\n  * ' + '\n  * '.join([k.ljust(maxname) + str(label_dict[k]) +
+                                      '\n    ' + '\n    '.join(name_dict[k])
+                                      for k in label_dict]))
+    return label_dict, summary
 
 
 def create_data_dict(data, label='default', sample_rate=500, suffix=None):

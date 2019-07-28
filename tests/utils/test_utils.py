@@ -5,18 +5,19 @@
 # Author: Hankso
 # Webpage: https://github.com/hankso
 # Time: Mon 25 Feb 2019 22:34:40 CST
+
 from __future__ import print_function
 import os
 import time
 import logging
 
-from six import StringIO
+from six.moves import StringIO
 
 from .. import embeddedonly
 
 from embci.configs import BASEDIR, DATADIR
 from embci.utils import (
-    get_boolean, get_label_dict, get_func_args, load_configs, mkuserdir,
+    get_boolean, get_func_args, load_configs, mkuserdir,
     LoggerStream, TempLogLevel, Singleton,
     serialize, deserialize, config_logger, duration
 )
@@ -113,14 +114,6 @@ def test_get_boolean():
         not get_boolean('off') and
         get_boolean('1')
     )
-
-
-def test_get_label_dict(clean_userdir, username):
-    label_dict, summary = get_label_dict(username)
-    assert label_dict == {}
-    # DO NOT test outputs, because it may be changed in the future.
-    #  assert 'There are 0 actions with 0 data recorded' in summary
-    clean_userdir()
 
 
 @embeddedonly

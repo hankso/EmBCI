@@ -23,7 +23,7 @@ import pylsl
 # functions
 #
 from embci.configs import DATADIR
-from embci.io import save_data, load_data, create_data_dict
+from embci.io import save_data, load_data, create_data_dict, get_label_dict
 
 
 def test_save_data(username, random_data, clean_userdir):
@@ -39,6 +39,14 @@ def test_load_data(username, random_data, clean_userdir):
     data, label = load_data(username)
     assert 'testing' == label[0] == label[1]
     assert (random_data == data).all()
+    clean_userdir()
+
+
+def test_get_label_dict(clean_userdir, username):
+    label_dict, summary = get_label_dict(username)
+    assert label_dict == {}
+    # DO NOT test outputs, because it may be changed in the future.
+    #  assert 'There are 0 actions with 0 data recorded' in summary
     clean_userdir()
 
 
