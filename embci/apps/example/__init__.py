@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/example/__init__.py
-# Author: Hankso
-# Webpage: http://github.com/hankso
-# Time: Tue 18 Sep 2018 01:55:03 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-09-18 01:55:03
 
 import os
 import time
@@ -12,8 +11,8 @@ import time
 from bottle import request, response, redirect, run, template, Bottle
 example = Bottle()
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-__index__ = os.path.join(__dir__, 'index.html')
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
+__index__ = os.path.join(__basedir__, 'index.html')
 
 
 @example.route('/')
@@ -34,10 +33,6 @@ def hello():
     return template(__index__, messages=msg)
 
 
-application = example
-__all__ = ['application']
-
-
 def main():
     '''
     Now you can configure in setup.py like follows::
@@ -52,3 +47,8 @@ def main():
     ``embci-apps-example`` in your terminal to run this example app.
     '''
     run(example, host='0.0.0.0', port=8080)
+
+
+# provide an object named `application` for Apache + mod_wsgi and embci.webui
+application = example
+__all__ = ['application']

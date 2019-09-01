@@ -6,23 +6,23 @@
 # Webpage: https://github.com/hankso
 
 '''
-EmBCI(Embedded Brain Computer Interface)
+Embedded Brain Computer Interface (EmBCI)
 TODO: short description for embci
 '''
 
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
 import os
 
-
-__dir__ = os.path.dirname(os.path.abspath(__file__))
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
 __title__ = 'EmBCI'
 __summary__ = 'EmBCI software Python packages'
 __url__ = 'https://github.com/hankso/EmBCI'
 __author__ = 'Hankso and individual contributors'
 __email__ = 'hankso1106@gmail.com'
-__version__ = '0.1.6'
+__version__ = '0.2.0'
+__date__ = '2019.09.01'
 __license__ = 'MIT'
-__copyright__ = 'Copyright 2019 Hankso and individual contributors'
+__copyright__ = 'Copyright 2017-2019 Hankso and individual contributors'
 __keywords__ = (
     'Brain-Computer-Interface '
     'Human-Machine-Interfaces '
@@ -32,6 +32,11 @@ __keywords__ = (
     'Embedded-Platform '
 )
 
+
+def version():
+    return '{} {} ({})'.format(__title__, __version__, __date__)
+
+
 from . import io
 from . import viz
 from . import utils
@@ -40,10 +45,8 @@ from . import processing
 from .testing import test
 
 try:
-    del os, absolute_import, unicode_literals
+    del os, absolute_import
 except NameError:
     pass
 
-__all__ = (
-    'io', 'viz', 'utils', 'configs', 'processing', 'test'
-)
+__all__ = ('io', 'viz', 'utils', 'configs', 'processing', 'test')

@@ -168,9 +168,9 @@ class ESP32_API(ADS1299_API):
 
     def set_channel(self, ch, en=True):
         if ch < 0 or ch > 8:
-            return False
+            return
         self.write_registers(REG_CH, [ch, 1 if en else 0])
-        return True
+        return en
 
     @property
     def enable_bias(self):
@@ -201,9 +201,9 @@ class ESP32_API(ADS1299_API):
 import serial
 from embci.utils import get_config, strtypes
 esp_serial = serial.Serial(
-    baudrate=int(get_config('BAUD_ESP32', 115200))
+    baudrate=get_config('BAUD_ESP32', 115200, type=int)
 )
-esp_serial.port = get_config('PORT_ESP32', '/dev/ttyS2')
+esp_serial.port = get_config('DEV_ESP32_UART_PORT', '/dev/ttyS2')
 
 
 def send_message_esp32(cmd_or_args):

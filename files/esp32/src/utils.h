@@ -1,8 +1,7 @@
 /*
  File: utils.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Sat 20 Apr 2019 01:37:08 CST
+ Authors: Tian-Cheng SONG <github.com/rotom407>
+ Create: 2019-04-20 01:37:08
  
  Provide some useful classes.
 

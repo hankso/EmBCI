@@ -1,12 +1,24 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/tests/utils/test_jsonrpc.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 28 Jul 2019 14:53:18 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-28 14:53:18
+#
+# TODO:
+#   test jsonrpc client
+
+import os
 
 import embci.utils.jsonrpc as jsonrpc
 
-server = jsonrpc.JSONRPCServer(('localhost', 8080))
-server.register_introspection_functions()
+
+def test_server():
+    server = jsonrpc.JSONRPCServer(('localhost', 0))
+    server.register_introspection_functions()
+    server.register_function(sum)
+    server.register_instance(os)
+
+
+def test_client():
+    pass

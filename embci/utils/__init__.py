@@ -7,7 +7,7 @@
 # Time: Tue 27 Feb 2018 16:03:02 CST
 
 # built-in
-from __future__ import print_function, absolute_import, unicode_literals
+from __future__ import print_function, absolute_import
 import os
 import sys
 import copy
@@ -15,29 +15,45 @@ import math
 import time
 import fcntl
 import select
+import random
+import string
 import logging
+import platform
 import tempfile
+import functools
 import threading
 import traceback
 from collections import MutableMapping, MutableSequence
 
 # requirements.txt: data-processing: numpy
 # requirements.txt: necessary: decorator, six
+# requirements.txt: optional: argparse
 import numpy as np
 from decorator import decorator
 from six.moves import StringIO, configparser
+try:
+    # Built-in argparse is provided >= 2.7 but argparse
+    # is maintained as a separate package now
+    import argparse
+    from packaging import version
+    if version.parse(argparse.__version__) < version.parse("1.4.0"):
+        raise ImportError
+except ImportError:
+    del argparse
+    from . import argparse
+finally:
+    del version
 
-from ..constants import BOOLEAN_TABLE
-from ..configs import DATADIR, LOGFORMAT, DEFAULT_CONFIG_FILES
+import embci.constants
 import embci.configs
 
-__all__ = []
+__all__ = ['argparse', ]
+__doc__ = 'Some utility functions and classes.'
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
+
 
 # =============================================================================
 # Constants
-
-__doc__ = 'Some utility functions and classes.'
-__dir__ = os.path.dirname(os.path.abspath(__file__))
 
 # save 0, 1, 2 files so that TempStream will not replace these variables.
 stdout, stderr, stdin = sys.stdout, sys.stderr, sys.stdin
@@ -45,7 +61,7 @@ stdout, stderr, stdin = sys.stdout, sys.stderr, sys.stdin
 # example for mannualy create a logger
 logger = logging.getLogger(__name__)
 hdlr = logging.StreamHandler(stdout)
-hdlr.setFormatter(logging.Formatter(LOGFORMAT))
+hdlr.setFormatter(logging.Formatter(embci.configs.LOGFORMAT))
 logger.handlers = [hdlr]
 logger.setLevel(logging.INFO)
 del hdlr
@@ -95,6 +111,25 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
     if low == high:
         return t_low
     return (a - low) / (high - low) * (t_high - t_low) + t_low
+
+
+class Namespace(object):
+    def __init__(self, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+
+    def __eq__(self, other):
+        if not isinstance(other, Namespace):
+            return NotImplemented
+        return vars(self) == vars(other)
+
+    def __ne__(self, other):
+        if not isinstance(other, Namespace):
+            return NotImplemented
+        return not (self == other)
+
+    def __contains__(self, key):
+        return key in self.__dict__
 
 
 class AttributeDict(MutableMapping):
@@ -411,7 +446,7 @@ class AttributeList(MutableSequence):
 
     def index(self, element):
         if element not in self:
-            #  raise ValueError("'{}' is not in list".format(element))
+            #  raise ValueError('`{}` is not in list'.format(element))
             return -1
         ids = self.id
         if hasattr(element, 'id') and getattr(element, 'id', -1) in ids:
@@ -480,7 +515,7 @@ class BoolString(str):
     >>> bool(BoolString('Nop', table={'Nop': False}))
     False
     '''
-    def __nonzero__(self, table=BOOLEAN_TABLE):
+    def __nonzero__(self, table=embci.constants.BOOLEAN_TABLE):
         return get_boolean(self, table)
 
     __bool__ = __nonzero__
@@ -491,21 +526,31 @@ class LoopTaskMixin(object):
     Establish a task to execute a function looply. Stream control methods are
     integrated, such as `start`, `pause`, `resume`, `close`, etc.
 
+    Attributes
+    ----------
+    __flag_pause__ : Event
+    __flag_close__ : Event
+    __started__ : bool
+        Read-only attribute by `self.started`
+    __status__ : bytes
+        Read-only attribute by `self.status`
+
     Examples
     --------
     >>> class Clock(LoopTaskMixin):
-            def loop_before(self):  # optional function
-                print('this is a simple clock')
-            def loop_after(self):  # optional function
-                print('clock end')
-            def loop_display_time(self, name):
-                print("{}: {}".format(name, time.time()))
-                time.sleep(1)
-            def start(self):
-                if LoopTaskMixin.start(self) is False:
-                    return 'this clock is already started'
-                self.loop(func=self.loop_display_time, args=('MyClock', ),
-                          before=self.loop_before, after=self.loop_after)
+    ...     def loop_before(self):  # optional function
+    ...         print('this is a simple clock')
+    ...     def loop_after(self):  # optional function
+    ...         print('clock end')
+    ...     def loop_display_time(self, name):
+    ...         print('{}: {}'.format(name, time.time()))
+    ...         time.sleep(1)
+    ...     def start(self):
+    ...         if LoopTaskMixin.start(self) is False:
+    ...             return 'this clock is already started'
+    ...         self.loop(
+    ...             func=self.loop_display_time, args=('MyClock', ),
+    ...             before=self.loop_before, after=self.loop_after)
     >>> c = Clock()
     >>> c.start()
     this is a simple clock
@@ -515,18 +560,20 @@ class LoopTaskMixin(object):
     ^C (KeyboardInterrupt Ctrl+C)
     clock end
 
+    Notes
+    -----
+    A mixin class should not be used directly. The `LoopTaskMixin.__init__`
+    is used primarily for testing. But if you need to subclass this Mixin and
+    use your own __init__, remember to call `LoopTaskMixin.__init__(self)` or
+    `super(YOUR_CLASS, self).__init__()`. Or simply config the attributes
+    correctly.
+
     See Also
     --------
     embci.utils.LoopTaskInThread
     embci.io.readers.BaseReader
     '''
     def __init__(self):
-        '''
-        A mixin class should not be used directly. This __init__ is only
-        for testing. If you need to subclass this Mixin and use your own
-        __init__, remember to call LoopTaskMixin.__init__(self) or config
-        the properties correctly.
-        '''
         self.__flag_pause__ = threading.Event()
         self.__flag_close__ = threading.Event()
         self.__started__ = False
@@ -552,7 +599,7 @@ class LoopTaskMixin(object):
         self.__flag_close__.clear()
         self.__started__ = True
         self.__status__ = b'started'
-        self._start_time = time.time()
+        self.start_time = time.time()
         return True
 
     def close(self):
@@ -568,8 +615,7 @@ class LoopTaskMixin(object):
     def restart(self, *args, **kwargs):
         if self.started:
             self.close()
-        self.start(*args, **kwargs)
-        return True
+        return self.start(*args, **kwargs)
 
     def pause(self):
         if not self.started:
@@ -579,16 +625,22 @@ class LoopTaskMixin(object):
         return True
 
     def resume(self):
-        if not self.started:
+        if self.status != 'paused':
             return False
         self.__flag_pause__.set()
         self.__status__ = b'resumed'
         return True
 
+    def loop_before(self):
+        '''Hook function executed inside self.loop before loop task.'''
+        pass
+
     def loop(self, func, args=(), kwargs={}, before=None, after=None):
+        self.loop_before()
+        if callable(before):
+            before()
         try:
-            if before is not None:
-                before()
+            assert callable(func)
             while not self.__flag_close__.is_set():
                 if self.__flag_pause__.wait(2):
                     func(*args, **kwargs)
@@ -598,45 +650,98 @@ class LoopTaskMixin(object):
             logger.error(traceback.format_exc())
         finally:
             self.close()
-            if after is not None:
-                after()
+        if callable(after):
+            after()
+        self.loop_after()
+
+    def loop_after(self):
+        '''Hook function executed inside self.loop after loop task.'''
+        pass
 
 
 class LoopTaskInThread(threading.Thread, LoopTaskMixin):
-    def __init__(self, func=None, daemon=True, *a, **k):
-        self._tdaemon_, self._targs_, self._tkwargs_ = daemon, a, k
-        self._init_thread_()  # you can call this function to reinit thread
+    '''
+    Execute a function looply in a Thread, which can be paused, resumed, even
+    restarted. This is an example usage of class `embci.utils.LoopTaskMixin`.
+
+    Examples
+    --------
+    >>> task = LoopTaskInThread(lambda: time.sleep(1) and print(time.time()))
+    >>> repr(task)
+    <LoopTaskInThread(LoopFunc: <lambda>, initial daemon 139679343671040)>
+    >>> task.start()
+    True
+    1556458048.83
+    1556458049.83
+    1556458050.83
+    >>> task.pause(), task.pause()
+    (True, False)  # can not pause an already paused task
+    >>> task.close()
+
+    See Also
+    --------
+    embci.utils.LoopTaskMixin
+    embci.io.readers.BaseReader
+    '''
+
+    def __init__(self, func, before=None, after=None, args=(), kwargs={}, **k):
+        '''
+        Parameters
+        ----------
+        func : callable object
+            The function to be looply executed. But note that the return
+            value of function will be omitted.
+        before : callable object, optional
+            Hook function executed before loop task.
+        after : callable object, optional
+            Hook function executed after loop task.
+        args : tuple, optional
+            Positional arguemnts for invocation of loop function.
+        kwargs : dict, optional
+            Keyword arguments for loop function invocation.
+        name : str, optional
+            User specified task name. Defaults to function's name.
+        daemon : bool, optional
+            Whether to mark the task thread as daemonic.
+        '''
+        if callable(before):
+            self.loop_before = before
+        if callable(after):
+            self.loop_after = after
         self._floop_ = func
-        self._fbefore_ = k.pop('before', None)
-        self._fafter_ = k.pop('after', None)
-        self.name = getattr(self, '_name', getattr(self, '__name', 'Unknown'))
-        self.name = self._name = self.__name = 'Loop Task on {}'.format(
-            getattr(self._floop_, 'func_name', self.name))
+        self._fargs_, self._fkwargs = args, kwargs
+        k.setdefault('name', 'LoopFunc: %s' % getattr(func, '__name__', None))
+        k.setdefault('daemon', True)
+        self._init_thread_ = functools.partial(self._init_thread_, **k)
+        self._init_thread_()
         LoopTaskMixin.__init__(self)
 
-    def _init_thread_(self):
-        threading.Thread.__init__(self, *self._targs_, **self._tkwargs_)
-        self.setDaemon(self._tdaemon_)
+    def _init_thread_(self, daemon, **kwargs):
+        '''Call this function to re-init thread'''
+        threading.Thread.__init__(self, **kwargs)
+        self.daemon = get_boolean(daemon)  # python 2 & 3 compatiable
 
     def start(self):
-        if not self.started:
-            threading.Thread.start(self)
-        return LoopTaskMixin.start(self)
+        if not LoopTaskMixin.start(self):
+            return False
+        threading.Thread.start(self)
+        return True
 
     def close(self):
         if not LoopTaskMixin.close(self):
-            return False  # already closed task
-        # TODO: LoopTaskInThread: make Thread restartable
+            return False
+        self._init_thread_()
+        return True
 
     def run(self):
         try:
-            self.loop(self._floop_, before=self._fbefore_, after=self._fafter_)
+            self.loop(self._floop_, self._fargs_, self._fkwargs)
         finally:
             logger.debug('{} stopped.'.format(self))
 
 
-def time_stamp(localtime=None, fmt='%Y%m%d-%H:%M:%S'):
-    return time.strftime(fmt, localtime or time.localtime())
+def time_stamp(ctime=None, fmt='%Y%m%d-%H:%M:%S'):
+    return time.strftime(fmt, time.localtime(ctime))
 
 
 def ensure_unicode(*a):
@@ -667,22 +772,20 @@ def ensure_unicode(*a):
     a = list(a)
     for n, i in enumerate(a):
         if not isinstance(i, strtypes):
-            raise TypeError('cannot convert non-string type `{}` to unicode'
-                            .format(type(i).__name__))
+            raise TypeError('cannot convert non-string type '
+                            '`%s` to unicode' % typename(i))
         if isinstance(i, bytes):     # py2 str or py3 bytes
             a[n] = i.decode('utf8')  # py2 unicode or py3 str
             # a[n] = u'{}'.format(a[n])
-    if len(a) == 1:
-        return a[0]
-    return a
+    return a[0] if len(a) == 1 else a
 
 
 def ensure_bytes(*a):
     a = list(a)
     for n, i in enumerate(a):
         if not isinstance(i, strtypes):
-            raise TypeError('cannot convert non-string type `{}` to bytes'
-                            .format(type(i).__name__))
+            raise TypeError('cannot convert non-string type '
+                            '`%s` to bytes' % typename(i))
         if not isinstance(i, bytes):  # py2 unicode or py3 str
             a[n] = i.encode('utf8')   # py2 str or py3 bytes
             # a[n] = b'{}'.format(a[n])
@@ -691,41 +794,62 @@ def ensure_bytes(*a):
 
 def format_size(*a, **k):
     '''
-    Turn number of bytes into human-readable str.
+    Turn number of bytes into human-readable str. Bytes are abbrivated in
+    upper case, while bits use lower case. Only keyword arguments are accepted
+    because any positional arguments will be regarded as a size in bytes.
+
+    Parameters
+    ----------
+    units : array of str
+        Default 'Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'.
+    decimals : array of int
+        Default 0, 1, 2, 2, 2, 2. Estimated result: 10 Bytes, 1.0 KB, 1.12 MB,
+        1.23 GB, 1.34 TB, 1.45 PB.
+    base : int
+        Default 1024, can be set to 1000.
+    inbits : bool
+        Whether convert output to bits.
 
     Examples
     --------
     >>> format_size(2**10 - 1)
-    u'1023 bytes'
+    u'1023 B'
     >>> format_size(2**10)
-    u'1.0 kB'
-    >>> format_size(1024 * 1024)
-    u'1.00 MB'
-
-    See Also
-    --------
-    mne.utils.sizeof_fmt
+    u'1.0 KB'
+    >>> format_size(1024 * 1024, base=1000, decimals=10)
+    u'1.048576 MB'
+    >>> format_size(2**30, inbits=True)
+    u'8.00 Gb'
     '''
-    a = list(a)
-    units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
-    decimals = k.get('decimals', [0, 1, 2, 2, 2, 2])
+    base = k.pop('base', 1024)
+    inbits = k.pop('inbits', False)
+    units = k.pop('units', [
+        'b', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb'
+    ] if inbits else [
+        'B', 'KB', 'MB', 'GB', 'TB', 'PB'
+    ])
+    decimals = k.pop('decimals', [
+        0,   3,    4,    4,    4,    7
+    ] if inbits else [
+        0,   1,    2,    2,    2,    4
+    ])
     if not isinstance(decimals, (tuple, list)):
-        decimals = [decimals] * len(units)
+        decimals = [decimals, ] * len(units)
+
+    a = list(map(float, a))
     for n, num in enumerate(a):
         if num == 0:
-            a[n] = '0 bytes'
-        elif num == 1:
-            a[n] = '1 byte'
-        elif num > 1:
-            exponent = min(int(math.log(num, 1024)), len(units) - 1)
+            a[n] = '0 Byte'
+        else:
+            if inbits:
+                num *= 8
+            exponent = min(int(math.log(num, base)), len(units) - 1)
             a[n] = ('{:.%sf} {}' % decimals[exponent]).format(
-                float(num) / 1024 ** exponent, units[exponent])
-    if len(a) == 1:
-        return a[0]
-    return a
+                num / (base ** exponent), units[exponent])
+    return a[0] if len(a) == 1 else a
 
 
-def get_boolean(v, table=BOOLEAN_TABLE):
+def get_boolean(v, table=embci.constants.BOOLEAN_TABLE):
     '''convert string to boolean'''
     t = str(v).title()
     if t not in table:
@@ -737,34 +861,75 @@ def typename(obj):
     return type(obj).__name__
 
 
-def load_configs(*fns):
+def random_id(length=8, choices=string.ascii_lowercase+string.digits):
+    '''Generate a random ID composed of digits and lower ASCII characters.'''
+    return ''.join([random.choice(choices) for _ in range(length)])
+
+
+def validate_filename(*fns):
+    '''Validate inputted filename according to system.'''
+    fns = list(fns)
+    for i, fn in enumerate(fns):
+        name = ''.join([
+            char for char in fn
+            if char in embci.constants.VALID_FILENAME_CHARACTERS
+        ])
+        if (
+            platform.system() in ['Linux', 'Java'] and
+            name in embci.constants.INVALID_FILENAMES_UNIX
+        ) or (
+            platform.system() == 'Windows' and
+            name in embci.constants.INVALID_FILENAMES_WIN
+        ):
+            fns[i] = ''
+        else:
+            fns[i] = name
+    return fns[0] if len(fns) == 1 else fns
+
+
+def load_configs(fn=None, *fns):
     '''
-    Configurations priority(from low to high):
-    - On Unix-like system:
-        project config file: "${EmBCI}/files/service/embci.conf"
-         system config file: "/etc/embci/embci.conf"
-           user config file: "~/.embci/embci.conf"
-    - On Windows system:
-        project config file: "${EmBCI}/files/service/embci.conf"
-         system config file: "${APPDATA}/embci.conf"
-           user config file: "${USERPROFILE}/.embci/embci.conf"
+    Read configuration files and return a dict.
+
+    Examples
+    --------
+    This function accepts arbitrary arugments, i.e.:
+        - one or more filenames
+        - one list of filenames
+
+    >>> load_configs('~/.embci/embci.conf')
+    >>> load_configs('/etc/embci.conf', '~/.embci/embci.conf', 'no-exist')
+    >>> load_configs(['/etc/embci.conf', '~/.embci/embci.conf'], 'no-exist')
+
+    Notes
+    -----
+    Configurations priority(from low to high)::
+        On Unix-like system:
+            project config file: "${EmBCI}/files/service/embci.conf"
+             system config file: "/etc/embci/embci.conf"
+               user config file: "~/.embci/embci.conf"
+        On Windows system:
+            project config file: "${EmBCI}/files/service/embci.conf"
+             system config file: "${APPDATA}/embci.conf"
+               user config file: "${USERPROFILE}/.embci/embci.conf"
     '''
-    fns = ensure_unicode(*(fns or DEFAULT_CONFIG_FILES))
-    # fns: [] | ufilename | [ufilename, ...]
-    if not isinstance(fns, list):
-        fns = [fns]
     config = configparser.ConfigParser()
     config.optionxform = str
-    loaded = config.read(fns)
-    for fn in fns:
-        if fn not in loaded:
-            raise IOError("Cannot load config file: '%s'" % fn)
+    if not isinstance(fn, (tuple, list)):
+        fn = [fn]
+    for fn in [
+        _ for _ in set(fn).union(fns)
+        if fn is not None and isinstance(_, strtypes) and os.path.exists(_)
+    ] or embci.configs.DEFAULT_CONFIG_FILES:
+        logger.debug('loading config file: `%s`' % fn)
+        if fn not in config.read(fn):
+            logger.warn('Cannot load config file: `%s`' % fn)
     # for python2 & 3 compatible, use config.items and config.sections
     return {section: dict(config.items(section))
             for section in config.sections()}
 
 
-def get_config(key, default=None, section=None, fn=None):
+def get_config(key, default=None, type=None, configfiles=None, section=None):
     '''
     Get configurations from environment variables or config files.
     EmBCI use `INI-Style <https://en.wikipedia.org/wiki/INI_file>`_
@@ -773,26 +938,36 @@ def get_config(key, default=None, section=None, fn=None):
     Parameters
     ----------
     key : str
-    default : str | None, optional
+    default : optional
         Return `default` if key is not in configuration files or environ,
+    type : function | class | None, optional
+        Convert function to be applied on the result, such as int or bool.
+    configfiles : str | list of str, optional
+        Configuration filenames.
     section : str | None, optional
         Section to search for key. Default None, search for each section.
+
+    Notes
+    -----
+    Configuration resolving priority (from high to low):
+    - environment variables (os.environ)
+    - specified configuration file[s] (by argument `cfgs`)
+    - system configuration files (loaded in embci.configs)
 
     See Also
     --------
     `configparser <https://en.wikipedia.org/wiki/INI_file>`_
     '''
-    if key in os.environ:
-        return os.getenv(key)
-    if key in dir(embci.configs):
-        return getattr(embci.configs, key)
-    configs = load_configs(fn) if fn else load_configs()
-    if section is not None and key in configs.get(section, {}):
-        return configs[section][key]
-    for d in configs.values():
-        if key in d:
-            return d[key]
-    return default
+    value = getattr(embci.configs, key, default)
+    if configfiles is not None:
+        configs = load_configs(configfiles)
+        if section is not None and key in configs.get(section, {}):
+            value = configs[section][key]
+        else:
+            for d in configs.values():
+                value = d.get(key, value)
+    value = os.getenv(key, value)
+    return type(value) if type is not None else value
 
 
 class Singleton(type):
@@ -804,8 +979,8 @@ class Singleton(type):
     >>> class Test(object):  # py2 & py3
             __metaclass__ = Singleton
             def __init__(self, *a, **k):
-                self.a = a
-                self.k = k
+                self.args = a
+                self.kwargs = k
 
     >>> class Test(object, metaclass=Singleton):  # py3 only
             pass
@@ -818,18 +993,14 @@ class Singleton(type):
     True
 
     Instance can be re-initalized by providing argument `reinit`:
-    >>> Test(1, 2, 3).a
+    >>> Test(1, 2, 3).args
     (1, 2, 3)
-    >>> Test(2, 3, 4).a
+    >>> Test(2, 3, 4).args
     (1, 2, 3)
     >>> vars(Test(2, 3, 4, reinit=True, verbose=logging.INFO))
-    {'a': (2, 3, 4), 'k': {'verbose': 20}}
+    {'args': (2, 3, 4), 'kwargs': {'verbose': 20}}
     '''
     __instances__ = {}
-
-    def __init__(self, *a, **k):
-        # Do nothing. For future extension.
-        pass
 
     def __new__(cls, cls_name, cls_bases, cls_dict, *a, **k):
         # Returned class's __call__ method will be overwritten by
@@ -873,31 +1044,43 @@ class LockedFile(object):
         Create file directory if not exists.
         Write current process's id to file if it's used as a PIDFILE.
         '''
-        self.path = os.path.abspath(filename or tempfile.mkstemp()[1])
-        d = os.path.dirname(self.path)
-        if not os.path.exists(d):
-            os.makedirs(d)
-        #  self.file_obj = os.fdopen(
-        #      os.open(self.path, os.O_CREAT | os.O_RDWR))
-        self.file_obj = open(self.path, 'a+')  # 'a' will not truncate file
-        if k.get('pidfile', False):
+        self.path = os.path.abspath(filename or tempfile.mktemp())
+        self.file_obj = None
+        k.setdefault('autoclean', True)
+        k.setdefault('pidfile', False)
+        for key in k:
+            if key not in self.__dict__:
+                self.__dict__[key] = k[key]
+
+    def acquire(self):
+        '''Lock the file object with fcntl.flock'''
+        if self.file_obj is None or self.file_obj.closed:
+            d = os.path.dirname(self.path)
+            if not os.path.exists(d):
+                os.makedirs(d)
+            #  self.file_obj = os.fdopen(
+            #      os.open(self.path, os.O_CREAT | os.O_RDWR))
+            self.file_obj = open(self.path, 'a+')  # 'a' will not truncate file
+        try:
+            fcntl.flock(self.file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            self.file_obj.close()
+            self.file_obj = None
+            raise RuntimeError('file `%s` has been used!' % self.path)
+        if self.pidfile:
             self.file_obj.truncate(0)
             self.file_obj.seek(0)
             self.file_obj.write(str(os.getpid()))
             self.file_obj.flush()
-        k.setdefault('autoclean', True)
-        self.__dict__.update(k)
-
-    def acquire(self):
-        '''Lock the file object with fcntl.flock'''
-        try:
-            fcntl.flock(self.file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except IOError:
-            raise RuntimeError('file `%s` has been used!' % self.path)
         return self.file_obj
 
     def release(self, *a, **k):
+        if self.file_obj is None:
+            return
+        #  if not self.file_obj.closed:
+        #      fcntl.flock(self.file_obj, fcntl.LOCK_UN)
         self.file_obj.close()
+        self.file_obj = None
         if not self.autoclean or not os.path.exists(self.path):
             return
         try:
@@ -909,8 +1092,9 @@ class LockedFile(object):
     __enter__ = acquire
     __exit__  = release
 
-    def __str__(self):
-        return '<{0.__class__.__name__} {1}>'.format(self, self.path)
+    def __repr__(self):
+        return '<{}({}locked) {}>'.format(
+            typename(self), 'un' if self.file_obj is None else '', self.path)
 
     def __del__(self):
         '''Ensure file released when garbage collection of instance.'''
@@ -1113,9 +1297,9 @@ def verbose(func, *args, **kwargs):
         except IndexError:
             pass  # verbose not provided by user
     level = kwargs.pop('verbose', level)                  # situation 4
+
     if isinstance(level, bool):
         level = 'ERROR' if level else 'NOTSET'
-
     if level is None:
         return func(*args, **kwargs)
     with TempLogLevel(level):
@@ -1177,19 +1361,14 @@ def duration(sec, name=None, warning=None):
 
 class TimeoutException(Exception):
     def __init__(self, msg=None, sec=None, src=None):
-        self.msg = msg
-        self.src = src
-        self.sec = sec
+        self.src, self.sec, self.msg = self.args = (src, sec, msg)
 
-    def __str__(self):
-        msg = 'Timeout'
-        if self.src is not None:
-            msg += ': {} wait for too long'.format(self.src)
-        if self.sec is not None:
-            msg += ' ({} seconds)'.format(self.sec)
-        if self.msg is not None:
-            msg += ', {}'.format(self.msg)
-        return msg
+    def __repr__(self):
+        return 'Timeout{timeout}{message}{source}'.format(
+            timeout = self.sec and '({}s)'.format(self.sec) or '',
+            message = self.msg and ': %s' % str(self.msg) or '',
+            source  = self.src and ' within `%s`.' % self.src or ''
+        )
 
 
 def input(prompt=None, timeout=None, flist=[sys.stdin]):
@@ -1218,8 +1397,9 @@ def input(prompt=None, timeout=None, flist=[sys.stdin]):
     except select.error:
         rlist = []
     if not rlist:
-        msg = 'read from {} failed'.format(flist)
-        raise TimeoutException(msg, timeout, '`input`')
+        msg = 'read from {} failed'.format(
+            flist[0] if len(flist) == 1 else flist)
+        raise TimeoutException(msg, timeout, 'embci.utils.input')
     if isinstance(rlist[0], int):
         rlist[0] = os.fdopen(rlist[0])
     return rlist[0].readline().rstrip('\n')
@@ -1261,7 +1441,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True},
 
 def mkuserdir(func):
     '''
-    Create user folder at ${DATADIR}/${username} if it doesn't exists.
+    Create user folder at ${DIR_DATA}/${username} if it doesn't exists.
 
     Examples
     --------
@@ -1269,14 +1449,14 @@ def mkuserdir(func):
     function to get the specified `username` argument and create its folder.
     >>> @mkuserdir
     ... def save_user_data(username):
-    ...     path = os.path.join(DATADIR, username, 'data-1.csv')
+    ...     path = os.path.join(DIR_DATA, username, 'data-1.csv')
     ...     write_data_to_csv(path, data)
-    >>> save_user_data('bob')   # folder ${DATADIR}/bob is already created
+    >>> save_user_data('bob')   # folder ${DIR_DATA}/bob is already created
     >>> save_user_data('jack')  # write_data_to_csv don't need to care this
 
     Or use it with username directly:
     >>> mkuserdir('john')
-    >>> os.listdir(DATADIR)
+    >>> os.listdir(DIR_DATA)
     ['example', 'bob', 'jack', 'john']
     '''
     if callable(func):
@@ -1291,17 +1471,18 @@ def mkuserdir(func):
                 if a or k:
                     logger.debug('args: {}, kwargs: {}'.format(a, k))
             return func(*a, **k)
+        param_collector.__doc__ = func.__doc__
         return param_collector
     elif isinstance(func, strtypes):
-        func = ensure_unicode(func)
-        path = os.path.join(DATADIR, func)
+        user = ensure_unicode(func)
+        path = os.path.join(embci.configs.DIR_DATA, user)
         if os.path.exists(path):
-            logger.debug('User %s\'s folder at %s exist,' % (func, path))
+            logger.debug('User %s\'s folder at %s exist,' % (user, path))
         else:
             os.makedirs(path)
-            logger.debug('User %s\'s folder at %s created.' % (func, path))
+            logger.debug('User %s\'s folder at %s created.' % (user, path))
         return
-    raise TypeError('function or string wanted, but got `%s`' % typename(func))
+    raise TypeError('function or string wanted, but got `%s`' % typename(user))
 
 
 @verbose
@@ -1385,23 +1566,25 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
 
 from ._resolve import (
     get_caller_globals, get_func_args, get_self_ip_addr,
-    find_pylsl_outlets, find_serial_ports, find_spi_devices, find_gui_layouts
+    find_pylsl_outlets, find_serial_ports,
+    find_spi_devices, find_gui_layouts
 )
-
-from ._json import (
-    MiscJsonEncoder, MiscJsonDecoder,
-    dumps, loads, serialize, deserialize
-)
-
-from ._logging import config_logger, LoggerStream, TempLogLevel
-
 __all__ += [
     'get_caller_globals', 'get_func_args', 'get_self_ip_addr',
     'find_pylsl_outlets', 'find_serial_ports',
     'find_spi_devices', 'find_gui_layouts',
-    'MiscJsonEncoder', 'MiscJsonDecoder',
-    'dumps', 'loads', 'serialize', 'deserialize',
-    'config_logger', 'LoggerStream', 'TempLogLevel',
 ]
+
+from ._json import (
+    MiscJsonEncoder, MiscJsonDecoder,
+    dumps, loads, serialize, deserialize, minimize
+)
+__all__ += [
+    'MiscJsonEncoder', 'MiscJsonDecoder',
+    'dumps', 'loads', 'serialize', 'deserialize', 'minimize'
+]
+
+from ._logging import config_logger, LoggerStream, TempLogLevel
+__all__ += ['config_logger', 'LoggerStream', 'TempLogLevel']
 
 # THE END

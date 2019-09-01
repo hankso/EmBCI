@@ -1,8 +1,7 @@
 /*
  File: console_cmds.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Tue 19 Mar 2019 16:53:48 CST
+ Authors: Hank <hankso1106@gmail.com>
+ Create: 2019-04-19 16:53:48
 
  ESP32 console to support command line interface.
  

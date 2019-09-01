@@ -1,10 +1,8 @@
-#!/usr/bin/env python
 # coding=utf-8
 #
 # File: EmBCI/tests/conftest.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 26 Feb 2019 16:36:54 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-26 16:36:54
 
 '''Define some fixtures here.'''
 
@@ -14,7 +12,7 @@ import subprocess
 import pytest
 import numpy as np
 
-from embci.configs import DATADIR
+from embci.configs import DIR_DATA
 
 
 @pytest.fixture(scope='session')
@@ -30,7 +28,7 @@ def random_data():
 
 @pytest.fixture
 def clean_userdir(username):
-    def clean(userdir=os.path.join(DATADIR, username)):
+    def clean(userdir=os.path.join(DIR_DATA, username)):
         if os.path.exists(userdir):
             subprocess.call(['rm', '-rf', userdir])
     return clean

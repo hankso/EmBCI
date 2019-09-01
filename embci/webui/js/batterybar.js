@@ -1,6 +1,8 @@
+
 $(function () {
     var e = $('nav#headbar #batteryBar');
     e.children('button.btn').hide();
+    if (!e[0]) return;
     var batteryBar = new ProgressBar.Circle(e[0], {
         color: '#7733FF',
         duration: 500,
@@ -39,8 +41,9 @@ $(function () {
             }
         });
     }
-    var b_interval = undefined;
-    e.click(function () {
+    
+    var b_interval;
+    e.on('click', function () {
         // toggle battery interval state
         b_interval = b_interval ? (
             batteryBar.animate(0) ||

@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: WiFi/backend/nm_backend.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 05 May 2019 10:31:15 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-05-05 10:31:15
 
 '''
 NetworkManager Backend
@@ -365,9 +364,9 @@ def list_accesspoints(interface=None):
         ap_d.pop('lastseen')
         if ap_d.ssid in aps.ssid:
             target = aps[aps.ssid.index(ap_d.ssid) - len(aps)]
-            target.frequency = sorted(list(set(  # ordered unique list
+            target.frequency = sorted(set(  # ordered unique list
                 target.frequency + ap_d.frequency
-            )))
+            ))
             if int(target.maxbitrate[:-5]) < int(ap_d.maxbitrate[:-5]):
                 target.maxbitrate = ap_d.maxbitrate
         else:

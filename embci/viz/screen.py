@@ -26,7 +26,7 @@ import serial
 from PIL import Image
 from decorator import decorator
 
-from ..configs import BASEDIR
+from ..configs import DIR_SRC
 from ..io import SerialCommander
 from ..utils.ili9341_api import ILI9341_API, rgb565to888, rgb888to565
 from ..utils import (time_stamp, find_gui_layouts, ensure_unicode,
@@ -41,7 +41,6 @@ from . import logger
 # ===============================================================================
 # Constants
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
 __all__ = ['Colormap', 'SerialScreenGUI', 'SPIScreenGUI']
 
 
@@ -1162,7 +1161,7 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
         self._api = (API or self.API)(*a, **k)
         self.setsize = self._api.setsize
         self.setfont = self._api.setfont
-        self.setfont(os.path.join(BASEDIR, 'files/fonts/yahei_mono.ttf'))
+        self.setfont(os.path.join(DIR_SRC, 'webui/fonts/YaHeiMono.ttf'))
 
         DrawElementMixin._init_(self)
         TouchScreenMixin._init_(self)

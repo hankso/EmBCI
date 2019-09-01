@@ -1,8 +1,7 @@
 /*
  File: console_cmds.cpp
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Thu 18 Apr 2019 23:02:44 CST
+ Authors: Hank <hankso1106@gmail.com>
+ Create: 2019-04-18 23:02:44
  
  Definition of commands and callback functions.
  

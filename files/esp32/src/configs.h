@@ -1,14 +1,13 @@
 /*
- File: configs.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Wed 17 Apr 2019 16:51:03 CST
-
- Copyright (c) 2019 EmBCI. All right reserved.
-
- Modify this file to quickly configure ESP32_Sandbox,
- which is the firmware of ESP32 used in project EmBCI.
-*/
+ * File: configs.h
+ * Authors: Hank <hankso1106@gmail.com>
+ * Create: 2019-04-17 16:51:03
+ *
+ * Copyright (c) 2019 EmBCI. All right reserved.
+ *
+ * Modify this file to quickly configure ESP32_Sandbox,
+ * which is the firmware of ESP32 used in project EmBCI.
+ */
 
 #ifndef CONFIGS_H
 #define CONFIGS_H

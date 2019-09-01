@@ -16,7 +16,7 @@ import glob
 import importlib
 import traceback
 
-from .configs import TESTDIR, SRCDIR
+from .configs import DIR_TEST, DIR_SRC
 from .utils import strtypes
 
 
@@ -33,13 +33,13 @@ class PytestRunner(object):
     Load and run tests with ``pytest``. It can:
     - test all tests of specific package ('tests/pkg_name/test_*.py')
     - test all tests of specific module ('tests/test_modname.py')
-    - test all tests under TESTDIR ('tests/*')
+    - test all tests under DIR_TEST ('tests/*')
 
     Parameters
     ----------
     mod_or_dir : str or list of str, optional
         Module names or path of tests directory or test files.
-        If not provided(defualt), run all tests under `embci.configs.TESTDIR`.
+        If not provided(defualt), run all tests under `embci.configs.DIR_TEST`.
 
     Examples
     --------
@@ -56,8 +56,8 @@ class PytestRunner(object):
     '''
     def __init__(self, mod_or_dir=None):
         if not mod_or_dir:
-            self.testpath = [TESTDIR]
-            self.modpath = [SRCDIR]
+            self.testpath = [DIR_TEST]
+            self.modpath = [DIR_SRC]
             return
         if isinstance(mod_or_dir, strtypes):
             names = [mod_or_dir]
@@ -89,14 +89,14 @@ class PytestRunner(object):
             for path in self.testpath:
                 msg += '\t%s\n' % path
         else:
-            msg += '\t none\n'
+            msg += '\t None\n'
         msg += 'Module path:'
         if self.modpath:
             msg += '\n'
             for path in self.modpath:
                 msg += '\t%s\n' % path
         else:
-            msg += '\t none\n'
+            msg += '\t None\n'
         return msg
 
     def get_testfiles(self, mod_or_dir):
@@ -107,7 +107,7 @@ class PytestRunner(object):
             modname = re.sub(r'^test(_?)', '', modname)
             if not modname:
                 return []
-            path = os.path.join(TESTDIR, modname)
+            path = os.path.join(DIR_TEST, modname)
         if os.path.isdir(path):
             return glob.glob(os.path.join(path, 'test_*.py'))
         elif os.path.isfile(path):
@@ -129,14 +129,10 @@ class PytestRunner(object):
                 mod = importlib.import_module(modname)
             except ImportError:
                 return ''
-        try:
-            modpath = getattr(mod, '__path__', mod.__dir__)
-        except AttributeError:
-            return os.path.abspath(os.path.dirname(mod.__file__))
-        else:
-            if isinstance(modpath, list):
-                modpath = modpath[0]
-            return os.path.abspath(modpath)
+        modpath = getattr(mod, '__path__', os.path.dirname(mod.__file__))
+        if isinstance(modpath, list):
+            modpath = modpath[0]
+        return os.path.abspath(modpath)
 
     def __call__(self, verbose=0, extras=None, coverage=False, doctest=False):
         try:

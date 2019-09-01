@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/tests/test_ili9341.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sat 23 Feb 2019 13:47:11 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-23 13:47:11
 
 '''Test GUI is not a good idea.'''
 
@@ -17,7 +16,7 @@ import pytest
 
 pytest.skip('skip embedded device only tests', allow_module_level=True)
 
-from embci.configs import BASEDIR
+from embci.configs import DIR_BASE
 from embci.utils import get_config
 from embci.utils.ili9341_api import ILI9341_API, rgb888to565, rgb24to565
 from embci.utils.ili9341_api import (
@@ -40,7 +39,7 @@ def ili9341():
 
 def test_setfont(ili9341):
     ili9341.setfont(
-        os.path.join(BASEDIR, 'files', 'fonts', 'yahei_mono.ttf'))
+        os.path.join(DIR_BASE, 'files', 'fonts', 'yahei_mono.ttf'))
 
 
 def test_draw_basic(ili9341):

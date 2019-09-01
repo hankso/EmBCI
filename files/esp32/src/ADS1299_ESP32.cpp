@@ -1,10 +1,11 @@
 /*
  File: ADS1299_ESP32.cpp
- Author: SONG Tian-Cheng, September 2018
- Webpage: http://github.com/rotom407
- Time: Tue 19 Mar 2019 20:44:52 CST
+ Authors: Tian-Cheng SONG <github.com/rotom407>, September 2018
+          Hank <hankso1106@gmail.com>
+ Create: 2019-03-19 20:44:52
 
- Rewritten for EmBCI by Hankso and Song TC 2019.
+ Rewritten for EmBCI by Hank and Song.
+
  Copyright (c) 2019 EmBCI. All right reserved.
 
  Permission is hereby granted, free of charge, to any person obtaining a copy

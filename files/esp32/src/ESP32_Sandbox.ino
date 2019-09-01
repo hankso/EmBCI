@@ -1,13 +1,10 @@
 /*
  File: ESP32_Sandbox.ino
+ Authors: Tian-Cheng SONG <github.com/rotom407>
+          Hank <hankso1106@gmail.com>
+ Create: 2018-10-05 01:44:20
 
- This file is ESP32 firmware source code used in EmBCI.
-
- Created by Song Tian Cheng, September 2018
- Page @ http://github.com/rotom407
-
- Modified by Gao Han Lin, October 2018
- Page @ http://github.com/hankso
+ ESP32 firmware source code used in EmBCI.
 
  Copyright (c) 2019 EmBCI. All right reserved.
 
@@ -69,13 +66,12 @@ void read_from_ads1299() {
         for (int i = 0; i < 8; i++) { cq.push(filters[i].process(res[i])); }
         break;
     case ESP_SQUARE:
-        for (int i = 0; i < 8; i++, wavei++) {
-            cq.push(wavei >> 7 & 1);
-        }
+        wavei++;
+        for (int i = 0; i < 8; i++) { cq.push(wavei >> 7 & 1); }
         break;
     case ESP_SINE:
         wavei++;
-        int32_t value = sin(2 * PI * sinc_freq * wavei / ads.sampleRate);
+        int32_t value = sin(2 * PI * sinc_freq * (wavei / ads.sampleRate));
         for (int i = 0; i < 8; i++) { cq.push(value); }
         break;
     }

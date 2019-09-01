@@ -1,14 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: WiFi/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 18 Sep 2018 01:55:03 CST
-
-'''
-
-'''
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-09-18 01:55:03
 
 # built-in
 import os
@@ -17,7 +12,7 @@ import subprocess
 # requirements.txt: network: bottle
 import bottle
 
-from embci.configs import BASEDIR
+from embci.configs import DIR_BASE
 from embci.utils import config_logger
 logger = config_logger(__name__)
 del config_logger
@@ -26,14 +21,14 @@ from .backend import (wifi_accesspoints, wifi_status,
                       wifi_connect, wifi_disconnect, wifi_forget,
                       wifi_enable, wifi_disable)
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
 
 wifi = bottle.Bottle()
 
 
 # =============================================================================
 # WiFi Basic API
-#
+
 @wifi.get('/')
 def api_index():
     bottle.redirect('index.html')
@@ -41,13 +36,13 @@ def api_index():
 
 @wifi.get('/<filename:path>')
 def api_static(filename):
-    return bottle.static_file(filename, root=__dir__)
+    return bottle.static_file(filename, root=__basedir__)
 
 
 @wifi.get('/upgrade')
 def api_upgrade():
     pwd = os.getcwd()
-    os.chdir(BASEDIR)
+    os.chdir(DIR_BASE)
     try:
         #  st = subprocess.check_output(['git', 'status'])
         msg = subprocess.check_output(['git', 'pull'])
@@ -59,7 +54,7 @@ def api_upgrade():
 
 # =============================================================================
 # WiFi Service API
-#
+
 @wifi.get('/hotspots')
 def api_list_hotspots():
     return {'list': wifi_accesspoints()}
@@ -112,9 +107,6 @@ def api_status():
     }
 
 
-# =============================================================================
-# provide an object named `application` for Apache + mod_wsgi and embci.apps
-#
 application = wifi
 __all__ = ['application']
 # THE END

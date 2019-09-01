@@ -1,12 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/apps/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 05 Mar 2019 17:01:42 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-05 17:01:42
 
-'''Provide an app doc CLI interface by typing in `python -m embci.apps`'''
+from . import __doc__
 
 HELP = '''`embci.apps` comes with an [example project](example). It's a good
 place to start developing your own app. Also there are some basic subapps under
@@ -23,8 +22,10 @@ subapps = [
 ]
 
 if __name__ == "__main__":
+    print(__doc__)
     print(HELP)
     for app, info in subapps:
         print("{}: {}".format(app, info))
+    print('See `README.md` for more information.')
 
 # THE END

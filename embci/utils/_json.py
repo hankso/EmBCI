@@ -89,7 +89,7 @@ class MiscJsonEncoder(JSONEncoder):
     - function
         1 builtin_function_or_method - dill
         2 instancemethod - dill
-        3 function.func_code - marshal
+        3 function.__code__ - marshal
     - numpy.ndarray
     - subclass of MutableMapping and MutableSequence
     - subclass of default supported types like dict and list etc.(see notes)
@@ -147,7 +147,7 @@ class MiscJsonEncoder(JSONEncoder):
 
     def jsonify_function_hook(self, o):
         try:
-            fstr = marshal.dumps(o.func_code)
+            fstr = marshal.dumps(o.__code__)
         except ValueError:
             fstr = dill.dumps(o)
         return {
@@ -250,38 +250,38 @@ _default_decoder = MiscJsonDecoder()
 
 
 def dumps(obj, **k):
-    return (MiscJsonEncoder(**k) if k else _default_encoder).encode(obj)
+    return (k and MiscJsonEncoder(**k) or _default_encoder).encode(obj)
 
 
 def loads(s, **k):
-    return (MiscJsonDecoder(**k) if k else _default_decoder).decode(s)
+    return (k and MiscJsonDecoder(**k) or _default_decoder).decode(s)
 
 
+# minimize: Jsonify object to the minimum length of string.
+minimize = MiscJsonEncoder(indent=None, separators=(',', ':')).encode
 dumps.__doc__ = json.dumps.__doc__
 loads.__doc__ = json.loads.__doc__
 
 
-def serialize(obj, method='dill'):
+def serialize(obj, method='json'):
     if method == 'dill':
         return dill.dumps(obj)
     elif method == 'json':
         return dumps(obj)
-    elif method == 'minimize':
-        return dumps(obj, indent=None, separators=(',', ':'))
     raise ValueError('serialization method `%s` is not supported' % method)
 
 
-def deserialize(string, method='dill'):
+def deserialize(string, method='json'):
     if method == 'dill':
         return dill.loads(string)
-    elif method in ['json', 'minimize']:
+    elif method == 'json':
         return loads(string)
     raise ValueError('serialization method `%s` is not supported' % method)
 
 
 __all__ = [
     'MiscJsonEncoder', 'MiscJsonDecoder',
-    'dumps', 'loads', 'serialize', 'deserialize'
+    'dumps', 'loads', 'serialize', 'deserialize', 'minimize'
 ]
 
 # THE END

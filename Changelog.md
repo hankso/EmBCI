@@ -1,4 +1,17 @@
 
+## 0.2.0 [2019-09-01]
+- [Apps] Project `DBS` is removed from EmBCI and will be maintained by a business company.
+- [Apps] Remove `DisplaySPI` and add subapp `DisplayWeb`.
+- [Utils] Move `minimize` as standalone function. Logger stack info py 2 & 3 compatiable. Add `validate_filename` & `Namespace`.
+- [Utils] Add `obfuscation` to distribute python code in dynamic linked library format.
+- [JSONRPC] Add `NoExist` type and support for multiple instance registration.
+- [WebUI] Add package `Numjs`. Rename `xxxDIR` to `DIR_xxx` and `__dir__` to `__basedir__`. Support refresh/rescan subapps at runtime.
+- [WebUI] Support preventing subapps from loading by command line arguments `python -m embci.webui --exclude app1 app2`
+- [Tools] Move `embci_tool` to `embci.apps.system`. Add template.py for python source files.
+- [Setup.py] Load requirements.txt from absolute path.
+- [configs] Load from configuration files when imported and export a dict at `embci.configs.settings`. Set `ENSURE_DIR_EXIST = True` in conf files if you want to create necessary directories.
+- [io] Readers now get new valid name automatically by searching pidfiles. Add `hook_before` and `hook_after`.
+
 ## 0.1.6 [2019-07-04]
 - [WebUI] Add supports for HTML snippets & navbar.html & bottom.html.
 - [WebUI] Resolve battery level from ESP32 and render it to navbar.
@@ -8,14 +21,14 @@
 - [DBS] Hide DBS.utils source code with `Cython` and `GCC`. Add `libdbs_<py>_<arch>.so`.
 - [DBS] New UI composed of 8 channels realtime & single channel frequency display
 - [Record] Integrate recording interface to DBS HTML.
-- [Streaming] Add function `send_message_streaming` for communicating from other process
+- [Streaming] Add function `send_message_streaming` for communicating from other process.
 
 ## 0.1.5 [2019-5-01]
 - [DBS] Hide source code of data-processing algorithms with pre-compiled binary files.
 - [Apps] Sub-app `WiFi` implemented as a web-based client of freedesktop NetworkManager, working on wireless card `AP6212` at STA+AP mode.
 - [Apps] Support updating OTA (On-The-Air) by simple `git pull`.
 - [WebUI] Upgrade `jQuery` to v3.4.1 and `Bootstrap` to v4.3.
-- [WebUI] Immegrate from `glyphicon` to `font-awesome`
+- [WebUI] Immegrate from `glyphicon` to `font-awesome`.
 
 ## 0.1.4 [2019-3-23]
 - [Doc] Add basic documentations.
@@ -25,8 +38,8 @@
 - [ESP32] New feature: turn into sleep mode to reduce power consumption.
 
 ## 0.1.3 [2019-3-11]
-- [DBS] Change from `ESP32SPIReader` to `PylslReader` in embci.apps.DBS .
+- [DBS] Change from `ESP32SPIReader` to `PylslReader` in embci.apps.DBS.
 - [DBS] Save userinfo as cache to client(browser) for accessing report PDF.
-- [Apps] Make data-streaming a seperate task @ embci.apps.streaming.
+- [Apps] Make data-streaming an individual task @ `embci.apps.streaming`.
 - [Utils] Change `find_wifi_hotspots` output to type of `AttributeDict`.
 - [WebUI] Move GeventWebsocketServer `log` to `logger` to log requests properly.

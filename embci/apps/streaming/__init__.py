@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/streaming/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 10 Mar 2019 03:56:49 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-10 03:56:49
 
 '''
 Task Streaming
@@ -44,9 +43,9 @@ del config_logger
 
 from embci.utils import get_config
 CMD_HOST = get_config('STREAMING_CMD_HOST', '0.0.0.0')
-CMD_PORT = int(get_config('STREAMING_CMD_PORT', 9997))
+CMD_PORT = get_config('STREAMING_CMD_PORT', 9997, type=int)
 RPC_HOST = get_config('STREAMING_RPC_HOST', '0.0.0.0')
-RPC_PORT = int(get_config('STREAMING_RPC_PORT', 9996))
+RPC_PORT = get_config('STREAMING_RPC_PORT', 9996, type=int)
 del get_config
 
 CMD_ADDR = 'tcp://{}:{}'.format(CMD_HOST, CMD_PORT)
@@ -66,43 +65,40 @@ Not implemented yet.
 '''
 
 CMD_USAGE = '''
-Examples:
-    >>> import zmq
-    >>> c = zmq.Context()
-    >>> q = c.socket(zmq.REQ)
-    >>> q.connect('{addr}')
-    >>> while 1:
-    ...     q.send(raw_input('console@E01:$ '))
-    ...     print(q.recv())
-    console@E01:$ bias_output
-    True
-    console@E01:$ bias_output False # Choose one from ON|off|False|true|1|0
-    console@E01:$ bias_output
-    False
+Usage
+-----
+>>> import zmq
+>>> c = zmq.Context()
+>>> q = c.socket(zmq.REQ)
+>>> q.connect('{addr}')
+>>> while 1:
+...     q.send(raw_input('console@E01:$ '))
+...     print(q.recv())
+console@E01:$ bias_output
+True
+console@E01:$ bias_output False # Choose one from ON|off|False|true|1|0
+console@E01:$ bias_output
+False
 
-Or you can use:
-    >>> from embci.apps.streaming import send_message_streaming
-    >>> while 1:
-    ...     cmd = raw_input('> ')
-    ...     rst = send_message_streaming(cmd)
-    ...     print(rst)
-    > summary
-    Status:
-    sample_rate:    499/500 Hz
-    bias_output:    enabled
-    input_source:   normal
-    stream_control: paused
-    impedance:      disabled
+Or you can use function `streaming.send_message_streaming`, which accepts a
+string as command and return a string of result:
+
+>>> from embci.apps.streaming import send_message_streaming
+>>> while 1:
+...     print(send_message_streaming(raw_input('$ ')))
+$ summary
+Status:
+sample_rate:    499/500 Hz
+bias_output:    enabled
+input_source:   normal
+stream_control: paused
+impedance:      disabled
+$ stream_control resume
 
 See `<command> -h` for more information on each command.
 '''.format(addr=CMD_ADDR)
 
-
 __doc__ = '\n'.join([__doc__, CMD_HELP, RPC_HELP])
-
-import os
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-del os
 
 from .utils import send_message as send_message_streaming
 __all__ = ['send_message_streaming']

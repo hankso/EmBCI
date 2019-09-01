@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/recorder/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 14 Mar 2019 16:40:56 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-14 16:40:56
 
 # built-in
 import sys
@@ -41,10 +40,7 @@ def main(args=sys.argv[1:]):
         args.pop(args.index('-v'))
         config_logger(logger, logging.DEBUG, addhdlr=False)
     recorder.start()
-    if len(args):
-        recorder.cmd(username=args[0])
-    else:
-        recorder.pause()
+    recorder.cmd(username=(args[0] if len(args) else None))
 
     try:
         while recorder.status != 'closed':

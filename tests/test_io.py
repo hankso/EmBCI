@@ -1,10 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/tests/test_io.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 06 Feb 2019 01:26:32 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-06 01:26:32
+#
+# TODO:
+#   test Socket***Reader, Socket***Server
+#   test PylslCommader, PylslReader
 
 from __future__ import print_function
 import os
@@ -22,7 +25,7 @@ import pylsl
 # =============================================================================
 # functions
 #
-from embci.configs import DATADIR
+from embci.configs import DIR_DATA
 from embci.io import save_data, load_data, create_data_dict, get_label_dict
 
 
@@ -30,9 +33,9 @@ def test_save_data(username, random_data, clean_userdir):
     clean_userdir()
     data_dict = create_data_dict(random_data, 'testing', 500)
     assert 'sample_rate' in data_dict
-    save_data(username, data_dict, suffix='.mat')
-    assert os.path.exists(os.path.join(DATADIR, username, 'testing-1.mat'))
-    assert os.path.exists(os.path.join(DATADIR, username, 'testing-2.mat'))
+    save_data(username, data_dict, suffix='mat')
+    assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-1.mat'))
+    assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-2.mat'))
 
 
 def test_load_data(username, random_data, clean_userdir):
@@ -59,8 +62,8 @@ from embci.utils import find_pylsl_outlets
 
 @pytest.fixture(scope='module')
 def reader():
-    reader = Reader(
-        sample_rate=500, sample_time=2, num_channel=8, send_to_pylsl=True)
+    reader = Reader(sample_rate=500, sample_time=2,
+                    num_channel=8, pylsl_send=True)
     reader.start()
     yield reader
     reader.close()
@@ -161,6 +164,4 @@ def test_write_method(obj):
     except Exception as e:
         assert isinstance(e, IndexError)
 
-
-# TODO: test Socket***Reader, Socket***Server
-# TODO: test PylslCommader, PylslReader
+# THE END

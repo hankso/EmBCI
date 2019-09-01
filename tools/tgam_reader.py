@@ -5,25 +5,47 @@ Created on Wed May 20 17:40:36 2017
 
 @author: hank
 
+Package
+-------
+===== === ====== ======== ======== ======== ======== ========
+2SYNC len signal spectrum delta    theta    lalpha   halpha
+----- --- ------ -------- -------- -------- -------- --------
+aa aa 20  02 c8  83 18    0c 32 82 0b 61 76 01 06 a9 00 7b 4a
+===== === ====== ======== ======== ======== ======== ========
 
-          SYNC*2|len|signal|spectrum| delta  | theta  | lalpha | halpha | lbeta  | hbeta  | lgamma | hgamma |atten|medit|checksum
-Package : aa aa |20 |02 c8 |83 18   |0c 32 82|0b 61 76|01 06 a9|00 7b 4a|02 86 b3|03 2f 52|01 e7 e1|12 11 c2|04 00|05 00|0d
+======== ======== ======== ======== ===== ===== ========
+lbeta    hbeta    lgamma   hgamma   atten medit checksum
+-------- -------- -------- -------- ----- ----- --------
+02 86 b3 03 2f 52 01 e7 e1 12 11 c2 04 00 05 00 0d
+======== ======== ======== ======== ===== ===== ========
 
-          SYNC*2|len|RawData| Raw |checksum
-Raw Data: aa aa |04 |80 02  |f8 00|85
+Raw Data
+--------
+===== === ====== ===== ========
+2SYNC len raw    data  checksum
+----- --- ------ ----- --------
+aa aa 04  80 02  f8 00 85
+===== === ====== ===== ========
 
 """
 
 from __future__ import print_function
-import serial, os, sys, time, logging, matplotlib.pyplot as plt, numpy as np
+import os
+import sys
+import time
+import logging
+from builtins import input  # py2 & 3, but six.moves.input is more preferred
+
+import serial
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class TGAM_Reader(object):
-    def __init__(self,
-                 port = 'scan',
-                 baudrate = 115200,
-                 test = False,
-                 parsed_by_mcu = False,
-                 logger = logging.getLogger()):
+    def __init__(
+        self, port = None, baudrate = 115200, test = False,
+        parsed_by_mcu = False, logger = logging.getLogger()
+    ):
 
         # pre-defined flags
         self._FLAG_SYNC       = 0xAA
@@ -37,41 +59,30 @@ class TGAM_Reader(object):
         self._FLAG_RawData    = 0x80
         self._FLAG_Spectrum   = 0x83
 
-        # raw,       time
-        # _time,     signal
-        # delta,     theta
-        # l_alpha,   h_alpha
-        # l_beta,    h_beta
-        # l_gamma,   h_gamma
-        # attention, meditation
-        self.data = dict(time = [],
-                         _time = [],
-                         raw = [],
-                         signal = [],
-                         delta = [],
-                         theta = [],
-                         lalpha = [],
-                         halpha = [],
-                         lbeta = [],
-                         hbeta = [],
-                         lgamma = [],
-                         hgamma = [],
-                         atten = [],
-                         medit = [])
-        #self._win_data = {}
-        #self._win_data.update(self.data)
+        self.data = dict(
+            raw = [],    signal = [],
+            time = [],   _time = [],
+            delta = [],  theta = [],
+            lalpha = [], halpha = [],
+            lbeta = [],  hbeta = [],
+            lgamma = [], hgamma = [],
+            # attention, meditation
+            atten = [],  medit = []
+        )
+        # self._win_data = {}
+        # self._win_data.update(self.data)
 
-        self.logger = logger
-        self.baudrate = baudrate
         self._sample_rate = 512
         self._throw_packages = 0
         self._mode = 'test' if test else ('mcu' if parsed_by_mcu else 'run')
+        self.logger = logger
+        self.serial = serial.Serial(baudrate=baudrate)
+        self._bind_port(port or self._find_port())
 
+    def _bind_port(self, port):
         while 1:
             try:
-                self.serial =  serial.Serial(port if port != 'scan' \
-                                   			 	  else self._find_port(),
-                              				 self.baudrate)
+                self.serial.port = port
                 self.logger.debug('Successfully load serial. Start reading...')
                 self._r = self.serial.read
                 break
@@ -79,9 +90,9 @@ class TGAM_Reader(object):
                 self._mode = 'closed'
                 self.logger.error(e)
                 break
-            except:
+            except Exception:
                 self.logger.error('Failed open serial.')
-                port = 'scan'
+                port = self._find_port()
                 time.sleep(3)
 
     def start(self):
@@ -91,7 +102,8 @@ class TGAM_Reader(object):
         if self._mode == 'test':
             self.logger.warn('TEST mode!')
             try:
-                while 1: print(self._r().encode('hex'), end = ' ')
+                while 1:
+                    print(self._r().encode('hex'), end = ' ')
             except KeyboardInterrupt:
                 self.logger.error('Keyboard interrupt detected')
 
@@ -106,16 +118,16 @@ class TGAM_Reader(object):
             self._buff = []
             while 1:
                 try:
-                    #================
+                    # ================
                     self._read_port()
                     if len(self._buff) == 4:
-                        self.csv_log.write('%f, %d\n'%(self.data['time'][-1],
-                                                       self.data['raw'][-1]))
+                        self.csv_log.write('%f, %d\n' % (
+                            self.data['time'][-1], self.data['raw'][-1]))
                     self._parse_buffer()
-                    print(','.join(self.data[ch] \
-                    	           for ch in self.data.keys() \
-                    			   if ch is not '_time'))
-                    #================
+                    print(','.join(
+                        self.data[ch] for ch in self.data.keys()
+                        if ch is not '_time'))
+                    # ================
                 except KeyboardInterrupt:
                     self.logger.error('Keyboard interrupt detected')
                     break
@@ -128,11 +140,11 @@ class TGAM_Reader(object):
             self.logger.warn('MCU mode!')
             while 1:
                 try:
-                    #===================
+                    # ===================
                     self._buff = self.serial.readline()[:-2].split(',')
                     self._parse_buffer()
                     self.plot(self.data)
-                    #===================
+                    # ===================
                 except KeyboardInterrupt:
                     self.logger.error('Keyboard interrupt detected')
                     break
@@ -140,8 +152,9 @@ class TGAM_Reader(object):
                     self.logger.error(e)
             self.plot(self.data)
 
-        if self._mode != 'closed': self.serial.close()
-        self.logger.error('Terminated...')
+        if self._mode != 'closed':
+            self.serial.close()
+        self.logger.info('Terminated...')
 
     def _read_port(self):
         '''
@@ -152,9 +165,9 @@ class TGAM_Reader(object):
             # '\xaa' is a 8-bit char, which can be proved by chr(170)='\xaa'
             # and we can convert it from char to int with ord()
             if ord(self._r()) != self._FLAG_SYNC: continue
-            #log.debug('First sync detected.')
+            # log.debug('First sync detected.')
             if ord(self._r()) != self._FLAG_SYNC: continue
-            #log.debug('Second sync detected.')
+            # log.debug('Second sync detected.')
 
             # 防止数据中出现 0xAA 被误认为校验头，下一字再验证一下
             while 1:
@@ -183,18 +196,22 @@ class TGAM_Reader(object):
             self.data['time'] += [time.time() - self._start_time]
 
         elif len(self._buff) == 12:
-            for i, name in enumerate(['_time', 'signal', \
-                    'delta', 'theta', 'lalpha', 'halpha', \
-                    'lbeta', 'hbeta', 'lgamma', 'hgamma', \
-                    'atten', 'medit']):
+            for i, name in enumerate([
+                '_time', 'signal',
+                'delta', 'theta', 'lalpha', 'halpha',
+                'lbeta', 'hbeta', 'lgamma', 'hgamma',
+                'atten', 'medit'
+            ]):
                 self.data[name] += [int(self._buff[i])]
 
         elif len(self._buff) == 32:
             self.data['signal'] += [self._buff[1]]
             t = self._buff[4:]
-            for temp in ['delta', 'theta', 'lalpha', 'halpha', \
-                         'lbeta','hbeta', 'lgamma', 'hgamma']:
-                self.data[temp] += [np.int16(t[0]<<16 | t[1]<<8 | t[2])]
+            for name in [
+                'delta', 'theta', 'lalpha', 'halpha',
+                'lbeta', 'hbeta', 'lgamma', 'hgamma'
+            ]:
+                self.data[name] += [np.int16(t[0] << 16 | t[1] << 8 | t[2])]
                 t = t[3:]
             self.data['atten'] += [t[1]]
             self.data['medit'] += [t[3]]
@@ -202,28 +219,30 @@ class TGAM_Reader(object):
 
     def _find_port(self):
         port_list = []
-        temp = ['COM'+str(_) for _ in xrange(32)] \
-        	   if os.name != 'posix' else \
-               ['/dev/'+_ for _ in os.listdir('/dev/') \
-               	if 'USB' in _ or 'rfcomm' in _]
+        temp = [
+            'COM' + str(_) for _ in range(32)
+        ] if os.name != 'posix' else [
+            '/dev/' + _ for _ in os.listdir('/dev/')
+            if 'USB' in _ or 'rfcomm' in _
+        ]
         for port in temp:
             try:
                 s = serial.Serial(port)
                 if s.is_open:
                     port_list.append(port)
                     s.close()
-            except:
+            except Exception:
                 continue
         if port_list:
             if len(port_list) == 1:
-                self.logger.warn('Port %s selected'%port_list[0])
+                self.logger.warn('Port %s selected' % port_list[0])
                 return port_list[0]
             self.logger.error('Please choose one from all available ports ')
             self.logger.error(' | '.join(port_list))
             while 1:
-                port = raw_input('Port name: ')
+                port = input('Port name: ')
                 if port in port_list:
-                    self.logger.warn('Port %s selected'%port)
+                    self.logger.warn('Port %s selected' % port)
                     return port
                 else:
                     self.logger.error('Invalid input!')
@@ -241,7 +260,7 @@ class TGAM_Reader(object):
         '''
         plt.cla()
         plt.pause(0.0010)
-        plt.title('throw packages: %d'%self._throw_packages)
+        plt.title('throw packages: %d' % self._throw_packages)
         # print('big package at '+str(time.time() - self._start_time))
 # =============================================================================
 #         plt.subplot(211)
@@ -258,26 +277,31 @@ class TGAM_Reader(object):
         b = float(max_win_length)/self._sample_rate/8
         t = data['time'][-max_win_length:]
         if len(t) > max_win_length:
-            plt.xlim(  t[0] - b,  t[-1] + b)
+            plt.xlim(t[0] - b, t[-1] + b)
         else:
             plt.xlim(min(t) - b, max(t) + b)
         plt.plot(t, data['raw'][-max_win_length:])
         plt.show()
 
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.NOTSET, format='%(message)s')
     logger = logging.getLogger()
-    logger.handlers[0].setLevel(logging.DEBUG)  # msg output to terminal
-    fh = logging.FileHandler('TGAM_reader.log') # msg logged to file
+    logger.handlers[0].setLevel(logging.DEBUG)   # msg output to terminal
+    fh = logging.FileHandler('TGAM_reader.log')  # msg logged to file
     fh.setLevel(logging.DEBUG)
-    fh.setFormatter(logging.Formatter('%(asctime)s: %(filename)-10s [line:%(lineno)3d] %(name)-5s %(levelname)-8s: %(message)s'))
-    while len(logger.handlers) > 1: logger.handlers.pop()
+    fh.setFormatter(logging.Formatter(
+        '%(asctime)s: %(filename)-10s [line:%(lineno)3d] '
+        '%(name)-5s %(levelname)-8s: %(message)s'))
+    while len(logger.handlers) > 1:
+        logger.handlers.pop()
     logger.addHandler(fh)
 
-    r = TGAM_Reader(baudrate = 115200,
-                    test = True if sys.argv[-1]=='True' else False,
-                    parsed_by_mcu = False,
-                    logger = logger)
-    r.start()
+    TGAM_Reader(
+        baudrate = 115200,
+        test = sys.argv[-1] == 'True',
+        parsed_by_mcu = False,
+        logger = logger
+    ).start()
 
     logging.shutdown()

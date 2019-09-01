@@ -1,26 +1,27 @@
 
 ### Documents
 - This page & README
-- embci lib docs
+- EmBCI lib docs
+- Add a font file to webui/fonts and point viz/screen to it.
+
+> Documentation is like sex: when it is good, it is very, very good; and when 
+it is bad, it is better than nothing.
+> - Dick B.
+
 
 ### Hardware Design
 - ESP32
     - Serial connection higher baudrate (like 921600)
     - Act as a portable WiFi card: WiFi-echo (through Serial/I2C)
-    - [x] Change command interface from SPI to Serial
-- [x] ADS1299 better de-noising
 - PCB shielding cases
 
-### Algorithums
-- SSVEP & P300
-- ERP/EDP
-- Motor Imagery
-
 ### Apps
-- DBS multicast websocket manager
-- Recording snippets
+- [ ] Recording: HTML snippets
+- [ ] Auth: authentication before accessing websocket
+- [ ] apps.system: automatic updating through WiFi & git-server
+- embci.io.readers: register buffer into shared array between multi-processes
 
 ### Application
-- [x] Parkinson DBS treatment recovery
-- Online SSVEP mind-typing
+- [ ] Online SSVEP mind-typing
 - Sign language sEMG recognition
+- Motor Imagery

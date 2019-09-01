@@ -80,7 +80,7 @@ def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
         answer = {str(i): stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
         try:
-            stream = check_input(prompt, answer, timeout)
+            stream = check_input(prompt, answer)
         except KeyboardInterrupt:
             stream = None
     if not stream:

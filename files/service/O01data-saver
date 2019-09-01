@@ -1,3 +1,0 @@
-#!/bin/bash
-
-nohup python -m embci.apps.recorder > /var/log/embci/recorder-error.log 2>&1 &

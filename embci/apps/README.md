@@ -8,6 +8,7 @@ EmBCI suppport
 - [WiFi](WiFi): Search, display and connect to WiFi hotspots through WebUI, mostly used on `ARM`
 - [sEMG](sEMG): Hand gesture recognition by classification on sEMG bio-signal
 - [Speller](Speller): SSVEP-based mind-typing system(**under-developing**)
+- [DBS]: **Deprecated** Assistant application to rehabilitate Parkinson's Disease patients after Deep-Brain-Stimulation operation.
 
 # WebUI
 Want to integrate an user interface into your application? `EmBCI` provides you a easy-extenable web-based one! Simply create a [`bottle`](https://bottlepy.org/docs/dev/) loadable HTTPServer to handle HTTP requests and assign this server object to a variable named `application` in `__init__.py`. And that's all! Just leave all other jobs to `embci.webui` subapps auto-loader.
@@ -22,21 +23,21 @@ Want to integrate an user interface into your application? `EmBCI` provides you 
 
 - Neccessary files used in web application must be added to correct folder, such as `js/*` and `css/*`. You can use either local resources or embci.webui global resources, for example:
     - use syntax `<script src="js/common.js"></script>` to access file at `${MyApp}/js/common.js`.
-    - use syntax `<img src="/images/logo.png" alt="EmBCI logo">` to access file at `${embci.webui.__dir__}/images/logo.png`.
+    - use syntax `<img src="/images/logo.png" alt="EmBCI logo">` to access file at `${embci.webui.__basedir__}/images/logo.png`.
 
 ## Example of bottle built-in server
 ```python
 # content of NewApp/__init__.py
 import os
 import bottle
-__dir__ = os.path.dirname(os.path.abspath(__file__))
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
 
 @bottle.route('/index.html')
 def index(name):
     name = bottle.request.get_cookie('name', 'new_guest')
     if name == 'new_guest':
         bottle.respond.set_cookie('name', 'asdf')
-    return bottle.template(os.path.join(__dir__, 'index.html'), name=name)
+    return bottle.template(os.path.join(__basedir__, 'index.html'), name=name)
 
 application = bottle.default_app()
 ```

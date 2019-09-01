@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/tests/utils/test_utils.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 25 Feb 2019 22:34:40 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-25 22:34:40
 
 from __future__ import print_function
 import os
@@ -15,11 +14,11 @@ from six.moves import StringIO
 
 from .. import embeddedonly
 
-from embci.configs import BASEDIR, DATADIR
+from embci.configs import DIR_BASE, DIR_DATA
 from embci.utils import (
-    get_boolean, get_func_args, load_configs, mkuserdir,
+    get_boolean, get_func_args, load_configs, get_config, mkuserdir,
     LoggerStream, TempLogLevel, Singleton,
-    serialize, deserialize, config_logger, duration
+    serialize, deserialize, config_logger, duration, validate_filename
 )
 
 logmsg = StringIO()
@@ -79,7 +78,7 @@ def test_mkuserdir(username, clean_userdir):
         pass
     clean_userdir()
     foo(username=username)
-    assert os.path.exists(os.path.join(DATADIR, username))
+    assert os.path.exists(os.path.join(DIR_DATA, username))
     clean_userdir()
 
 
@@ -102,8 +101,22 @@ def test_get_func_args():
 
 def test_load_configs():
     assert load_configs(
-        os.path.join(BASEDIR, 'files/service/embci.conf')
-    ).get('Path', {}).get('BASEDIR') == '/usr/share/embci'
+        os.path.join(DIR_BASE, 'files/service/embci.conf')
+    ).get('Network', {}).get('WEBUI_HOST') == '10.0.0.1'
+
+
+def test_get_config():
+    assert get_config('WEBUI_PORT', type=float) == 80.0
+
+
+def test_validate_filename():
+    assert validate_filename('.<>:"/\\|?*()[]') == '.()[]'
+    if os.name == 'posix':
+        assert validate_filename('.') == ''
+        assert validate_filename('..') == ''
+    elif os.name == 'nt':
+        assert validate_filename('COM5') == ''
+        assert validate_filename('CON') == ''
 
 
 def test_get_boolean():

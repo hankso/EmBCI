@@ -1,15 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/tools/embci_tool/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Fri 21 Jun 2019 20:49:57 CST
+# File: apps/system/__init__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-06-21 20:49:57
 
 '''
 - [ ] Host documentation locally
 - Debug
-    - [ ] View log online
+    - [x] View log online
     - [ ] Data management (user reports, saved mat data etc.)
     - [ ] Online JS <=> IPython terminal
 - System
@@ -19,40 +18,48 @@
 System commands API
 
 You can reboot / shutdown the device.
-
-# TODO: doc here
 '''
 
+import os
 import re
 import subprocess
 
 import bottle
 
-from embci.configs import BASEDIR
-from embci.utils.esp32_api import send_message_esp32
+from embci.configs import DIR_BASE, DIR_LOG
 
-application = system = bottle.Bottle()
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
+__logview__ = os.path.join(__basedir__, 'views', 'logview.html')
+system = bottle.Bottle()
 
 
 @system.route('/')
 def system_index():
-    return ''.join(['<p>%s</p>' % msg.strip() for msg in __doc__.split('\n')])
+    return {'doc': ['<p>%s</p>' % msg.strip() for msg in __doc__.split('\n')]}
 
 
 def system_exec(cmd):
     '''This will block the caller thread until the command terminate'''
-    # TODO: modify to return immediately even without result output
     proc = subprocess.Popen(
-        cmd, shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT)
-    output = proc.communicate()[0]
-    return proc.poll(), output
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # Python 3 only
+    #  with proc:
+    #      code, output = proc.returncode, proc.stdout.read()
+    proc.wait()
+    return proc.returncode, proc.stdout.read()
 
 
 @system.route('/debug')
 def system_debug():
     return 'Not implemented yet. # TODO: js terminal'
+
+
+@system.route('/log/<filename:path>')
+def system_logfiles(filename, logview=False):
+    res = bottle.static_file(filename, DIR_LOG)
+    if res.status_code == 200 and bottle.request.query.get('logview', logview):
+        return bottle.template(__logview__, body=res.body.read())
+    return res
 
 
 @system.route('/shutdown')
@@ -73,7 +80,7 @@ def system_reboot():
 
 @system.route('/update')
 def system_update(*a, **k):
-    code, output = system_exec('git -C %s pull' % BASEDIR)
+    code, output = system_exec('git -C %s pull' % DIR_BASE)
     if code != 0:
         return 'Update failed!\n' + output
     if k.get('reboot', False):
@@ -84,10 +91,14 @@ def system_update(*a, **k):
 @system.route('/battery')
 def system_battery():
     '''Example of ESP32 return value: `Battery level: 98%`'''
+    from embci.utils.esp32_api import send_message_esp32
     ret = send_message_esp32('battery')
     level = re.findall(r'(\d+)%', ret)
     if level:
         return level[0]
     bottle.abort(500, 'Can not read battery level')
 
+# provide an object named `application` for Apache + mod_wsgi and embci.webui
+#  application = system
+#  __all__ = ['application']
 # THE END

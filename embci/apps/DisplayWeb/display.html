@@ -6,7 +6,7 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-    <title>DBS Coef Display</title>
+    <title>EmBCI - Visual Online</title>
     <link rel="stylesheet" href="/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/fontawesome.min.css" />
     <link rel="stylesheet" href="css/display.css">
@@ -16,8 +16,7 @@
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/bootstrap.bundle.min.js"></script>
     <script src="/js/sniploader.js"></script>
-    <script src="js/callbacks.js"></script>
-    <script src="js/echart-options.js"></script>
+    <script src="/js/numjs.min.js"></script>
 </head>
 
 <body>
@@ -36,26 +35,26 @@
     
     <div class="plane">
         <div style="margin:20px">
-            <form class="form-row" id="user-info">
+            <form class="form-row" id="user-info" hidden>
                 <div class="form-group col-3">
-                    <label class="sr-only" for="user-name">姓名</label>
+<!--                    <label class="sr-only" for="user-name">姓名</label>-->
                     <input class="form-control" type="text" placeholder="Username" id="user-name">
                 </div>
                 <div class="form-group col-3">
-                    <label class="sr-only" for="user-gender">性别</label>
+<!--                    <label class="sr-only" for="user-gender">性别</label>-->
                     <select class="form-control" id="user-gender">
                         <option style="display: none">Gender</option>
-                        <option>男</option>
-                        <option>女</option>
+                        <option>Male</option>
+                        <option>Female</option>
                     </select>
                 </div>
                 <div class="form-group col-3">
-                    <label class="sr-only" for="user-age">年龄</label>
+<!--                    <label class="sr-only" for="user-age">年龄</label>-->
                     <input class="form-control" type="number" placeholder="Age" min="0" id="user-age">
                 </div>
                 <div class="form-group col-3">
                     <label class="sr-only" for="user-id">ID</label>
-                    <input class="form-control" type="text" placeholder="e.g. 123456" id="user-id">
+                    <input class="form-control" type="text" placeholder="ID e.g. 123456" id="user-id">
                 </div>
             </form>
             <form class="form-inline form-row">
@@ -68,7 +67,7 @@
                     <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-high" style="max-width:70px">
                     <div class="input-group-append">
                         <span class="input-group-text">Hz</span>
-                        <button class="btn btn-outline-primary" type="button" id="filter-bandpass">带通滤波</button>
+                        <button class="btn btn-outline-primary" type="button" id="filter-bandpass">BandPass Filter</button>
                     </div>
                 </div>
                 <div class="input-group col-auto">
@@ -82,98 +81,34 @@
                         <option value="60">60Hz</option>
                     </select>
                     <div class="input-group-append">
-                        <label class="input-group-text" for="filter-notch">陷波</label>
+                        <label class="input-group-text" for="filter-notch">Notch Filter</label>
                     </div>
                 </div>
                 <div class="input-group col-auto" id="scale">
                     <div class="input-group-prepend">
                         <button type="button" class="btn btn-outline-primary fas fa-plus-circle" data-action="plus"></button>
                     </div>
-                    <span class="input-group-text" id="scale-text">缩放</span>
-                    <select class="form-control" hidden>
+                    <span class="input-group-text" id="scale-text">Zoom</span>
+                    <!--
+                    <select class="form-control">
                         <option value="0">0x</option>
                     </select>
+                    -->
                     <div class="input-group-append">
                         <button type="button" class="btn btn-outline-primary fas fa-minus-circle" data-action="minus"></button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-outline-secondary col-auto" id="start-stop-record" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">开始录制数据</button>
+                <button type="button" class="btn btn-outline-secondary col-auto" id="recording" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">Record</button>
             </form>
         </div>
         <div class="chart" id="chart-raw"></div>
         <div class="chart" id="chart-pwr"></div>
-        <div class="chart" id="chart-coef">
-            <ul>
-                <li>
-                    <div class="digital term tleft invisible"></div>
-                    <div class="term digital">术前</div>
-                    <div class="term digital">术后</div>
-                    <div class="term digital">改善率</div>
-                </li>
-                <li>
-                    <div class="digital term tleft">震颤</div>
-                    <button class="btn btn-primary digital col1" id="bt">test</button>
-                    <button class="btn btn-info digital col2" id="at">test</button>
-                    <button class="btn btn-success digital col3" id="t">%</button>
-                </li>
-                <li>
-                    <div class="digital term tleft">僵直</div>
-                    <button class="btn btn-primary digital col1" id="bs">test</button>
-                    <button class="btn btn-info digital col2" id="as">test</button>
-                    <button class="btn btn-success digital col3" id="s">%</button>
-                </li>
-                <li>
-                    <div class="digital term tleft">运动</div>
-                    <button class="btn btn-primary digital col1" id="bm">test</button>
-                    <button class="btn btn-info digital col2" id="am">test</button>
-                    <button class="btn btn-success digital col3" id="m">%</button>
-                </li>
-                <li>
-                    <div class="digital term tleft invisible"></div>
-                    <button class="btn btn-primary digital" id="save-before" onclick="dataConfig({save: 'before'})">保存</button>
-                    <button class="btn btn-info digital" id="save-after" onclick="dataConfig({save: 'after'})">保存</button>
-                    <a href="#" class="btn btn-success digital" id="submit">生成报告</a>
-                </li>
-            </ul>
-        </div>
     </div>
 
-    <div data-desc="custom-bottom">
-        <footer id="footer">
-            <style>
-                footer#footer {
-                    padding:40px;
-                    font-size:15px;
-                    color:#6c757d;
-                    background-color:#F8F8F8;
-                }
-                footer#footer a {
-                    font-weight:600;
-                    color:#495057;
-                }
-                div#footer-links {
-                    margin-bottom:10px;
-                }
-                div#footer-links a + a {
-                    margin-left:20px;
-                }
-                div#footer-states p {
-                    margin-bottom: 0;
-                }
-            </style>
-            <div id="footer-links">
-                <a href="http://www.cheitech.com">Cheitech</a>
-                <a href="https://embci.readthedocs.io/en/latest">EmBCI</a>
-                <a href="/index.html">Home</a>
-            </div>
-            <div id="footer-states">
-                <p style="margin-bottom:5px">&copy; 2018-2019 <a href="http://www.cheitech.com">杭州航弈生物科技有限责任公司</a> 版权所有</p>
-                <p>Based on project <a href="#">EmBCI</a>, an embedded biosignal acquisition and processing platform.</p>
-                <p>Currently v0.1.5. Code licensed MIT, docs <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></p>
-            </div>
-        </footer>
-    </div>
+    <div data-include="bottom.html"></div>
     
+    <script src="js/callbacks.js"></script>
+    <script src="js/echart-options.js"></script>
     <script type="text/javascript">
         $(function() {
             $('[data-toggle="popover"]').popover({
@@ -227,12 +162,12 @@
                 dataScale($(this).data('action'));
             });
 
-            $('#start-stop-record').click(function() {
+            $('#recording').click(function() {
                 if ($(this).prop('started')) {
                     dataConfig({recorder: 'username none'});
                     $('.recorder').hide();
                     $(this).prop('started', false);
-                    $(this).text('开始录制数据');
+                    $(this).text('Record');
                     var record = $('button#record');
                     if (record.attr('aria-expanded') == 'true') {
                         record.click();
@@ -242,46 +177,11 @@
                     dataConfig({recorder: 'start'});
                     $('.recorder').show();
                     $(this).prop('started', true);
-                    $(this).text('停止录制数据');
+                    $(this).text('Stop');
                     $(this).popover('disable');
                 }
             });
-            
-            $('#bt').click(() => stateCoef($('#bt').get(0)));
-            $('#bs').click(() => stateCoef($('#bs').get(0)));
-            $('#bm').click(() => stateCoef($('#bm').get(0)));
-            $('#at').click(() => stateCoef($('#at').get(0)));
-            $('#as').click(() => stateCoef($('#as').get(0)));
-            $('#am').click(() => stateCoef($('#am').get(0)));
 
-            $('button.col3').click(function() {
-                $(this).text('%');
-            });
-
-            $('#submit').on('click.generate', function(e) {
-                e.preventDefault();
-                var data = {
-                    username: $('#user-name').val(),
-                    gender: $('#user-gender').val(),
-                    age: $('#user-age').val(),
-                    id: $('#user-id').val()
-                };
-                if (data.username == '' || data.gender == '请选择性别' || 
-                    data.age == '' || data.age < 0 || data.id == '') {
-                    alert('您填写的数据有误，请检查后重新提交');
-                    $('html, body').animate({
-                        scrollTop: $('#user-info').offset().top
-                    }, 200);
-                    setTimeout(function() {
-                        $('#user-info')
-                            .animate({opacity: 0}, 500)
-                            .animate({opacity: 1}, 500)
-                    }, 200);
-                    return;
-                }
-                genReport(data);
-            });
-            
             chart_raw = echarts.init(
                 document.getElementById('chart-raw'),
                 'macarons', {height: 35 + 50 + 8 * 60}
@@ -323,7 +223,7 @@
             );
             ws.binaryType = 'arraybuffer';
             ws.onopen = () => console.log('websocket success');
-            ws.onclose = () => {console.log('websocket close');ws.close();};
+            ws.onclose = () => {console.log('websocket close'); ws.close();};
             ws.onerror = () => alert('网络错误，请检查网络后刷新重试');
             ws.onmessage = (msg) => {
                 var data = new Float32Array(msg.data);

@@ -171,6 +171,10 @@ To autostart EmBCI applications at boot on PC and other systems, you have to `co
 __ _files/service
 
 
+Extra files
+-----------
+TODO: only install the package is not enough
+
 
 Linux service interface
 =======================
@@ -188,11 +192,11 @@ EmBCI use `INI-Style <https://en.wikipedia.org/wiki/INI_file>`_ configuration fi
 
 Here's an example::
 
-    # file: EmBCI/files/service/embci.conf
+    # File: EmBCI/files/service/embci.conf
     # Lines beginning with '#' or ';' are ignored and will be used as comments.
 
     [Path]
-    BASEDIR = /usr/share/embci
+    DIR_BASE = /usr/share/embci
 
     [Platform]
     HARDWARE = Rev.A7

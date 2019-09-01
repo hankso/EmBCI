@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/tools/embci_tool/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 03 Jul 2019 17:21:59 CST
+# File: apps/system/__main__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-03 17:21:59
 
 '''__doc__'''
 

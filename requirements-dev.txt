@@ -47,7 +47,7 @@ mne
 # [optional]
 argparse
 dbus
-ipython==5.7.0
+ipython
 matplotlib
 python-networkmanager
 reportlab

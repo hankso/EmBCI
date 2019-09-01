@@ -1,12 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: auth/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sat 25 May 2019 03:05:43 CST
-
-''''''
+# File: apps/auth/__init__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-05-25 03:05:43
 
 import os
 
@@ -15,22 +12,22 @@ import bottle
 import cork
 from beaker.middleware import SessionMiddleware
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-__auth__ = os.path.join(__dir__, 'secret')
-__index__ = os.path.join(__dir__, 'index.html')
-__admin__ = os.path.join(__dir__, 'admin.html')
-__login__ = os.path.join(__dir__, 'login.html')
-__reset_html__ = os.path.join(__dir__, 'reset_password.html')
-__reset_email__ = os.path.join(__dir__, 'reset_email.html')
-__register_email__ = os.path.join(__dir__, 'register_email.html')
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
+__auth__ = os.path.join(__basedir__, 'secret')
+__index__ = os.path.join(__basedir__, 'index.html')
+__admin__ = os.path.join(__basedir__, 'admin.html')
+__login__ = os.path.join(__basedir__, 'login.html')
+__reset_html__ = os.path.join(__basedir__, 'reset_password.html')
+__reset_email__ = os.path.join(__basedir__, 'reset_email.html')
+__register_email__ = os.path.join(__basedir__, 'register_email.html')
 
 try:
-    with open(os.path.join(__dir__, 'README.md')) as _:
-        __doc__ = HELP = _.read()
+    with open(os.path.join(__basedir__, 'README.md')) as _:
+        __doc__ = _.read()
 except Exception:
-    HELP = ''
+    __doc__ = ''
 
-application = bottle.Bottle()
+app = bottle.Bottle()
 auth = cork.Cork(__auth__, email_sender='hankso1106@gmail.com')
 admin_only = auth.make_auth_decorator(
     role='admin',
@@ -65,19 +62,19 @@ def FILED(key=None, default=None):
     return d
 
 
-@bottle.get('/')
+@app.get('/')
 @bottle.view(__index__)
 def auth_index():
     auth.require(fail_redirect='/login')
 
 
-@bottle.get('/login')
+@app.get('/login')
 @bottle.view(__login__)
 def auth_login_form():
     pass
 
 
-@bottle.post('/login')
+@app.post('/login')
 def auth_login():
     if POSTD('remember') == 'on':
         pass  # TODO: long time cache
@@ -88,12 +85,12 @@ def auth_login():
     )
 
 
-@bottle.get('/logout')
+@app.get('/logout')
 def auth_logout():
     auth.logout(success_redirect='/login')
 
 
-@bottle.post('/register')
+@app.post('/register')
 def auth_register():
     auth.register(
         POSTD().username, POSTD().password, POSTD().email,
@@ -103,12 +100,12 @@ def auth_register():
     return 'Registration confirmation sent. Please check your mailbox.'
 
 
-@bottle.get('/register/:code')
+@app.get('/register/:code')
 def auth_register_check(code):
     auth.validate_registration(code)
 
 
-@bottle.get('/reset_password')
+@app.get('/reset_password')
 def auth_reset_password_request():
     '''
     Step One: Request to reset user's password. Auth robot will send a email
@@ -122,7 +119,7 @@ def auth_reset_password_request():
     return 'Confirmation email has been sent. Please check your mailbox.'
 
 
-@bottle.get('/reset_password/:code')
+@app.get('/reset_password/:code')
 @bottle.view(__reset_html__)
 def auth_reset_password_form(code):
     '''
@@ -132,7 +129,7 @@ def auth_reset_password_form(code):
     return {'reset_code': code}
 
 
-@bottle.post('/reset_password')
+@app.post('/reset_password')
 def auth_reset_password_check():
     '''
     Step Three: POST your form data here to update your password.
@@ -145,7 +142,7 @@ def auth_reset_password_check():
 # =============================================================================
 # Administration
 #
-@bottle.get('/admin')
+@app.get('/admin')
 @bottle.view(__admin__)
 @admin_only
 def auth_admin():
@@ -156,12 +153,12 @@ def auth_admin():
     }
 
 
-@bottle.route('/admin_only')
+@app.route('/admin_only')
 def auth_admin_only():
     return '<p>Sorry. You are not authorized to perform this action.</p>'
 
 
-@bottle.post('/<action>_role')
+@app.post('/<action>_role')
 @admin_only
 def auth_manage_roles(action):
     if action == 'create':
@@ -180,7 +177,7 @@ def auth_manage_roles(action):
         bottle.abort(500, 'Invalid action `{}`!'.format(action))
 
 
-@bottle.post('/<action>_user')
+@app.post('/<action>_user')
 @admin_only
 def auth_manage_users(action):
     if action == 'create':
@@ -202,9 +199,8 @@ def auth_manage_users(action):
         bottle.abort(500, 'Invalid action `{}`!'.format(action))
 
 
-# offer application object for Apache2 and embci.webui
 application = SessionMiddleware(
-    application, {
+    app, {
         'session.cookie_expires': True,
         'session.encrypt_key': 'asfd',
         'session.httponly': True,

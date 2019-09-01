@@ -1,13 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/streaming/base.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 08 Jul 2019 21:56:47 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-08 21:56:47
 
 # built-in
 from __future__ import print_function
+import os
 import sys
 import shlex
 import signal
@@ -15,40 +15,33 @@ import platform
 import traceback
 
 # requirements.txt: necessary: pyzmq
-# requirements.txt: optional: argparse
 import zmq
-try:
-    # built-in argparse is provided >= 2.7
-    # and argparse is maintained as a separate package now
-    import argparse
-    from packaging import version
-    if version.parse(argparse.__version__) < version.parse("1.4.0"):
-        raise ImportError
-except ImportError:
-    from embci.utils import argparse as argparse
 
 from embci.utils.ads1299_api import INPUT_SOURCES
-from embci.utils import get_boolean, TempStream, LoopTaskMixin, Singleton
+from embci.utils import (
+    get_boolean, argparse,
+    TempStream, LoopTaskMixin, Singleton
+)
 
-if platform.machine() in ['arm', 'aarch64']:
+if platform.machine() in ['arm', 'aarch64']:       # running on embedded device
     from embci.io import ESP32SPIReader as Reader
-else:
+else:                                              # running on computer
     from embci.io import FakeDataGenerator as Reader
 
 from . import logger, CMD_ADDR, CMD_HELP, CMD_USAGE
-from .utils import producer
+from .utils import get_producer
 
 
 # =============================================================================
 # Defaults
 
 SCTL = ['start', 'pause', 'resume', 'close', 'restart']
-reader = repl = None
 sample_rate = 500
 bias_output = True
 input_source = 'normal'
 measure_impedance = False
 stream_control = 'start'
+reader = Reader(sample_rate, sample_time=1, num_channel=8, send_pylsl=True)
 
 
 # =============================================================================
@@ -65,10 +58,6 @@ def summary(args):
     ret += 'impedance:\t{}\n'.format(
         'enabled' if measure_impedance else 'disabled')
     return ret
-
-
-def exit():
-    repl.close()
 
 
 def _subcommand(args):
@@ -94,7 +83,7 @@ def _set_bias_output(param):
 
 
 def _set_input_source(param):
-    reader.set_input_source(param)
+    reader.input_source = param
 
 
 def _set_stream_control(param):
@@ -108,8 +97,8 @@ def _set_measure_impedance(param):
 def _set_channel(args):
     if args.action is None:
         return 'Not implemented yet: get channel status'
-    reader.set_channel(args.param, args.action)
-    return 'Channel {} set to {}'.format(args.param, args.action)
+    reader.set_channel(args.channel, args.action)
+    return 'Channel {} set to {}'.format(args.channel, args.action)
 
 
 def init_parser():
@@ -125,7 +114,7 @@ def init_parser():
         'set_channel', aliases=['ch'], epilog=_set_channel.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help='Enable/disable specific channel')
-    sparser.add_argument('ch', type=int)
+    sparser.add_argument('channel', type=int)
     sparser.add_argument('action', nargs='?', type=get_boolean)
     sparser.set_defaults(func=_set_channel)
 
@@ -188,7 +177,7 @@ def init_parser():
     # Command: exit
     subparsers.add_parser(
         'exit', help='Terminate this task (BE CAREFUL!)'
-    ).set_defaults(func=exit)
+    ).set_defaults(func=lambda args: os.kill(os.getpid(), signal.SIGINT))
 
     return parser
 
@@ -196,6 +185,7 @@ def init_parser():
 class REPL(LoopTaskMixin):
     __metaclass__ = Singleton
     _tempstream = TempStream('stderr', 'stdout')
+    _argparser = init_parser()
 
     def _stdinfo(self, clean=True):
         return '\n'.join([
@@ -206,11 +196,11 @@ class REPL(LoopTaskMixin):
     def start(self):
         if not super(REPL, self).start():
             return False
-        self.loop(self.repl, (), {}, self.before, self.after)
+        self.loop(self.repl)
+        return True
 
-    def before(self):
-        self.parser = init_parser()
-        self.reply = producer()
+    def loop_before(self):
+        self.reply = get_producer()
         self.poller = zmq.Poller()
         self.poller.register(self.reply, zmq.POLLIN)  # | zmq.POLLOUT)
         logger.info('Listening on `{}`'.format(CMD_ADDR))
@@ -219,14 +209,14 @@ class REPL(LoopTaskMixin):
         self._tempstream.enable()
         # note: logging is not influenced because it saves stdout when imported
 
-    def after(self):
+    def loop_after(self):
         try:
             reader.close()
         except Exception:
             pass
         self._tempstream.disable()
         self.reply.close()
-        del self.parser, self.reply, self.poller
+        del self.reply, self.poller
         logger.info('Stopping reader {}'.format(reader))
         logger.info('ZMQ command listener thread terminated.')
 
@@ -240,22 +230,16 @@ class REPL(LoopTaskMixin):
             ret = self.parse_one_cmd(self.reply.recv()).strip()
 
             # 3 return result of command
-            if ret in ['exit', 'quit']:
-                self.close()
-                return
-            else:
-                self.reply.send(str(ret or '') + '\n')
+            self.reply.send(str(ret or '') + '\n')
         except zmq.ZMQError as e:
             logger.info('ZMQ socket error: {}'.format(e))
         except KeyboardInterrupt as e:
             raise e  # self.loop default will stop this task
-        except Exception:
-            logger.error(traceback.format_exc())
 
-    def parse_one_cmd(self, cmd, rst=''):
+    def parse_one_cmd(self, cmd):
         cmd = shlex.split(cmd)
         try:
-            args = self.parser.parse_args(cmd)
+            args = self._argparser.parse_args(cmd)
         except SystemExit:
             # handle parse error
             if not cmd:
@@ -271,11 +255,7 @@ class REPL(LoopTaskMixin):
 
 
 def main(arg):
-    # BUG: embci.apps.streaming: python3 pylsl cannot create outlet?
-    globals()['reader'] = reader = Reader(
-        sample_rate, sample_time=1,
-        num_channel=8, send_to_pylsl=True)
-    globals()['repl'] = repl = REPL()
+    repl = REPL()
 
     # task can safely exit if killed by `kill command` or `user log out`
     signal.signal(signal.SIGTERM, lambda *a: repl.close())

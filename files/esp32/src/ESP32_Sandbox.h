@@ -1,8 +1,10 @@
 /*
  File: ESP32_Sandbox.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Tue 19 Mar 2019 17:59:58 CST
+ Authors: Tian-Cheng SONG <github.com/rotom407>
+          Hank <hankso1106@gmail.com>
+ Create: 2019-03-19 17:59:58
+
+ ESP32 firmware source code used in EmBCI.
 
  Copyright (c) 2019 EmBCI. All right reserved.
 

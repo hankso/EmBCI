@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/apps/sEMG/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 19 Feb 2019 01:15:57 CST
+# File: sEMG/__init__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-19 01:15:57
 
 '''__doc__'''
 
@@ -12,9 +11,10 @@
 # built-in
 from __future__ import print_function
 import os
+import sys
 import time
 import json
-import sys
+import traceback
 
 from ...utils import time_stamp, check_input
 from ...io import load_data, save_action
@@ -77,8 +77,8 @@ def main(username, reader, model, commander):
             with open(model_name[:-3] + '-action-dict.json', 'w') as f:
                 json.dump(action_dict, f)
             print('model save to ' + model_name)
-        except Exception as e:
-            print(e)
+        except Exception:
+            traceback.print_exc()
             sys.exit(0)
         finally:
             model_name = model_flag = data = label = f = None

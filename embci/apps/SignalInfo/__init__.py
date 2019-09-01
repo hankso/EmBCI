@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/frame/stream_info.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 19 Feb 2019 01:07:14 CST
+# File: SignalInfo/__init__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-19 01:07:14
 
 '''Display/draw information of streaming data.'''
 

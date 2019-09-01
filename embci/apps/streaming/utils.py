@@ -1,12 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/streaming/utils.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 08 Jul 2019 21:58:56 CST
-
-'''__doc__'''
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-08 21:58:56
 
 # built-in
 import time
@@ -19,26 +16,32 @@ from embci.utils import strtypes, ensure_bytes, ensure_unicode
 from . import CMD_ADDR
 
 
-CONT = zmq.Context()
+context = zmq.Context()
+producer = None
 
 
-def producer():
-    q = CONT.socket(zmq.REP)
-    # TODO: embci.apps.streaming: use random port number
-    #  globals()['CMD_PORT'] = q.bind_to_random_port()
-    #  globals()['CMD_ADDR'] = 'tcp://{}:{}'.format(CMD_HOST, CMD_PORT)
-    q.bind(CMD_ADDR)
-    return q
+def get_producer():
+    global producer
+    if producer is not None:
+        return producer
+    producer = context.socket(zmq.REP)
+    try:
+        producer.bind(CMD_ADDR)
+    except zmq.ZMQError as e:
+        # TODO: embci.apps.streaming: bind_to_random_port when addr in use?
+        raise e
+    else:
+        return producer
 
 
-def consumer():
+def get_consumer():
     '''multiple consumers will share the same context'''
-    q = CONT.socket(zmq.REQ)
-    q.connect(CMD_ADDR)
-    return q
+    c = context.socket(zmq.REQ)
+    c.connect(CMD_ADDR)
+    return c
 
 
-def send_message(cmd_or_args):
+def send_message(cmd_or_args, delay=0.2):
     if not cmd_or_args:
         return ''
     if isinstance(cmd_or_args, (list, tuple)):
@@ -47,9 +50,12 @@ def send_message(cmd_or_args):
         cmd = str(cmd_or_args)
     else:
         cmd = cmd_or_args
-    q = consumer()
-    q.send(ensure_bytes(cmd))
-    time.sleep(0.2)
-    ret = q.recv()
-    q.close()
+    c = get_consumer()
+    c.send(ensure_bytes(cmd))
+    if cmd in ['exit', 'quit']:
+        ret = ''
+    else:
+        time.sleep(delay)
+        ret = c.recv()
+    c.close()
     return ensure_unicode(ret)

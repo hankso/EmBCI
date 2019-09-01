@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: WiFi/backend/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sat 04 May 2019 00:10:32 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-05-04 00:10:32
 
 '''
 Backend interface:
@@ -71,6 +70,7 @@ __targets__ = [
 import sys
 import logging
 import importlib
+import traceback
 
 __all__ = []
 __backends__ = [
@@ -97,9 +97,9 @@ for bd in __backends__:
     __backend__ = __name__ + '.' + bd['module']
     try:
         mod = importlib.import_module(__backend__)
-    except ImportError as e:
-        logger.warning('Importing `{}` failed: {}'.format(__backend__, e))
-        del e
+    except ImportError:
+        logger.warning('Importing `%s` failed.' % __backend__)
+        logger.error(traceback.format_exc())
         continue
     logger.debug('Using %s backend from %s.' % (bd['name'], __backend__))
 

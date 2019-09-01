@@ -16,7 +16,7 @@ bool p=false;
 void setup()
 {
     Serial.begin(115200);
-//    Serial.println("start!");
+    // Serial.println("start!");
 }
 
 void loop()
@@ -25,7 +25,7 @@ void loop()
     read_position(&x, &y, &p);
     if (p)
     {
-//        Serial.printf("PS(%d,%d,1);\n", x, y);
+        // Serial.printf("PS(%d,%d,1);\n", x, y);
         Serial.printf("%d,%d\n", x, y);
     }
     if (Serial.available() >= 3)
@@ -41,7 +41,7 @@ void loop()
 
 void read_position(uint16_t *x, uint16_t *y, bool *P)
 {
-    // check if screen been touched
+    /* check if screen been touched */
     pinMode(X0, OUTPUT);
     pinMode(X1, INPUT);
     pinMode(Y0, OUTPUT);

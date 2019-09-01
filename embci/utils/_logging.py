@@ -9,8 +9,8 @@
 # built-in
 import os
 import sys
-import inspect
 import logging
+import traceback
 
 from six.moves import StringIO
 
@@ -27,21 +27,34 @@ class Logger(logging.Logger):
         logging._srcfile,
         os.path.abspath(__file__).replace('.pyc', '.py'),
     ]
+    __stackio__ = StringIO()
 
-    def findCaller(self, rv=("(unknown file)", 0, "(unknown function)")):
+    def findCaller(self, stack_info=False):
         '''
         Some little hacks here to ensure LoggerStream wrapped instance
-        log with correct lineno, filename and funcname.
+        log with correct lineno, filename and funcname. Support py2 & 3.
         '''
-        f = inspect.currentframe()
+        f = sys._getframe(3) if hasattr(sys, '_getframe') else None
+        rv = ('(unknown file)', 0, '(unknown function)', None)
         while hasattr(f, "f_code"):
             co = f.f_code
             fn = os.path.normcase(os.path.abspath(co.co_filename))
-            if fn not in self.__srcfiles__:
-                rv = (co.co_filename, f.f_lineno, co.co_name)
-                break
-            f = f.f_back
+            if fn in self.__srcfiles__:
+                f = f.f_back
+                continue
+            rv = (co.co_filename, f.f_lineno, co.co_name,
+                  self._stackinfo(f) if stack_info else None)
+            break
+        if sys.version_info < (3, 0):
+            return rv[:3]
         return rv
+
+    def _stackinfo(self, frame):
+        self.__stackio__.write('Stack (most recent call last):\n')
+        traceback.print_stack(frame, file=self.__stackio__)
+        sinfo = self.__stackio__.getvalue().rstrip('\n')
+        self.__stackio__.truncate(0); self.__stackio__.seek(0)     # noqa: E702
+        return sinfo
 
 
 logging.Logger = Logger
@@ -85,10 +98,13 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     --------
     logging.basicConfig
     '''
-    if isinstance(name, logging.getLoggerClass()):
+    if isinstance(name, (type('string'), type(None))):
+        name = name or get_caller_globals(1)['__name__']
+        logger = logging.getLogger(name)
+    elif 'Logger' in type(name).__name__:
         logger = name
     else:
-        logger = logging.getLogger(name or get_caller_globals(1)['__name__'])
+        raise TypeError('Invalid name of logger: {}'.format(name))
     logger.setLevel(level)
     format = logging.Formatter(format, kwargs.pop('datefmt', None))
     addhdlr = kwargs.pop('addhdlr', True)
@@ -172,18 +188,57 @@ class LoggerStream(object):
 
 
 class TempLogLevel(object):
-    '''Context manager to temporarily change log level and auto set back.'''
-    def __init__(self, level):
-        self._logger = logging.getLogger(get_caller_globals(1)['__name__'])
-        self._old_level = self._logger.level
+    '''
+    Context manager to temporarily change log level and auto set back.
+
+    Parameters
+    ----------
+    logger : logging.Logger
+        Logger whose level will be temporarily changed.
+    level : int | str
+        Log level that logging.Logger accept. Default 'INFO' (20).
+
+    Examples
+    --------
+    >>> logger = embci.utils.config_logger(level='INFO')
+    >>> with TempLogLevel(logger, 'WARNING'):
+    ...     logger.info('there will be no info')
+    ...     logger.warning('logger is set to warning level')
+    logger is set to warning level
+
+    With no logger specified, __name__ of current frame will be used to
+    resolve the logger.
+    >>> print(globals()['__name__'])
+    embci.utils._logging
+    >>> with TempLogLevel(level='DEBUG') as logger:
+    ...     logger.info('logger level is set to DEBUG, so this message exist')
+    ...     print(logger.name, logger.parent.name, logger.parent.parent.name)
+    logger level is set DEBUG, so this message exist
+    ('_logging', 'utils', 'embci')
+
+    Also, you can simply input log level without keyword:
+    >>> TempLogLevel('DEBUG')._level == TempLogLevel(level='DEBUG')._level
+    True
+    '''
+    __slots__ = ('_logger', '_level')
+
+    def __init__(self, logger=None, level='INFO'):
+        if not isinstance(logger, logging.getLoggerClass()):
+            level, logger = logger, None
+        self._logger = logger or logging.getLogger(
+            get_caller_globals(1)['__name__'])
         self._level = logging._checkLevel(level)
+        if self._level == self._logger.level:
+            self._level ^= self._level
+        else:
+            self._level ^= self._logger.level
 
     def __enter__(self):
-        self._logger.setLevel(self._level)
+        self._logger.setLevel(self._level ^ self._logger.level)
         return self._logger
 
     def __exit__(self, *a):
-        self._logger.setLevel(self._old_level)
+        self._logger.setLevel(self._level ^ self._logger.level)
 
 
 # THE END

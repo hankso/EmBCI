@@ -34,6 +34,8 @@ __all__ = [
 ]
 __all__ += ['SocketTCPServer']
 
+# TODO: embci.io.commander: valid_name
+
 
 class BaseCommander(object):
     name = '[embci.io.Commander]'
@@ -48,6 +50,8 @@ class BaseCommander(object):
             logger.warning(
                 '[Command Dict] current command dict does not have a '
                 'key named _desc to describe itself. please add it.')
+        # alias `send` as `write` to make instances file-like object
+        self.write = self.send
 
     def start(self):
         raise NotImplementedError('you can not directly use this class')
@@ -55,8 +59,6 @@ class BaseCommander(object):
     def send(self, key, *args, **kwargs):
         raise NotImplementedError('you can not directly use this class')
 
-    # alias `send` as `write` to make instances file-like object
-    write = send
     flush, read = lambda: None, lambda *a: ''
     seek = truncate = tell = lambda *a: 0
 
@@ -285,13 +287,13 @@ class SocketTCPServer(LoopTaskInThread):
                 self.name, *addr))
 
     def send(self, con, data):
-        data = bytearray(data)
         try:
             con.sendall(data)
         except socket.error:
             pass
 
     def multicast(self, data):
+        data = bytearray(data)
         for con in self._conns:
             self.send(data, con)
 

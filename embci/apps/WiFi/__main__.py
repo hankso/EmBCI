@@ -1,15 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: WiFi/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 06 May 2019 01:36:25 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-05-06 01:36:25
 
-import sys
 import bottle
 from . import application
 
-
 if __name__ == '__main__':
-    sys.exit(bottle.run(application, host='0.0.0.0', port=8080))
+    bottle.run(application)

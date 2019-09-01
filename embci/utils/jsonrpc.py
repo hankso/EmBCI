@@ -73,9 +73,9 @@ especially the docstring of `jsonrpc.__external__`.
 For debugging:
 >>> jsonrpc.debug(True)
 
-Then there will be verbose information like:
-JSONRPC --> {"id":"5hq36vw6","jsonrpc":"2.0","method":"system.describe"}
-JSONRPC <-- {"id":"5hq36vw6","jsonrpc":"2.0","result":{...}}
+Then there will be verbose information like::
+    JSONRPC --> {"id":"5hq36vw6","jsonrpc":"2.0","method":"system.describe"}
+    JSONRPC <-- {"id":"5hq36vw6","jsonrpc":"2.0","result":{...}}
 
 Some RPC-relative modules
 -------------------------
@@ -120,7 +120,7 @@ def __external__():
     names as attributes of this module, resulting in a **clean** namespace.
     '''
     # built-in
-    import sys, functools, random, string                          # noqa: E401
+    import sys, functools, random, string, inspect                 # noqa: E401
     from six import string_types                                   # noqa: W611
     from six.moves import (                                        # noqa: W611
         socketserver, xmlrpc_client, xmlrpc_server, urllib,
@@ -156,7 +156,8 @@ def __external__():
         #   e.g. sum(x, y=None, z=1) => (['x', 'y', 'z'], (None, 1, ))
         get_func_args,
 
-        # create logging.Logger
+        # create logging.Logger, similar as logging.basicConfig
+        #   e.g. logger = config_logger(name='jsonrpc', format='%(message)s')
         config_logger,
 
         # a property only computed once and becomes a constant attribute
@@ -179,8 +180,9 @@ def __external__():
         # utilities
         debug = lambda v=True: logger_rpc.setLevel('DEBUG' if v else 'INFO'),
         typename = lambda obj: type(obj).__name__,
+        format_exc = lambda e: '%s: %s' % (type(e).__name__, e),
         random_id = lambda length=8: ''.join([
-            random.choice(string.ascii_lowercase+string.digits)
+            random.choice(string.ascii_lowercase + string.digits)
             for _ in range(length)
         ]),
         list_public_methods = lambda obj: [
@@ -193,8 +195,10 @@ def __external__():
                 if not i.startswith('_')
             ], obj
         ),
+        # none represent no-exist, same as builtins.None
+        none = type('NoExist', (), {}),
 
-        # modules, functions and instances
+        # other modules, functions and instances imported/created above
         **locals()
     )
     import types
@@ -207,11 +211,12 @@ def __external__():
     return module
 
 
-ext = __external__()  # This function can only be executed once
+ext = __external__()
 
 
 __codemap__ = {
     -32700: 'Parse Error',
+    -32701: 'Invalid JSON',
     -32600: 'Invalid Request',
     -32601: 'Method Not Found',
     -32602: 'Invalid Params',
@@ -254,9 +259,10 @@ class Fault(Exception):
             code, message = -32000, code
         self.code = int(code)
         self.codename = __codemap__.get(self.code, 'Server Error')
-        self.message = \
-            str(message).strip(' .') + \
-            (k and '. (%s)' % str(k).strip('()[]{}') or '')
+        self.message = '{}{}'.format(
+            str(message).strip(' .'),
+            k and '. (%s)' % str(k).strip('{}') or ''
+        )
         if self.rpcid is not None:
             self.args = (self.rpcid, self.code, self.codename, self.message)
         else:
@@ -315,15 +321,14 @@ class Payload(object):
         '''
         try:
             obj    = ObjectRequest(obj)
-            rpcid  = obj.get('id', 'noexist')
+            rpcid  = obj.get('id', ext.none)
             method = obj.get('method')
             params = obj.get('params', [])
         except (TypeError, ValueError):
             raise Fault(-32600, 'type cannot be `%s`' % ext.typename(obj))
         except Exception as e:
-            raise Fault(
-                -32700, 'invalid json `%s`' % obj, **{ext.typename(e): str(e)})
-        if 'jsonrpc' not in obj and rpcid == 'noexist':
+            raise Fault(-32700, '%s. %s' % (obj, ext.format_exc(e)))
+        if 'jsonrpc' not in obj and rpcid == ext.none:
             raise Fault(-32600, 'must contain RPC version or ID')
         if 'jsonrpc' in obj and rpcid is None:
             import warnings
@@ -391,22 +396,22 @@ class Payload(object):
         '''
         try:
             obj = ObjectResponse(obj)
-            result = obj.get('result', 'noexist')  # noexist | None | value
-            error = obj.get('error', 'noexist')    # noexist | None | value
-            rpcid = obj.get('id', 'noexits')
+            result = obj.get('result', ext.none)  # noexist | None | value
+            error = obj.get('error', ext.none)    # noexist | None | value
+            rpcid = obj.get('id', ext.none)
         except (TypeError, ValueError):
             raise TypeError('invalid response `{}`'.format(obj))
         if cls.version < 2:
-            assert 'noexist' not in [result, error], 'Result &Error MUST exist'
+            assert ext.none not in [result, error], 'Result & Error MUST exist'
             assert not (None not in [result, error]), 'Invalid coexistance'
         else:
-            assert 'noexist' in [result, error], 'Invalid coexistance'
-            assert not (result == 'noexist' and not error), 'Invalid Error'
+            assert ext.none in [result, error], 'Invalid coexistance'
+            assert result != ext.none or error, 'Invalid error'
             assert obj['jsonrpc'] == str(cls.version), 'MUST specify version'
-            assert rpcid != 'noexist', 'ID MUST exist'
+            assert rpcid != ext.none, 'ID MUST exist'
         if reqid is not None:
             assert rpcid == reqid, 'ID MUST be the same as request\'s'
-        if error not in ['noexist', None]:
+        if error not in [ext.none, None]:
             assert 'code' in error and 'message' in error, 'Invalid Error'
             assert isinstance(error['code'], int), 'code MUST be an integer'
             assert isinstance(error['message'], ext.string_types), \
@@ -485,7 +490,7 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
     def __init__(self, encoding='utf8', *a, **k):
         self._uuid = ext.random_id(16)
         self._funcs = {}
-        self._instance = None
+        self._insts = {}
         self.encoding = encoding
 
     def __repr__(self):
@@ -497,12 +502,16 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         '''
         if method in self._funcs:
             return self._funcs[method]
-        if self._instance is None:
+        if not self._insts:
             return
+        if method in self._insts:  # instance may be a class (i.e. callable)
+            return self._insts[method]
         try:
-            func = ext.resolve_dotted_attribute(
-                self._instance, method, True)
-        except AttributeError:
+            method = method.split('.')
+            inst = self._insts[method.pop(0)]
+            assert not hasattr(inst, '_dispatch')
+            func = ext.resolve_dotted_attribute(inst, '.'.join(method), True)
+        except Exception:
             return
         else:
             return func
@@ -532,8 +541,9 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         rpcid  = request.get('id')
         func   = self._get_method(method)
         if func is None:
-            if hasattr(self._instance, '_dispatch'):
-                return self._instance._dispatch(request)
+            for inst in self._insts.values():
+                if hasattr(inst, '_dispatch'):
+                    return inst._dispatch(request)
             raise Fault(-32601, '`%s`' % method, rpcid)
         try:
             if isinstance(params, (tuple, list)):
@@ -547,7 +557,7 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
             fault.rpcid = rpcid
             raise fault
         except Exception as e:
-            raise Fault(-32603, '%s: %s' % (ext.typename(e), e), rpcid)
+            raise Fault(-32603, ext.format_exc(e), rpcid)
         return result
 
     def _marshaled_dispatch(self, data, *a, **k):
@@ -567,9 +577,8 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
             ext.logger_rpc.debug('--> %s' % data)
             requests = ext.loads(data)  # {...} | [...] | [{...} ...]
         except Exception as e:
-            return ext.dumps(Payload.error(
-                -32700, 'invalid json `%s`' % data, **{ext.typename(e): str(e)}
-            ))
+            error = Payload.error(-32701, '%s. %s' % (data, ext.format_exc(e)))
+            return ext.dumps(error)
 
         # empty array (MultiCall i.e. list) or empty object (dict)
         if not requests:
@@ -593,8 +602,7 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
             except Fault as fault:
                 response = Payload.error(fault)
             except Exception as e:
-                response = Payload.error(
-                    -32400, '%s: %s' % (ext.typename(e), e))
+                response = Payload.error(-32400, ext.format_exc(e))
             responses.append(response)
         if not responses:
             return ''
@@ -608,10 +616,13 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         funcs = []
         for method in self.system_listMethods():
             func = self._get_method(method)
-            if func is None:
+            if not callable(func):
                 continue
-            args = ext.get_func_args(func)[0]
-            funcs.append({'name': method, 'params': args})
+            try:
+                args = ext.get_func_args(func)[0]
+                funcs.append({'name': method, 'params': args})
+            except TypeError:
+                pass
         return {
             'jsonrpc': Payload.version,
             'name': repr(self),
@@ -626,11 +637,13 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         Returns a list of the methods supported by the dispatcher.
         '''
         methods = set(self._funcs.keys())
-        if self._instance is not None:
-            if hasattr(self._instance, '_listMethods'):
-                methods.update(self._instance._listMethods())
-            elif not hasattr(self._instance, '_dispatch'):
-                methods.update(ext.list_public_methods(self._instance))
+        for name, inst in self._insts.items():
+            if hasattr(inst, '_listMethods'):
+                methods.update(
+                    name + '.' + m for m in inst._listMethods())
+            elif not hasattr(inst, '_dispatch'):
+                methods.update(
+                    name + '.' + m for m in ext.list_public_methods(inst))
         return sorted(methods)
 
     def system_methodHelp(self, method):
@@ -663,13 +676,13 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         Registers a function to respond to JSON-RPC requests. The optional
         name argument can be used to set a Unicode name for the function.
         '''
-        self._funcs[name or func.__name__] = func
+        self._funcs[name or getattr(func, '__name__', str(func))] = func
 
-    def register_instance(self, instance):
+    def register_instance(self, inst, name=None):
         '''
-        Registers an instance to respond to JSON-RPC requests.
-
-        Only one instance can be installed at a time.
+        Registers an instance to respond to JSON-RPC requests. Multiple
+        instances are resolved by unique instance names. JSON-RPC allows
+        dotted names (default).
 
         If the registered instance has a _dispatch method then that
         method will be called with the name of the JSON-RPC method and
@@ -681,21 +694,13 @@ class JSONRPCDispatcher(ext.xmlrpc_server.SimpleXMLRPCDispatcher):
         and, if found, will be called. Methods beginning with an '_'
         are considered private and will not be called.
 
-        If a registered function matches a JSON-RPC request, then it
-        will be called instead of the registered instance.
-
-        If the optional allow_dotted_names argument is true and the
-        instance does not have a _dispatch method, method names
-        containing dots are supported and resolved, as long as none of
-        the name segments start with an '_'.
-
         *** SECURITY WARNING: **
         Enabling the allow_dotted_names options allows intruders
         to access your module's global variables and may allow
         intruders to execute arbitrary code on your machine.  Only
         use this option on a secure, closed network.
         '''
-        self._instance = instance
+        self._insts[name or getattr(inst, '__name__', str(inst))] = inst
 
     def register_introspection_functions(self):
         '''
@@ -732,8 +737,7 @@ class JSONRPCRequestHandler(ext.xmlrpc_server.SimpleXMLRPCRequestHandler):
             response = self.server._marshaled_dispatch(data)
             self.send_response(200)
         except Exception as e:
-            response = ext.dumps(Payload.error(Fault(
-                -32603, '%s: %s' % (ext.typename(e), e))))
+            response = ext.dumps(Payload.error(-32603, ext.format_exc(e)))
             self.send_response(500)
         if not isinstance(response, bytes):  # py 2 & 3
             response = response.encode('utf8')
@@ -858,7 +862,7 @@ class JSONRPCClient(ext.xmlrpc_client.ServerProxy):
         func = ext.functools.partial(self._config_request, notify=True)
         return type('_Notify', (object, ), {
             '__getattr__': lambda obj, name: _Method(func, name),
-            '__repr__': lambda self: '<NotificationProxy at 0x%x>' % id(self)
+            '__repr__': lambda obj: '<NotificationProxy at 0x%x>' % id(obj)
         })()
 
     @ext.CachedProperty
@@ -948,7 +952,7 @@ class JSONRPCMultiCall(object):
         return type('_MultiCallNotify', (object, ), {
             '__getattr__': lambda obj, name: _MultiCallMethod(
                 self.__notify_list, name),
-            '__repr__': lambda self: '<NotificationProxy at 0x%x>' % id(self)
+            '__repr__': lambda obj: '<NotificationProxy at 0x%x>' % id(obj)
         })()
 
     def __call__(self, iterator=True):

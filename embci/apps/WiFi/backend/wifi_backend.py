@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: WiFi/backend/wifi_backend.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 05 May 2019 10:19:16 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-05-05 10:19:16
 
 '''
 Python-wifi Backend

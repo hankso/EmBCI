@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/apps/TGAM/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 19 Feb 2019 01:11:47 CST
+# File: TGAM/__init__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-19 01:11:47
 
 '''__doc__'''
 

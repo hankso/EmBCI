@@ -1,7 +1,6 @@
 # File: EmBCI/files/esp32/Makefile
-# Author: hank
-# Webpage: https://github.com/hankso
-# Time: Tue 23 Apr 2019 19:35:05 UTC
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-04-23 19:35:05
 #
 # ESP32 Makefile used in EmBCI
 #

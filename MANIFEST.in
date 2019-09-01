@@ -1,1 +1,6 @@
-include *.md *.rst LICENSE.txt pytest.ini
+include *.md *.rst LICENSE.txt pytest.ini requirements*
+recursive-include data *
+recursive-include files *
+recursive-include tests *
+recursive-include embci *
+global-exclude __pycache__ .ropeproject/* *.py[codx] *.src *.old
