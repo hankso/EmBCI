@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/tests/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 20 Feb 2019 19:06:39 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-20 19:06:39
 
 '''
 EmBCI tests
@@ -44,7 +43,8 @@ import platform
 
 import pytest
 
-from embci.configs import TESTDIR
+from embci.utils import get_caller_globals
+from embci.configs import DIR_TEST
 
 
 embeddedonly = pytest.mark.skipif(
@@ -61,24 +61,30 @@ def main():
     pass
 
 
-def run_test_with_unittest(*args):
+def test_with_unittest(*args):
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     for arg in args:
         if isinstance(arg, type) and issubclass(arg, unittest.TestCase):
             suite.addTests(loader.loadTestsFromTestCase(arg))
-        if isinstance(arg, str):
+        elif isinstance(arg, str):
             suite.addTests(loader.loadTestsFromName(arg))
-        if isinstance(arg, types.ModuleType):
+        elif isinstance(arg, types.ModuleType):
             suite.addTests(loader.loadTestsFromModule(arg))
+        elif callable(arg):
+            class tmp(EmBCITestCase):
+                def test_func(self, func=arg):
+                    return func()
+            suite.addTests(loader.loadTestsFromTestCase(tmp))
+        else:
+            print('Invalid unittest object: {}'.format(arg))
     try:
         from HtmlTestRunner import HTMLTestRunner
     except ImportError:
-        suite.run()
+        unittest.TextTestRunner().run(suite)
     else:
-        func_caller = os.path.splitext(globals()['__name__'])[-1].strip('.')
-        # caller_path = os.path.dirname(os.path.abspath(globals()['__file__']))
-        report_file = os.path.join(TESTDIR, '%s.html' % func_caller)
+        func_caller = get_caller_globals(1)['__name__'].split('.')[-1]
+        report_file = os.path.join(DIR_TEST, '%s.html' % func_caller)
         with open(report_file, 'w') as f:
             HTMLTestRunner(
                 stream=f, title='%s Test Report' % func_caller, verbosity=2,

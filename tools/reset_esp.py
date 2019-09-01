@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: reset_esp.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 02 Aug 2018 10:21:59 AM UTC
+# File: EmBCI/tools/reset_esp.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-08-02 10:21:59
 
 import sys
 import time

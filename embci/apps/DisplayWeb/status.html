@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>DisplayWeb - Status</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        h1 {
+            margin-top: 50px;
+            text-align: center;
+        }
+        div.info {
+            width: 80%;
+            height: 30px;
+            margin: auto;
+        }
+        div.info p {
+            margin: 0;
+            line-height: 30px;
+            font-size: 18px;
+            display: inline-block;
+        }
+        .info-left {
+            font-weight: 600;
+            float: left;
+        }
+        .info-right {
+            font-weight: 400;
+            float: right;
+        }
+    </style>
+</head>
+    <body>
+    % for msg in messages:
+      % if msg[0] == 'SPLITBAR':
+        <h1>{{str(msg[1])}}</h1><hr>
+      % else:
+        <div class=info>
+            <p class='info-left'>{{str(msg[0])}}:</p>
+            <p class='info-right'>{{str(msg[1])}}</p>
+        </div>
+    % end
+    </body>
+</html>

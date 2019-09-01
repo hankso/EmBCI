@@ -21,7 +21,8 @@ import traceback
 import pylsl
 import serial
 
-from ..utils import ensure_unicode, find_serial_ports, duration
+from ..utils import (ensure_unicode, find_serial_ports, duration,
+                     LoopTaskInThread)
 from ..gyms import TorcsEnv, PlaneClient
 from ..constants import command_dict_null, command_dict_plane
 from . import logger
@@ -32,6 +33,8 @@ __all__ = [
     )
 ]
 __all__ += ['SocketTCPServer']
+
+# TODO: embci.io.commander: valid_name
 
 
 class BaseCommander(object):
@@ -44,11 +47,11 @@ class BaseCommander(object):
         try:
             logger.debug('[Command Dict] %s' % self._command_dict['_desc'])
         except KeyError:
-            logger.warn('[Command Dict] current command dict does not have a '
-                        'key named _desc to describe itself. please add it.')
-        # alias `write` to make instance a file-like object
+            logger.warning(
+                '[Command Dict] current command dict does not have a '
+                'key named _desc to describe itself. please add it.')
+        # alias `send` as `write` to make instances file-like object
         self.write = self.send
-        self.flush = self.seek = self.truncate = lambda *a, **k: None
 
     def start(self):
         raise NotImplementedError('you can not directly use this class')
@@ -56,10 +59,13 @@ class BaseCommander(object):
     def send(self, key, *args, **kwargs):
         raise NotImplementedError('you can not directly use this class')
 
+    flush, read = lambda: None, lambda *a: ''
+    seek = truncate = tell = lambda *a: 0
+
     def get_command(self, cmd, warning=True):
         if cmd not in self._command_dict:
             if warning:
-                logger.warn('{} command {} is not supported'.format(
+                logger.warning('{} command {} is not supported'.format(
                     self.name, cmd))
             return
         return self._command_dict[cmd]
@@ -211,87 +217,105 @@ class SerialCommander(BaseCommander):
             logger.error(self.name + ' reconnect failed.')
 
 
-class SocketTCPServer(object):
+class SocketTCPServer(LoopTaskInThread):
     '''
-    Socket TCP server on host:port, default to 0.0.0.0:9999
+    Socket TCP server on host:port, default to 0.0.0.0:0
     Data sender.
     '''
     __num__ = 1
 
-    def __init__(self, host='0.0.0.0', port=9999):
-        self.name = '[Socket server %d]' % SocketTCPServer.__num__
-        SocketTCPServer.__num__ += 1
+    def __init__(self, host='0.0.0.0', port=0):
         self._conns = []
         self._addrs = []
-        # TCP IPv4 socket connection
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        LoopTaskInThread.__init__(self, self._manage_connections)
+        # Reset name of this Thread
+        self.name = '[Socket server %d]' % SocketTCPServer.__num__
+        SocketTCPServer.__num__ += 1
         self._server.bind((host, port))
         self._server.listen(5)
         self._server.settimeout(0.5)
-        self._flag_close = threading.Event()
-        logger.debug('{} binding socket server at {}:{}'.format(
-            self.name, host, port))
-
-    def start(self):
-        self._flag_close.clear()
-        self._thread = threading.Thread(target=self._manage_connections)
-        self._thread.setDaemon(True)
-        self._thread.start()
+        self.host, self.port = self._server.getsockname()
+        logger.info('{} binding socket server at {}:{}'.format(
+            self.name, self.host, self.port))
 
     def _manage_connections(self):
-        while not self._flag_close.is_set():
-            # manage all connections and wait for new client
-            rst, _, _ = select.select([self._server] + self._conns, [], [], 3)
-            if not rst:
-                continue
-            s = rst[0]
-            # new connection
-            if s is self._server:
-                con, addr = self._server.accept()
-                con.settimeout(0.5)
-                logger.debug('{} accept client from {}:{}'.format(
-                    self.name, *addr))
-                self._conns.append(con)
-                self._addrs.append(addr)
-            # some client maybe closed
-            elif s in self._conns:
-                msg = s.recv(4096)
-                addr = self._addrs[self._conns.index(s)]
-                # client sent some data
-                if msg not in ['shutdown', '']:
-                    logger.info('{} recv `{}` from {}:{}'.format(
-                        self.name, msg, *addr))
-                    continue
-                # client shutdown and we should clear correspond server
-                try:
-                    s.sendall('shutdown')
-                    s.shutdown(socket.SHUT_RDWR)
-                except socket.error:
-                    logger.error(traceback.format_exc())
-                finally:
-                    s.close()
-                self._conns.remove(s)
-                self._addrs.remove(addr)
-                logger.debug('{} lost client from {}:{}'.format(
-                    self.name, *addr))
-        logger.debug(self.name + ' socket manager terminated')
+        '''
+        This loop task does following things to manage connections:
+            1. wait for new clients and add them into a list
+            2. remove closed clients
+            3. recieve msg from all clients and run callback functions
+        '''
+        rlist, _, _ = select.select([self._server] + self._conns, [], [], 3)
+        if not rlist:
+            return
+        # new connection
+        if rlist[0] is self._server:
+            con, addr = self._server.accept()
+            con.settimeout(0.5)
+            logger.debug('{} accept client from {}:{}'.format(
+                self.name, *addr))
+            self._conns.append(con)
+            self._addrs.append(addr)
+        # some client maybe closed
+        elif rlist[0] in self._conns:
+            con, addr = rlist[0], self.getaddr(rlist[0])
+            msg = con.recv(4096)
+            # client sent some data
+            if msg not in ['shutdown', '']:
+                logger.info('{} recv `{}` from {}:{}'.format(
+                    self.name, msg, *addr))
+                if hasattr(con, 'onmessage'):
+                    try:
+                        con.onmessage(msg)
+                    except Exception:
+                        logger.error(traceback.format_exc())
+                return
+            # client shutdown and we should clear correspond server
+            try:
+                con.sendall('shutdown')
+                con.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
+            except Exception:
+                logger.error(traceback.format_exc())
+            finally:
+                con.close()
+            self._conns.remove(con)
+            self._addrs.remove(addr)
+            logger.debug('{} lost client from {}:{}'.format(
+                self.name, *addr))
 
-    def send(self, data):
-        data = data.tobytes()
+    def send(self, con, data):
         try:
-            for con in self._conns:
-                con.sendall(data)
+            con.sendall(data)
         except socket.error:
             pass
 
+    def multicast(self, data):
+        data = bytearray(data)
+        for con in self._conns:
+            self.send(data, con)
+
     def close(self):
-        self._flag_close.set()
         for con in self._conns:
             con.close()
+        LoopTaskInThread.close(self)
         logger.debug(self.name + ' Socket server shut down.')
 
     def has_listeners(self):
         return len(self._conns)
+
+    def getaddr(self, sock):
+        if sock in self._conns:
+            return self._addrs[self._conns.index(sock)]
+        return sock.getpeername()
+
+    def add(self, sock):
+        # TODO: ensure socket open and get addr
+        addr = self.getaddr(sock)
+        self._conns.append(sock)
+        self._addrs.append(addr)
 
 
 # THE END

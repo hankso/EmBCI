@@ -1,15 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/streaming/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 10 Mar 2019 04:06:40 CST
-
-'''__doc__'''
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-10 04:06:40
 
 import sys
-from . import main
+from .base import main
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

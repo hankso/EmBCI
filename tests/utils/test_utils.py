@@ -1,24 +1,24 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/tests/utils/test_utils.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 25 Feb 2019 22:34:40 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-25 22:34:40
+
 from __future__ import print_function
 import os
 import time
 import logging
 
-from six import StringIO
+from six.moves import StringIO
 
 from .. import embeddedonly
 
-from embci.configs import BASEDIR, DATADIR
+from embci.configs import DIR_BASE, DIR_DATA
 from embci.utils import (
-    get_boolean, get_label_dict, get_func_args, load_configs, mkuserdir,
+    get_boolean, get_func_args, load_configs, get_config, mkuserdir,
     LoggerStream, TempLogLevel, Singleton,
-    serialize, deserialize, config_logger, duration
+    serialize, deserialize, config_logger, duration, validate_filename
 )
 
 logmsg = StringIO()
@@ -27,8 +27,7 @@ logger = config_logger(level=logging.INFO, format='%(message)s', stream=logmsg)
 
 
 def get_log_msg(f=logmsg):
-    msg = f.getvalue()
-    f.truncate(0)
+    msg = f.getvalue(); f.truncate(0); f.seek(0)  # noqa: E702
     return msg.strip()
 
 
@@ -51,7 +50,7 @@ def test_singleton():
 
 def test_temploglevel():
     with TempLogLevel(logging.ERROR):
-        logger.warn('foo')
+        logger.warning('foo')
         assert get_log_msg() == ''
         logger.error('bar')
         assert get_log_msg() == 'bar'
@@ -79,12 +78,12 @@ def test_mkuserdir(username, clean_userdir):
         pass
     clean_userdir()
     foo(username=username)
-    assert os.path.exists(os.path.join(DATADIR, username))
+    assert os.path.exists(os.path.join(DIR_DATA, username))
     clean_userdir()
 
 
 def test_loggerstream(test_msg='some testing meaasge...'):
-    logger.warn(test_msg)
+    logger.warning(test_msg)
     msg1 = get_log_msg()
     print(test_msg, file=LoggerStream(logger, logging.WARN), end='')
     msg2 = get_log_msg()
@@ -102,8 +101,22 @@ def test_get_func_args():
 
 def test_load_configs():
     assert load_configs(
-        os.path.join(BASEDIR, 'files/service/embci.conf')
-    ).get('Path', {}).get('BASEDIR') == '/usr/share/embci'
+        os.path.join(DIR_BASE, 'files/service/embci.conf')
+    ).get('Network', {}).get('WEBUI_HOST') == '10.0.0.1'
+
+
+def test_get_config():
+    assert get_config('WEBUI_PORT', type=float) == 80.0
+
+
+def test_validate_filename():
+    assert validate_filename('.<>:"/\\|?*()[]') == '.()[]'
+    if os.name == 'posix':
+        assert validate_filename('.') == ''
+        assert validate_filename('..') == ''
+    elif os.name == 'nt':
+        assert validate_filename('COM5') == ''
+        assert validate_filename('CON') == ''
 
 
 def test_get_boolean():
@@ -114,14 +127,6 @@ def test_get_boolean():
         not get_boolean('off') and
         get_boolean('1')
     )
-
-
-def test_get_label_dict(clean_userdir, username):
-    label_dict, summary = get_label_dict(username)
-    assert label_dict == {}
-    # DO NOT test outputs, because it may be changed in the future.
-    #  assert 'There are 0 actions with 0 data recorded' in summary
-    clean_userdir()
 
 
 @embeddedonly

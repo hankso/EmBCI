@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>EmBCI - Visual Online</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fontawesome.min.css" />
+    <link rel="stylesheet" href="css/display.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/echarts.min.js"></script>
+    <script src="/js/echarts.macarons.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/sniploader.js"></script>
+    <script src="/js/numjs.min.js"></script>
+</head>
+
+<body>
+    <div data-include="navbar.html"></div>
+    
+    <div class="recorder" style="display:none">
+        <form class="collapse" id="username">
+            <span class="fas fa-user fold" id="icon-user"></span>
+            <input type="text" name="username" placeholder="Username" id="input-username">
+            <span class="fas fa-check-circle" id="icon-confirm" style="display:none"></span>
+        </form>
+        <button id="record" data-toggle="collapse" data-target="#username" aria-expanded="false">
+            <span id="icon-record"></span>
+        </button>
+    </div>
+    
+    <div class="plane">
+        <div style="margin:20px">
+            <form class="form-row" id="user-info" hidden>
+                <div class="form-group col-3">
+<!--                    <label class="sr-only" for="user-name">姓名</label>-->
+                    <input class="form-control" type="text" placeholder="Username" id="user-name">
+                </div>
+                <div class="form-group col-3">
+<!--                    <label class="sr-only" for="user-gender">性别</label>-->
+                    <select class="form-control" id="user-gender">
+                        <option style="display: none">Gender</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                    </select>
+                </div>
+                <div class="form-group col-3">
+<!--                    <label class="sr-only" for="user-age">年龄</label>-->
+                    <input class="form-control" type="number" placeholder="Age" min="0" id="user-age">
+                </div>
+                <div class="form-group col-3">
+                    <label class="sr-only" for="user-id">ID</label>
+                    <input class="form-control" type="text" placeholder="ID e.g. 123456" id="user-id">
+                </div>
+            </form>
+            <form class="form-inline form-row">
+                <div class="input-group col-auto">
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-low" style="max-width:70px">
+                    <div class="input-group-append">
+                        <span class="input-group-text">Hz</span>
+                        <button class="btn btn-outline-info" type="button" disabled hidden>to</button>
+                    </div>
+                    <input class="form-control" type="number" min="0" step="0.1" value="0" id="filter-high" style="max-width:70px">
+                    <div class="input-group-append">
+                        <span class="input-group-text">Hz</span>
+                        <button class="btn btn-outline-primary" type="button" id="filter-bandpass">BandPass Filter</button>
+                    </div>
+                </div>
+                <div class="input-group col-auto">
+                    <div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <input type="checkbox" id="filter-notch">
+                        </div>
+                    </div>
+                    <select class="form-control">
+                        <option value="50" selected>50Hz</option>
+                        <option value="60">60Hz</option>
+                    </select>
+                    <div class="input-group-append">
+                        <label class="input-group-text" for="filter-notch">Notch Filter</label>
+                    </div>
+                </div>
+                <div class="input-group col-auto" id="scale">
+                    <div class="input-group-prepend">
+                        <button type="button" class="btn btn-outline-primary fas fa-plus-circle" data-action="plus"></button>
+                    </div>
+                    <span class="input-group-text" id="scale-text">Zoom</span>
+                    <!--
+                    <select class="form-control">
+                        <option value="0">0x</option>
+                    </select>
+                    -->
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-primary fas fa-minus-circle" data-action="minus"></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary col-auto" id="recording" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">Record</button>
+            </form>
+        </div>
+        <div class="chart" id="chart-raw"></div>
+        <div class="chart" id="chart-pwr"></div>
+    </div>
+
+    <div data-include="bottom.html"></div>
+    
+    <script src="js/callbacks.js"></script>
+    <script src="js/echart-options.js"></script>
+    <script type="text/javascript">
+        $(function() {
+            $('[data-toggle="popover"]').popover({
+                container: 'body',
+                placement: 'auto'
+            });
+
+            $('button#record').click(function() {
+                var expanded = $(this).attr('aria-expanded') == 'true';
+                dataConfig({
+                    recorder: !expanded ? 'resume' : 'pause'
+                });
+            });
+
+            $('#input-username').focus(() => $('#icon-confirm').show(300));
+            $('#input-username').blur(() => $('#icon-confirm').hide(300));
+
+            $('#icon-user').click(function() {
+                var e = $(this);
+                if (e.hasClass('recording')) {
+                    checkRecordingUser();
+                }
+                if (!e.hasClass('fold') && !e.hasClass('recording')) {
+                    setRecordingUser($('#input-username').val());
+                } else {
+                    $(this).toggleClass('fold');
+                }
+            });
+
+            $('#icon-confirm').click(function() {
+                setRecordingUser($('#input-username').val());
+            });
+
+            $('#filter-bandpass').click(function() {
+                dataFilter(
+                    $('#filter-low').val(),
+                    $('#filter-high').val(),
+                    $('#filter-notch').prop('checked')
+                );
+            });
+
+            $('#filter-notch').click(function() {
+                dataFilter(
+                    $('#filter-low').val(),
+                    $('#filter-high').val(),
+                    this.checked
+                );
+            });
+            
+            $('#scale').on('click', 'button[data-action]', function() {
+                dataScale($(this).data('action'));
+            });
+
+            $('#recording').click(function() {
+                if ($(this).prop('started')) {
+                    dataConfig({recorder: 'username none'});
+                    $('.recorder').hide();
+                    $(this).prop('started', false);
+                    $(this).text('Record');
+                    var record = $('button#record');
+                    if (record.attr('aria-expanded') == 'true') {
+                        record.click();
+                    }
+                    $(this).popover('enable');
+                } else {
+                    dataConfig({recorder: 'start'});
+                    $('.recorder').show();
+                    $(this).prop('started', true);
+                    $(this).text('Stop');
+                    $(this).popover('disable');
+                }
+            });
+
+            chart_raw = echarts.init(
+                document.getElementById('chart-raw'),
+                'macarons', {height: 35 + 50 + 8 * 60}
+            );
+            chart_pwr = echarts.init(
+                document.getElementById('chart-pwr'),
+                'macarons', {height: 30 + 35 + 210}
+            );
+            chart_raw.setOption(option_raw);
+            chart_pwr.setOption(option_pwr);
+            window.addEventListener("resize", chart_raw.resize);
+            window.addEventListener("resize", chart_pwr.resize);
+            chart_raw.on('legendselectchanged', (msg) => {
+                dataChannel({
+                    channel: msg.name,
+                    action: msg.selected[msg.name]
+                });
+            });
+            chart_pwr.on('legendselectchanged', (msg) => {
+                var raw_selected = chart_raw.getOption().legend[0].selected;
+                channel_pwr = parseInt(msg.name);
+                if (!raw_selected[channel_pwr]) {
+                    // First enable channel
+                    dataChannel({channel: channel_pwr, action: true});
+                }
+                // Then change to this channel
+                dataChannel({channel: channel_pwr});
+            });
+            
+            if (!window.WebSocket) {
+                alert('您的浏览器不支持websocket，请更换更高级的浏览器');
+                return;
+            }
+            
+            ws = new WebSocket(
+                'ws://' + location.host + location.pathname.replace(
+                    'display.html', 'data/websocket'
+                )
+            );
+            ws.binaryType = 'arraybuffer';
+            ws.onopen = () => console.log('websocket success');
+            ws.onclose = () => {console.log('websocket close'); ws.close();};
+            ws.onerror = () => alert('网络错误，请检查网络后刷新重试');
+            ws.onmessage = (msg) => {
+                var data = new Float32Array(msg.data);
+                var len = data.length / 8, list = [];
+                for (var i = 0; i < 8; i++) {
+                    list.push(Array.from(data.slice(len * i, len * (i + 1))));
+                }
+                update2D(list, 10);
+            };
+        });
+    </script>
+</body>
+
+</html>

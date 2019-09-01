@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: apps/StreamInfo/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 03 Mar 2019 22:02:58 CST
+# File: SignalInfo/__main__.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-03 22:02:58
 
 import sys
 from . import main

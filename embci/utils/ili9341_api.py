@@ -25,9 +25,12 @@ import numpy as np
 import spidev
 from gpio4 import SysfsGPIO
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-__all__ = ['rgb888to565', 'rgb888to565_pro', 'rgb565to888', 'rgb565to888_pro',
-           'rgb24to565', 'rgb565to24', 'ILI9341_API']
+__all__ = [
+    'rgb888to565', 'rgb888to565_pro',
+    'rgb565to888', 'rgb565to888_pro',
+    'rgb24to565', 'rgb565to24',
+    'ILI9341_API',
+]
 
 
 # ILI9341 registers
@@ -76,18 +79,18 @@ ILI9341_GMCTRP1     = 0xE0
 ILI9341_GMCTRN1     = 0xE1
 ILI9341_PWCTR6      = 0xFC
 
-# colors                                R   G   B
-ILI9341_BLACK       = [0x00, 0x00]  #   0   0   0
-ILI9341_BLUE        = [0x00, 0x1F]  #   0   0 255
-ILI9341_GREEN       = [0x07, 0xE0]  #   0 255   0
-ILI9341_CYAN        = [0x07, 0xFF]  #   0 255 255
-ILI9341_RED         = [0xF8, 0x00]  # 255   0   0
-ILI9341_MAGENTA     = [0xF8, 0x1F]  # 255   0 255
-ILI9341_YELLOW      = [0xFF, 0xE0]  # 255 255   0
-ILI9341_WHITE       = [0xFF, 0xFF]  # 255 255 255
-ILI9341_PURPLE      = [0x41, 0x2B]  # 128   0 128
-ILI9341_ORANGE      = [0xFD, 0xC0]  # 255 160  10
-ILI9341_GREY        = [0x84, 0x10]  # 128 128 128
+# colors                               RED    G    B
+ILI9341_BLACK       = [0x00, 0x00]  # (  0,   0,   0)
+ILI9341_BLUE        = [0x00, 0x1F]  # (  0,   0, 255)
+ILI9341_GREEN       = [0x07, 0xE0]  # (  0, 255,   0)
+ILI9341_CYAN        = [0x07, 0xFF]  # (  0, 255, 255)
+ILI9341_RED         = [0xF8, 0x00]  # (255,   0,   0)
+ILI9341_MAGENTA     = [0xF8, 0x1F]  # (255,   0, 255)
+ILI9341_YELLOW      = [0xFF, 0xE0]  # (255, 255,   0)
+ILI9341_WHITE       = [0xFF, 0xFF]  # (255, 255, 255)
+ILI9341_PURPLE      = [0x41, 0x2B]  # (128,   0, 128)
+ILI9341_ORANGE      = [0xFD, 0xC0]  # (255, 160,  10)
+ILI9341_GREY        = [0x84, 0x10]  # (128, 128, 128)
 
 # rotation definition
 ILI9341_MADCTL_MY   = 0x80
@@ -106,7 +109,7 @@ def rgb888to565(r, g, b):
 
 
 def rgb888to565_pro(r, g, b):
-    '''takes about 1.5 time than normal rgb888to565, but more precise'''
+    '''takes about 1.5x longer than normal rgb888to565, but more precise'''
     c = ((r * 249 + 1014) & 0xf800 |
          ((g * 253 + 505) >> 5) & 0xffe0 |
          (b * 249 + 1014) >> 11)
@@ -122,7 +125,7 @@ def rgb565to888(ch, cl):
 
 
 def rgb565to888_pro(ch, cl):
-    '''takes about 1.4 times than normal rgb565to888, but more precise'''
+    '''takes about 1.4x longer than normal rgb565to888, but more precise'''
     r = ((ch >> 3) * 527 + 23) >> 6
     g = (((ch & 0b00000111) << 3 | cl >> 5) * 259 + 33) >> 6
     b = ((cl & 0b00011111) * 527 + 23) >> 6
@@ -460,11 +463,11 @@ class ILI9341_API(spidev.SpiDev):
         self.flush(x1, y1, x2 - 1, y2 - 1)
 
     def draw_text(self, x, y, s, c, size=None, font=None, *a, **k):
-        assert self.font, '[ILI9341 API] font not set yet!'
-        if size is not None and self.size != size:
-            self.setsize(size)
         if font is not None and os.path.exists(font):
             self.setfont(font)
+        if size is not None and self.size != size:
+            self.setsize(size)
+        assert self.font, '[ILI9341 API] font not set yet!'
         w, h = self.font.getsize(s)
         img = Image.new(mode='RGBA', size=(w, h))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), font)

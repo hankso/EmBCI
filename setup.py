@@ -1,30 +1,54 @@
-from setuptools import setup, find_packages
+#!/usr/bin/env python3
+# coding=utf-8
+#
+# File: EmBCI/setup.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-08-30 09:48:18
+
+from setuptools import setup
 import os
+import sys
 import glob
 import platform
 
-from embci import (__title__, __version__, __author__, __email__,
-                   __url__, __doc__, __license__, __keywords__)
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
+if __basedir__ not in sys.path:
+    sys.path.insert(0, __basedir__)
+
+import embci
 
 
-with open('requirements.txt') as f:
-    requirements = [_.strip() for _ in f.readlines()
-                    if not _.startswith('#') and len(_.strip())]
+def extract_requirements(fn):
+    if not os.path.isfile(fn):
+        return []
+    with open(fn, 'r') as f:
+        return [
+            _.strip() for _ in f.readlines()
+            if not _.startswith('#') and len(_.strip())
+        ]
+
+
+reqmods = extract_requirements(os.path.join(__basedir__, 'requirements.txt'))
+devmods = list(set(
+    extract_requirements(os.path.join(__basedir__, 'requirements-dev.txt'))
+).difference(reqmods))
+
 
 extras = dict(
+    install_requires=reqmods,
     project_urls={
         'Documentation': 'https://embci.readthedocs.io/en/latest',
         'Gitbooks': 'https://embci.gitbook.io/doc/',
-        'Funding': __url__ + '#Funding',
-        'Source Code': __url__,
-        'Bug Tracker': os.path.join(__url__, 'issues')
+        'Funding': embci.__url__ + '#Funding',
+        'Source Code': embci.__url__,
+        'Bug Tracker': os.path.join(embci.__url__, 'issues')
     },
-    install_requires=requirements,
     entry_points={
         'console_scripts': [
             'embci-webui = embci.webui:main',
         ]
     },
+    package_data={},
 )
 
 if platform.machine() in ['arm', 'aarch64']:
@@ -49,16 +73,13 @@ if platform.machine() in ['arm', 'aarch64']:
 
 
 setup(
-    name         = __title__,
-    version      = __version__,
-    url          = __url__,
-    author       = __author__,
-    author_email = __email__,
-    license      = __license__,
-    description  = __doc__,
-    keywords     = __keywords__,
-    packages     = find_packages(
-        exclude=['*.tests', 'tests', 'tests.*', '*.tests.*'],
-    ),
+    name         = embci.__title__,
+    version      = embci.__version__,
+    url          = embci.__url__,
+    author       = embci.__author__,
+    author_email = embci.__email__,
+    license      = embci.__license__,
+    description  = embci.__doc__,
+    keywords     = embci.__keywords__,
     **extras
 )

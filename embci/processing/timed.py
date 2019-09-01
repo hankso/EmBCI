@@ -16,6 +16,8 @@ import scipy.signal
 import scipy.sparse
 import scipy.interpolate
 
+__all__ = ('autocorrelation')
+
 
 def autocorrelation(X):
     '''
@@ -135,7 +137,7 @@ def smooth(X, window_length=50, method=1):
     '''
     if method == 1:
         filters = np.ones(window_length) / float(window_length)
-        rst = np.array([np.convolve(ch, filters) for ch in X])
+        rst = np.array([np.convolve(ch, filters, mode='same') for ch in X])
     elif method == 2:
         # TODO: pyhht.EMD smoothing
         raise NotImplementedError

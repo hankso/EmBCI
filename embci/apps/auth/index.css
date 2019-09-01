@@ -1,0 +1,21 @@
+#navforms {
+    box-shadow:0 0 5px 1px #E3E3E3;
+    padding: 0;
+    margin: 10% auto;
+    max-width: 500px;
+} 
+
+#navforms div.nav-tabs {
+    text-align:center;
+    background-color: #FAFAFA;
+}
+
+#navforms div.nav-tabs .nav-link.active {
+    border-bottom-color: purple;
+    border-bottom-width: 2px;
+}
+
+#navforms div.tab-content {
+    border: 1px solid #E3E3E3;
+    padding: 15px;
+}

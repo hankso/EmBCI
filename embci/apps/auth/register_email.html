@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=3Ddevice-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Thanks for signing up</title>
+    <style type="text/css">
+        body {
+            position: absolute;
+            top: 20px;
+            width: 80%;
+            left: 10%;
+            font: normal 20px/30px monospace, sans-serif;
+            background: #e3e3e3;
+            margin: auto;
+        }
+        #confirm {
+            display: block;
+            position: absolute;
+            left: 40%;
+            width: 20%;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font: 600 22px/30px;
+            margin: 20px 0 5px;
+        }
+        h2 {
+            font: 400 18px/30px;
+            margin: 20px 0 5px;
+        }
+        h3 {
+            font: 200 16px/30px;
+            margin: 20px 0 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Hello <bold>{{username}}</bold>,</h2>
+    <h3>Thanks for signing up! You are receiving this email because you want to register on <a href="https://hankso.github.io/EmBCI">EmBCI</a> WebUI at {{creation_date}}.</h3>
+    <h3>Your EmBCI account is ready, click the link below to complete your registration.</h3>
+    <a id="confirm" href="{{base_url}}/{{registration_code}}">Confirm</a>
+    <h3>Your link is unique, please keep this email secret. If the button does not work, please copy the link to visit: {{base_url}}/{{registration_code}}. If you run into any problems, please contact hankso1106@gmail.com for supporting.</h3>
+    <h3>
+        Thanks,<br>
+        Registration Robot of EmBCI WebUI<br>
+    </h3>
+</body>
+
+</html>

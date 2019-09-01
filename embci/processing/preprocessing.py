@@ -18,6 +18,8 @@ from decorator import decorator
 from . import timed, freqd
 from ..io.readers import BaseReader
 
+__all__ = ['SignalInfo', 'Features']
+
 
 @decorator
 def check_shape(func, self, X, *a, **k):
@@ -119,11 +121,10 @@ class SignalInfo(object):
     @check_shape
     def skewness(self, X):
         '''
-        Skewness's definition from wiki:
-            In probability theory and statistics, skewness is a measure of the
-            asymmetry of the probability distribution of a real-valued random
-            variable about its mean. The skewness value can be positive or
-            negative, or undefined.
+        In probability theory and statistics, skewness is a measure of the
+        asymmetry of the probability distribution of a real-valued random
+        variable about its mean. The skewness value can be positive or
+        negative, or undefined.
 
         Returns
         -------
@@ -136,10 +137,9 @@ class SignalInfo(object):
     @check_shape
     def kurtosis(self, X):
         '''
-        Kurtosis's definition from wiki:
-            In probability theory and statistics, kurtosis is a measure of the
-            "tailedness" of the probability distribution of a real-valued
-            random variable.
+        In probability theory and statistics, kurtosis is a measure of the
+        "tailedness" of the probability distribution of a real-valued random
+        variable.
 
         Returns
         -------
@@ -154,8 +154,8 @@ class SignalInfo(object):
         '''
         Covariance shows the level of which two random variables vary together.
         Here it represent how much two channel time-series EEG data have
-        similar changing trend. This might be useful when to handle
-        Motion Imaginary EEG data where FP3 and FP4 series vary
+        similar changing trend. This might be useful when to handle Motion
+        Imaginary EEG data where channel FP3 and FP4 series vary together.
 
         Input shape:  X n_channel x window_size
         Output shape: C n_channel x n_channel
@@ -177,6 +177,7 @@ class SignalInfo(object):
     @check_shape
     def bandpass(self, X, low, high, order=5,
                  sample_rate=None, register=False):
+        '''Bandpass Butterworth IIR filter.'''
         nyq = float(sample_rate or self.sample_rate) / 2
         b, a = scipy.signal.butter(order, (low / nyq, high / nyq), 'band')
         if register:
@@ -188,7 +189,7 @@ class SignalInfo(object):
     def bandpass_realtime(self, x):
         '''
         sample_rate, b, a, and low/high param are all registed by calling
-        `SignalInfo.Bandpass_Filter(X, low, high, order, sample_rate)` and
+        `SignalInfo.bandpass(X, low, high, order, sample_rate)` and
         will be updated by recalling `Bandpass_Filter`
         '''
         assert self._b.get('band') is not None, 'call `bandpass` first!'
@@ -198,13 +199,13 @@ class SignalInfo(object):
         return x
 
     @check_shape
-    def notch(self, X, Hz=50, Q=10, sample_rate=None, register=False):
+    def notch(self, X, Hz=50, Q=100, sample_rate=None, register=False):
         '''
         Input shape:  n_channel x window_size
         Output shape: n_channel x window_size
         sample_rate: in Hz unit
         Q: Quality factor
-        Hz: target frequence to be notched
+        Hz: Target frequence to be notched
         '''
         nyq = float(sample_rate or self.sample_rate) / 2
         if register:
@@ -355,48 +356,6 @@ class Features(object):
         if isinstance(func, str):
             func = getattr(self, func)
         func.pre = True
-
-    @preprocess('notch', 'detrend', 'envelop',
-                ['smooth', {'window_length': 15}])
-    def tremor(self, data, distance=25):
-        d = distance or (self.sample_rate / 10)
-
-        # # peaks on raw data
-        # upper, lower = data.copy(), -data.copy()
-        # upper[data < 0] = lower[data > 0] = 0
-
-        # peaks on envelops
-        #  data = self.si.envelop(data)
-
-        # smooth
-        #  data = self.si.smooth(data, 15)[0]  # combine neighboor peaks
-
-        # # peaks of upper and lower seperately
-        # u_peaks, u_height = scipy.signal.find_peaks(data, (0, None), None, d)
-        # l_peaks, l_height = scipy.signal.find_peaks(data, (None, 0), None, d)
-        # intervals = np.hstack((np.diff(u_peaks), np.diff(l_peaks)))
-        # heights = np.hstack((u_height['peak_heights'],
-        #                      l_height['peak_heights']))
-
-        # peaks of both upper and lower
-        data[data < data.max() / 4] = 0  # filter misleading extramax peaks
-        peaks, heights = scipy.signal.find_peaks(data, 0, distance=d)
-        intervals = np.diff(peaks)
-        heights = heights['peak_heights']
-
-        return (self.sample_rate / np.average(intervals),
-                1000 * np.average(heights))
-
-    @preprocess()
-    def stiffness(self, data, lowpass=10.0):
-        b, a = scipy.signal.butter(4, 10.0 / self.sample_rate)
-        return 1000 * self.si.rms(scipy.signal.lfilter(b, a, data, -1))
-
-    @preprocess(['notch'],
-                ['envelop', {'method': 1}],
-                ['smooth', {'window_length': 10}])
-    def movement(self, data):
-        return 1000 * np.average(data)
 
     def energy(self, X, low=2, high=15, sample_rate=None):
         '''

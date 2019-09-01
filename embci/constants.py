@@ -183,6 +183,18 @@ BOOLEAN_TABLE = {
     u'None': None,
 }
 
+import string
+VALID_FILENAME_CHARACTERS = '-_.()[] ' + string.ascii_letters + string.digits
+del string
+
+INVALID_FILENAME_CHARACTERS_UNIX = '/'
+INVALID_FILENAME_CHARACTERS_MACOSX = '\x00/:'
+INVALID_FILENAME_CHARACTERS_WIN = ''.join(map(chr, range(32))) + '<>:"/\\|?*'
+INVALID_FILENAMES_UNIX = ['.', '..']
+INVALID_FILENAMES_WIN = [
+    'CON', 'PRN', 'AUX', 'NUL',
+] + ['COM%d' % _ for _ in range(1, 10)] + ['LPT%d' % _ for _ in range(1, 10)]
+
 __all__ += ['BOOLEAN_TABLE']
 
 # THE END

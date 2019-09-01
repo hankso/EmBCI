@@ -6,54 +6,85 @@
 # Webpage: https://github.com/hankso
 # Time: Tue 26 Feb 2019 17:42:06 CST
 
-'''Configures.'''
+'''
+Everything about configuration. When imported, this module will automatically
+load configs from local configuration files.
+'''
 
 import os
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
+import sys
+import tempfile
 
-from . import __dir__
+# requirements.txt: necessary: six
+from six.moves import configparser
 
-DEFAULT_CONFIG_FILES = [
-    _ for _ in [(os.path.expandvars('${APPDATA}/embci.conf')
-                 if os.name == 'nt' else '/etc/embci/embci.conf'),
-                os.path.expanduser('~/.embci/embci.conf')]
-    if os.path.exists(_)]
+from . import __basedir__
+__module__ = sys.modules[__name__]  # reference to this module
 
 
 # =============================================================================
-# Misc
-#
+# Default configuration
+
 # example:  CRITICAL:embci.webui:__init__.py:1234: abort!
-LOGFORMAT = ('%(levelname)s:%(name)s:%(filename)s:%(lineno)d: %(message)s')
+LOGFORMAT = '%(levelname)s:%(name)s:%(filename)s:%(lineno)d: %(message)s'
+
 WEBUI_HOST = '0.0.0.0'
 WEBUI_PORT = 80
 
+ENSURE_DIR_EXIST = False
+DIR_SRC = __basedir__
+DIR_BASE = os.path.dirname(__basedir__)  # Suppose `embci` is not installed yet
+if os.name == 'nt':
+    DIR_PID = os.path.expanduser('~/.embci/pid')
+    DIR_LOG = os.path.expanduser('~/.embci/log')
+else:
+    DIR_PID = '/run/embci'
+    DIR_LOG = '/var/log/embci'
+DIR_TMP = tempfile.gettempdir()
+
 
 # =============================================================================
-# Paths
-#
-SRCDIR = __dir__
-BASEDIR = os.path.dirname(__dir__)  # Suppose `embci` is not installed yet.
-if os.name == 'nt':
-    PIDDIR = os.path.expanduser('~/.embci/pid')
-    LOGDIR = os.path.expanduser('~/.embci/log')
-else:
-    PIDDIR = '/run/embci'
-    LOGDIR = '/var/log/embci'
-
 # Update runtime configurations from config files.
-# If `embci` has been installed by pip, `BASEDIR` should be overwritten
+# If `embci` has been installed by pip, `DIR_BASE` should be overwritten
 # by real path configured in default config files.
+
+DEFAULT_CONFIG_FILES = [
+    _ for _ in [
+        os.path.join(DIR_BASE, 'files/service/embci.conf'),
+        (os.path.expandvars('${APPDATA}/embci.conf')
+         if os.name == 'nt' else '/etc/embci/embci.conf'),
+        os.path.expanduser('~/.embci/embci.conf')
+    ] if os.path.exists(_)]
+
 cp = configparser.ConfigParser()
 cp.optionxform = str
 cp.read(DEFAULT_CONFIG_FILES)
-for _ in cp.sections():
-    globals().update(cp.items(_))
 
-DATADIR = globals().get('DATADIR', os.path.join(BASEDIR, 'data'))
-TESTDIR = globals().get('TESTDIR', os.path.join(BASEDIR, 'tests'))
+# DO NOT use `globals().update(cp.items)` here. It may cause recursive loop
+for section in cp.sections():
+    __module__.__dict__.update(cp.items(section))
 
-del os, cp, configparser
+__module__.__dict__.setdefault('DIR_DATA', os.path.join(DIR_BASE, 'data'))
+__module__.__dict__.setdefault('DIR_TEST', os.path.join(DIR_BASE, 'tests'))
+
+if ENSURE_DIR_EXIST:
+    for DIR in __module__.__dict__:
+        if not DIR.startswith('DIR_'):
+            continue
+        DIR = getattr(__module__, DIR)
+        if not isinstance(DIR, str):
+            continue
+        try:
+            os.makedirs(DIR, 0o775)
+        except OSError as e:
+            sys.stderr.write('Cannot make directory `%s`: %s' % (DIR, e))
+
+try:
+    del os, sys, tempfile, cp, section, configparser
+except NameError:
+    pass
+
+settings = {
+    key: value
+    for key, value in globals().items() if key[0].isupper()
+}

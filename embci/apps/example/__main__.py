@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: apps/example/__main__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 05 Mar 2019 13:44:56 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-05 13:44:56
 
 '''
 Example file __main__.py of single applications.
@@ -15,7 +14,7 @@ import sys
 import bottle
 
 # Your need to provide an `application` object in __init__.py
-from . import application  # this is what embci.webui subapps loader actually do
+from . import application  # this is exactly what embci.webui subapps loader do
 
 
 def main():
@@ -24,8 +23,8 @@ def main():
     your app when the source code has been modified.
 
     But with bottle's auto-reloader taken care of your app, attribute
-    ``_main__.__package__`` will be set to `None`. Because it is ``__package__``
-    that determines how to import, when you run with command
+    ``__main__.__package__`` will be set to `None`. Because it is
+    ``__package__`` that determines how to import, when you run with command
     :code:`python -m MyApp`, python will raise::
 
         from . import application

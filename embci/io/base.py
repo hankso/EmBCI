@@ -11,7 +11,6 @@
 # built-in
 import os
 import re
-import sys
 import time
 import traceback
 
@@ -21,15 +20,63 @@ import numpy as np
 import scipy.io
 import mne
 
-from ..utils import mkuserdir, check_input, get_label_dict, TempStream
-from ..configs import DATADIR
+from ..utils import mkuserdir, check_input, validate_filename, TempStream
+from ..configs import DIR_DATA
 from . import logger
 
 __all__ = [
-    'create_data_dict', 'save_data',
-    'load_label_data', 'load_data',
+    'create_data_dict', 'get_label_dict',
+    'save_data', 'load_data', 'load_label_data',
     'save_action',
 ]
+
+
+@mkuserdir
+def get_label_dict(username):
+    '''
+    Count all saved data files under user's directory that match a pattern:
+    ${DIR_DATA}/${username}/${label}-${num}.${suffix}
+
+    Returns
+    -------
+    out : tuple
+        label_dict and summary string
+
+    Examples
+    --------
+    >>> get_label_dict('test')
+    ({
+         'left': 16,
+         'right': 21,
+         'thumb_cross': 10,
+    }, 'There are 3 actions with 47 records.\\n')
+    '''
+    label_dict = {}
+    name_dict = {}
+    for filename in sorted(os.listdir(os.path.join(DIR_DATA, username))):
+        fn, ext = os.path.splitext(filename)
+        if ext == '.gz':
+            fn, ext = os.path.splitext(fn)
+        if ext not in ['.mat', '.fif', '.csv'] or '-' not in fn:
+            continue
+        label, num = fn.split('-')
+        if label in label_dict:
+            label_dict[label] += 1
+            name_dict[label].append(filename)
+        else:
+            label_dict[label] = 1
+            name_dict[label] = [filename]
+
+    # construct a neat summary report
+    summary = 'There are {} actions with {} data recorded.'.format(
+        len(label_dict), sum(label_dict.values()))
+    if label_dict:
+        maxname = max(len(fn) for fns in name_dict.values() for fn in fns) - 2
+        summary += '\n  * ' + '\n  * '.join([
+            label.ljust(maxname) + '%2d' % label_dict[label] +
+            '\n    ' + '\n    '.join(name_dict[label])
+            for label in label_dict])
+    return label_dict, summary
 
 
 def create_data_dict(data, label='default', sample_rate=500, suffix=None):
@@ -79,9 +126,9 @@ def create_data_dict(data, label='default', sample_rate=500, suffix=None):
 
 
 @mkuserdir
-def save_data(username, data_dict, suffix='.mat', summary=False):
+def save_data(username, data_dict, suffix='mat', summary=False):
     '''
-    Save data into ${DATADIR}/${username}/${label}-${num}.${suffix}
+    Save data into ${DIR_DATA}/${username}/${label}-${num}.${suffix}
 
     Parameters
     ----------
@@ -99,73 +146,69 @@ def save_data(username, data_dict, suffix='.mat', summary=False):
     --------
     >>> data = np.random.rand(8, 1000) # 8chs x 4sec x 250Hz data
     >>> save_data('test', create_data_dict(data, 'random_data', 250))
-    (8, 1000) data saved to ${DATADIR}/test/random_data-1.mat
+    (8, 1000) data saved to ${DIR_DATA}/test/random_data-1.mat
 
     >>> raw = mne.io.RawArray(data, mne.create_info(8, 250))
     >>> save_data('test', create_data_dict(raw, format='fif.gz'))
-    (8, 1000) data saved to ${DATADIR}/test/default-1.fif.gz
+    (8, 1000) data saved to ${DIR_DATA}/test/default-1.fif.gz
     '''
     try:
         label = data_dict['label']
         sample_rate = data_dict['sample_rate']
-    except Exception as e:
-        raise TypeError('{} {}\n`data_dict` object created by function '
-                        '`create_data_dict` is suggested.'.format(
-                            e.__class__.__name__.lower(), e.args[0]))
+    except Exception:
+        logger.warning(traceback.format_exc())
+        raise TypeError('`data_dict` object created by function '
+                        '`create_data_dict` is suggested.')
 
     # scan how many data files already there
     label_dict = get_label_dict(username)[0]
     num = label_dict.get(label, 0) + 1
     suffix = data_dict.pop('suffix', suffix)
     # function create_data_dict maybe offer mne.Info object
-    info = data_dict.pop(
-        'info', mne.create_info(data_dict['data'].shape[1], sample_rate))
+    info = data_dict.pop('info', None)
+    if 'fif' in suffix and info is None:
+        info = mne.create_info(data_dict['data'].shape[1], sample_rate)
     data = data_dict.pop('data', [])
 
     for sample in data:
         fn = os.path.join(
-            DATADIR, username, '{}-{}{}'.format(label, num, suffix))
+            DIR_DATA, username, '{}-{}.{}'.format(label, num, suffix))
         num += 1
         try:
-            if suffix == '.mat':
+            if suffix == 'mat':
                 data_dict['data'] = sample
                 scipy.io.savemat(fn, data_dict, do_compression=True)
-            elif suffix == '.csv':
+            elif suffix == 'csv':
                 np.savetxt(fn, sample, delimiter=',')
-            elif suffix in ['.fif', '.fif.gz']:
+            elif suffix in ['fif', 'fif.gz']:
                 # mute mne.io.BaseRaw.save info from stdout and stderr
                 with TempStream(stdout=None, stderr=None):
                     mne.io.RawArray(sample, info).save(fn)
             else:
-                raise ValueError('format `%s` is not supported.' % suffix)
-
+                logger.error('format `%s` is not supported.' % suffix)
+                break
             logger.info('Save {} data to {}'.format(sample.shape, fn))
         except Exception:
+            logger.warning('Save %s failed.' % fn)
+            logger.warning(traceback.format_exc())
             if os.path.exists(fn):
                 os.remove(fn)
             num -= 1
-            logger.warn('Save {} failed.\n{}'.format(
-                fn, traceback.format_exc()))
 
     if summary:
-        print(get_label_dict(username)[1])
+        print('\n' + get_label_dict(username)[1])
 
 
 def load_label_data(username, label='default'):
     '''
-    Load all data files that match ${DATADIR}/${username}/${label}-*.*
-
-    Parameters
-    ----------
-    username : str
-    label : str
+    Load all data files that match ${DIR_DATA}/${username}/${label}-*.*
 
     Returns
     -------
     data_list : list
     '''
     data_list = []
-    userdir = os.path.join(DATADIR, username)
+    userdir = os.path.join(DIR_DATA, username)
     for fn in sorted(os.listdir(userdir)):
         if not fn.startswith(label):
             continue
@@ -189,7 +232,7 @@ def load_label_data(username, label='default'):
             data_list.append(data)
             logger.info('Load {} data from {}'.format(data.shape, fn))
         except Exception:
-            logger.warn('Load {} failed.\n{}'.format(
+            logger.warning('Load {} failed.\n{}'.format(
                 fn, traceback.format_exc()))
     return data_list
 
@@ -197,7 +240,7 @@ def load_label_data(username, label='default'):
 @mkuserdir
 def load_data(username, pick=None, summary=True):
     '''
-    Load all data files under directory ${DATADIR}/${username}
+    Load all data files under directory ${DIR_DATA}/${username}
 
     Parameters
     ----------
@@ -221,8 +264,8 @@ def load_data(username, pick=None, summary=True):
     Examples
     --------
     >>> data, label = load_data('test')
-    >>> data.shape, label
-    ((5, 8, 1000), ['default', 'default', 'default', 'right', 'left'])
+    >>> len(data), label
+    (5, ['default', 'default', 'default', 'right', 'left'])
 
     >>> _, _ = load_data('test', pick=('left', 'right'), summary=True)
     There are 3 actions with 5 data recorded.
@@ -235,89 +278,80 @@ def load_data(username, pick=None, summary=True):
       * left           1
         left-1.fif
     There are 2 actions with 2 data loaded.
-      + left     1
-      + right    1
+      + left           1
+      + right          1
     '''
-    data_array = []
-    label_list = []
-    action_dict, msg = get_label_dict(username)
-
-    def filterer(action):
+    def filterer(label):
         if isinstance(pick, str):
-            return action == pick
+            return label == pick
         if isinstance(pick, (tuple, list)):
-            return action in pick
+            return label in pick
         if isinstance(pick, re._pattern_type):
-            return bool(pick.match(action))
+            return bool(pick.match(label))
         if callable(pick):
-            return pick(action)
+            return pick(label)
         return True
 
-    actions = filter(filterer, action_dict)
-    for action in actions:
-        data_list = load_label_data(username, action)
-        data_array.extend(data_list)
-        label_list.extend([action] * len(data_list))
+    # pick labels that match the rule from label_dict
+    label_dict, msg = get_label_dict(username)
+    labels = list(filter(filterer, label_dict))
+
+    data_list = []
+    label_list = []
+    for label in labels:
+        data = load_label_data(username, label)
+        data_list.extend(data)
+        label_list.extend([label] * len(data))
 
     if summary:
         msg += '\nThere are {} actions with {} data loaded.'.format(
-            len(actions), len(data_array))
-        if len(data_array):
-            maxname = max([len(_) for _ in actions]) + 4
-            msg += ('\n  + ' + '\n  + '.join(
-                [action.ljust(maxname) + str(label_list.count(action))
-                 for action in actions]))
-        print(msg.strip())
+            len(labels), len(data_list))
+        if len(data_list):
+            maxname = max(len(s) for s in msg.split('\n')[1:-1]) - 6
+            msg += '\n  + ' + '\n  + '.join([
+                label.ljust(maxname) + '%2d' % label_list.count(label)
+                for label in labels])
+        print('\n' + msg.strip())
 
-    if len(data_array):
-        data_array = np.array(data_array)
-    # data_array: n_samples x num_channel x window_size
+    # data_list: n_samples x (num_channel x window_size)
     # label_list: n_samples
-    return data_array, label_list
+    return data_list, label_list
 
 
 def save_action(username, reader, action_list=['relax', 'grab']):
     '''
-    引导用户存储一段数据并给数据打上标签，需要username和reader数据流对象
+    Guidance on command line interface to save data with label to
+    ${DIR_DATA}/${username}/${action}-*.mat
 
-    username: where will data be saved to
-    reader:   where does data come from
+    Parameters
+    ----------
+    username : str
+    reader : Reader
+        Instance of `embci.io.readers.BaseReader`, repersenting a data stream.
     '''
-    print('\nYou have to finish each action in {} seconds.'.format(
+    logger.info('You have to finish each action in {} seconds.'.format(
         reader.sample_time))
-    rst = check_input(('How many times you would like to record for each '
+    num = check_input(('How many times would you like to record for each '
                        'action?(empty to abort): '), {}, times=999)
-    if not rst:
+    if num == '' or not num.isdigit():
         return
-    try:
-        num = int(rst)
-    except ValueError:
-        return
-    label_list = get_label_dict(username)[0]
+    num = int(num)
+    action_list = [
+        action.replace('-', '_').replace(' ', ' ')
+        for action in validate_filename(*action_list) if action
+    ]
     name_list = action_list * num
     np.random.shuffle(name_list)
-    for i in range(len(action_list) * num):
-        action_name = name_list.pop()
-        print('action name: %s, start recording in 2s' % action_name)
+    while name_list:
+        action = name_list.pop()
+        print('action name: %s, start recording in 2s' % action)
         time.sleep(2)
-        try:
-            if action_name and '-' not in action_name:
-                # input shape: 1 x num_channel x window_size
-                save_data(username, reader.data_frame, action_name,
-                          reader.sample_rate, print_summary=True)
-                # update label_list
-                if action_name in label_list:
-                    label_list[action_name] += 1
-                else:
-                    label_list[action_name] = 1
-            print('')
-            time.sleep(2)
-        except AssertionError:
-            sys.exit('initialization failed')
-        except Exception as e:
-            print(e)
-            continue
-    return label_list
+        print('Start')
+        time.sleep(reader.sample_time)
+        print('Stop')
+        save_data(username, summary=True, data_dict=create_data_dict(
+            reader.data_frame, action, reader.sample_rate))
+    return get_label_dict(username)[0]
 
 
 # THE END
