@@ -1,8 +1,7 @@
 /*
  File: console_cmds.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Tue 19 Mar 2019 16:53:48 CST
+ Authors: Hank <hankso1106@gmail.com>
+ Create: 2019-04-19 16:53:48
 
  ESP32 console to support command line interface.
  
@@ -30,12 +29,50 @@
 #ifndef CONSOLE_CMDS_H
 #define CONSOLE_CMDS_H
 
+/*
+ *  Currently registered commands:
+ *      ADS1299
+ *        - sample_rate
+ *        - input_source
+ *        - bias_output
+ *        - impedance
+ *      SPI Buffer
+ *        - clear
+ *        - reset
+ *        - output
+ *      WiFi
+ *        - connect
+ *        - disconnect
+ *        - echoing
+ *      Power management
+ *        - sleep
+ *        - reboot
+ *        - shutdown
+ *        - battery
+ *      Utilities
+ *        - verbose
+ *        - quiet
+ *        - summary
+ *        - version
+ *        - tasks
+ */
 void register_commands();
 
+/*
+ * Config and init console. register_commands is called at the end.
+ */
 void initialize_console();
 
+/*
+ * (R) Read from console stream (wait until command input).
+ * (E) parse and Execute the command. 
+ * (P) then Print the result.
+ */
 void handle_console();
 
+/*
+ * (L) endless Loop of handle_console.
+ */
 void console_loop(void*);
 
 #endif // CONSOLE_CMDS_H

@@ -1,8 +1,10 @@
 /*
  File: ESP32_Sandbox.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Tue 19 Mar 2019 17:59:58 CST
+ Authors: Tian-Cheng SONG <github.com/rotom407>
+          Hank <hankso1106@gmail.com>
+ Create: 2019-03-19 17:59:58
+
+ ESP32 firmware source code used in EmBCI.
 
  Copyright (c) 2019 EmBCI. All right reserved.
 
@@ -33,6 +35,7 @@
 #include "configs.h"
 #include "utils.h"
 #include "console_cmds.h"
+#include "ADS1299_ESP32.h"
 
 // Arduino core @ ${ARDUINO_ESP32}/cores/esp32
 #include "Arduino.h"
@@ -45,14 +48,15 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_vfs_dev.h"
+#include "esp_spi_flash.h"
 #include "esp_task_wdt.h"
 #include "esp_heap_caps.h"
-#include "esp_spi_flash.h"
-#include "driver/spi_slave.h"
+#include "driver/adc.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
-#include "freertos/FreeRTOS.h"
+#include "driver/spi_slave.h"
 #include "freertos/task.h"
+#include "freertos/FreeRTOS.h"
 
 #ifdef LOG_LOCAL_LEVEL
     #undef LOG_LOCAL_LEVEL
@@ -72,11 +76,13 @@ esp_log_level_t log_level = LOG_LEVEL;
 
 const int log_level_min = 0, log_level_max = 5;
 
+uint32_t sinc_freq = 50;
+
 spi_output_data output_data = ADS_RAW;
 
 spi_slave_status slave_status = IDLE;
 
-CyclicQueue<bufftype> *cq;
+CyclicQueue<bufftype> cq;
 
 MillisClock
     clkts,
@@ -95,10 +101,10 @@ const char *prompt = "EmBCI> ";
  */
 
 const char* const output_data_list[] = {
-    "ADS1299 Float32 Raw Wave",
+    "ADS1299 Int32 Raw Wave",
+    "ADS1299 50Hz Notch Filtered Raw Wave",
     "ESP Generated Square Wave",
     "ESP Generated Sine Wave",
-    "Constant 1.0"
 };
 
 const char* const log_level_list[] = {
@@ -108,10 +114,6 @@ const char* const log_level_list[] = {
 const char* const wakeup_reason_list[] = {
     "Undefined", "Undefined", "EXT0", "EXT1", 
     "Timer", "Touchpad", "ULP", "GPIO", "UART",
-};
-
-const int sample_rate_list[] = {
-    250, 500, 1000, 2000, 4000, 8000, 16000
 };
 
 /******************************************************************************
@@ -130,29 +132,9 @@ void quiet() {
     ESP_LOGE(NAME, "Current log level: %s", log_level_list[log_level]);
 }
 
-void set_sample_rate(uint32_t rate_or_index) {
-    uint32_t fs = 0;
-    if (rate_or_index < 7) {
-        fs = sample_rate_list[6 - rate_or_index];
-    } else {
-        for (uint8_t i = 0; i < 7; i++) {
-            if (sample_rate_list[i] == rate_or_index) {
-                fs = sample_rate_list[i]; break;
-            }
-        }
-    }
-    if (fs) {
-        ads.setSampleRate(fs);
-        ESP_LOGD(NAME, "SAMPLE RATE SET TO %d", fs);
-    } else {
-        ESP_LOGE(NAME, "NOT IMPLEMENTED SAMPLERATE %d", rate_or_index);
-    }
-
-}
-
 void clear_fifo_queue() {
-    cq->clear();
-    float bufrate = (float)(cq->len) / M_BUFFERSIZE;
+    cq.clear();
+    float bufrate = (float)(cq.len) / M_BUFFERSIZE;
     ESP_LOGD(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
 }
 
@@ -175,22 +157,49 @@ void version_info() {
     ESP_LOGE(NAME, "EmBCI Shield: EmBCI Rev.B1 Apr 12 2019");
 }
 
+int get_battery_level(int times) {
+    double value = 0;
+    for (int i = 0; i < times; i++) {
+        value += adc1_get_raw(ADC1_CHANNEL_5);
+    }
+    value = value / times * 0.9;  // average filter
+    double percent;
+    if (value > 3490) {
+        percent = 60.0 + (value - 3490) / 10.475;
+    }
+    else if (value > 3398) {
+        percent = 10.0 + (value - 3398) / 1.84;
+    }
+    else {
+        percent = (value - 3258) / 104.0;
+    }
+    return max(0, min((int)percent, 100));
+}
+
 void summary() {
-    char tmp[8 + 1];
+    char tmp[32 + 1];
+    ESP_LOGD(NAME, "Checking statusbit...");
     itoa(ads.statusBit, tmp, 2);
+    ESP_LOGD(NAME, "Checking BIAS output...");
     const char *bias = ads.getBias() ? "ON" : "OFF";
+    ESP_LOGD(NAME, "Checking Impedance measurement...");
     const char *imped = ads.getImpedance() ? "ON" : "OFF";
-    uint32_t v0 = counter.value(0), v1 = counter.value(1);
-    float bufrate = (float)(cq->len) / M_BUFFERSIZE;
+    ESP_LOGD(NAME, "Checking valid packets...");
+    uint32_t
+        v0 = counter.value(0),
+        v1 = counter.value(1),
+        v2 = counter.value(2);
+    float bufrate = (float)(cq.len) / M_BUFFERSIZE;
     ESP_LOGW(NAME, "ADS data header:  0b%s", tmp);
     ESP_LOGW(NAME, "ADS data source:  %s", ads.getDataSource());
     ESP_LOGW(NAME, "ADS sample rate:  %d Hz", ads.getSampleRate());
-    ESP_LOGW(NAME, "ADS BIAS|IMPED:   %s | %s", bias, imped);
-    ESP_LOGW(NAME, "ESP valid packet: %d / %d Hz", v1, v0);
+    ESP_LOGW(NAME, "ADS BIAS | IMPED: %s | %s", bias, imped);
+    ESP_LOGW(NAME, "ESP valid packet: %d / %d / %d Hz", v2, v1, v0);
     ESP_LOGW(NAME, "ESP output data:  %s", output_data_list[output_data]);
     ESP_LOGW(NAME, "ESP buffer used:  %.2f%%", bufrate * 100);
     ESP_LOGW(NAME, "ESP log level:    %s", log_level_list[log_level]);
     ESP_LOGW(NAME, "Serial to wifi:   %s", wifi_echo ? "ON" : "OFF");
+    ESP_LOGW(NAME, "Battery level:    %d%%", get_battery_level(5));
 }
 
 #endif // ESP32_SANDBOX_H

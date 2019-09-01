@@ -1,17 +1,19 @@
 # File: EmBCI/files/esp32/Makefile
-# Author: hank
-# Webpage: https://github.com/hankso
-# Time: Tue 23 Apr 2019 19:35:05 UTC
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-04-23 19:35:05
 #
 # ESP32 Makefile used in EmBCI
 #
 # On-shield ESP32 is directly connected to OrangePi UART with RX && TX only.
-# Without DTR/DSR connection, arm can NOT soft reset ESP32. USB-to-TTL converter
+# Without DTR/DSR connection, ARM can NOT soft reset ESP32. USB-to-TTL converter
 # on many ESP32 development board will support this feature, but here we have
 # to use `reset_esp.py` to reset ESP32 by GPIO EN && BOOT.
 
 ifneq ($(shell whoami), root)
-$(error "run as root please")
+$(error Run as root please)
+endif
+ifeq ($(filter $(shell uname -m), arm aarch64),)
+$(warning This Makefile can only be used on embedded devices)
 endif
 
 #################################################################################
@@ -19,14 +21,14 @@ endif
 #
 ROOTDIR    := $(patsubst %/,%, $(dir $(abspath $(MAKEFILE_LIST))))
 TOOLDIR    := $(realpath $(ROOTDIR)/../../tools)
-BURNING    := $(TOOLDIR)/esptool.py
-RESET_ESP  := $(TOOLDIR)/reset_esp.py
-BINDIR     := $(ROOTDIR)/firmware
+BINDIR     = $(ROOTDIR)/firmware
+ESPTOOL    = $(TOOLDIR)/esptool.py
+RESET_ESP  = $(TOOLDIR)/reset_esp.py
 
-# MONITOR    = screen -h 200
+# MONITOR    := screen -h 200
 MONITOR    := python -m serial.tools.miniterm --rts 0 --dtr 0 --raw
 
-FIRMWARE   := \
+FIRMWARE   = \
 	0x1000  $(BINDIR)/bootloader.bin \
 	0x8000  $(BINDIR)/default.bin \
     0xe000  $(BINDIR)/boot_app0.bin \
@@ -38,12 +40,12 @@ PORT       = /dev/ttyS2
 else
 PORT       = /dev/ttyS1
 endif
-BAUD       = 115200
+BAUD       = 500000
 
 #################################################################################
 # flags
 #
-ESP_FALG   := --chip auto --before no_reset --after no_reset
+ESP_FALG   := --chip auto --before default_reset --after hard_reset
 ESP_FLAG   += --port ${PORT} --baud $(BAUD)
 
 FLASH_FLAG := --compress --flash_freq 80m --flash_mode dio --flash_size detect
@@ -63,11 +65,11 @@ clean:
 
 flash:
 	@$(RESET_ESP) flash         # reset esp to flash mode, wait for burning
-	@$(BURNING) $(ESP_FLAG) write_flash $(FLASH_FLAG) $(FIRMWARE)
+	@$(ESPTOOL) $(ESP_FLAG) write_flash $(FLASH_FLAG) $(FIRMWARE)
 	@$(RESET_ESP)               # reset esp to normal mode
 
 monitor:
-	@$(MONITOR) $(PORT) $(BAUD)
+	@$(MONITOR) $(PORT) 115200
 
 sleep:
 	@echo "not implemented yet"
@@ -81,8 +83,7 @@ reset:
 help:
 	@echo "Welcome to EmBCI-ESP32 burning Makefile. Some useful targets:"
 	@echo ""
-	@echo "make all - Build app, bootloader, partition table"
-	@echo "make flash - Flash app, bootloader, partition table to Onshield ESP32"
+	@echo "make flash - Flash app, bootloader, partition table to On-shield ESP32"
 	@echo "make monitor - Use \`miniterm.py/screen\` as monitor on serial"
 	@echo "make reset - Hard reset of ESP32 by pulsing on BOOT PIN"
 	@echo "make sleep - Turn ESP32 into sleep mode"
@@ -90,5 +91,6 @@ help:
 	@echo ""
 	@echo "See \`EmBCI/files/esp32/README.md\` for more."
 
+# @echo "make all - Build app, bootloader, partition table"
 # @echo "make clean - Remove all build output"
 # @echo "make compile - Remove all build output"

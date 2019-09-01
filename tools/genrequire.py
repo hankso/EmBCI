@@ -1,8 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
+#
+# File: EmBCI/tools/genrequire.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-10-14 05:43:04
+
 from __future__ import absolute_import, print_function
 import os
 import sys
+import time
 import logging
 import argparse
 import subprocess
@@ -29,9 +35,6 @@ Usage example:
     genrequire ./ -v
     genrequire src/ utils/ tools/ -o requirements.txt
 '''
-
-__dir__ = os.path.dirname(os.path.abspath(__file__))
-__file__ = os.path.basename(__file__)
 
 MAGICSTRING = 'requirements.txt:'
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -68,6 +71,7 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
                   (indent != 0) * '├── ' +
                   os.path.basename(dir))
     srcfiles = []
+    dir = os.path.abspath(dir)
     lst = sorted(os.listdir(dir))
     while lst:
         file = lst.pop(0)
@@ -80,6 +84,7 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
             if cond(filename):
                 srcfiles.append(filename)
                 log = ' selected'
+                time.sleep(0.01)
             else:
                 log = ' skip'
             logging.debug(('│   ' if len(lst) else '│   ') * indent +
@@ -104,6 +109,7 @@ def extmod(file):
                 msg += ' '.join(ms) + ' '
     if len(modules):
         logging.debug(msg.strip())
+        time.sleep(0.1)
     return modules
 
 
@@ -175,8 +181,9 @@ def genrequire(dirs, output):
         body += '\n\n'
 
     if isinstance(output, strtypes):
-        path, fn = os.path.split(output)
-        extra = os.path.join(path, 'full-' + fn)
+        path, filename = os.path.split(output)
+        fn, ext = os.path.splitext(filename)
+        extra = os.path.join(path, fn + '-dev' + ext)
         if os.path.exists(output):
             os.rename(output, output + '.old')
         if os.path.exists(extra):
@@ -184,13 +191,17 @@ def genrequire(dirs, output):
         output = open(output, 'w')
         extra = open(extra, 'w')
 
+    logging.debug('Writing requirements to `{}`'.format(output))
     print(header + body + conflicts, file=output)
     if 'extra' in locals():
         print(header + body + conflicts + optional, file=extra)
         extra.close()
     else:
         print(optional, file=output)
-        output.close()
+        output.flush()
+    logging.debug('\n' + '=' * 80 + '\n')
+    logging.info('Generation of requirements done.')
+    logging.debug('\n' + '=' * 80)
 
 
 class HelpArgumentParser(argparse.ArgumentParser):

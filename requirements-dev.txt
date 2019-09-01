@@ -44,4 +44,13 @@ scipy
 # [bio-signal]
 mne
 
+# [optional]
+argparse
+dbus
+ipython
+matplotlib
+python-networkmanager
+reportlab
+wifi
+
 

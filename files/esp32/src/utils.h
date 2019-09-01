@@ -1,8 +1,7 @@
 /*
  File: utils.h
- Author: Hankso
- Webpage: http://github.com/hankso
- Time: Sat 20 Apr 2019 01:37:08 CST
+ Authors: Tian-Cheng SONG <github.com/rotom407>
+ Create: 2019-04-20 01:37:08
  
  Provide some useful classes.
 
@@ -40,6 +39,7 @@ class CyclicQueue {
         bool overriden = false;
         uint32_t sp, ep;
         int32_t len = 0;
+        CyclicQueue() {}
         CyclicQueue(T *bp, uint32_t siz) {
             buf = bp;
             buffersiz = siz;
@@ -131,13 +131,35 @@ class Counter {
             }
         }
         void freeze() {
-            memcpy(freezers, counters, length);
+            memcpy(freezers, counters, length * sizeof(uint32_t));
         }
         uint32_t value(uint16_t index) {
             if (index < length) {
                 return freezers[index];
             }
             return 0;
+        }
+};
+
+/* 2nd order IIR filter
+ * a0 * y[n] + a1 * y[n-1] + a2 * y[n-2] = b0 * x[n] + b1 * x[n-1] + b2 * x[n-2]
+ */
+template<typename T>
+class Filter2 {
+    private:
+        T X[2], Y[2]; // x[n-1], x[n-2], y[n-1], y[n-2];
+        double b0, b1, b2, a0 = 1, a1, a2;
+    public:
+        Filter2(): b0(0), b1(0), b2(0), a0(0), a1(0), a2(0) {};
+        Filter2(double b[], double a[]){
+            b0 = b[0]/a[0]; b1 = b[1]/a[0]; b2 = b[2]/a[0];
+            a0 = 1;         a1 = a[1]/a[0], a2 = a[1]/a[0];
+        }
+        T process(T x) {
+            T y = b0 * x + b1 * X[0] + b2 * X[1] - a1 * Y[0] - a2 * Y[1];
+            Y[1] = Y[0]; Y[0] = y;
+            X[1] = X[0]; X[0] = x;
+            return y;
         }
 };
 
