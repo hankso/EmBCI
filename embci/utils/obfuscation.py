@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/utils/_obfuscation.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 04 Mar 2019 17:06:43 CST
+# File: EmBCI/embci/utils/obfuscation.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-04 17:06:43
 
 '''
 This module provides some functions to obfuscate python codes and load
@@ -23,10 +22,14 @@ libname(modname)
     Bare library name without `lib` prefix and version info: `cmath` & `coef`
 '''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import re
+
 _srcfile = re.compile(r'.py[cod]?$')
 _libfile = re.compile(r'lib(\w+)\.so(?:\.(\d[0-9.*]))?')
-del re
 
 __all__ = ('load_binary', 'obfuscate', 'dump', 'load')
 
@@ -204,5 +207,10 @@ def obfuscate(filename, modname=None):
 # Aliases
 dump = obfuscate
 load = load_binary
+
+try:
+    del re, absolute_import, division, print_function
+except NameError:
+    pass
 
 # THE END

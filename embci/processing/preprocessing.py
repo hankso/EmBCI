@@ -1,15 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/processing/preprocessing.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 28 Feb 2018 11:05:15 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-02-28 11:05:15
+
+'''Easy to use preprocessing classes with some decorator syntactic suger.'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import traceback
 
-# requirements.txt: data-processing: numpy, scipy
+# requirements.txt: data: numpy, scipy
 # requirements.txt: necessary: decorator
 import numpy as np
 import scipy.signal
@@ -170,7 +174,7 @@ class SignalInfo(object):
         This is samiliar to covariance. The relationship between correlation
         coefficient and covariane is that
             CORR[i, j] = C[i, j] / sqrt(C[i, i] * C[j, j])
-        Values of R are between -1 and 1.
+        Values of R are between -1 and 1. It's a matrix of Pearson Coefficient.
         '''
         return np.corrcoef(X)
 

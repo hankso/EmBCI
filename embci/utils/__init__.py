@@ -1,13 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/utils/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 27 Feb 2018 16:03:02 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-02-27 16:03:02
 
 # built-in
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import sys
 import copy
@@ -25,7 +26,7 @@ import threading
 import traceback
 from collections import MutableMapping, MutableSequence
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: necessary: decorator, six
 # requirements.txt: optional: argparse
 import numpy as np
@@ -35,19 +36,20 @@ try:
     # Built-in argparse is provided >= 2.7 but argparse
     # is maintained as a separate package now
     import argparse
-    from packaging import version
-    if version.parse(argparse.__version__) < version.parse("1.4.0"):
+    import packaging.version as ver
+    if ver.parse(argparse.__version__) < ver.parse("1.4.0"):
         raise ImportError
 except ImportError:
     del argparse
-    from . import argparse
-finally:
-    del version
+    from . import argparse                                         # noqa: W611
+    try:
+        del ver
+    except NameError:
+        pass
 
 import embci.constants
 import embci.configs
 
-__all__ = ['argparse', ]
 __doc__ = 'Some utility functions and classes.'
 __basedir__ = os.path.dirname(os.path.abspath(__file__))
 
@@ -120,12 +122,12 @@ class Namespace(object):
 
     def __eq__(self, other):
         if not isinstance(other, Namespace):
-            return NotImplemented
+            raise NotImplementedError
         return vars(self) == vars(other)
 
     def __ne__(self, other):
         if not isinstance(other, Namespace):
-            return NotImplemented
+            raise NotImplementedError
         return not (self == other)
 
     def __contains__(self, key):
@@ -216,9 +218,12 @@ class AttributeDict(MutableMapping):
             return self
         # items: None | str | int
         if items is None or items not in self.__mapping__:
-            if isinstance(items, strtypes) and items[0] == items[-1] == '_':
-                # get rid of some ipython magics
-                return
+            if isinstance(items, strtypes):
+                if items == 'id':
+                    return None
+                elif items[0] == items[-1] == '_':
+                    # get rid of some ipython magics
+                    return None
             if self.__mapping__:
                 logger.warning('Choose key from {}'.format(list(self.keys())))
             else:
@@ -257,14 +262,14 @@ class AttributeDict(MutableMapping):
 
     def __eq__(self, other):
         if not isinstance(other, (dict, MutableMapping)):
-            raise NotImplementedError
+            return False
         return dict(self.items()) == dict(other.items())
 
     def __str__(self):
         return self.__mapping__.__str__()
 
     def __repr__(self):
-        return '<%s %s at 0x%x>' % (self.__class__.__name__, self, id(self))
+        return '<%s %s at 0x%x>' % (typename(self), self, id(self))
 
     def __iter__(self):
         return self.__mapping__.__iter__()
@@ -416,15 +421,9 @@ class AttributeList(MutableSequence):
             return [getattr(e, attr, None) for e in self.__sequence__]
 
     def __contains__(self, element):
-        ids = self.id
-        if hasattr(element, 'id') and getattr(element, 'id', -1) in ids:
+        if hasattr(element, 'id') and element.id in self.id:
             return True
-        elif element in ids:
-            return True
-        for e in self:
-            if e == element:
-                return True
-        return False
+        return element in self.__sequence__
 
     def __nonzero__(self):
         return bool(self.__sequence__)
@@ -439,32 +438,27 @@ class AttributeList(MutableSequence):
         return self.__sequence__.__str__()
 
     def __repr__(self):
-        return '<%s %s at 0x%x>' % (self.__class__.__name__, self, id(self))
+        return '<%s %s at 0x%x>' % (typename(self), self, id(self))
 
     def __iter__(self):
         return self.__sequence__.__iter__()
 
     def index(self, element):
         if element not in self:
-            #  raise ValueError('`{}` is not in list'.format(element))
             return -1
-        ids = self.id
-        if hasattr(element, 'id') and getattr(element, 'id', -1) in ids:
-            return ids.index(element.id)
-        elif element in ids:
-            return ids.index(element)
-        for n, e in enumerate(self.__sequence__):
-            if e == element:
-                return n
+        if hasattr(element, 'id') and element.id in self.id:
+            return self.id.index(element.id)
+        return self.__sequence__.index(element)
 
-    def pop(self, element, default=None):
-        index = self.index(element)
+    def pop(self, index=-1, default=None):
+        if index in self.id:
+            index = self.id.index(index)
         if index == -1:
             return default
         return self.__sequence__.pop(index)
 
     def remove(self, element):
-        self.pop(element)
+        self.pop(self.index(element))
 
     def __copy__(x):
         return x.__class__(x.__sequence__)
@@ -851,7 +845,7 @@ def format_size(*a, **k):
 
 def get_boolean(v, table=embci.constants.BOOLEAN_TABLE):
     '''convert string to boolean'''
-    t = str(v).title()
+    t = str(v).lower()
     if t not in table:
         raise ValueError('Invalid boolean value: {}'.format(v))
     return table[t]
@@ -1285,18 +1279,18 @@ def verbose(func, *args, **kwargs):
     argnames, defaults = get_func_args(func)
 
     if len(argnames) and argnames[0] in ('self', 'cls'):
-        level = getattr(args[0], 'verbose', level)        # situation 1
+        level = getattr(args[0], 'verbose', level)                # situation 1
     if 'verbose' in argnames:
         idx = argnames.index('verbose')
         try:
-            level = defaults[idx - len(argnames)]         # situation 2
+            level = defaults[idx - len(argnames)]                 # situation 2
         except IndexError:
             pass  # default not defined in function
         try:
-            level = args[idx]                             # situation 3
+            level = args[idx]                                     # situation 3
         except IndexError:
             pass  # verbose not provided by user
-    level = kwargs.pop('verbose', level)                  # situation 4
+    level = kwargs.pop('verbose', level)                          # situation 4
 
     if isinstance(level, bool):
         level = 'ERROR' if level else 'NOTSET'
@@ -1423,8 +1417,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True},
     t = 1
     while t <= times:
         try:
-            rst = input('[%d/%d] ' % (t, times) + prompt,
-                        timeout=(float(timeout) / times))
+            rst = input('[%d/%d] ' % (t, times) + prompt, timeout / times)
         except TimeoutException:
             break
         if not k:
@@ -1564,27 +1557,11 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
 # =============================================================================
 # Local Modules
 
-from ._resolve import (
-    get_caller_globals, get_func_args, get_self_ip_addr,
-    find_pylsl_outlets, find_serial_ports,
-    find_spi_devices, find_gui_layouts
-)
-__all__ += [
-    'get_caller_globals', 'get_func_args', 'get_self_ip_addr',
-    'find_pylsl_outlets', 'find_serial_ports',
-    'find_spi_devices', 'find_gui_layouts',
-]
-
-from ._json import (
-    MiscJsonEncoder, MiscJsonDecoder,
-    dumps, loads, serialize, deserialize, minimize
-)
-__all__ += [
-    'MiscJsonEncoder', 'MiscJsonDecoder',
-    'dumps', 'loads', 'serialize', 'deserialize', 'minimize'
-]
-
-from ._logging import config_logger, LoggerStream, TempLogLevel
-__all__ += ['config_logger', 'LoggerStream', 'TempLogLevel']
+from ._logging import *                                            # noqa: W401
+from ._logging import TempLogLevel
+from ._resolve import *                                            # noqa: W401
+from ._resolve import get_func_args
+from ._json import *                                               # noqa: W401
+from ._event import *                                              # noqa: W401
 
 # THE END

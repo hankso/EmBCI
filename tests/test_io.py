@@ -9,6 +9,8 @@
 #   test Socket***Reader, Socket***Server
 #   test PylslCommader, PylslReader
 
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 import os
 import time
@@ -17,6 +19,7 @@ import threading
 
 # requirements.txt: testing: pytest
 # requirements.txt: drivers: pyserial
+# requirements.txt: data: pylsl
 import pytest
 import serial
 import pylsl

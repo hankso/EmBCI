@@ -1,17 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/utils/_resolve.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 18 Jul 2019 18:25:37 CST
-
-'''__doc__'''
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-18 18:25:37
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import re
 import os
-import sys
 import time
 import glob
 import socket
@@ -19,54 +18,58 @@ import inspect
 import warnings
 
 # requirements.txt: drivers: pyserial
-# requirements.txt: data-processing: pylsl
+# requirements.txt: data: pylsl
 from serial.tools.list_ports import comports
 import pylsl
 
 from . import check_input, logger
 
-def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
+__all__ = [
+    'find_pylsl_outlets', 'find_serial_ports', 'find_spi_devices',
+    'find_gui_layouts',
+    'get_host_addr', 'get_free_port', 'get_caller_globals', 'get_func_args',
+]
+
+
+def find_pylsl_outlets(v=None, **kwargs):                          # noqa: C901
     '''
     This function is easier to use than func `pylsl.resolve_stream`.
 
     Examples
     --------
-    >>> find_pylsl_outlets()
-    >>> # same as pylsl.resolve_streams()
-    >>> find_pylsl_outlets(1)
-    >>> # same as pylsl.resolve_streams(timeout=1)
+    >>> find_pylsl_outlets()   # same as pylsl.resolve_streams()
+    >>> find_pylsl_outlets(1)  # same as pylsl.resolve_streams(timeout=1)
 
-    >>> find_pylsl_outlets('type', 'EEG_Data')  # Error
-    >>> find_pylsl_outlets("type='EEG_Data'")  # Good
-    >>> # same as pylsl.resolve_bypred("type='EEG_Data'")
-    >>> find_pylsl_outlets(type='EEG_Data')
-    >>> # same as pylsl.resolve_byprop('type', 'EEG_Data')
+    >>> find_pylsl_outlets('type', 'EEG')  # Invalid
+    >>> find_pylsl_outlets("type='EEG'")   # pylsl.resolve_bypred("type='EEG'")
+    >>> find_pylsl_outlets(type='EEG')    # pylsl.resolve_byprop('type', 'EEG')
 
-    If no wanted pylsl stream outlets found, `sys.exit` will be
-    called to exit python.
+    If no wanted pylsl stream outlets found, ``RuntimeError`` will be raised.
     '''
-    timeout = kwargs.pop('timeout', 1)
     NAME = '[Find Pylsl Outlets] '
-    if not args:
-        if kwargs:
-            stream_list = []
-        else:
-            stream_list = pylsl.resolve_streams(timeout)
-    elif isinstance(args[0], (int, float)):
-        timeout = args[0]
-        stream_list = pylsl.resolve_streams(timeout)
-    elif isinstance(args[0], str):
-        stream_list = pylsl.resolve_bypred(args[0], 0, timeout)
+    timeout = v if isinstance(v, (int, float)) else kwargs.pop('timeout', 1)
+
+    if isinstance(v, str):
+        infos = pylsl.resolve_bypred(v, 0, timeout)
+    elif not kwargs:
+        infos = pylsl.resolve_streams(timeout)
     else:
-        stream_list = []
-    for key in set(kwargs).intersection({
+        infos = []
+    if kwargs:
+        for key in set(kwargs.keys()).intersection({
             'name', 'type', 'channel_count', 'nominal_srate',
-            'channel_format', 'source_id'}):
-        stream_list += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
+            'channel_format', 'source_id'
+        }):
+            infos += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
+
+    streams = dict()
+    for info in infos:
+        if info.uid() not in streams:
+            streams[info.uid()] = info
+    stream_list = list(streams.values())
+
     if len(stream_list) == 0:
-        if kwargs.get('exit', True):
-            sys.exit(NAME + 'No stream available! Abort.')
-        return []
+        raise RuntimeError(NAME + 'No stream available! Abort.')
     elif len(stream_list) == 1:
         stream = stream_list[0]
     else:
@@ -80,13 +83,9 @@ def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
         answer = {str(i): stream for i, stream in enumerate(stream_list)}
         answer[''] = stream_list[0]
         try:
-            stream = check_input(prompt, answer)
+            stream = check_input(prompt, answer, timeout=10)
         except KeyboardInterrupt:
-            stream = None
-    if not stream:
-        if kwargs.get('exit', True):
-            sys.exit(NAME + 'No stream available! Abort.')
-        return []
+            raise RuntimeError(NAME + 'No stream selected! Abort.')
     logger.info(
         '{}Select stream `{}` -- {} channel {} {} data from {} on server {}'
         .format(
@@ -98,7 +97,7 @@ def find_pylsl_outlets(*args, **kwargs):  # noqa: C901
 def find_serial_ports(timeout=3):
     '''
     This fucntion will guide user to choose one port. Wait `timeout` seconds
-    for devices to be detected. If no ports found, return None
+    for devices to be detected. If no ports found, return None.
     '''
     # scan for all available serial ports
     NAME = '[Find Serial Ports] '
@@ -125,7 +124,7 @@ def find_serial_ports(timeout=3):
             answer[''] = port_list[0]
             port = check_input(prompt, answer)
     if not port:
-        sys.exit(NAME + 'No serail port available! Abort.')
+        raise RuntimeError(NAME + 'No serail port available! Abort.')
     logger.info('{}Select port `{}` -- {}'
                 .format(NAME, port.device, port.description))
     return port.device
@@ -149,9 +148,9 @@ def find_spi_devices():
         try:
             device = check_input(prompt, answer)
         except KeyboardInterrupt:
-            sys.exit(NAME + 'No divice available! Abort.')
+            raise RuntimeError(NAME + 'No divice available! Abort.')
     if not device:
-        sys.exit(NAME + 'No divice available! Abort.')
+        RuntimeError(NAME + 'No divice available! Abort.')
     dev = (re.findall(r'/dev/spidev([0-9])\.([0-9])', device) or [(0, 0)])[0]
     logger.info('{}Select device `{}` -- BUS: {}, CS: {}'
                 .format(NAME, device, *dev))
@@ -182,12 +181,12 @@ def find_gui_layouts(dir):
     return layout
 
 
-def get_self_ip_addr(default='127.0.0.1'):
+def get_host_addr(default='127.0.0.1'):
     '''
     UDP socket can connect to any hosts even they are unreachable, or
     broadcast data even there are no listeners. Here create an UDP socket
     and connect to '8.8.8.8:80' google public DNS server to resolve self
-    IP address.
+    host address.
     '''
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -198,6 +197,19 @@ def get_self_ip_addr(default='127.0.0.1'):
     finally:
         s.close()
     return host
+
+
+def get_free_port(host=''):
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        host, port = s.getsockname()
+    except socket.error as e:
+        raise e
+    finally:
+        s.close()
+    return port
 
 
 def get_caller_globals(depth=0):
@@ -228,8 +240,7 @@ def get_caller_globals(depth=0):
     # f = sys._getframe(1)
     f = inspect.currentframe()
     if f is None:
-        warnings.warn(RuntimeWarning(
-            'Only CPython implement stack frame supports.'))
+        warnings.warn(RuntimeWarning('Only CPython implements stack frame.'))
         return globals()
     for i in range(depth + 1):
         if f.f_back is None:
@@ -241,7 +252,7 @@ def get_caller_globals(depth=0):
 
 
 if hasattr(inspect, 'signature'):
-    def get_func_args(func, kwonlywarn=True):  # noqa E301
+    def get_func_args(func, kwonlywarn=True):                       # noqa E301
         # In python3.5+ inspect.getargspec & inspect.getfullargspec are
         # deprecated. inspect.signature is suggested to use, but it needs
         # some extra steps to fetch our wanted info
@@ -260,7 +271,7 @@ if hasattr(inspect, 'signature'):
         return args, tuple(defaults)
 
 elif hasattr(inspect, 'getfullargspec'):
-    def get_func_args(func, kwonlywarn=True):  # noqa E301
+    def get_func_args(func, kwonlywarn=True):                       # noqa E301
         # python3.0-3.5 use inspect.getfullargspec
         argspec = inspect.getfullargspec(func)
         if kwonlywarn and argspec.kwonlyargs:
@@ -272,7 +283,7 @@ elif hasattr(inspect, 'getfullargspec'):
         return argspec.args or [], argspec.defaults or ()
 
 else:
-    def get_func_args(func):  # noqa E301
+    def get_func_args(func):                                        # noqa E301
         # python2.7-3.0 use inspect.getargspec
         argspec = inspect.getargspec(func)
         if inspect.ismethod(func) and argspec.args[0] in ['self', 'cls']:

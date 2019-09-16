@@ -1,0 +1,30 @@
+{
+  "events": [
+    {"_comment.Domain": "Reader"},
+    {"code": 100, "name": "reader.start"},
+    {"code": 101, "name": "reader.close"},
+    {"code": 102, "name": "reader.pause"},
+    {"code": 103, "name": "reader.resume"},
+    {"code": 104, "name": "reader.restart"},
+
+    {"_comment.Domain": "Recorder"},
+    {"code": 200, "name": "recorder.start"},
+    {"code": 201, "name": "recorder.close"},
+    {"code": 202, "name": "recorder.pause"},
+    {"code": 203, "name": "recorder.resume"},
+    {"code": 204, "name": "recorder.username"},
+
+    {"_comment.EventIO": "Session"},
+    {"code": 300, "name": "session.start"},
+    {"code": 301, "name": "session.stop"},
+    {"code": 302, "name": "session.init"},
+    {"code": 303, "name": "session.end"},
+    {"code": 304, "name": "session.end.result"},
+    {"code": 305, "name": "session.result"},
+    {"code": 306, "name": "session.alphabet"},
+
+    {"_comment.others": "Misc"},
+    {"code": 400, "name": "misc.unlock"},
+    {"code": 401, "name": "misc"}
+  ]
+}

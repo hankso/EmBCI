@@ -1,18 +1,26 @@
 $(function() {
-    $('[data-include]').each(function() {
-        var e = $(this);
+    $('[data-include]').each(function(idx, element) {
+        var $e = $(element), p = $e.data();
         $.ajax({
-            url: '/snippets/' + e.data('include'),
+            url: '/snippets/' + p.include,
             method: 'GET',
             dataType: 'html',
             success: function(html) {
-                console.log('snippet `' + e.data('include') + '` loaded');
-                e.html(html);
-                e.prop('aria-loaded', true);
+                $html = $(html);
+                $html.data(p);
+                if (p.replace) {
+                    $e.replaceWith($html);
+                } else {
+                    $e.html($html);
+                    $e.attr('aria-loaded', true);
+                }
+                $e.trigger('load');
+                $html.trigger('load');
+                console.log('snippet `' + p.include + '` loaded');
             },
             error: function() {
-                console.log('snippet `' + e.data('include') + '` hidden');
-                e.hide();
+                $e.hide();
+                console.log('snippet `' + p.include + '` hidden');
             }
         });
     });

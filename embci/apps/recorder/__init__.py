@@ -17,7 +17,7 @@ which means:
 
 Readers are just abstraction on data sources, but they don't know when to
 start or stop saving data to files on disk. On embedded devices, storage space
-is usually not enough.
+is usually small and it's not a good idea to cache data all the time.
 
 Develop target of subapp `recorder`
 -----------------------------------
@@ -33,4 +33,4 @@ from embci.utils import config_logger
 logger = config_logger(__name__)
 del config_logger
 
-from .base import Recorder  # noqa: W611
+from .base import Recorder, application                            # noqa: W611

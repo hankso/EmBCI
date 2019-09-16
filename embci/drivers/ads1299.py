@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
-# File: EmBCI/embci/utils/ads1299_api.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 23 May 2018 02:16:40 CST
+# File: EmBCI/embci/drivers/ads1299.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-05-23 02:16:40
 
 '''
 ADS1299 API
@@ -17,6 +16,9 @@ any hardware running Linux).
 '''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import time
 import struct
 import select
@@ -26,7 +28,7 @@ except ImportError:
     from threading import Lock
 
 # requirements.txt: necessary: decorator
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: drivers: spidev, gpio4
 import spidev
 import numpy as np
@@ -296,7 +298,7 @@ class ADS1299_API(spidev.SpiDev):
         if ch < 0 or ch > 8:
             return
         raise NotImplementedError
-        # TODO: ads1299_api set channel enable/disable
+        # TODO: drivers.ads1299 set channel enable/disable
 
     @property
     def enable_bias(self):

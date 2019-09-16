@@ -1,14 +1,15 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
 # File: EmBCI/embci/io/commanders.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 06 Mar 2018 20:45:20 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-03-06 21:02:35
 
 '''Commanders'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 import time
 import socket
@@ -16,7 +17,7 @@ import select
 import threading
 import traceback
 
-# requirements.txt: data-processing: pylsl
+# requirements.txt: data: pylsl
 # requirements.txt: drivers: pyserial
 import pylsl
 import serial

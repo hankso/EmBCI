@@ -6,7 +6,6 @@
 # Create: 2019-07-08 21:56:47
 
 # built-in
-from __future__ import print_function
 import os
 import sys
 import shlex
@@ -17,7 +16,7 @@ import traceback
 # requirements.txt: necessary: pyzmq
 import zmq
 
-from embci.utils.ads1299_api import INPUT_SOURCES
+from embci.drivers.ads1299 import INPUT_SOURCES
 from embci.utils import (
     get_boolean, argparse,
     TempStream, LoopTaskMixin, Singleton

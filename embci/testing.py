@@ -1,14 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/testing.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sat 16 Mar 2019 16:03:14 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-16 16:03:14
 
 '''__doc__'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import re
 import os
 import sys
@@ -16,8 +18,9 @@ import glob
 import importlib
 import traceback
 
+from six import string_types
+
 from .configs import DIR_TEST, DIR_SRC
-from .utils import strtypes
 
 
 def test(modname=None):
@@ -46,20 +49,24 @@ class PytestRunner(object):
     >>> test = PytestRunner('embci.utils')
     >>> print(test)
     Test path:
-            /home/hank/Git/EmBCI/tests/utils/test_ili9341_api.py
             /home/hank/Git/EmBCI/tests/utils/test_utils.py
-            /home/hank/Git/EmBCI/tests/utils/test_ads1299_api.py
     Module path:
             /home/hank/Git/EmBCI/embci/utils
     >>> test()
     pytest result of tests...
+    >>> print(PytestRunner('embci.drivers'))
+    Test path:
+            /home/hank/Git/EmBCI/tests/drivers/test_ili9341.py
+            /home/hank/Git/EmBCI/tests/drivers/test_ads1299.py
+    Module path:
+            /home/hank/Git/EmBCI/embci/drivers
     '''
     def __init__(self, mod_or_dir=None):
         if not mod_or_dir:
             self.testpath = [DIR_TEST]
             self.modpath = [DIR_SRC]
             return
-        if isinstance(mod_or_dir, strtypes):
+        if isinstance(mod_or_dir, string_types):
             names = [mod_or_dir]
         elif isinstance(mod_or_dir, (tuple, list)):
             names = list(mod_or_dir)

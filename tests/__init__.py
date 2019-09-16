@@ -35,12 +35,17 @@ Package layout::
         ...
 '''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import time
 import types
 import unittest
 import platform
 
+# requirements.txt: testing: pytest
 import pytest
 
 from embci.utils import get_caller_globals

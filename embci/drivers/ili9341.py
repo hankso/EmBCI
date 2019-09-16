@@ -1,24 +1,25 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
-# File: EmBCI/embci/utils/ili9341_api.py
-# Author: Tony DiCola
-# Webpage: http://www.tonydicola.com/
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 23 May 2018 02:16:40 CST
+# File: EmBCI/embci/drivers/ili9341.py
+# Authors: Hank <hankso1106@gmail.com>
+#          Tony DiCola <http://www.tonydicola.com>
+# Create: 2019-05-23 02:16:40
 
 '''
-Modified ILI9341 python api based on Tony DiCola's Adafruit ILI9341 library
+Modified ILI9341 python api based on Tony DiCola's Adafruit ILI9341 library.
 '''
 
 # built-ins
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import time
 import threading
 
 # requirements.txt: necessary: pillow
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: drivers: spidev, gpio4
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
@@ -471,7 +472,7 @@ class ILI9341_API(spidev.SpiDev):
         w, h = self.font.getsize(s)
         img = Image.new(mode='RGBA', size=(w, h))
         ImageDraw.Draw(img).text((0, 0), s, rgb565to888(*c), font)
-        img = img.resize((w / 2, h / 2), resample=Image.ANTIALIAS)
+        img = img.resize((w // 2, h // 2), resample=Image.ANTIALIAS)
         self.draw_img(x, y, np.array(img, dtype=np.uint8))
 
     def set_rotation(self, m):

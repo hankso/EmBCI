@@ -28,7 +28,7 @@ import shlex
 import traceback
 
 # requirements.txt: network: bottle
-# requirements.txt: data-processing: numpy, pylsl
+# requirements.txt: data: numpy, pylsl
 import bottle
 import numpy as np
 
@@ -46,6 +46,7 @@ __status__ = os.path.join(__basedir__, 'status.html')
 __display__ = os.path.join(__basedir__, 'display.html')
 
 display = application = bottle.Bottle()
+inited = False
 
 
 # =============================================================================
@@ -53,12 +54,14 @@ display = application = bottle.Bottle()
 
 @display.route('/')
 def app_index():
-    app_reader_control('init')
+    global inited
+    if not inited:
+        app_reader_control('init')
+        inited = True
     bottle.redirect('display.html')
 
 
-@display.route('/server')
-@bottle.view(__status__)
+@display.route('/server', template=(__status__))
 def app_server_info():
     msg = [
         ['Address', '{}:{}'.format(server.host, server.port)],
@@ -76,10 +79,14 @@ def app_recorder_attr(attr):
 @display.route('/reader/<method>')
 def app_reader_control(method):
     if method in ['init', 'start']:
-        if not reader.start(
-            method='process', args=('starts-with(source_id, "spi")'),
-            kwargs={'type': 'Reader Outlet'}
-        ):
+        try:
+            rst = reader.start(
+                'starts-with(source_id, "spi")', type='Reader Outlet',
+                method='process')
+        except Exception:
+            logger.error(traceback.format_exc())
+            bottle.abort(500, 'Cannot start data stream reader.')
+        if not rst:
             return 'data stream already started'
         time.sleep(1.5)
         process_register(reader.data_frame)
@@ -164,22 +171,21 @@ def data_get_freq():
     return minimize(np.concatenate((x_freq, y_amp)).T.tolist())
 
 
-@display.route('/data/status')
-@bottle.view(__status__)
+@display.route('/data/status', template=(__status__))
 def data_get_status(pt=pt):
     msg = [
         ['SPLITBAR', 'Parameters tree'],
-        ['Realtime Detrend state', 'ON' if pt.detrend else 'OFF'],
-        ['Realtime Notch state', 'ON' if pt.notch else 'OFF'],
-        ['Realtime Bandpass state', pt.bandpass or 'OFF'],
-        ['Current amplify scale', '%.4fx' % pt.scale_list.a[pt.scale_list.i]],
-        ['Current freq channel num', 'CH%d' % (pt.channel_range.n + 1)],
+        ['Realtime Detrend (baseline)', 'ON' if pt.detrend else 'OFF'],
+        ['Realtime Notch Filter', 'ON' if pt.notch else 'OFF'],
+        ['Realtime Bandpass Filter', pt.bandpass or 'OFF'],
+        ['Current Amplify Scale', '%.4fx' % pt.scale_list.a[pt.scale_list.i]],
+        ['Current Frequent Channel', 'CH%d' % (pt.channel_range.n + 1)],
         ['SPLITBAR', 'Session data'],
-        ['Parameter tree', pt],
+        ['Parameter Tree', pt],
         ['SPLITBAR', 'Reader information'],
-        ['Current input source', reader.input_source],
-        ['Current Sample rate', str(reader.sample_rate) + 'Hz'],
-        ['ADS1299 BIAS output', getattr(reader, 'enable_bias', None)],
+        ['Current Input Source', reader.input_source],
+        ['Current Sample Rate (FS)', str(reader.sample_rate) + 'Hz'],
+        ['ADS1299 BIAS Output', getattr(reader, 'enable_bias', None)],
         ['ADS1299 Impedance', getattr(reader, 'measure_impedance', None)],
     ]
     return {'messages': msg}
@@ -252,7 +258,7 @@ def data_config_filter():
             bottle.abort(400, 'Invalid bandpass argument! 0 < Low < High.')
         else:
             pt.bandpass.low = max(1, low)
-            pt.bandpass.high = min(reader.sample_rate / 2 - 1, high)
+            pt.bandpass.high = min(reader.sample_rate // 2 - 1, high)
             process_register(reader.data_frame, pt)
             rst.append('Realtime bandpass filter param: {low}Hz -- {high}Hz'
                        .format(**pt.bandpass))
@@ -317,12 +323,12 @@ def config_impedance(impedance):
 
 
 def config_fftfreq(fftfreq):
-    if fftfreq.isdigit() and 0 < int(fftfreq) < reader.sample_rate / 2:
+    if fftfreq.isdigit() and 0 < int(fftfreq) < reader.sample_rate // 2:
         pt.fft_range = int(fftfreq)
     else:
         return ('Invalid FFT frequency `{}`!' +
                 'Choose a positive number from [0-{}]'.format(
-                    fftfreq, reader.sample_rate / 2))
+                    fftfreq, reader.sample_rate // 2))
 
 
 def config_recorder(command):
@@ -334,6 +340,11 @@ def config_recorder(command):
     else:
         return 'Invalid command: {}'.format(command)
     time.sleep(0.5)
+
+
+def main():
+    from embci.webui import main_debug
+    main_debug(application)
 
 
 __all__ = ['application']

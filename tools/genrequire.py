@@ -5,14 +5,14 @@
 # Authors: Hank <hankso1106@gmail.com>
 # Create: 2019-10-14 05:43:04
 
-from __future__ import absolute_import, print_function
+# built-in
+from __future__ import absolute_import, division, print_function
 import os
 import sys
 import time
 import logging
 import argparse
 import subprocess
-
 from functools import reduce
 
 HELP = '''
@@ -38,11 +38,7 @@ Usage example:
 
 MAGICSTRING = 'requirements.txt:'
 logging.basicConfig(format='%(message)s', level=logging.INFO)
-
-if sys.version > (3, 0):
-    strtypes = (bytes, str)  # noqa: E602
-else:
-    strtypes = (basestring)  # noqa: E602
+__file__ = os.path.abspath(__file__)
 
 
 class Module(str):
@@ -62,7 +58,8 @@ def python_filter(filename):
     '''
     Check whether file is python script by linux/unix command `file`
     '''
-    return 'text/x-python' in subprocess.check_output(['file', '-i', filename])
+    mime = subprocess.check_output(['file', '-i', filename]).decode('ascii')
+    return 'text/x-python' in mime
     #  return 'Python script' in subprocess.check_output(['file', filename])
 
 
@@ -70,8 +67,10 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
     logging.debug('│   ' * max(0, (indent - 1)) +
                   (indent != 0) * '├── ' +
                   os.path.basename(dir))
-    srcfiles = []
     dir = os.path.abspath(dir)
+    if os.path.isfile(dir):
+        return [dir]
+    srcfiles = []
     lst = sorted(os.listdir(dir))
     while lst:
         file = lst.pop(0)
@@ -85,6 +84,8 @@ def scandir(dir, cond=lambda x: x.endswith('.py'), indent=0):
                 srcfiles.append(filename)
                 log = ' selected'
                 time.sleep(0.01)
+            elif filename.endswith('pyc'):
+                continue
             else:
                 log = ' skip'
             logging.debug(('│   ' if len(lst) else '│   ') * indent +
@@ -109,7 +110,7 @@ def extmod(file):
                 msg += ' '.join(ms) + ' '
     if len(modules):
         logging.debug(msg.strip())
-        time.sleep(0.1)
+        time.sleep(0.05)
     return modules
 
 
@@ -144,7 +145,11 @@ def genrequire(dirs, output):
         lambda f1, f2:
             (f1 + extmod(f2)) if isinstance(f1, list) else
             (extmod(f1) + extmod(f2)),
-        srcfiles)
+        srcfiles, [])
+
+    if not modules:
+        logging.warning('No modules found! Terminated.')
+        sys.exit(1)
 
     logging.debug('\n' + '=' * 80 + '\n')
 
@@ -180,7 +185,7 @@ def genrequire(dirs, output):
         body += '\n'.join(sorted(classes[c]))
         body += '\n\n'
 
-    if isinstance(output, strtypes):
+    if isinstance(output, str):
         path, filename = os.path.split(output)
         fn, ext = os.path.splitext(filename)
         extra = os.path.join(path, fn + '-dev' + ext)
@@ -191,7 +196,7 @@ def genrequire(dirs, output):
         output = open(output, 'w')
         extra = open(extra, 'w')
 
-    logging.debug('Writing requirements to `{}`'.format(output))
+    logging.debug('Writing requirements to `%s`\n' % output)
     print(header + body + conflicts, file=output)
     if 'extra' in locals():
         print(header + body + conflicts + optional, file=extra)

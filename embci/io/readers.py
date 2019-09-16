@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
 # File: EmBCI/embci/io/readers.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 06 Mar 2018 20:45:20 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-03-06 20:48:40
 
 '''
 Readers represent data streams that can be started, paused, resumed and closed.
@@ -17,6 +16,8 @@ The source of streams can be various, for example:
 '''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 import os
 import re
@@ -30,22 +31,23 @@ import threading
 import multiprocessing as mp
 from ctypes import c_bool, c_char_p, c_uint8, c_uint16, c_float
 
-# requirements.txt: data-processing: numpy, scipy, pylsl
+# requirements.txt: data: numpy, scipy, pylsl
 # requirements.txt: drivers: pyserial
 import numpy as np
 import scipy.io
 import scipy.signal
 import pylsl
 import serial
+from six import string_types
 
 from ..utils import (
-    strtypes, ensure_unicode, ensure_bytes, get_boolean, format_size,
+    ensure_unicode, ensure_bytes, get_boolean, format_size,
     validate_filename, random_id, check_input,
     find_serial_ports, find_pylsl_outlets, find_spi_devices,
     LockedFile, Singleton, LoopTaskMixin
 )
-from ..utils.ads1299_api import ADS1299_API
-from ..utils.esp32_api import ESP32_API
+from ..drivers.ads1299 import ADS1299_API
+from ..drivers.esp32 import ESP32_API
 from ..configs import DIR_PID, DIR_TMP
 from . import logger
 
@@ -181,13 +183,13 @@ class ReaderIOMixin(object):
         return np.concatenate((data[:, idx:], data[:, :idx]), -1)
 
     def register_buffer(self, obj):
-        if not isinstance(obj, strtypes):
+        if not isinstance(obj, string_types):
             obj = id(obj)
         if obj not in self._data_buffer:
             self._data_buffer[obj] = []
 
     def unregister_buffer(self, obj):
-        if not isinstance(obj, strtypes):
+        if not isinstance(obj, string_types):
             obj = id(obj)
         return np.concatenate(self._data_buffer.pop(obj, []), -1)
 
@@ -443,7 +445,7 @@ class FilesReader(BaseReader):
             logger.error(self.name + ' Abort...')
             return False
         # 2. get ready to stream data
-        return super(FilesReader, self).start(*a, **k)
+        return super(FilesReader, self).start(**k)
 
     def _get_data_g(self, data):
         self._last_time = time.time()
@@ -479,8 +481,12 @@ class PylslReader(BaseReader):
             return self.resume()
         # 1. find available streaming info and build an inlet
         logger.debug(self.name + ' finding availabel outlets...  ')
-        args, kwargs = k.pop('args', ()), k.pop('kwargs', {})
-        info = k.get('info') or find_pylsl_outlets(*args, **kwargs)
+        if a and isinstance(a[0], pylsl.StreamInfo):
+            info = a[0]
+        elif 'info' in k:
+            info = k.pop('info')
+        else:
+            info = find_pylsl_outlets(*a, **k)
         # 1.1 set sample rate
         fs = info.nominal_srate()
         if fs not in [self.sample_rate, pylsl.IRREGULAR_RATE]:
@@ -499,13 +505,14 @@ class PylslReader(BaseReader):
         # 1.3 construct inlet
         self.set_sample_rate(info.nominal_srate() or self.sample_rate)
         max_buflen = int(self.sample_time if info.nominal_srate() != 0
-                         else int(self.window_size / 100) + 1)
+                         else (self.window_size // 100 + 1))
         self._lsl_inlet = pylsl.StreamInlet(info, max_buflen=max_buflen)
 
         # 2. start streaming process to fetch data into buffer continuously
-        rst = super(PylslReader, self).start(*a, **k)
-        self.start_time = info.created_at()
-        return rst
+        if super(PylslReader, self).start(**k):
+            self.start_time = info.created_at()
+            return True
+        return False
 
     def _hook_after(self):
         time.sleep(0.2)
@@ -546,7 +553,7 @@ class SerialReader(BaseReader):
                     self.name, self.num_channel, n, n))
             self.num_channel = n
             self._data = self._data[:(n + 1)]
-        return super(SerialReader, self).start(*a, **k)
+        return super(SerialReader, self).start(**k)
 
     def _hook_after(self):
         self._serial.close()
@@ -567,12 +574,12 @@ class ADS1299SPIReader(BaseReader):
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
                  measure_impedance=False, enable_bias=True, API=None, **k):
+        self._api = (API or self.API)()
         k.setdefault('input_source', 'normal')
         super(ADS1299SPIReader, self).__init__(
             sample_rate, sample_time, num_channel, **k)
         self.enable_bias = enable_bias
         self.measure_impedance = measure_impedance
-        self._api = (API or self.API)()
 
     def __del__(self):
         Singleton.remove(self.__class__)
@@ -631,7 +638,7 @@ class ADS1299SPIReader(BaseReader):
         self._api.open(device)
         self._api.start(self.sample_rate)
         logger.debug(self.name + ' `/dev/spidev%d-%d` opened.' % device)
-        return super(ADS1299SPIReader, self).start(*a, **k)
+        return super(ADS1299SPIReader, self).start(**k)
 
     def _hook_after(self):
         self._api.close()
@@ -687,7 +694,7 @@ class SocketTCPReader(BaseReader):
         self._client.connect((host, int(port)))
         self.input_source = ':'.join([host, port])
         self._client_size = self.num_channel * self._dtype.itemsize  # in bytes
-        return super(SocketTCPReader, self).start(*a, **k)
+        return super(SocketTCPReader, self).start(**k)
 
     def _hook_after(self):
         '''

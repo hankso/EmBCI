@@ -54,101 +54,17 @@ function dataConfig(data) {
     })
 }
 
-function genReport(data) {
-    $.ajax({
-        method: 'GET',
-        url: 'report',
-        data: data,
-        success: function() {
-            $('#submit')
-                .text('查看报告')
-                .attr('href', 'report.html')
-                .off('click.generate');
-        },
-        error: alertError
-    })
-}
-
-var btnCount = 0;
-var coefInterval;
-var coefBtns = [];
-
-function stateCoef(button) {
-    if (!coefBtns.includes(button)) coefBtns.push(button);
-    if (button.display) {
-        button.display = false;
-        $('#' + button.id).css('color', '#333333');
-        btnCount--;
-    } else {
-        button.display = true;
-        $('#' + button.id).css('color', '#FFFFFF');
-        btnCount++;
-    }
-    if (btnCount == 0) {
-        coefInterval = clearInterval(coefInterval);
-    } else if (coefInterval == undefined) {
-        coefInterval = setInterval(dataCoef, 1200);
-    }
-}
-
-function dataCoef() {
-    if (!btnCount) return;
-    $.ajax({
-        method: "GET",
-        url: 'data/coef',
-        dataType: 'json',
-        success: function (list) {
-            updateCoef({
-                t: list[0],
-                s: list[1],
-                m: list[2],
-            });
-        },
-    });
-}
-
-function updateCoef(data) {
-    for (var i = 0; i < coefBtns.length; i++) {
-        var btn = coefBtns[i];
-        if (!btn.display) continue;
-        var name = btn.id[1];
-        if (name == undefined) {
-            console.error("Invalid btn.id: ", btn);
-            continue;
-        }
-        var value = data[name] || '0';
-        $('#' + btn.id).text(parseFloat(value).toFixed(4));
-        if (btn.id[0] != 'a') continue;
-        var bef = parseFloat($('#b' + name).html());
-        var aft = parseFloat($('#a' + name).html());
-        if (isNaN(bef) || isNaN(aft)) continue;
-        $('#' + name).text((Math.abs(bef - aft) / bef * 100).toFixed(2) + '%');
-    }
-}
-
-function setRecordingUser(user) {
-    if (!user) {
-        $('#input-username').val('');
-    } else {
-        dataConfig({
-            recorder: 'username ' + user
-        });
-    }
-    $('#icon-user').addClass('fold');
-    setTimeout(checkRecordingUser, 1000);
-}
-
 function checkRecordingUser() {
     $.ajax({
         method: 'GET',
         url: 'recorder/username',
         success: function (username) {
             if (username != 'None') {
-                $('#input-username').val(username);
-                $('#icon-user').addClass('recording');
+                $('input#record-user').val(username);
+                $('div#recorder').addClass('recording');
             } else {
-                $('#input-username').val('');
-                $('#icon-user').removeClass('recording');
+                $('input#record-user').val('');
+                $('div#recorder').removeClass('recording');
             }
         },
     });

@@ -1,12 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/constants.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 05 Feb 2019 17:01:54 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-05 17:01:54
 
 '''Define some constants here'''
+
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 __all__ = []
 
@@ -176,11 +180,12 @@ __all__ += ['colormapper_' + _ for _ in
 # Misc
 
 BOOLEAN_TABLE = {
-    u'0': False, u'1': True,
-    u'No': False, u'Yes': True,
-    u'Off': False, u'On': True,
-    u'False': False, u'True': True,
-    u'None': None,
+    '0': False, '1': True,
+    'n': False, 'y': True,
+    'no': False, 'yes': True,
+    'off': False, 'on': True,
+    'false': False, 'true': True,
+    'none': False,
 }
 
 import string
@@ -196,5 +201,10 @@ INVALID_FILENAMES_WIN = [
 ] + ['COM%d' % _ for _ in range(1, 10)] + ['LPT%d' % _ for _ in range(1, 10)]
 
 __all__ += ['BOOLEAN_TABLE']
+
+try:
+    del absolute_import, division, print_function
+except NameError:
+    pass
 
 # THE END

@@ -1,14 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/viz/screen.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 07 Feb 2019 21:29:21 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-07 21:29:21
 
 '''Graphic User Interface utilities based on screen devices.'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import time
 import select
@@ -18,7 +20,7 @@ import traceback
 import threading
 import functools
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: drivers: pyserial
 # requirements.txt: necessary: pillow, decorator
 import numpy as np
@@ -28,7 +30,7 @@ from decorator import decorator
 
 from ..configs import DIR_SRC
 from ..io import SerialCommander
-from ..utils.ili9341_api import ILI9341_API, rgb565to888, rgb888to565
+from ..drivers.ili9341 import ILI9341_API, rgb565to888, rgb888to565
 from ..utils import (time_stamp, find_gui_layouts, ensure_unicode,
                      get_config, serialize, deserialize, get_func_args,
                      AttributeDict, AttributeList, Singleton, LoopTaskInThread)
@@ -90,26 +92,36 @@ class Colormap(object):
     (128, 128, 128)
     >>> mapper(None) ==> None
     '''
-    _str_dict = colormapper_default
+    _namedict = colormapper_default
 
-    def __init__(self, str_dict=None, cstr=None, cint=None, carray=None):
-        self._str_dict = str_dict or self._str_dict
-        self._converters = {}
-        self._converters[str] = cstr or self.convert_str
-        self._converters[int] = cint or self.convert_int
-        self._converters[list] = carray or self.convert_array
-        self._converters[tuple] = carray or self.convert_array
+    def __init__(self, namedict=None,
+                 cstr=None, cint=None,
+                 carray=None, cnone=None):
+        self._namedict = namedict or self._namedict
+        self._converters = {
+            str: cstr or self.convert_str,
+            int: cint or self.convert_int,
+            list: carray or self.convert_array,
+            tuple: carray or self.convert_array,
+            type(None): cnone or self.convert_none
+        }
 
     def convert_int(self, v):
         '''RGB24 uint24 to RGB888 tuple'''
+        if v > 0xFFFFFF or v < 0:
+            raise ValueError('invalid 24bit color `{}`'.format(hex(v)))
         return v >> 16, (v >> 8) & 0xff, v & 0xff
 
     def convert_str(self, v):
         '''Color name to RGB888 using color mapping dict'''
         try:
-            return self._str_dict[v]
+            color = self._namedict[v]
         except KeyError:
             raise ValueError('color `{}` is not supported'.format(v))
+        else:
+            if isinstance(color, str):
+                raise TypeError('color name dict returns string: %s' % color)
+            return self(color)
 
     def convert_array(self, v):
         '''RGB565 two-bytes array to RGB888 tuple'''
@@ -120,21 +132,23 @@ class Colormap(object):
         else:
             raise ValueError('invalid array color `{}`'.format(v))
 
+    def convert_none(self, v):
+        '''If no color need to be mapped, return random or black or None?'''
+        return tuple(np.random.randint(255, size=3))
+        #  return (0, 0, 0)
+        #  return
+
     def __getitem__(self, *a):
         try:
-            return self.__call__(*a)
+            return self(*a)
         except ValueError as e:
             raise KeyError(str(e))
 
     def __call__(self, *a):
         v = a[0] if len(a) == 1 else a
-        if v is None:
-            return
-        if isinstance(v, int) and (v > 0xFFFFFF or v < 0):
-            raise ValueError('invalid 24bit color `{}`'.format(hex(v)))
-        if type(v) in self._converters:
-            return self._converters[type(v)](v)
-        raise TypeError('color type `{}` is not supported'.format(type(v)))
+        if type(v) not in self._converters:
+            raise TypeError('color type `{}` is not supported'.format(type(v)))
+        return self._converters[type(v)](v)
 
 
 default_colormap = Colormap()
@@ -162,15 +176,15 @@ class DrawElementMixin(object):
     draw_round      -- Draw rounded corner: quarter `arc` or `sector`.
     draw_round_rect -- Draw rectangle with rounded corner.
     draw_img        -- Draw an 3D array or PIL image.
-    draw_button     -- Draw button: `button` = `text` + `rect`
+    draw_button     -- Draw button: `button` = `text` + `rect` with callback.
     display_img     -- Display image on whole screen for a while.
     '''
     encoding = 'utf8'
     width, height = 320, 240
 
     def __init__(self):
-        '''For testing only.'''
-        self._init_
+        '''For testing only. If you subclass this Mixin, call `_init_`.'''
+        self._init_()
 
     def _init_(self):
         '''Remember to call this or set attribute manually.'''
@@ -190,10 +204,11 @@ class DrawElementMixin(object):
             # ensure element border inside screen
             a = self._check_position(name, a)
             # map all types of color to RGB888
+            colormap = getattr(self, 'colormap', default_colormap)
             args, _ = get_func_args(func)
             for n, arg in enumerate(args):
                 if arg.startswith('color') and len(a) > n:
-                    a[n] = default_colormap(a[n])
+                    a[n] = colormap(a[n])
             # add element into self.widget
             k['element'] = name + ('f' if k.get('fill', False) else '')
             k['id'] = max(self.widget[k['element']].id or [0]) + 1
@@ -213,26 +228,30 @@ class DrawElementMixin(object):
         args : array-like
             User provided arguments which contains position configs.
         '''
+        # x, y
         if name in ['point', 'text', 'img', 'button']:
-            args[0] = max(min(args[0], self.width - 1), 0)
-            args[1] = max(min(args[1], self.height - 1), 0)
+            args[0] = int(max(min(args[0], self.width - 1), 0))
+            args[1] = int(max(min(args[1], self.height - 1), 0))
+        # x, y, r
         elif name in ['circle', 'round']:
-            args[0] = max(min(args[0], self.width - 2), 1)
-            args[1] = max(min(args[1], self.height - 2), 1)
+            args[0] = int(max(min(args[0], self.width - 2), 1))
+            args[1] = int(max(min(args[1], self.height - 2), 1))
             right, down = self.width - 1 - args[0], self.height - 1 - args[1]
-            args[2] = max(min(args[0], args[1], right, down, args[2]), 0)
+            args[2] = int(max(min(args[0], args[1], right, down, args[2]), 0))
+        # x1, y1, x2, y2
         elif name in ['rect', 'rectf', 'round_rect', 'round_rectf']:
             args[0], args[2] = min(args[0], args[2]), max(args[0], args[2])
             args[1], args[3] = min(args[1], args[3]), max(args[1], args[3])
-            args[0] = max(min(args[0], self.width - 1), 0)
-            args[1] = max(min(args[1], self.height - 1), 0)
-            args[2] = max(min(args[2], self.width - 1), args[0])
-            args[3] = max(min(args[3], self.height - 1), args[1])
+            args[0] = int(max(min(args[0], self.width - 1), 0))
+            args[1] = int(max(min(args[1], self.height - 1), 0))
+            args[2] = int(max(min(args[2], self.width - 1), args[0]))
+            args[3] = int(max(min(args[3], self.height - 1), args[1]))
+        # x1, y1, x2, y2
         elif name in ['line']:
-            args[0] = max(min(args[0], self.width - 1), 0)
-            args[1] = max(min(args[1], self.height - 1), 0)
-            args[2] = max(min(args[2], self.width - 1), 0)
-            args[3] = max(min(args[3], self.height - 1), 0)
+            args[0] = int(max(min(args[0], self.width - 1), 0))
+            args[1] = int(max(min(args[1], self.height - 1), 0))
+            args[2] = int(max(min(args[2], self.width - 1), 0))
+            args[3] = int(max(min(args[3], self.height - 1), 0))
         else:
             raise ValueError('element `{}` is not supported'.format(name))
         return args
@@ -465,23 +484,23 @@ class DrawElementMixin(object):
 
         # adjust img size
         w, h = img.size
-        if (float(w) / h) >= (float(self.width) / self.height):
-            img = img.resize((self.width, int(float(self.width) / w * h)))
+        if (w / h) >= (self.width / self.height):
+            img = img.resize((self.width, int(self.width / w * h)))
         else:
-            img = img.resize((int(float(self.height) / h * w), self.height))
+            img = img.resize((int(self.height / h * w), self.height))
 
         # place image on center of the frame
         w, h = np.array([self.width, self.height]) - img.size
-        self.draw_img(w / 2, h / 2, img)
+        self.draw_img(w // 2, h // 2, img)
 
         # add footer guide text
         s1 = u'\u4efb\u610f\u70b9\u51fb\u5f00\u59cb'
         w, h = self.getsize(s1, size=18)
-        w, h = (self.width - w) / 2, self.height - 2 * h - 3
+        w, h = (self.width - w) // 2, self.height - 2 * h - 3
         self.draw_text(w, h, s1, 'red', 18)
         s2 = 'click to continue'
         w, h = self.getsize(s2, size=18)
-        w, h = (self.width - w) / 2, self.height - 1 * h - 5
+        w, h = (self.width - w) // 2, self.height - 1 * h - 5
         self.draw_text(w, h, s2, 'red', 18)
 
         # click the screen to break
@@ -584,7 +603,7 @@ class TouchScreenMixin(object):
     touch_animation_screen = True
 
     def __init__(self):
-        '''For testing only.'''
+        '''For testing only. If you subclass this Mixin, call `_init_`.'''
         DrawElementMixin._init_(self)
         self._init_()
 
@@ -640,9 +659,9 @@ class TouchScreenMixin(object):
             return False
         self._touch_epoll.unregister(self._touch_serial)
         self._touch_serial.write('\xaa\xaa\xaa\xaa')  # send close signal
-        self._touch_serial.flush(); time.sleep(0.3)  # noqa: E702
+        self._touch_serial.flush(); time.sleep(0.3)               # noqa: E702
         self._touch_serial.close()
-        self._callback_threads = []
+        del self._callback_threads[:]
 
     def touch_screen_calibration(self, *a, **k):
         if not self._touch_task.started:
@@ -656,7 +675,7 @@ class TouchScreenMixin(object):
         # display prompt string
         s = 'touch calibration'
         w, h = np.array([self.width, self.height]) - self.getsize(s, size=20)
-        self.draw_text(w / 2, h / 2, s, color='green', size=20)
+        self.draw_text(w // 2, h // 2, s, color='green', size=20)
         # points where to be touched
         pts = np.array([[20, 20],
                         [self.width - 20, 20],
@@ -796,7 +815,7 @@ class GUIControlMixin(object):
     '''
 
     def __init__(self):
-        '''only used for testing'''
+        '''For testing only. If you subclass this Mixin, call `_init_`.'''
         self.widget = DEFAULT_WIDGET()
         self._init_()
 
@@ -978,7 +997,7 @@ class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
 
     # Serial configs
     colormap = Colormap(
-        str_dict=colormapper_uart_screen_winbond_v1,
+        namedict=colormapper_uart_screen_winbond_v1,
         carray=uartscreen_winbond_v1_carray,
         cint=lambda v: uartscreen_winbond_v1_carray(
             (v >> 16, v >> 8 & 0xff, v & 0xff)))
@@ -1096,6 +1115,7 @@ class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
 
 # ===============================================================================
 # SPI Screen: ILI9341 2.4' 320x240 LCD
+
 try:
     from ..configs import PIN_ILI9341_DC, PIN_ILI9341_RST
 except ImportError:
@@ -1129,7 +1149,7 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
 
     # SPI configs
     colormap = Colormap(
-        str_dict=colormapper_spi_screen_ili9341,
+        namedict=colormapper_spi_screen_ili9341,
         carray=spiscreen_ili9341_carray,
         cint=lambda v: spiscreen_ili9341_carray(
             (v >> 16, v >> 8 & 0xff, v & 0xff)))
@@ -1144,7 +1164,7 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
         ----------
         API : class
             SPI connection and communication API class.
-            Default use class `embci.utils.ili9341_api.ILI9341_API`.
+            Default use class `embci.drivers.ili9341.ILI9341_API`.
         widget, color : AttributeDict
             Check `DEFAULT_WIDGET` and `DEFAULT_COLOR`
         width, height : int
@@ -1217,7 +1237,7 @@ class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
         if font is not None and os.path.exist(font):
             self.setfont(font)
         w, h = self._api.font.getsize(s)
-        return w / 2, h / 2
+        return w // 2, h // 2
 
 
 # THE END

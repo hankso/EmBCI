@@ -11,8 +11,15 @@
 
 '''Running test with `python test_processing.py` is suggested.'''
 
-import numpy as np
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# requirements.txt: testing: pytest
+# requirements.txt: data: numpy
 import pytest
+import numpy as np
 
 pytest.skip('not implemented yet.', allow_module_level=True)
 

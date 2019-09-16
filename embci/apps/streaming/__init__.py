@@ -81,7 +81,7 @@ console@E01:$ bias_output
 False
 
 Or you can use function `streaming.send_message_streaming`, which accepts a
-string as command and return a string of result:
+string as command and return a string as result:
 
 >>> from embci.apps.streaming import send_message_streaming
 >>> while 1:
@@ -101,4 +101,5 @@ See `<command> -h` for more information on each command.
 __doc__ = '\n'.join([__doc__, CMD_HELP, RPC_HELP])
 
 from .utils import send_message as send_message_streaming
+
 __all__ = ['send_message_streaming']

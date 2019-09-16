@@ -1,13 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/utils/_json.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 18 Jul 2019 00:11:19 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-18 00:11:19
 
 '''Wrapping built-in JSON Python module to support more features.'''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import re
 import json
 import zlib
@@ -16,22 +19,29 @@ import marshal
 import importlib
 import traceback
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: necessary: dill
 import dill
 import numpy
+from six import string_types
 
-from . import logger, strtypes, AttributeDict, AttributeList
+from . import logger, AttributeDict, AttributeList
+
+__all__ = [
+    'MiscJsonEncoder', 'MiscJsonDecoder',
+    'serialize', 'deserialize', 'minimize',
+    'dumps', 'loads',
+]
 
 
 class JSONEncoder(json.JSONEncoder):
     '''
     This class is a dirty fix to make JSONEncoder support custom jsonifying
     of nested and inherited default types such as dict, list and tuple etc.
-    By overwriting method `json.JSONEncoder.iterencode`, it changed default
-    behaviour on types inside tuple `self.masked`.
+    By overwriting method ``json.JSONEncoder.iterencode``, it changed default
+    behaviour on types inside tuple ``self.masked``.
 
-    More at [this page](https://stackoverflow.com/questions/16405969/).
+    More at `this page <https://stackoverflow.com/questions/16405969>`_.
     '''
     masked = ()
 
@@ -41,8 +51,7 @@ class JSONEncoder(json.JSONEncoder):
         k.setdefault('sort_keys', True)
         k.setdefault('indent', 4)
         k.setdefault('separators', (',', ': '))
-        # for python 2 & 3 compatiable
-        encoding = k.pop('encoding', 'utf8')
+        encoding = k.pop('encoding', 'utf8')  # for python 2 & 3 compatiable
         super(JSONEncoder, self).__init__(*a, **k)
         self.encoding = encoding
 
@@ -61,7 +70,7 @@ class JSONEncoder(json.JSONEncoder):
         return text
 
     def _encoder(self, o):
-        if self.encoding != 'utf8' and isinstance(o, strtypes):
+        if self.encoding != 'utf8' and isinstance(o, string_types):
             o = o.decode(self.encoding)
         if self.ensure_ascii:
             return json.encoder.encode_basestring_ascii(o)
@@ -87,9 +96,9 @@ class MiscJsonEncoder(JSONEncoder):
 
     Supported types:
     - function
-        1 builtin_function_or_method - dill
-        2 instancemethod - dill
-        3 function.__code__ - marshal
+        1. builtin_function_or_method *dill*
+        2. instancemethod *dill*
+        3. function.__code__ *marshal*
     - numpy.ndarray
     - subclass of MutableMapping and MutableSequence
     - subclass of default supported types like dict and list etc.(see notes)
@@ -97,8 +106,8 @@ class MiscJsonEncoder(JSONEncoder):
     Notes
     -----
     If you want to extend this class to support more types of object,
-    1 add the type into class's `masked` tuple
-    2 overwrite `default` or define `jsonify_xxx_hook`
+    1 add the type into class's ``masked`` tuple
+    2 overwrite ``default`` or define ``jsonify_xxx_hook``
 
     >>> class Test(MiscJsonEncoder):
             def __init__(self):
@@ -109,7 +118,7 @@ class MiscJsonEncoder(JSONEncoder):
                     return jsonify_MyClass(o)
                 return super(Test, self).default(o)
 
-    or you can define `jsonify_xxx_hook`(object type in lower case!)
+    or you can define ``jsonify_xxx_hook``(object type in lower case!)
 
     >>> class Test(MiscJsonEncoder):
             masked = MiscJsonEncoder.masked + (MyClass, )
@@ -201,7 +210,7 @@ class MiscJsonDecoder(json.JSONDecoder):
 
     def object_hook(self, dct):
         '''
-        This function will be used by method `decode` to convert
+        This function will be used by method ``decode`` to convert
         dict into object. It is the last step of unjsonify.
         '''
         for hook in self.decode_hooks:
@@ -278,10 +287,5 @@ def deserialize(string, method='json'):
         return loads(string)
     raise ValueError('serialization method `%s` is not supported' % method)
 
-
-__all__ = [
-    'MiscJsonEncoder', 'MiscJsonDecoder',
-    'dumps', 'loads', 'serialize', 'deserialize', 'minimize'
-]
 
 # THE END

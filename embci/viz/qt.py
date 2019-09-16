@@ -1,17 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/viz/qt.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 07 Feb 2019 22:07:42 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-07 22:07:42
 
 '''Graphic User Interface utilities based on Matplotlib and QT framework.'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import time
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 # requirements.txt: optional: matplotlib
 import numpy as np
 try:
@@ -52,7 +54,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.subplot(343)
         plt.title('after stft')
         amp = p.stft(p.remove_DC(p.notch(d)))[0]
-        f = np.linspace(0, sample_rate / 2, amp.shape[0])
+        f = np.linspace(0, sample_rate // 2, amp.shape[0])
         t = np.linspace(0, sample_time, amp.shape[1])
         plt.pcolormesh(t, f, np.log10(amp))
         highest_col = [col[1] for col in sorted(zip(np.sum(amp, axis=0),
@@ -80,7 +82,7 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         d = p.remove_DC(p.notch(d))[0]
         plt.subplot(326)
         t = time.time()
-        amp = 2 * abs(np.fft.rfft(d)) / float(len(d))
+        amp = 2.0 * abs(np.fft.rfft(d)) / len(d)
         # amp[0] *= 1e13
         plt.plot(10 * np.log10(amp * amp)[::12],
                  linewidth=0.5,

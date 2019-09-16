@@ -1,14 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/viz/plots.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 06 Mar 2019 01:42:02 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-03-06 01:42:02
 
-'''plot'''
+'''Plotting using Python Image Library (PIL).'''
 
-# requirements.txt: data-processing: scipy, numpy
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# requirements.txt: data: scipy, numpy
 # requirements.txt: necessary: pillow
 import numpy as np
 from PIL import Image, ImageDraw
@@ -46,7 +50,7 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
         raise TypeError('Invalid channel type: `{}`'
                         .format(type(channel).__name__))
 
-    canvas_size = (length, int(float(length) / imgsize[0] * imgsize[1]))
+    canvas_size = (length, int(length / imgsize[0] * imgsize[1]))
     img = Image.new('RGB', canvas_size, 'white')
     draw = ImageDraw.Draw(img)
     for n in channel:
@@ -56,7 +60,7 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
         y += canvas_size[1] / 2  # resize to [0, canvas_height]
         y[0] = y[-1] = 0         # set first and end point to zero
         toplot = [tuple(_) for _ in np.vstack((x, y)).T]
-        draw.line(toplot, colors[n], width=(length / 500))
+        draw.line(toplot, colors[n], width=(length // 500))
 
     img = img.resize((imgsize[0] + 4, imgsize[1] + 4), Image.ANTIALIAS)
     img = img.crop((2, 2, imgsize[0] + 2, imgsize[1] + 2)).transpose(1)

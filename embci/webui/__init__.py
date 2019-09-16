@@ -1,22 +1,25 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/webui/__init__.py
-# Author: Hankso
-# Webpage: http://github.com/hankso
-# Time: Fri 14 Sep 2018 21:51:46 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-09-14 21:51:46
 
 '''Web-based User Interface of EmBCI'''
 
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 # requirements.txt: network: gevent
-from gevent import monkey; monkey.patch_all(select=False, thread=False) # noqa
-from gevent.pywsgi import WSGIServer
+from gevent import monkey
+monkey.patch_all(select=False, thread=False)
+del monkey
 
 # built-in
 import os
 import sys
+import socket
 import logging
 import functools
 import importlib
@@ -25,22 +28,24 @@ from logging.handlers import RotatingFileHandler
 
 # requirements.txt: network: bottle, gevent, gevent-websocket
 import bottle
+from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
 
 from ..utils import (
-    argparse, config_logger, get_config, get_self_ip_addr, get_boolean,
-    LockedFile, LoggerStream, AttributeDict, AttributeList
+    argparse, config_logger, get_config,
+    get_host_addr, get_free_port, get_caller_globals,
+    LockedFile, LoggerStream, AttributeDict, AttributeList, BoolString
 )
 from ..configs import DIR_PID, DIR_LOG
 from .. import version
 
 
 # =============================================================================
-# constants
+# constants & objects
 #
 __basedir__  = os.path.dirname(os.path.abspath(__file__))
 __port__     = get_config('WEBUI_PORT', 80, type=int)
-__host__     = get_self_ip_addr(get_config('WEBUI_HOST', '0.0.0.0'))
+__host__     = get_host_addr(get_config('WEBUI_HOST', '0.0.0.0'))
 __index__    = os.path.join(__basedir__, 'index.html')
 __pidfile__  = os.path.join(DIR_PID, 'webui.pid')
 root         = bottle.Bottle()
@@ -68,12 +73,10 @@ def webui_index():
 
 @root.route('/appinfo')
 def webui_appinfo():
-    if get_boolean(bottle.request.query.get('reload')):
+    if BoolString(bottle.request.query.get('reload')):
         mount_apps()
     apps = []
     for app in subapps:
-        if app.obj is None:
-            continue
         appd = app.copy(dict)
         appd.pop('obj')
         apps.append(appd)
@@ -96,9 +99,34 @@ def webui_logfiles(filename):
     bottle.abort(404, 'File does not exist.')
 
 
-@root.route('/<filename:path>')
-def webui_static(filename):
-    return bottle.static_file(filename, root=__basedir__)
+def webui_static_factory(*dirs):
+    '''
+    Useful function to serve static files under many directorys.
+
+    Examples
+    --------
+    >>> from embci.webui import webui_static_factory
+    >>> @bottle.route('/static/<filename>')
+    ... def static_files(filename):
+    ...     return webui_static_factory('./src', '/srv', '/var/www')(filename)
+
+    You can also bind callback function by:
+    >>> bottle.route('/static/<filename>', 'GET', webui_static_factory('/srv'))
+    '''
+    dirs = set(dirs).union({__basedir__})
+    def static_files(*fn, **fns):                                  # noqa: E306
+        if fn or fns:
+            fn = (fn and fn[0]) or (fns and fns.popitem()[1])
+        else:
+            raise ValueError('Function called without filename.')
+        for root in dirs:
+            if os.path.exists(os.path.join(root, fn)):
+                return bottle.static_file(fn, root)
+        return bottle.HTTPError(404, 'File does not exist.')
+    return static_files
+
+
+root.route('/<filename:path>', 'GET', webui_static_factory())
 
 
 # =============================================================================
@@ -118,15 +146,15 @@ def mount_apps(applist=subapps):
         if appname in applist.name:
             continue
         applist.append(AttributeDict(
-            name=appname, obj=None, path='',
-            loader='masked by embci.webui.__main__'
+            name=appname, obj=None, path='', hidden=True,
+            loader='masked from embci.webui.__main__'
         ))
 
     for appname in embci.apps.__all__:
         try:
             appmod = getattr(embci.apps, appname)
-            if appmod is None:  # This app has been masked
-                continue
+            if appmod is None:           # This app has been masked
+                raise AttributeError
             apppath = os.path.abspath(appmod.__path__[0])
             if apppath in applist.path:  # Different app names of same path
                 continue
@@ -135,13 +163,13 @@ def mount_apps(applist=subapps):
                 continue
             appobj = appmod.application
         except AttributeError:
-            logger.info('Load `application` object from app `{}` failed. '
-                        'Check out `embci.apps.__doc__`.'.format(appname))
+            logger.debug('Load `application` object from app `{}` failed. '
+                         'Check out `embci.apps.__doc__`.'.format(appname))
             if appname in applist.name:
                 continue
             applist.append(AttributeDict(
-                name=appname, obj=None, path='',
-                loader='masked by embci.apps.__all__'
+                name=appname, obj=None, path='', hidden=True,
+                loader='masked from embci.apps.__all__'
             ))
         else:
             applist.append(AttributeDict(
@@ -225,8 +253,8 @@ def serve_forever(host, port, app=root, **k):
 def make_parser():
     parser = argparse.ArgumentParser(prog=__name__, description=(
         'Network based user interface of EmBCI embedded system. '
-        'Default listen on http://{}:{}. '
-        'Address can be specified by user.').format(__host__, __port__))
+        'Default listen on http://{}:{}. Address can be specified by user.'
+    ).format(__host__, __port__))
     parser.add_argument('--host', default=__host__, type=str, help='hostname')
     parser.add_argument('--port', default=__port__, type=int, help='port num')
     parser.add_argument('--exclude', nargs='*', help='subapp names to skip')
@@ -240,7 +268,24 @@ def make_parser():
         '-p', '--pid', default=__pidfile__, dest='pidfile',
         help='pid file used for EmBCI WebUI, default `%s`' % __pidfile__)
     parser.add_argument(
-        '--newtab', default=True, type=get_boolean,
+        '--newtab', default=True, type=BoolString,
+        help='boolean, whether to open webpage of WebUI in browser')
+    parser.add_argument('-V', '--version', action='version', version=version())
+    return parser
+
+
+def make_parser_debug(host, port):
+    parser = argparse.ArgumentParser(prog=__name__, description=(
+        'Debugging application loader for WebUI of EmBCI embedded system. '
+        'Default listen on http://{}:{}. Address can be specified by user.'
+    ).format(host, port or 0))
+    parser.add_argument('--host', default=host, type=str, help='hostname')
+    parser.add_argument('--port', default=port, type=int, help='port num')
+    parser.add_argument(
+        '-v', '--verbose', default=0, action='count',
+        help='output more information, -vv for deeper details')
+    parser.add_argument(
+        '--newtab', default=False, type=BoolString,
         help='boolean, whether to open webpage of WebUI in browser')
     parser.add_argument('-V', '--version', action='version', version=version())
     return parser
@@ -257,19 +302,25 @@ def open_webpage(addr):
         pass
 
 
-def main(arg):
+def main(args=None):
     global __host__, __port__, __pidfile__
     parser = make_parser()
-    args = parser.parse_args(arg)
+    args = parser.parse_args(args or sys.argv[1:])
 
-    # ensure host address legal
-    from socket import inet_aton, inet_ntoa, error
+    # ensure host address and port number legal
     try:
         __host__ = args.host.replace('localhost', '127.0.0.1')
-        __host__ = inet_ntoa(inet_aton(__host__))
-        __port__ = args.port
-    except error:
+        __host__ = socket.inet_ntoa(socket.inet_aton(__host__))
+    except socket.error:
         parser.error("argument --host: invalid address: '%s'" % args.host)
+    try:
+        __port__ = args.port
+        s = socket.socket()
+        s.bind((__host__, __port__))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        s.close()
+    except (socket.error, OSError) as e:
+        parser.error("arguemnt --port: %s: '%s'" % (e, args.port))
 
     # config logger with loglevel by counting number of -v
     level = max(logging.WARN - args.verbose * 10, 10)
@@ -301,3 +352,22 @@ def main(arg):
     logger.info('Using PIDFILE: {}'.format(pidfile))
     serve_forever(__host__, __port__, logger=logger)
     pidfile.release()
+
+
+def main_debug(app=None, host='127.0.0.1', port=None, args=None):
+    app = app or get_caller_globals(1).get('application')
+    if app is None:
+        raise RuntimeError('No available application to serve.')
+    args = make_parser_debug(host, port).parse_args(args or sys.argv[1:])
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logger = config_logger('debug', level, format='%(message)s')
+    args.port = args.port or get_free_port(args.host)
+    addr = 'http://%s:%d/' % (args.host, args.port)
+    logger.info('Listening on : ' + addr)
+    logger.info('Hit Ctrl-C to quit.\n')
+    if args.newtab:
+        open_webpage(addr)
+    serve_forever(args.host, args.port, app, debug=True, logger=logger)
+
+
+# THE END

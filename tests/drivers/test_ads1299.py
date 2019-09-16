@@ -1,15 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/tests/utils/test_ads1299.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 06 Feb 2019 01:42:11 CST
+# File: EmBCI/tests/drivers/test_ads1299.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-06 01:42:11
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import time
 
-from embci.utils.ads1299_api import ADS1299_API
-from embci.utils.esp32_api import ESP32_API
+from embci.drivers.ads1299 import ADS1299_API
+from embci.drivers.esp32 import ESP32_API
 from .. import EmBCITestCase, embeddedonly
 
 

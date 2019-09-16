@@ -32,7 +32,7 @@ def exit(*a, **k):
 
 
 def main(args=sys.argv[1:]):
-    reader.start(method='thread', kwargs={'type': 'Reader Outlet'})
+    reader.start(method='thread', type='Reader Outlet')
     signal.signal(signal.SIGHUP, exit)
     signal.signal(signal.SIGTERM, exit)
 

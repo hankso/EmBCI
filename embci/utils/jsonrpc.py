@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/utils/jsonrpc.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Wed 17 Jul 2019 17:32:41 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-17 17:32:41
 
 '''
 JSON Remote Procedure Call (JSON-RPC) lightweight and all-in-one-file
@@ -109,6 +108,10 @@ on **jsonrpclib_**.
 .. _RPyC: https://github.com/tomerfiliba/rpyc.git
 .. _jsonrpclib: https://github.com/joshmarshall/jsonrpclib
 '''
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 
 # =============================================================================
@@ -982,6 +985,11 @@ class JSONRPCMultiCall(object):
 
 # =============================================================================
 # Exports
+
+try:
+    del absolute_import, division, print_function
+except NameError:
+    pass
 
 __all__ = ['History', 'Payload'] + [
     'JSONRPC' + _

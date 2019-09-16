@@ -11,13 +11,13 @@
 # built-in
 from __future__ import print_function
 import os
-import sys
 import time
 import json
 import traceback
 
-from ...utils import time_stamp, check_input
-from ...io import load_data, save_action
+from embci.utils import time_stamp, check_input
+from embci.io import load_data, save_action
+from embci.configs import DIR_DATA
 
 
 def main(username, reader, model, commander):
@@ -52,8 +52,8 @@ def main(username, reader, model, commander):
         save_action(username, reader, ['left', 'right'])
         # ==============================================
 
-        if not os.path.exists('./data/'+username):
-            sys.exit('No data saved for training.')
+        if not os.path.exists(os.path.join(DIR_DATA, username)):
+            raise RuntimeError('No data saved for training.')
 
         try:
             # prepare training data. n_sample x n_channel x window_size
@@ -70,16 +70,16 @@ def main(username, reader, model, commander):
                             'no use.\nIf you want to add more actions to '
                             'current model next time, please keep these data.'
                             '(not recommended)\ndelete data? [Y/n] ')):
-                os.system('rm ./data/%s/*.mat' % username)
+                os.system('rm ' + os.path.join(DIR_DATA, username, '*.mat'))
 
             model_name = './model/%s/%s.h5' % (username, time_stamp())
             model.save(model_name)
             with open(model_name[:-3] + '-action-dict.json', 'w') as f:
                 json.dump(action_dict, f)
             print('model save to ' + model_name)
-        except Exception:
+        except Exception as e:
             traceback.print_exc()
-            sys.exit(0)
+            raise e
         finally:
             model_name = model_flag = data = label = f = None
 

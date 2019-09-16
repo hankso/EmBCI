@@ -7,6 +7,9 @@
 #
 
 
+# [testing]
+pytest
+
 # [network]
 beaker
 bottle
@@ -14,17 +17,20 @@ bottle-cork
 gevent
 gevent-websocket
 
+# [machine-learning]
+keras
+sklearn
+
 # [drivers]
 gpio4
 pyserial
 spidev
 
-# [testing]
-pytest
-
-# [machine-learning]
-keras
-sklearn
+# [data]
+mne
+numpy
+pylsl
+scipy
 
 # [necessary]
 decorator
@@ -36,21 +42,11 @@ pywavelets
 pyzmq
 six
 
-# [data-processing]
-numpy
-pylsl
-scipy
-
-# [bio-signal]
-mne
-
 # [optional]
 argparse
 dbus
-ipython
 matplotlib
 python-networkmanager
-reportlab
 wifi
 
 

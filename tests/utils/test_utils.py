@@ -5,11 +5,15 @@
 # Authors: Hank <hankso1106@gmail.com>
 # Create: 2019-02-25 22:34:40
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 import os
 import time
 import logging
 
+# requirements.txt: necessary: six
 from six.moves import StringIO
 
 from .. import embeddedonly
@@ -130,6 +134,6 @@ def test_get_boolean():
 
 
 @embeddedonly
-def test_get_self_ip_addr():
-    from embci.utils import get_self_ip_addr
-    assert get_self_ip_addr() not in ['10.0.0.1', '127.0.0.1']
+def test_get_host_addr():
+    from embci.utils import get_host_addr
+    assert get_host_addr() not in ['10.0.0.1', '127.0.0.1']

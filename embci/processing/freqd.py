@@ -1,17 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/processing/freqd.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Author: Song Tian Cheng
-# Webpage: https://github.com/rotom407
-# Time: Wed 28 Feb 2018 10:56:36 CST
+# Authors: Hank <hankso1106@gmail.com>
+#          Tian-Cheng SONG <https://github.com/rotom407>
+# Create: 2018-02-29 02:13:36
 
 '''Frequency Domain Digital Signal Processing and Features'''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-# requirements.txt: data-processing: numpy, scipy
+# requirements.txt: data: numpy, scipy
 # requirements.txt: necessary: pywavelets, pyhht
 # requirements.txt: necessary: decorator
 # TODO: rewrite python-pywt
@@ -42,7 +44,7 @@ def Fast_Fourier_Transform(X, sample_rate=500, resolution=1, *a, **k):
 
     There are four steps to get useful result of fft.
     1. raw = np.fft.fft(X), here raw is a complex ndarray
-    2. amp = np.abs(raw[:num / 2]), remove latter half of raw and
+    2. amp = np.abs(raw[:num // 2]), remove latter half of raw and
         convert the rest data into real number. Result of fft is
         symmetric in the real part.
     3. samples = len(X) and raw /= samples
@@ -70,13 +72,11 @@ def Fast_Fourier_Transform(X, sample_rate=500, resolution=1, *a, **k):
         freq = np.linspace(0, sample_rate / 2, length)
     amp : ndarray
         2D array with a shape of n_channel x length
-        length = sample_rate / 2 * resolution
+        length = sample_rate // 2 * resolution
     '''
     n = sample_rate * resolution
-    amp = 2 * abs(np.fft.rfft(X, int(n), axis=-1)) / float(X.shape[1])
+    amp = 2 * abs(np.fft.rfft(X, int(n), axis=-1)) / X.shape[1]
     amp[:, 0] /= 2
-    if X.shape[1] % 2:
-        amp[:, -1] /= 2
     freq = np.linspace(0, sample_rate / 2, amp.shape[1] - 1)
     return freq, amp[:, :-1]
 
@@ -87,18 +87,18 @@ def Short_Time_Fourier_Transfrom(X, sample_rate=500, nperseg=None,
     Short Time Fourier Transform.
     Input shape:  n_channel x window_size
     Output shape: n_channel x freq x time
-    freq = int(1.0 + math.floor( float(nperseg) / 2 ) )
-    time = int(1.0 + math.ceil(float(X.shape[-1]) / (nperseg - noverlap)))
+    freq = 1 + math.floor( nperseg / 2 ))
+    time = 1 + math.ceil( X.shape[-1] / (nperseg - noverlap) ))
 
     Returns
     -------
     out : tuple
         (freq, time, amp)
     '''
-    #                0           1         2      3
-    # pxx.shape: n_sample x n_channels x freq x time
-    #                0        2      3         1
-    # target:    n_sample x freq x time x n_channels
+    #                0          1         2      3
+    # pxx.shape: n_epoch x n_channels x freq x time
+    #                0       2      3         1
+    # target:    n_epoch x freq x time x n_channels
     f, t, amp = scipy.signal.stft(
         X, sample_rate, 'hann',
         nperseg=nperseg or int(sample_rate / 5.0),
@@ -250,7 +250,7 @@ def Hilbert_Huang_Transform(X, sample_rate=500, *a, **k):
 
     Notes
     -----
-    Difference between two hilbert in scipy:
+    Difference between two hilbert in scipy::
         scipy.signal.hilbert(x) = x + scipy.fftpack.hilbert(x) * j
 
     1. scipy.fftpack.hilbert(x) ==> y

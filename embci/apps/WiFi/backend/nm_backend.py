@@ -6,8 +6,8 @@
 # Create: 2019-05-05 10:31:15
 
 '''
-NetworkManager Backend
-----------------------
+NetworkManager
+--------------
 Network backend using package `python-networkmanager` which is based on
 `org.freedesktop.NetworkManager` and `org.freedesktop.DBus`.
 
@@ -27,7 +27,9 @@ This module provides standard methods including:
 '''
 
 # built-in
-import sys
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import copy
 import uuid
 import functools
@@ -55,7 +57,7 @@ def get_device_by_iface(name='wl', dtype=NetworkManager.NM_DEVICE_TYPE_WIFI):
 
 wlan0 = get_device_by_iface()
 if wlan0 is None:
-    sys.exit(__file__ + ' No valid wireless network device.')
+    raise ImportError(__file__ + ' No valid wireless network device.')
 
 
 STATE_STATUS_MAPPING = {

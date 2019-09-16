@@ -1,16 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/configs.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 26 Feb 2019 17:42:06 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-26 17:42:06
 
 '''
 Everything about configuration. When imported, this module will automatically
 load configs from local configuration files.
 '''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import sys
 import tempfile
@@ -80,7 +83,10 @@ if ENSURE_DIR_EXIST:
             sys.stderr.write('Cannot make directory `%s`: %s' % (DIR, e))
 
 try:
-    del os, sys, tempfile, cp, section, configparser
+    del (
+        os, sys, tempfile, cp, section, configparser,
+        absolute_import, division, print_function
+    )
 except NameError:
     pass
 

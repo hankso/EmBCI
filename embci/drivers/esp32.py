@@ -1,24 +1,24 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/utils/esp32_api.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Mon 18 Feb 2019 15:25:56 CST
+# File: EmBCI/embci/drivers/esp32.py
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-18 15:25:56
 
-'''
-ESP32 ADS1299 SPI Buffer API
-'''
+'''ESP32 works as an ADS1299 SPI Buffer API'''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import time
 import struct
 from multiprocessing import Queue
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 import numpy as np
 
-from .ads1299_api import ADS1299_API, ensure_start, SAMPLE_RATE, INPUT_SOURCES
+from .ads1299 import ADS1299_API, ensure_start, SAMPLE_RATE, INPUT_SOURCES
 
 # =============================================================================
 # ESP32 Pin mapping
@@ -52,7 +52,7 @@ class ESP32_API(ADS1299_API):
 
     See Also
     --------
-    embci.utils.ads1299_api.ADS1299_API
+    embci.drivers.ads1299.ADS1299_API
     '''
     def __init__(self, n_batch=32, scale=4.5/24/2**24, *a, **k):
         self.n_batch = n_batch
@@ -194,12 +194,14 @@ class ESP32_API(ADS1299_API):
 # =============================================================================
 # ESP32 Communication
 #
-# WARNING! If you are not using this liberary inside EmBCI (On EmBCI-Board),
-#          this section is useless and can be deleted safely.
+# IMPORTANT!
+#   If you are not using this liberary inside EmBCI (On EmBCI-Board), this
+#   section is useless and can be deleted safely.
 #
 
 import serial
-from embci.utils import get_config, strtypes
+from six import string_types
+from embci.utils import get_config
 esp_serial = serial.Serial(
     baudrate=get_config('BAUD_ESP32', 115200, type=int)
 )
@@ -211,7 +213,7 @@ def send_message_esp32(cmd_or_args):
         return ''
     if isinstance(cmd_or_args, (list, tuple)):
         cmd = ' '.join([str(arg) for arg in cmd_or_args])
-    elif not isinstance(cmd_or_args, strtypes):
+    elif not isinstance(cmd_or_args, string_types):
         cmd = str(cmd_or_args)
     else:
         cmd = cmd_or_args

@@ -1,3 +1,11 @@
+## 0.2.1 [2019-09-15]
+- Add `from __future__ import absolute_import, division, print_function` to each module.
+- Use ``//`` for floor division and ``/`` for float division.
+- [WebUI] HTML snippets loader support keywords arguments by setting attributes like ``data-foo="bar"``. Add webui debug application runner and pick random port.
+- [Drivers] Add package `embci.drivers`. Move `embci.utils.xxx_api` to `embci.drivers.xxx` as hardware APIs.
+- [Utils] Add `get_free_port` to resolve an avaiable port number. Support event sending and receiving by EventIO system implemented at `embci.utils._event`
+- [Speller] Subapp SSVEP mind-typing constructed. Will be tested soon.
+- [Recorder] Add snippet `div#recorder` in `recorder-box.html`.
 
 ## 0.2.0 [2019-09-01]
 - [Apps] Project `DBS` is removed from EmBCI and will be maintained by a business company.

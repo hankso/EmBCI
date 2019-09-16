@@ -10,8 +10,9 @@ import time
 
 # requirements.txt: necessary: pyzmq
 import zmq
+from six import string_types
 
-from embci.utils import strtypes, ensure_bytes, ensure_unicode
+from embci.utils import ensure_bytes, ensure_unicode
 
 from . import CMD_ADDR
 
@@ -46,7 +47,7 @@ def send_message(cmd_or_args, delay=0.2):
         return ''
     if isinstance(cmd_or_args, (list, tuple)):
         cmd = ' '.join([str(arg) for arg in cmd_or_args])
-    elif not isinstance(cmd_or_args, strtypes):
+    elif not isinstance(cmd_or_args, string_types):
         cmd = str(cmd_or_args)
     else:
         cmd = cmd_or_args

@@ -91,7 +91,7 @@ def system_update(*a, **k):
 @system.route('/battery')
 def system_battery():
     '''Example of ESP32 return value: `Battery level: 98%`'''
-    from embci.utils.esp32_api import send_message_esp32
+    from embci.drivers.esp32 import send_message_esp32
     ret = send_message_esp32('battery')
     level = re.findall(r'(\d+)%', ret)
     if level:

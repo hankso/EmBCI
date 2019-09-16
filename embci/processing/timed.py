@@ -1,16 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
-# File: EmBCI/embci/processing/timed.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Author: Song Tian Cheng
-# Webpage: https://github.com/rotom407
-# Time: Wed 28 Feb 2018 10:56:36 CST
+# File: EmBCI/embci/processing/freqd.py
+# Authors: Hank <hankso1106@gmail.com>
+#          Tian-Cheng SONG <https://github.com/rotom407>
+# Create: 2018-02-28 10:56:36
 
 '''Time Domain Digital Signal Processing and Features'''
 
-# requirements.txt: data-processing: numpy, scipy
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+# requirements.txt: data: numpy, scipy
 import numpy as np
 import scipy.signal
 import scipy.sparse
@@ -30,7 +33,7 @@ def autocorrelation(X):
     So the last half of np.correlation result will be the good one.
     '''
     rst = np.array([np.correlate(ch, ch, mode='same') for ch in X])
-    return rst[:, (rst.shape[1] / 2):]
+    return rst[:, (rst.shape[1] // 2):]
 
 
 def root_mean_square(X):
@@ -136,7 +139,7 @@ def smooth(X, window_length=50, method=1):
         exactly same as method 1.
     '''
     if method == 1:
-        filters = np.ones(window_length) / float(window_length)
+        filters = np.ones(window_length) / window_length
         rst = np.array([np.convolve(ch, filters, mode='same') for ch in X])
     elif method == 2:
         # TODO: pyhht.EMD smoothing

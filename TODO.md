@@ -2,7 +2,6 @@
 ### Documents
 - This page & README
 - EmBCI lib docs
-- Add a font file to webui/fonts and point viz/screen to it.
 
 > Documentation is like sex: when it is good, it is very, very good; and when 
 it is bad, it is better than nothing.
@@ -16,7 +15,6 @@ it is bad, it is better than nothing.
 - PCB shielding cases
 
 ### Apps
-- [ ] Recording: HTML snippets
 - [ ] Auth: authentication before accessing websocket
 - [ ] apps.system: automatic updating through WiFi & git-server
 - embci.io.readers: register buffer into shared array between multi-processes

@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
 # File: EmBCI/embci/io/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Tue 06 Mar 2018 20:45:20 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-03-06 20:45:20
 
 from ..utils import config_logger
 logger = config_logger()
@@ -14,6 +13,6 @@ from ..testing import PytestRunner
 test = PytestRunner(__name__)
 del PytestRunner
 
-from .base import *
-from .readers import *
-from .commanders import *
+from .base import *                                                # noqa: W401
+from .readers import *                                             # noqa: W401
+from .commanders import *                                          # noqa: W401

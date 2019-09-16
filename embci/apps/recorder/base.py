@@ -12,13 +12,17 @@ import time
 import warnings
 import traceback
 
-# requirements.txt: data-processing: numpy
+# requirements.txt: network: bottle
+# requirements.txt: data: numpy
+import bottle
 import numpy as np
 
 from embci.io import create_data_dict, save_data
 from embci.utils import LoopTaskInThread
 
 from . import logger
+
+application = bottle.Bottle()
 
 
 class Recorder(LoopTaskInThread):

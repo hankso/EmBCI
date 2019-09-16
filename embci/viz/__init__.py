@@ -1,17 +1,16 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# coding=utf-8
 #
 # File: EmBCI/embci/viz/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Thu 22 Mar 2018 08:26:16 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2018-03-22 08:26:16
 
-'''Visualization.'''
+'''Visualization'''
 
 from ..utils import config_logger
 logger = config_logger()
 del config_logger
 
-from .screen import *
-from .plots import *
-from .qt import *
+from .screen import *                                              # noqa: W401
+from .plots import *                                               # noqa: W401
+from .qt import *                                                  # noqa: W401

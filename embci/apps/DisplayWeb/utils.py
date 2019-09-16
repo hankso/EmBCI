@@ -8,11 +8,12 @@
 '''__doc__'''
 
 # built-in
+import time
 import base64
 import traceback
 
 # requirements.txt: network: bottle, gevent-websocket
-# requirements.txt: data-processing: numpy
+# requirements.txt: data: numpy
 import bottle
 import geventwebsocket
 import numpy as np
@@ -29,7 +30,6 @@ from .globalvars import reader, server, signalinfo, logger, pt
 class WebSocketMulticaster(LoopTaskInThread):
     def __init__(self, paramtree):
         self.ws_list = []
-        self.data_list = []
         self.pt = paramtree
         LoopTaskInThread.__init__(self, self._data_multicast)
 
@@ -39,23 +39,27 @@ class WebSocketMulticaster(LoopTaskInThread):
         return data
 
     def _data_cache(self):
-        while len(self.data_list) < self.pt.batch_size:
-            self.data_list.append(self._data_fetch())
-        data = np.float32(self.data_list).T
-        del self.data_list[:]
+        cached_data = []
+        while len(cached_data) < self.pt.batch_size:
+            cached_data.append(self._data_fetch())
+        data = np.float32(cached_data).T  # n_channel x n_batch_size
         if self.pt.detrend and reader.input_source != 'test':
             data = signalinfo.detrend(data)
         # data = data[self.pt.channel_range.n]
+        # TODO: displayweb: scale matrix can amp each channel differently
         data = data * self.pt.scale_list.a[self.pt.scale_list.i]
         return bytearray(data)
 
     def _data_multicast(self):
+        '''Cache and multicast data continuously if there are ws clients.'''
+        if not self.ws_list:
+            return time.sleep(1)
         data = self._data_cache()
         for ws in self.ws_list[:]:
-            if not self._data_send(ws, data):
+            if not self.data_send(ws, data):
                 self.remove(ws)
 
-    def _data_send(self, ws, data, binary=True):
+    def data_send(self, ws, data, binary=True):
         try:
             ws.send(data, binary)
             return True

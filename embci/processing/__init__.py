@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/processing/__init__.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sun 24 Feb 2019 22:52:42 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-02-24 22:52:42
 
 '''Data processing'''
 
@@ -16,7 +15,4 @@ from ..testing import PytestRunner
 test = PytestRunner(__name__)
 del PytestRunner
 
-from .preprocessing import *
-from .motorimagery import *
-from .ssvep import *
-from .p300 import *
+from .preprocessing import *                                       # noqa: W401

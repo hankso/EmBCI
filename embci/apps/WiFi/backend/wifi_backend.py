@@ -6,8 +6,8 @@
 # Create: 2019-05-05 10:19:16
 
 '''
-Python-wifi Backend
--------------------
+Python-wifi
+-----------
 Network backend using package `python-wifi` (wrapping Debian `ifupdown`)
 
 This module provides standard methods including:
@@ -19,6 +19,9 @@ This module provides standard methods including:
 '''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import re
 import binascii
 

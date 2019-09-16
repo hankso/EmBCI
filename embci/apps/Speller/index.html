@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>EmBCI - SSVEP Speller</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <link rel="stylesheet" href="keyboard.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/underscore.min.js"></script>
+    <script src="/js/numjs.min.js"></script>
+    <script src="/js/sniploader.js"></script>
+</head>
+
+<body>
+    <div data-include="masklayer.html" data-replace="true" data-display="{{display}}" data-info="Access Denied"></div>
+    <div data-include="navbar.html"></div>
+    <div class="panel">
+        <h3>SSVEP Online Demo</h3>
+        <h5 id="display-fps"></h5>
+    </div>
+    <div id="kbd-MENU" class="form-inline panel">
+        <div class="input-group col-auto">
+            <div class="input-group-prepend">
+                <button class="btn btn-outline-primary" type="button" onclick="loadLayoutNames()">Reload List</button>
+                <label class="input-group-text" for="select-layouts">Layout</label>
+            </div>
+            <select class="form-control" id="select-layouts">
+                <option hidden>None</option>
+            </select>
+            <div class="input-group-append">
+                <label class="input-group-text" id="display-info">Block</label>
+                <button class="btn btn-outline-primary" type="button" id="toggle-display">Toggle</button>
+            </div>
+        </div>
+        <div class="input-group col-auto" id="session-ctrl">
+            <input class="form-control" type="number" min="0" step="0.1" value="0.3" id="session-timeout">
+            <div class="input-group-append">
+                <label class="input-group-text" for="session-timeout">sec</label>
+                <div class="progress" id="session-progress" style="display:none">
+                    <div class="progress-bar progress-bar-striped bg-success" role="progressbar" aria-valuemin=0 aria-valuemax=100 aria-valuenow=0></div>
+                </div>
+                <button class="btn btn-outline-primary" type="button" id="session-btn">Start</button>
+            </div>
+        </div>
+    </div>
+    <div id="kbd-UI">
+        <form id="session-result">
+            <span id="input-prompt">>></span>
+            <input id="input-result" type="text" placeholder="HIGH SPEED BCI">
+        </form>
+        <canvas id="layer-keyboard" style="z-index: 1"></canvas>
+        <canvas id="layer-alphabet" style="z-index: 2"></canvas>
+    </div>
+    <div data-include="bottom.html"></div>
+    
+    <script src="utils.js"></script>
+    <script src="keyboard.js"></script>
+    <script type="text/javascript">
+        var colors = ['#000', '#fff'];
+        var ctx, ctxAl, ctxOs;
+        var layout, layoutNames = [];
+        var callbacks = {};
+        var width = 800, height = 500, ratio = width / height;
+        var wsEvent, sessID, eventList = [];
+
+        var _lastwidth;
+        function resizeKeyboard() {
+            var w = window.innerWidth - 30;
+            if (w == _lastwidth) return;
+            else if (_lastwidth > width && w > width) return;
+            else _lastwidth = w;
+            if (w < width) {  // scale smaller by setting CSS
+                var css = w + 'px';
+            } else {          // scale back to normal
+                var css = '';
+                w = width;
+            }
+            if (ctxOs.canvas.style.width != css) {
+                ctxOs.canvas.style.width = css;
+                ctxAl.canvas.style.width = css;
+                ctx.canvas.style.width = css;
+            }
+            $('div#kbd-UI')
+                .css('width', w + 2 * (5 + 1))
+                .css('height', w / ratio + 2 * (5 + 1) + 40);
+            $('div#kbd-MENU').css('max-width', w + 2 * (5 + 1));
+        }
+        
+        ctx = setContext(document.getElementById('layer-keyboard'), '2d', {alpha: false});
+        ctxAl = setContext(document.getElementById('layer-alphabet'), '2d');
+        ctxOs = setContext(document.createElement('canvas'), '2d');
+        if (ctx && ctxAl && ctxOs) {
+            ctxAl.canvas.width  = width;
+            ctxOs.canvas.width  = width;
+            ctx.canvas.width    = width;
+            ctxAl.canvas.height = height;
+            ctxOs.canvas.height = height;
+            ctx.canvas.height   = height;
+            resizeKeyboard();  // initialize
+        } else alert('Cannot construct canvas context');
+        window.stateBlocks = window.stateBlocksOffScreen;
+    </script>
+    <script type="text/javascript">
+        $(function() {
+            if (!ctx || !ctxAl) {
+                $('canvas').text(
+                    "Sorry, your browser doesn't support the Canvas " +
+                    "element or failed to construct 2D Canvas Context."
+                );
+                return;
+            } else addEventListener('resize', resizeKeyboard);
+            
+            $('#select-layouts').on('change', function() {
+                loadLayoutByName(this.value).then(function() {
+                    renderAlphabets(ctxAl, layout);
+                    renderBlocks(ctx, layout);
+                });
+            });
+            
+            $('#layer-alphabet').on('click', function(event) {
+                var r = (parseFloat(this.style.width) || width) / width;
+                var x = Math.floor(event.offsetX / r / 100.0);
+                var y = Math.floor(event.offsetY / r / 100.0);
+                var a = layout[y * 8 + x];
+                a && selectAlphabet(a.name);
+            });
+
+            $('#session-ctrl')
+                .on('click', '#session-btn', function() {
+                    var timeout = $('#session-timeout').val() * 1000;
+                    if (!timeout) return;
+                    $('#session-ctrl').trigger('start', {timeout: timeout});
+                    sessionStart(timeout);
+                    // blinkBlocks(timeout, verbose=true).done(function() {
+                    //     sessionStop(true);
+                    //     $('#session-ctrl').trigger('stop');
+                    // }
+                })
+                .on('start', function(e, p) {
+                    var timeout = p.timeout || $('#session-timeout').val()*1000;
+                    $('#session-btn').hide();
+                    $('#session-progress')
+                        .show()
+                        .children('.progress-bar')
+                            .css('width', 0)
+                            .animate({width: '100%'}, timeout);
+                })
+                .on('stop', function() {
+                    $('#session-progress').hide();
+                    $('#session-btn').show();
+                });
+
+            $('#toggle-display').on('click', function() {
+                var prompt = $('#display-info');
+                if (prompt.text() == 'Block') {
+                    renderAlphabets(ctxAl, layout, true);
+                    prompt.text('Detail');
+                } else {
+                    renderAlphabets(ctxAl, layout, false);
+                    prompt.text('Block');
+                }
+            });
+
+            loadLayoutNames().done(function() {
+                $('#select-layouts > option:not([hidden]):first')
+                    .prop('selected', true).change();
+            });
+
+            loadEventList();
+
+            if (!window.WebSocket) {
+                alert(
+                    'Your browser doesn\'t support WebSocket. EventIO ' +
+                    'rollback to legacy API, which may cause performance ' + 
+                    'degradation. We recommend updating your browser or ' +
+                    'use Chrome/Firefox.'
+                );
+                window.sessionStart = window.sessionStartOld;
+                window.sessionStop  = window.sessionStopOld;
+            } else {
+                wsEvent = new WebSocket(
+                    'ws://' + location.host + location.pathname.replace(
+                        'index.html', 'event/ws'
+                    )
+                );
+                wsEvent.onopen = ()=>console.log('EventIO connected.');
+                wsEvent.onclose = ()=>console.log('EventIO disconnected.');
+                wsEvent.onerror = (err)=>console.error('EventIO ' + err);
+                wsEvent.onmessage = function(msg) {
+                    var t = msg.timeStamp, event = JSON.parse(msg.data);
+                    eventHandle(event, t);
+                };
+
+                var old = window.onbeforeunload;
+                window.onbeforeunload = function() {
+                    old && old();
+                    wsEvent.onclose = null;
+                    wsEvent.close();
+                };
+            }
+        });
+    </script>
+</body>
+    
+</html>

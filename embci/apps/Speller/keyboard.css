@@ -1,0 +1,67 @@
+.invert {
+    filter: invert(100%);
+    -webkit-filter: invert(100%);
+}
+
+.panel {
+    margin: 20px auto;
+    padding: 10px;
+    text-align: center;
+}
+
+div#kbd-MENU #select-layouts {
+    max-width: 150px;
+}
+
+div#kbd-MENU > div#session-ctrl #session-timeout {
+    max-width: 72px;
+}
+
+div#kbd-MENU > div#session-ctrl #session-btn {
+    width: 100px;
+}
+
+div#kbd-MENU > div#session-ctrl #session-progress {
+    width: 100px;
+    height: 100%;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+div#kbd-MENU > div#session-ctrl #session-progress > .progress-bar {
+    transition-duration: 0s !important;
+}
+
+div#kbd-UI {
+    margin: 20px auto;
+    padding: 5px;
+    border: 1px solid black;
+}
+
+div#kbd-UI canvas {
+    position: absolute;
+}
+
+div#kbd-UI form#session-result {
+    height: 40px;
+    padding: 0 9px;
+    border: 1px solid black;
+}
+
+div#kbd-UI form#session-result #input-prompt {
+    width: 5%;
+    float: left;
+    font: bold 24px/38px monospace;
+    cursor: default;
+    position: relative;
+    left: 0;
+}
+
+div#kbd-UI form#session-result #input-result {
+    padding: 5px 20px;
+    width: 94%;
+    font: normal 20px/28px monospace;
+    border-width: 0;
+    outline: none;
+    background-color: white;
+}

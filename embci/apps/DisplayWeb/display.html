@@ -21,18 +21,7 @@
 
 <body>
     <div data-include="navbar.html"></div>
-    
-    <div class="recorder" style="display:none">
-        <form class="collapse" id="username">
-            <span class="fas fa-user fold" id="icon-user"></span>
-            <input type="text" name="username" placeholder="Username" id="input-username">
-            <span class="fas fa-check-circle" id="icon-confirm" style="display:none"></span>
-        </form>
-        <button id="record" data-toggle="collapse" data-target="#username" aria-expanded="false">
-            <span id="icon-record"></span>
-        </button>
-    </div>
-    
+    <div data-include="recorder-box.html"></div>
     <div class="plane">
         <div style="margin:20px">
             <form class="form-row" id="user-info" hidden>
@@ -98,7 +87,7 @@
                         <button type="button" class="btn btn-outline-primary fas fa-minus-circle" data-action="minus"></button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-outline-secondary col-auto" id="recording" data-toggle="popover" data-trigger="focus" title="Note" data-content="Remember to click stop to save recorded data">Record</button>
+                <button type="button" class="btn btn-outline-success col-auto" id="record-toggle" title="Important!" data-toggle="popover" data-trigger="focus" data-content="Remember to click stop to save recorded data">Record</button>
             </form>
         </div>
         <div class="chart" id="chart-raw"></div>
@@ -111,37 +100,6 @@
     <script src="js/echart-options.js"></script>
     <script type="text/javascript">
         $(function() {
-            $('[data-toggle="popover"]').popover({
-                container: 'body',
-                placement: 'auto'
-            });
-
-            $('button#record').click(function() {
-                var expanded = $(this).attr('aria-expanded') == 'true';
-                dataConfig({
-                    recorder: !expanded ? 'resume' : 'pause'
-                });
-            });
-
-            $('#input-username').focus(() => $('#icon-confirm').show(300));
-            $('#input-username').blur(() => $('#icon-confirm').hide(300));
-
-            $('#icon-user').click(function() {
-                var e = $(this);
-                if (e.hasClass('recording')) {
-                    checkRecordingUser();
-                }
-                if (!e.hasClass('fold') && !e.hasClass('recording')) {
-                    setRecordingUser($('#input-username').val());
-                } else {
-                    $(this).toggleClass('fold');
-                }
-            });
-
-            $('#icon-confirm').click(function() {
-                setRecordingUser($('#input-username').val());
-            });
-
             $('#filter-bandpass').click(function() {
                 dataFilter(
                     $('#filter-low').val(),
@@ -162,24 +120,40 @@
                 dataScale($(this).data('action'));
             });
 
-            $('#recording').click(function() {
-                if ($(this).prop('started')) {
-                    dataConfig({recorder: 'username none'});
-                    $('.recorder').hide();
-                    $(this).prop('started', false);
-                    $(this).text('Record');
-                    var record = $('button#record');
-                    if (record.attr('aria-expanded') == 'true') {
-                        record.click();
-                    }
-                    $(this).popover('enable');
+            $('[data-toggle="popover"]').popover({
+                container: 'body',
+                placement: 'auto'
+            });
+
+            $('button#record-toggle').on('click', function() {
+                $t = $(this)
+                    .toggleClass('btn-outline-success')
+                    .toggleClass('btn-outline-danger');
+                if ($t.prop('started')) {
+                    $t.prop('started', false).text('Record').popover('enable');
+                    $('div#recorder').trigger('hide');
                 } else {
-                    dataConfig({recorder: 'start'});
-                    $('.recorder').show();
-                    $(this).prop('started', true);
-                    $(this).text('Stop');
-                    $(this).popover('disable');
+                    $t.prop('started', true).text('Stop').popover('disable');
+                    $('div#recorder').trigger('show');
                 }
+            });
+
+            $('[data-include="recorder-box.html"]').on('load', function() {
+                console.log('bind callback functions to div#recorder');
+                $('div#recorder')
+                    .on('start',  ()=>dataConfig( {recorder: 'start'}  ))
+                    .on('pause',  ()=>dataConfig( {recorder: 'pause'}  ))
+                    .on('resume', ()=>dataConfig( {recorder: 'resume'} ))
+                    .on('update', function(event, param) {
+                        if (param != undefined) {
+                            if (param.username) {
+                                dataConfig({
+                                    recorder: 'username ' + param.username
+                                });
+                                setTimeout(checkRecordingUser, 800);
+                            }
+                        } else checkRecordingUser();
+                    });
             });
 
             chart_raw = echarts.init(
@@ -212,27 +186,36 @@
             });
             
             if (!window.WebSocket) {
-                alert('您的浏览器不支持websocket，请更换更高级的浏览器');
-                return;
+                alert(
+                    'Your browser doesn\'t support WebSocket.  We recommend ' +
+                    'updating your browser or use Chrome/Firefox.'
+                );
+            } else {
+                ws = new WebSocket(
+                    'ws://' + location.host + location.pathname.replace(
+                        'display.html', 'data/websocket'
+                    )
+                );
+                ws.binaryType = 'arraybuffer';
+                ws.onopen  = () => console.log('websocket success');
+                ws.onclose = () => console.log('websocket close');
+                ws.onerror = () => alert('Network error, please refresh.');
+                ws.onmessage = (msg) => {
+                    var dch, data = new Float32Array(msg.data);
+                    var len = data.length / 8, list = [];
+                    for (var i = 0; i < 8; i++) {
+                        dch = data.slice(len * i, len * (i + 1));
+                        list.push(Array.from(dch));
+                    }
+                    update2D(list, 10);
+                };
+                var old = window.onbeforeunload;
+                window.onbeforeunload = function() {
+                    old && old();
+                    ws.onclose = null;
+                    ws.close();
+                };
             }
-            
-            ws = new WebSocket(
-                'ws://' + location.host + location.pathname.replace(
-                    'display.html', 'data/websocket'
-                )
-            );
-            ws.binaryType = 'arraybuffer';
-            ws.onopen = () => console.log('websocket success');
-            ws.onclose = () => {console.log('websocket close'); ws.close();};
-            ws.onerror = () => alert('网络错误，请检查网络后刷新重试');
-            ws.onmessage = (msg) => {
-                var data = new Float32Array(msg.data);
-                var len = data.length / 8, list = [];
-                for (var i = 0; i < 8; i++) {
-                    list.push(Array.from(data.slice(len * i, len * (i + 1))));
-                }
-                update2D(list, 10);
-            };
         });
     </script>
 </body>

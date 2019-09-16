@@ -1,33 +1,38 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 #
 # File: EmBCI/embci/utils/_logging.py
-# Author: Hankso
-# Webpage: https://github.com/hankso
-# Time: Sat 27 Jul 2019 14:25:06 CST
+# Authors: Hank <hankso1106@gmail.com>
+# Create: 2019-07-27 14:25:06
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import sys
 import logging
 import traceback
 
+# requirements.txt: necessary: six
+from six import PY2, PY3
 from six.moves import StringIO
 
 from ..configs import LOGFORMAT
 from ._resolve import get_caller_globals
 
+__all__ = ['EmBCILogger', 'LoggerStream', 'TempLogLevel', 'config_logger']
+
 
 # =============================================================================
 # Wrapping default logging.Logger with a new `findCaller`
 
-class Logger(logging.Logger):
-    __doc__ = logging.Logger.__doc__
+class EmBCILogger(logging.Logger):
+    __doc__ = logging.Logger.__doc__ + '\nPython 2 & 3 compatiable.'
     __srcfiles__ = [
         logging._srcfile,
         os.path.abspath(__file__).replace('.pyc', '.py'),
     ]
-    __stackio__ = StringIO()
 
     def findCaller(self, stack_info=False):
         '''
@@ -42,23 +47,23 @@ class Logger(logging.Logger):
             if fn in self.__srcfiles__:
                 f = f.f_back
                 continue
-            rv = (co.co_filename, f.f_lineno, co.co_name,
-                  self._stackinfo(f) if stack_info else None)
+            if PY2:
+                rv = (co.co_filename, f.f_lineno, co.co_name)
+            elif PY3 and not stack_info:
+                rv = (co.co_filename, f.f_lineno, co.co_name, None)
+            else:
+                self.__stackio__ = getattr(self, '__stackio__', StringIO())
+                self.__stackio__.write(u'Stack (most recent call last):\n')
+                traceback.print_stack(f, file=self.__stackio__)
+                sinfo = self.__stackio__.getvalue().rstrip('\n')
+                self.__stackio__.truncate(0)
+                self.__stackio__.seek(0)
+                rv = (co.co_filename, f.f_lineno, co.co_name, sinfo)
             break
-        if sys.version_info < (3, 0):
-            return rv[:3]
         return rv
 
-    def _stackinfo(self, frame):
-        self.__stackio__.write('Stack (most recent call last):\n')
-        traceback.print_stack(frame, file=self.__stackio__)
-        sinfo = self.__stackio__.getvalue().rstrip('\n')
-        self.__stackio__.truncate(0); self.__stackio__.seek(0)     # noqa: E702
-        return sinfo
 
-
-logging.Logger = Logger
-logging.setLoggerClass(Logger)
+#  logging.setLoggerClass(EmBCILogger)
 
 
 # =============================================================================
@@ -99,9 +104,12 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     logging.basicConfig
     '''
     if isinstance(name, (type('string'), type(None))):
-        name = name or get_caller_globals(1)['__name__']
+        name = name or get_caller_globals(1).get('__name__')
+        tmp = logging.Logger.manager.loggerClass
+        logging.Logger.manager.setLoggerClass(EmBCILogger)
         logger = logging.getLogger(name)
-    elif 'Logger' in type(name).__name__:
+        logging.Logger.manager.loggerClass = tmp
+    elif isinstance(name, logging.Logger):
         logger = name
     else:
         raise TypeError('Invalid name of logger: {}'.format(name))

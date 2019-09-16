@@ -6,9 +6,15 @@
 
 '''Define some fixtures here.'''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import subprocess
 
+# requirements.txt: testing: pytest
+# requirements.txt: data: numpy
 import pytest
 import numpy as np
 
