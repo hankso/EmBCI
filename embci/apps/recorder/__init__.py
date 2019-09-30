@@ -11,7 +11,7 @@ Why you need a recorder?
 In technique details, readers in EmBCI are designed as realtime data streams,
 which means:
     1. A stream has a source, but the source may be various (there are
-       PylslReader, TCPReader, SPIReader etc.)
+       LSLReader, TCPReader, SPIReader etc.)
     2. It is not suggested for user to fetch the same data twice - if not
        saved(recorded), data will finally flow away.
 
@@ -29,8 +29,9 @@ Develop target of subapp `recorder`
 This file will make recorder a module and provide class `Recorder`
 '''
 
-from embci.utils import config_logger
+from embci.utils import config_logger, debug as _debug
 logger = config_logger(__name__)
+debug = lambda v=True: _debug(v)                                   # noqa: E731
 del config_logger
 
 from .base import Recorder, application                            # noqa: W611

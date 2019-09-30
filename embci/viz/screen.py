@@ -868,7 +868,7 @@ class GUIControlMixin(object):
         '''
         parent_dir = os.path.dirname(dir_or_file)
         if not os.path.exists(parent_dir):
-            os.makedirs(parent_dir)
+            os.makedirs(parent_dir, 0o775)
 
         # dir_or_file: non-exist file | exist file | exist directory
         if os.path.isdir(dir_or_file):

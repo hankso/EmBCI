@@ -180,7 +180,7 @@ def genrequire(dirs, output):
         optional += '\n'.join(sorted(classes.pop('optional')))
         optional += '\n\n'
 
-    for c in classes:
+    for c in sorted(classes):
         body += '# [{}]\n'.format(c)
         body += '\n'.join(sorted(classes[c]))
         body += '\n\n'

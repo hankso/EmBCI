@@ -1,3 +1,9 @@
+
+## 0.2.2 [2019-09-29]
+- [logging] Use single character in logging level output. Support colorful output in shell/terminal
+- [IO] Add `save_chunk(append=False)` and `save_trial`.
+- [Recorder] recorder well tested.
+
 ## 0.2.1 [2019-09-15]
 - Add `from __future__ import absolute_import, division, print_function` to each module.
 - Use ``//`` for floor division and ``/`` for float division.

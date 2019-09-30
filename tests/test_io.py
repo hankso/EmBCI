@@ -7,7 +7,7 @@
 #
 # TODO:
 #   test Socket***Reader, Socket***Server
-#   test PylslCommader, PylslReader
+#   test LSLCommader, LSLReader
 
 from __future__ import absolute_import
 from __future__ import division
@@ -29,14 +29,14 @@ import pylsl
 # functions
 #
 from embci.configs import DIR_DATA
-from embci.io import save_data, load_data, create_data_dict, get_label_dict
+from embci.io import save_trials, load_data, create_data_dict, find_data_info
 
 
-def test_save_data(username, random_data, clean_userdir):
+def test_save_trials(username, random_data, clean_userdir):
     clean_userdir()
     data_dict = create_data_dict(random_data, 'testing', 500)
     assert 'sample_rate' in data_dict
-    save_data(username, data_dict, suffix='mat')
+    save_trials(username, data_dict, suffix='mat')
     assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-1.mat'))
     assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-2.mat'))
 
@@ -48,9 +48,10 @@ def test_load_data(username, random_data, clean_userdir):
     clean_userdir()
 
 
-def test_get_label_dict(clean_userdir, username):
-    label_dict, summary = get_label_dict(username)
+def test_find_data_info(clean_userdir, username):
+    label_dict, name_dict, summary = find_data_info(username)
     assert label_dict == {}
+    assert name_dict == {}
     # DO NOT test outputs, because it may be changed in the future.
     #  assert 'There are 0 actions with 0 data recorded' in summary
     clean_userdir()

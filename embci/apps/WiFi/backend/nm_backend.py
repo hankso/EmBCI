@@ -34,7 +34,7 @@ import copy
 import uuid
 import functools
 
-# requirements.txt: optional: python-networkmanager, dbus
+# requirements.txt: optional: python-networkmanager, dbus-python
 import dbus
 import NetworkManager
 

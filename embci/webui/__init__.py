@@ -118,7 +118,7 @@ def webui_static_factory(*dirs):
         if fn or fns:
             fn = (fn and fn[0]) or (fns and fns.popitem()[1])
         else:
-            raise ValueError('Function called without filename.')
+            raise ValueError('Function called without a filename.')
         for root in dirs:
             if os.path.exists(os.path.join(root, fn)):
                 return bottle.static_file(fn, root)
@@ -318,9 +318,10 @@ def main(args=None):
         s = socket.socket()
         s.bind((__host__, __port__))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        s.close()
     except (socket.error, OSError) as e:
         parser.error("arguemnt --port: %s: '%s'" % (e, args.port))
+    finally:
+        s.close()
 
     # config logger with loglevel by counting number of -v
     level = max(logging.WARN - args.verbose * 10, 10)
@@ -360,7 +361,7 @@ def main_debug(app=None, host='127.0.0.1', port=None, args=None):
         raise RuntimeError('No available application to serve.')
     args = make_parser_debug(host, port).parse_args(args or sys.argv[1:])
     level = logging.DEBUG if args.verbose else logging.INFO
-    logger = config_logger('debug', level, format='%(message)s')
+    logger = config_logger('debug', level)
     args.port = args.port or get_free_port(args.host)
     addr = 'http://%s:%d/' % (args.host, args.port)
     logger.info('Listening on : ' + addr)

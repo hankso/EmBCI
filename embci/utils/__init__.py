@@ -21,7 +21,6 @@ import string
 import logging
 import platform
 import tempfile
-import functools
 import threading
 import traceback
 from collections import MutableMapping, MutableSequence
@@ -31,6 +30,7 @@ from collections import MutableMapping, MutableSequence
 # requirements.txt: optional: argparse
 import numpy as np
 from decorator import decorator
+from six import string_types, PY2
 from six.moves import StringIO, configparser
 try:
     # Built-in argparse is provided >= 2.7 but argparse
@@ -47,8 +47,7 @@ except ImportError:
     except NameError:
         pass
 
-import embci.constants
-import embci.configs
+from .. import constants, configs
 
 __doc__ = 'Some utility functions and classes.'
 __basedir__ = os.path.dirname(os.path.abspath(__file__))
@@ -63,16 +62,19 @@ stdout, stderr, stdin = sys.stdout, sys.stderr, sys.stdin
 # example for mannualy create a logger
 logger = logging.getLogger(__name__)
 hdlr = logging.StreamHandler(stdout)
-hdlr.setFormatter(logging.Formatter(embci.configs.LOGFORMAT))
+if PY2:
+    hdlr.setFormatter(logging.Formatter(configs.LOGFORMAT2))
+else:
+    hdlr.setFormatter(logging.Formatter(configs.LOGFORMAT, style='{'))
 logger.handlers = [hdlr]
 logger.setLevel(logging.INFO)
 del hdlr
 # you can use embci.utils._logging.config_logger instead, which is better
 
 if sys.version_info > (3, 0):
-    strtypes = (bytes, str,)  # noqa: E602
+    allstr = (bytes, str,)                                         # noqa: E602
 else:
-    strtypes = (basestring,)  # noqa: E602
+    allstr = (basestring,)                                         # noqa: E602
 
 from ..testing import PytestRunner
 test = PytestRunner(__name__)
@@ -82,8 +84,8 @@ del PytestRunner
 # =============================================================================
 # Utilities
 
-
 def debug(v=True):
+    logger = logging.getLogger(get_caller_globals(1)['__name__'])
     logger.setLevel('DEBUG' if get_boolean(v) else 'INFO')
 
 
@@ -115,18 +117,18 @@ def mapping(a, low=None, high=None, t_low=0, t_high=255):
     return (a - low) / (high - low) * (t_high - t_low) + t_low
 
 
-class Namespace(object):
+class NameSpace(object):
     def __init__(self, **kwargs):
         for attr, value in kwargs.items():
             setattr(self, attr, value)
 
     def __eq__(self, other):
-        if not isinstance(other, Namespace):
+        if not isinstance(other, NameSpace):
             raise NotImplementedError
         return vars(self) == vars(other)
 
     def __ne__(self, other):
-        if not isinstance(other, Namespace):
+        if not isinstance(other, NameSpace):
             raise NotImplementedError
         return not (self == other)
 
@@ -218,7 +220,7 @@ class AttributeDict(MutableMapping):
             return self
         # items: None | str | int
         if items is None or items not in self.__mapping__:
-            if isinstance(items, strtypes):
+            if isinstance(items, string_types):
                 if items == 'id':
                     return None
                 elif items[0] == items[-1] == '_':
@@ -509,229 +511,10 @@ class BoolString(str):
     >>> bool(BoolString('Nop', table={'Nop': False}))
     False
     '''
-    def __nonzero__(self, table=embci.constants.BOOLEAN_TABLE):
+    def __nonzero__(self, table=constants.BOOLEAN_TABLE):
         return get_boolean(self, table)
 
     __bool__ = __nonzero__
-
-
-class LoopTaskMixin(object):
-    '''
-    Establish a task to execute a function looply. Stream control methods are
-    integrated, such as `start`, `pause`, `resume`, `close`, etc.
-
-    Attributes
-    ----------
-    __flag_pause__ : Event
-    __flag_close__ : Event
-    __started__ : bool
-        Read-only attribute by `self.started`
-    __status__ : bytes
-        Read-only attribute by `self.status`
-
-    Examples
-    --------
-    >>> class Clock(LoopTaskMixin):
-    ...     def loop_before(self):  # optional function
-    ...         print('this is a simple clock')
-    ...     def loop_after(self):  # optional function
-    ...         print('clock end')
-    ...     def loop_display_time(self, name):
-    ...         print('{}: {}'.format(name, time.time()))
-    ...         time.sleep(1)
-    ...     def start(self):
-    ...         if LoopTaskMixin.start(self) is False:
-    ...             return 'this clock is already started'
-    ...         self.loop(
-    ...             func=self.loop_display_time, args=('MyClock', ),
-    ...             before=self.loop_before, after=self.loop_after)
-    >>> c = Clock()
-    >>> c.start()
-    this is a simple clock
-    MyClock: 1556458048.83
-    MyClock: 1556458049.83
-    MyClock: 1556458050.83
-    ^C (KeyboardInterrupt Ctrl+C)
-    clock end
-
-    Notes
-    -----
-    A mixin class should not be used directly. The `LoopTaskMixin.__init__`
-    is used primarily for testing. But if you need to subclass this Mixin and
-    use your own __init__, remember to call `LoopTaskMixin.__init__(self)` or
-    `super(YOUR_CLASS, self).__init__()`. Or simply config the attributes
-    correctly.
-
-    See Also
-    --------
-    embci.utils.LoopTaskInThread
-    embci.io.readers.BaseReader
-    '''
-    def __init__(self):
-        self.__flag_pause__ = threading.Event()
-        self.__flag_close__ = threading.Event()
-        self.__started__ = False
-        self.__status__ = b'closed'  # use bytes for c_char_p compatiable
-
-    @property
-    def status(self):
-        '''Status of the loopTask is read-only'''
-        return ensure_unicode(self.__status__)
-
-    @property
-    def started(self):
-        '''Started of the loopTask is read-only'''
-        return self.__started__
-
-    def start(self, *a, **k):
-        if self.started:
-            if self.status == 'paused' and self.__flag_pause__.is_set():
-                return self.resume()
-            else:
-                return False
-        self.__flag_pause__.set()
-        self.__flag_close__.clear()
-        self.__started__ = True
-        self.__status__ = b'started'
-        self.start_time = time.time()
-        return True
-
-    def close(self):
-        if not self.started:
-            return False
-        self.__flag_close__.set()
-        self.__flag_pause__.clear()
-        # you can restart this task now
-        self.__started__ = False
-        self.__status__ = b'closed'
-        return True
-
-    def restart(self, *args, **kwargs):
-        if self.started:
-            self.close()
-        return self.start(*args, **kwargs)
-
-    def pause(self):
-        if not self.started:
-            return False
-        self.__flag_pause__.clear()
-        self.__status__ = b'paused'
-        return True
-
-    def resume(self):
-        if self.status != 'paused':
-            return False
-        self.__flag_pause__.set()
-        self.__status__ = b'resumed'
-        return True
-
-    def loop_before(self):
-        '''Hook function executed inside self.loop before loop task.'''
-        pass
-
-    def loop(self, func, args=(), kwargs={}, before=None, after=None):
-        self.loop_before()
-        if callable(before):
-            before()
-        try:
-            assert callable(func)
-            while not self.__flag_close__.is_set():
-                if self.__flag_pause__.wait(2):
-                    func(*args, **kwargs)
-        except KeyboardInterrupt:
-            logger.info('KeyboardInterrupt detected.')
-        except Exception:
-            logger.error(traceback.format_exc())
-        finally:
-            self.close()
-        if callable(after):
-            after()
-        self.loop_after()
-
-    def loop_after(self):
-        '''Hook function executed inside self.loop after loop task.'''
-        pass
-
-
-class LoopTaskInThread(threading.Thread, LoopTaskMixin):
-    '''
-    Execute a function looply in a Thread, which can be paused, resumed, even
-    restarted. This is an example usage of class `embci.utils.LoopTaskMixin`.
-
-    Examples
-    --------
-    >>> task = LoopTaskInThread(lambda: time.sleep(1) and print(time.time()))
-    >>> repr(task)
-    <LoopTaskInThread(LoopFunc: <lambda>, initial daemon 139679343671040)>
-    >>> task.start()
-    True
-    1556458048.83
-    1556458049.83
-    1556458050.83
-    >>> task.pause(), task.pause()
-    (True, False)  # can not pause an already paused task
-    >>> task.close()
-
-    See Also
-    --------
-    embci.utils.LoopTaskMixin
-    embci.io.readers.BaseReader
-    '''
-
-    def __init__(self, func, before=None, after=None, args=(), kwargs={}, **k):
-        '''
-        Parameters
-        ----------
-        func : callable object
-            The function to be looply executed. But note that the return
-            value of function will be omitted.
-        before : callable object, optional
-            Hook function executed before loop task.
-        after : callable object, optional
-            Hook function executed after loop task.
-        args : tuple, optional
-            Positional arguemnts for invocation of loop function.
-        kwargs : dict, optional
-            Keyword arguments for loop function invocation.
-        name : str, optional
-            User specified task name. Defaults to function's name.
-        daemon : bool, optional
-            Whether to mark the task thread as daemonic.
-        '''
-        if callable(before):
-            self.loop_before = before
-        if callable(after):
-            self.loop_after = after
-        self._floop_ = func
-        self._fargs_, self._fkwargs = args, kwargs
-        k.setdefault('name', 'LoopFunc: %s' % getattr(func, '__name__', None))
-        k.setdefault('daemon', True)
-        self._init_thread_ = functools.partial(self._init_thread_, **k)
-        self._init_thread_()
-        LoopTaskMixin.__init__(self)
-
-    def _init_thread_(self, daemon, **kwargs):
-        '''Call this function to re-init thread'''
-        threading.Thread.__init__(self, **kwargs)
-        self.daemon = get_boolean(daemon)  # python 2 & 3 compatiable
-
-    def start(self):
-        if not LoopTaskMixin.start(self):
-            return False
-        threading.Thread.start(self)
-        return True
-
-    def close(self):
-        if not LoopTaskMixin.close(self):
-            return False
-        self._init_thread_()
-        return True
-
-    def run(self):
-        try:
-            self.loop(self._floop_, self._fargs_, self._fkwargs)
-        finally:
-            logger.debug('{} stopped.'.format(self))
 
 
 def time_stamp(ctime=None, fmt='%Y%m%d-%H:%M:%S'):
@@ -765,7 +548,7 @@ def ensure_unicode(*a):
     '''
     a = list(a)
     for n, i in enumerate(a):
-        if not isinstance(i, strtypes):
+        if not isinstance(i, allstr):
             raise TypeError('cannot convert non-string type '
                             '`%s` to unicode' % typename(i))
         if isinstance(i, bytes):     # py2 str or py3 bytes
@@ -777,7 +560,7 @@ def ensure_unicode(*a):
 def ensure_bytes(*a):
     a = list(a)
     for n, i in enumerate(a):
-        if not isinstance(i, strtypes):
+        if not isinstance(i, allstr):
             raise TypeError('cannot convert non-string type '
                             '`%s` to bytes' % typename(i))
         if not isinstance(i, bytes):  # py2 unicode or py3 str
@@ -843,7 +626,7 @@ def format_size(*a, **k):
     return a[0] if len(a) == 1 else a
 
 
-def get_boolean(v, table=embci.constants.BOOLEAN_TABLE):
+def get_boolean(v, table=constants.BOOLEAN_TABLE):
     '''convert string to boolean'''
     t = str(v).lower()
     if t not in table:
@@ -866,14 +649,14 @@ def validate_filename(*fns):
     for i, fn in enumerate(fns):
         name = ''.join([
             char for char in fn
-            if char in embci.constants.VALID_FILENAME_CHARACTERS
+            if char in constants.VALID_FILENAME_CHARACTERS
         ])
         if (
             platform.system() in ['Linux', 'Java'] and
-            name in embci.constants.INVALID_FILENAMES_UNIX
+            name in constants.INVALID_FILENAMES_UNIX
         ) or (
             platform.system() == 'Windows' and
-            name in embci.constants.INVALID_FILENAMES_WIN
+            name in constants.INVALID_FILENAMES_WIN
         ):
             fns[i] = ''
         else:
@@ -883,14 +666,13 @@ def validate_filename(*fns):
 
 def load_configs(fn=None, *fns):
     '''
-    Read configuration files and return a dict.
+    Read configuration files and return an AttributeDict.
 
     Examples
     --------
     This function accepts arbitrary arugments, i.e.:
         - one or more filenames
         - one list of filenames
-
     >>> load_configs('~/.embci/embci.conf')
     >>> load_configs('/etc/embci.conf', '~/.embci/embci.conf', 'no-exist')
     >>> load_configs(['/etc/embci.conf', '~/.embci/embci.conf'], 'no-exist')
@@ -913,14 +695,16 @@ def load_configs(fn=None, *fns):
         fn = [fn]
     for fn in [
         _ for _ in set(fn).union(fns)
-        if fn is not None and isinstance(_, strtypes) and os.path.exists(_)
-    ] or embci.configs.DEFAULT_CONFIG_FILES:
+        if fn is not None and isinstance(_, string_types) and os.path.exists(_)
+    ] or configs.DEFAULT_CONFIG_FILES:
         logger.debug('loading config file: `%s`' % fn)
         if fn not in config.read(fn):
             logger.warn('Cannot load config file: `%s`' % fn)
-    # for python2 & 3 compatible, use config.items and config.sections
-    return {section: dict(config.items(section))
-            for section in config.sections()}
+    # for python2 & 3 compatibility, use config.items and config.sections
+    return AttributeDict({
+        section: dict(config.items(section))
+        for section in config.sections()
+    })
 
 
 def get_config(key, default=None, type=None, configfiles=None, section=None):
@@ -943,22 +727,22 @@ def get_config(key, default=None, type=None, configfiles=None, section=None):
 
     Notes
     -----
-    Configuration resolving priority (from high to low):
-    - environment variables (os.environ)
-    - specified configuration file[s] (by argument `cfgs`)
+    Configuration resolving priority (from low to high):
     - system configuration files (loaded in embci.configs)
+    - specified configuration file[s] (by argument `configfiles`)
+    - environment variables (os.environ)
 
     See Also
     --------
     `configparser <https://en.wikipedia.org/wiki/INI_file>`_
     '''
-    value = getattr(embci.configs, key, default)
+    value = getattr(configs, key, default)
     if configfiles is not None:
-        configs = load_configs(configfiles)
-        if section is not None and key in configs.get(section, {}):
-            value = configs[section][key]
+        cfg = load_configs(configfiles)
+        if section is not None and key in cfg.get(section, {}):
+            value = cfg[section][key]
         else:
-            for d in configs.values():
+            for d in cfg.values():
                 value = d.get(key, value)
     value = os.getenv(key, value)
     return type(value) if type is not None else value
@@ -1051,7 +835,7 @@ class LockedFile(object):
         if self.file_obj is None or self.file_obj.closed:
             d = os.path.dirname(self.path)
             if not os.path.exists(d):
-                os.makedirs(d)
+                os.makedirs(d, 0o775)
             #  self.file_obj = os.fdopen(
             #      os.open(self.path, os.O_CREAT | os.O_RDWR))
             self.file_obj = open(self.path, 'a+')  # 'a' will not truncate file
@@ -1147,7 +931,7 @@ class TempStream(object):
                 continue
             if stream is None:
                 stream = StringIO()
-            elif isinstance(stream, strtypes):
+            elif isinstance(stream, string_types):
                 stream = open(stream, 'w+')
             elif not hasattr(stream, 'write'):
                 raise TypeError('Invalid stream: `{}`'.format(stream))
@@ -1353,6 +1137,7 @@ def duration(sec, name=None, warning=None):
 # =============================================================================
 # I/O
 
+#  class TimeoutException(TimeoutError):  # py3 only, use this after 2020.1.1
 class TimeoutException(Exception):
     def __init__(self, msg=None, sec=None, src=None):
         self.src, self.sec, self.msg = self.args = (src, sec, msg)
@@ -1378,8 +1163,9 @@ def input(prompt=None, timeout=None, flist=[sys.stdin]):
     This function is PY2/3 & Linux/Windows compatible (On Windows, only
     sockets are supported; on Unix, all file descriptors can be used.)
     '''
-    # from builtins import input
-    # return input(propmt)
+    #  if os.name == 'nt':
+    #      from builtins import input
+    #      return input(prompt)
 
     if prompt is not None:
         stdout.write(prompt)
@@ -1390,13 +1176,18 @@ def input(prompt=None, timeout=None, flist=[sys.stdin]):
         rlist, _, _ = select.select(flist, [], [], timeout)
     except select.error:
         rlist = []
+    except (KeyboardInterrupt, EOFError):
+        raise KeyboardInterrupt
     if not rlist:
         msg = 'read from {} failed'.format(
             flist[0] if len(flist) == 1 else flist)
         raise TimeoutException(msg, timeout, 'embci.utils.input')
-    if isinstance(rlist[0], int):
-        rlist[0] = os.fdopen(rlist[0])
-    return rlist[0].readline().rstrip('\n')
+    f = os.fdopen(rlist[0]) if isinstance(rlist[0], int) else rlist[0]
+    for method in ['readline', 'read', 'recv']:
+        if not hasattr(f, method):
+            continue
+        return getattr(f, method)().rstrip('\n')
+    raise TypeError('Cannot read from `%s`' % f)
 
 
 def check_input(prompt, answer={'y': True, 'n': False, '': True},
@@ -1419,7 +1210,7 @@ def check_input(prompt, answer={'y': True, 'n': False, '': True},
         try:
             rst = input('[%d/%d] ' % (t, times) + prompt, timeout / times)
         except TimeoutException:
-            break
+            continue
         if not k:
             if not rst:
                 if input('nothing read, confirm? ([Y]/n) ', 60).lower() == 'n':
@@ -1454,8 +1245,10 @@ def mkuserdir(func):
     '''
     if callable(func):
         def param_collector(*a, **k):
-            username = k.get(
-                'username', a[0] if a and isinstance(a[0], strtypes) else None)
+            if a and isinstance(a[0], string_types):
+                username = a[0]
+            else:
+                username = k.get('username')
             if username is not None:
                 mkuserdir(username)
             else:
@@ -1466,13 +1259,13 @@ def mkuserdir(func):
             return func(*a, **k)
         param_collector.__doc__ = func.__doc__
         return param_collector
-    elif isinstance(func, strtypes):
+    elif isinstance(func, string_types):
         user = ensure_unicode(func)
-        path = os.path.join(embci.configs.DIR_DATA, user)
+        path = os.path.join(configs.DIR_DATA, user)
         if os.path.exists(path):
             logger.debug('User %s\'s folder at %s exist,' % (user, path))
         else:
-            os.makedirs(path)
+            os.makedirs(path, 0o775)
             logger.debug('User %s\'s folder at %s created.' % (user, path))
         return
     raise TypeError('function or string wanted, but got `%s`' % typename(user))
@@ -1557,11 +1350,17 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
 # =============================================================================
 # Local Modules
 
+from ._looptask import *                                           # noqa: W401
+
 from ._logging import *                                            # noqa: W401
-from ._logging import TempLogLevel
+from ._logging import TempLogLevel, config_logger
+logger = config_logger(logger, addhdlr=False)
+
 from ._resolve import *                                            # noqa: W401
-from ._resolve import get_func_args
+from ._resolve import get_func_args, get_caller_globals
+
 from ._json import *                                               # noqa: W401
+
 from ._event import *                                              # noqa: W401
 
 # THE END

@@ -24,7 +24,7 @@ rainbow = [
 ]
 
 
-def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
+def plot_data_pil(data, channel=None, colors=rainbow, imgsize=(300, 200),
                   *a, **k):
     '''
     Plot signal waveform on PIL.Image and return im object.
@@ -67,5 +67,5 @@ def plot_waveform(data, channel=None, colors=rainbow, imgsize=(300, 200),
     return img
 
 
-__all__ = ['plot_waveform']
+__all__ = ['plot_data_pil']
 # THE END

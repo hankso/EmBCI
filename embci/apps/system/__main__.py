@@ -14,6 +14,6 @@ from . import system
 from embci.utils import get_config
 
 if __name__ == '__main__':
-    host = get_config('EMBCITOOL_HOST', '0.0.0.0')
-    port = get_config('EMBCITOOL_PORT', 9998)
+    host = get_config('EMBCISYS_HOST', '0.0.0.0')
+    port = get_config('EMBCISYS_PORT', 0, int)
     bottle.run(system, host=host, port=port)

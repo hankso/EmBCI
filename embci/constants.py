@@ -126,6 +126,25 @@ BASIC_COLOR_NAMES = [
     'grey', 'brown', 'orange', 'pink', 'white',
 ]
 
+TERMINAL_COLOR_NAMES = [
+    'black', 'red', 'yellow', 'orange', 'blue', 'magenta', 'cyan', 'white'
+]
+
+TERMINAL_COLOR_NAMES_BACKGROUND = ['bd-' + _ for _ in TERMINAL_COLOR_NAMES]
+TERMINAL_COLOR_NAMES_BLACKBACK = ['bb-' + _ for _ in TERMINAL_COLOR_NAMES]
+
+TERMINAL_COLOR_NAMES_EXTRA = [
+    'reset', 'bold', 'grey', 'italic', 'underline', 'flick', 'inverse'
+]
+
+TERMINAL_COLOR2VALUE = {
+    n: '\33[%dm' % d for n, d in
+    list(zip(TERMINAL_COLOR_NAMES,            range(30, 38))) +
+    list(zip(TERMINAL_COLOR_NAMES_BACKGROUND, range(40, 48))) +
+    list(zip(TERMINAL_COLOR_NAMES_BLACKBACK,  range(90, 98))) +
+    list(zip(TERMINAL_COLOR_NAMES_EXTRA, range(7)))
+}
+
 RGB888_BLACK    = (  0,   0,   0)  # noqa: E201
 RGB888_BLUE     = (  0,   0, 255)  # noqa: E201
 RGB888_GREEN    = (  0, 255,   0)  # noqa: E201
@@ -158,12 +177,10 @@ for c in BASIC_COLOR_NAMES:
     if color is None:
         continue
     colormapper_default[c] = color
-del c, color
 
 colormapper_uart_screen_winbond_v1 = {}
 for n, c in enumerate(BASIC_COLOR_NAMES):
     colormapper_uart_screen_winbond_v1[c] = n
-del n, c
 
 colormapper_spi_screen_ili9341 = {}
 for c in BASIC_COLOR_NAMES:
@@ -171,7 +188,7 @@ for c in BASIC_COLOR_NAMES:
     if color is None:
         continue
     colormapper_spi_screen_ili9341[c] = color
-del c, color
+del n, c, color
 
 __all__ += ['colormapper_' + _ for _ in
             ['default', 'uart_screen_winbond_v1', 'spi_screen_ili9431']]

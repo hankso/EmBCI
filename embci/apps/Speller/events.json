@@ -23,8 +23,12 @@
     {"code": 305, "name": "session.result"},
     {"code": 306, "name": "session.alphabet"},
 
+    {"_comment.EventIO": "Training"},
+    {"code": 400, "name": "train.start"},
+    {"code": 401, "name": "train.stop"},
+
     {"_comment.others": "Misc"},
-    {"code": 400, "name": "misc.unlock"},
-    {"code": 401, "name": "misc"}
+    {"code": 800, "name": "misc.unlock"},
+    {"code": 801, "name": "misc.testing"}
   ]
 }

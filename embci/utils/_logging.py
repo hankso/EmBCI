@@ -13,13 +13,16 @@ import os
 import sys
 import logging
 import traceback
+from logging import Logger, Formatter
 
 # requirements.txt: necessary: six
 from six import PY2, PY3
 from six.moves import StringIO
 
-from ..configs import LOGFORMAT
+from ..configs import LOGFORMAT, DATEFORMAT
+from ..constants import TERMINAL_COLOR2VALUE
 from ._resolve import get_caller_globals
+from . import ensure_unicode, NameSpace
 
 __all__ = ['EmBCILogger', 'LoggerStream', 'TempLogLevel', 'config_logger']
 
@@ -27,8 +30,8 @@ __all__ = ['EmBCILogger', 'LoggerStream', 'TempLogLevel', 'config_logger']
 # =============================================================================
 # Wrapping default logging.Logger with a new `findCaller`
 
-class EmBCILogger(logging.Logger):
-    __doc__ = logging.Logger.__doc__ + '\nPython 2 & 3 compatiable.'
+class EmBCILogger(Logger):
+    __doc__ = Logger.__doc__ + '\nPython 2 & 3 compatiable.'
     __srcfiles__ = [
         logging._srcfile,
         os.path.abspath(__file__).replace('.pyc', '.py'),
@@ -66,16 +69,85 @@ class EmBCILogger(logging.Logger):
 #  logging.setLoggerClass(EmBCILogger)
 
 
+class EmBCIFormatter(Formatter):
+    '''
+    Python 2 & 3 compatiable with colorful output support.
+    Python 2 currently support %-formatting and str.format.
+    '''
+    __doc__ += Formatter.__doc__
+
+    LEVEL2COLOR = {
+        logging.DEBUG:    'white',
+        logging.INFO:     'yellow',
+        logging.WARNING:  'orange',
+        logging.ERROR:    'bb-red',
+        logging.CRITICAL: 'red'
+    }
+
+    def __init__(self, fmt=None, datefmt=DATEFORMAT, style='{', useColor=True):
+        if PY2:
+            fmt = ensure_unicode(fmt or '{message}')
+            if style not in '{$':
+                raise ValueError('Style must be one of: {, $')
+            self._style = style
+            Formatter.__init__(self, fmt, datefmt)
+        else:
+            Formatter.__init__(self, fmt, datefmt, style)
+        self._useColor = useColor
+        if self._useColor:
+            if 'start' not in self._fmt:
+                self._fmt = '{start}' + self._fmt
+            if 'reset' not in self._fmt:
+                self._fmt += '{reset}'
+
+    def usesTime(self):
+        if PY2:
+            return 'asctime' in self._fmt
+        else:
+            return self._style.usesTime()
+
+    _robj = NameSpace()
+
+    def formatMessage(self, record):
+        self._robj.__dict__.clear()
+        self._robj.__dict__.update(record.__dict__)
+        if self._useColor:
+            c = self.LEVEL2COLOR.get(record.levelno, 'white')
+            self._robj.start = TERMINAL_COLOR2VALUE[c]
+            self._robj.__dict__.update(TERMINAL_COLOR2VALUE)
+        if PY2:
+            self._robj.name = ensure_unicode(self._robj.name)
+            if self._style == '%':
+                return self._fmt % self._robj.__dict__
+            else:
+                return self._fmt.format(**self._robj.__dict__)
+        else:
+            return self._style.format(self._robj)
+
+    def format(self, record):
+        record.message = record.getMessage()
+        if self.usesTime():
+            record.asctime = self.formatTime(record, self.datefmt)
+        s = self.formatMessage(record)
+        if record.exc_info and not record.exc_text:
+            record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            s = s.rstrip('\n') + '\n' + ensure_unicode(record.exc_text)
+        if getattr(record, 'stack_info', None):
+            s = s.rstrip('\n') + '\n' + record.stack_info
+        return s
+
+
 # =============================================================================
-# A useful logging.Logger configuration entry
+# A useful Logger configuration entry
 
 def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     '''
-    Create/config a `logging.Logger` with current namespace's `__name__`.
+    Create / config a `Logger` with current namespace's `__name__`.
 
     Parameters
     ----------
-    name : str or logging.Logger, optional
+    name : str or instance of Logger, optional
         Name of logger. Default `__name__` of function caller's module.
     level : int or str, optional
         Logging level. Default `logging.INFO`, i.e. 20.
@@ -105,24 +177,28 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     '''
     if isinstance(name, (type('string'), type(None))):
         name = name or get_caller_globals(1).get('__name__')
-        tmp = logging.Logger.manager.loggerClass
-        logging.Logger.manager.setLoggerClass(EmBCILogger)
+        tmp = Logger.manager.loggerClass
+        Logger.manager.setLoggerClass(EmBCILogger)
         logger = logging.getLogger(name)
-        logging.Logger.manager.loggerClass = tmp
-    elif isinstance(name, logging.Logger):
+        Logger.manager.loggerClass = tmp
+    elif isinstance(name, Logger):
         logger = name
     else:
         raise TypeError('Invalid name of logger: {}'.format(name))
+
     logger.setLevel(level)
-    format = logging.Formatter(format, kwargs.pop('datefmt', None))
-    addhdlr = kwargs.pop('addhdlr', True)
+
+    datefmt   = kwargs.pop('datefmt', DATEFORMAT)
+    style     = kwargs.pop('style', '{')
+    addhdlr   = kwargs.pop('addhdlr', True)
     hdlrlevel = kwargs.pop('hdlrlevel', None)
-    filename = kwargs.pop('filename', None)
+    filename  = kwargs.pop('filename', None)
+
     if filename is not None:
         filename = os.path.abspath(os.path.expanduser(filename))
         filedir = os.path.dirname(filename)
         if not os.path.exists(filedir):
-            os.makedirs(filedir)
+            os.makedirs(filedir, 0o775)
         hdlr = kwargs.pop('handler', logging.FileHandler)
         hdlr = hdlr(filename, mode=kwargs.pop('filemode', 'a'), **kwargs)
     else:
@@ -132,7 +208,9 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
         else:
             hdlr = hdlr(**kwargs)
     hdlr.setLevel(hdlrlevel or hdlr.level)
-    hdlr.setFormatter(format)
+
+    formatter = EmBCIFormatter(format, datefmt, style, not filename)
+    hdlr.setFormatter(formatter)
     if addhdlr:
         logger.addHandler(hdlr)
     else:
@@ -145,11 +223,11 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
 
 class LoggerStream(object):
     '''
-    Wrapping `logging.Logger` instance into a file-like object.
+    Wrapping `Logger` instance into a file-like object.
 
     Parameters
     ----------
-    logger : logging.Logger
+    logger : instance of Logger
         Logger that will be masked to a stream.
     level : int
         Log level that :method:`write` will use, default logger's level.
@@ -201,7 +279,7 @@ class TempLogLevel(object):
 
     Parameters
     ----------
-    logger : logging.Logger
+    logger : instance of Logger
         Logger whose level will be temporarily changed.
     level : int | str
         Log level that logging.Logger accept. Default 'INFO' (20).
@@ -231,7 +309,7 @@ class TempLogLevel(object):
     __slots__ = ('_logger', '_level')
 
     def __init__(self, logger=None, level='INFO'):
-        if not isinstance(logger, logging.getLoggerClass()):
+        if not isinstance(logger, Logger):
             level, logger = logger, None
         self._logger = logger or logging.getLogger(
             get_caller_globals(1)['__name__'])

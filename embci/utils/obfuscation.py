@@ -144,8 +144,7 @@ def load_binary(filename=None, modname=None, targets=[]):
         sys.stderr.write('Import failed, all functions will be set to `None`')
         sys.stderr.write(traceback.format_exc())
         module = types.ModuleType('empty', 'Loading library failed')
-    finally:
-        os.chdir(olddir)
+    os.chdir(olddir)
 
     for attr in targets:
         if hasattr(module, attr):
@@ -198,10 +197,9 @@ def obfuscate(filename, modname=None):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT
             ).communicate()[0])
-    finally:
-        if os.path.exists(cpyfile):
-            os.remove(cpyfile)
-        shutil.rmtree(tmpd)
+    if os.path.exists(cpyfile):
+        os.remove(cpyfile)
+    shutil.rmtree(tmpd)
 
 
 # Aliases

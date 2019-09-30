@@ -12,6 +12,18 @@ window.cancelAnimationFrame = (
     window.mozCancelAnimationFrame
 ) || window.clearTimeout;
 
+setTimeout(() => window.requestAnimationFrame(function getFPS(ts, times=5) {
+    if (window.FPS != undefined) window.FPS.push(ts); else window.FPS = [ts];
+    if (--times) window.requestAnimationFrame(ts => getFPS(ts, times));
+    else {
+        for (var sum = 0, i = 1, l = window.FPS.length; i < l; i++) {
+            sum += window.FPS[i] - window.FPS[i - 1];
+        }
+        window.FPS = 1000 / (sum / (l - 1));
+        console.log('Browser refresh rate detected as', window.FPS.toFixed(2), 'Hz');
+    }
+}), 3000);
+
 var LoopTask = function(callback, timeout=1000, verbose=false) {
     var fps = 0;
     var frame = 0;         // loop counter
@@ -21,30 +33,30 @@ var LoopTask = function(callback, timeout=1000, verbose=false) {
     var donetime = 0;      // when loop task finished
     var lasttime = 0;      // calculate real FPS
     var thistime = 0;      // calculate real FPS
-    var starttime = 0;     // stopByTimeout: check whether timeout
-    var req_id = null;     // stopByCancel:  save rAF ID for cancellation
+    var starttime = 0;     // used to sync all duration
+    var duration = 0;      // time passed since task start
+    var req_id = null;     // used by stopByCancel / forceStop
+    var tout_id = null;    // used by displayFPS / forceStop
 
     function loop(ts) {
-        if (!lasttime) lasttime = ts;
+        if (!lasttime) lasttime = performance.now();
         callback(ts);
         thistime = performance.now();
         fps = 1000 / (thistime - lasttime);
-        if (fps < 40) {
+        if (fps < FPS / 2) {
             console.warn(
                 'Frame', frame++, 'lost warning!', 
-                'start at', ts.toFixed(2),
+                'start at', (starttime + ts).toFixed(2),
                 'end at', thistime.toFixed(2),
-                'exec time', (thistime - ts).toFixed(2),
                 'frame time', (thistime - lasttime).toFixed(2),
                 'FPS', fps.toFixed(2)
             );
         }
         if (verbose > 1) {
             console.log(
-                'Frame', frame++,
-                'start at', ts.toFixed(2),
+                'Frame', frame++, 'dt', ts.toFixed(2),
+                'start at', (starttime + ts).toFixed(2),
                 'end at', thistime.toFixed(2),
-                'exec time', (thistime - ts).toFixed(2),
                 'frame time', (thistime - lasttime).toFixed(2),
                 'FPS', fps.toFixed(2)
             );
@@ -52,42 +64,50 @@ var LoopTask = function(callback, timeout=1000, verbose=false) {
         lasttime = thistime;
     }
 
-    function stopByTimeout(ts) {
-        /* schedule next execution */
-        if (!starttime) starttime = ts;
-        if ((ts - starttime) < timeout) {
-            window.requestAnimationFrame(stopByTimeout);
-            loop(ts);
-        } else {
-            done = true; donetime = Date.now() / 1000;
-            verbose && console.log('LoopTask finished at', donetime);
-            for (cb of doneHooks) window.requestAnimationFrame(cb);
-        }
+    function byTimeout(ts) {
+        duration = ts - starttime;
+        if (duration >= timeout) return taskStop();
+        req_id = window.requestAnimationFrame(byTimeout);
+        loop(duration);
     }
-    
-    function stopByCancel(ts) {
-        /* schedule next execution */
-        req_id = window.requestAnimationFrame(stopByCancel);
-        loop(ts);
+    function byCancel(ts) {
+        req_id = window.requestAnimationFrame(byCancel);
+        loop(ts - starttime);
+    }
+    function taskStart(ts) {
+        verbose && console.log('LoopTask start at', Date.now() / 1000);
+        starttime = ts || Date.now();
+    }
+    function taskStop() {
+        done = true; donetime = Date.now() / 1000;
+        verbose && console.log('LoopTask finished at', donetime);
+        for (cb of doneHooks) window.requestAnimationFrame(cb);
+    }
+    function forceStop() {
+        window.cancelAnimationFrame(req_id);
     }
 
     return {
         byTimeout: function() {
-            if (run) return this; else run = true;
-            verbose && console.log('LoopTask start at', Date.now() / 1000);
-            window.requestAnimationFrame(stopByTimeout);
+            if (!run) run = true; else return this;
+            window.requestAnimationFrame((ts)=>{
+                taskStart(ts); byTimeout(ts);
+            });
             return this;
         },
         byCancel: function() {
-            if (run) return this; else run = true;
-            verbose && console.log('LoopTask start at', Date.now() / 1000);
-            window.requestAnimationFrame(stopByCancel);
-            setTimeout(function() {
-                window.cancelAnimationFrame(req_id);
-                done = true; donetime = Date.now() / 1000;
-                verbose && console.log('LoopTask finished at', donetime);
-                for (cb of doneHooks) window.requestAnimationFrame(cb);
-            }, timeout);
+            if (!run) run = true; else return this;
+            window.requestAnimationFrame((ts)=>{
+                taskStart(ts); byCancel(ts);
+            });
+            tout_id = setTimeout(forceStop, timeout);
+            taskStop();
+            return this;
+        },
+        forceStop: function() {
+            forceStop();
+            window.clearTimeout(tout_id);
+            taskStop();
             return this;
         },
         displayFPS: function(id, update=100) {

@@ -20,6 +20,7 @@
 <body>
     <div data-include="masklayer.html" data-replace="true" data-display="{{display}}" data-info="Access Denied"></div>
     <div data-include="navbar.html"></div>
+    <div data-include="recorder-box.html" data-display="block"></div>
     <div class="panel">
         <h3>SSVEP Online Demo</h3>
         <h5 id="display-fps"></h5>
@@ -35,17 +36,28 @@
             </select>
             <div class="input-group-append">
                 <label class="input-group-text" id="display-info">Block</label>
-                <button class="btn btn-outline-primary" type="button" id="toggle-display">Toggle</button>
+                <button class="btn btn-outline-primary" type="button" id="display-toggle">Toggle</button>
             </div>
         </div>
         <div class="input-group col-auto" id="session-ctrl">
+            <div class="input-group-prepend">
+                <span class="input-group-text" style="color: green">Trial</span>
+                <input type="checkbox" id="session-toggle" hidden>
+                <label id="session-toggle-circle" for="session-toggle"><span></span></label>
+                <span class="input-group-text" style="color: blue">Train</span>
+            </div>
             <input class="form-control" type="number" min="0" step="0.1" value="0.3" id="session-timeout">
-            <div class="input-group-append">
+            <div class="input-group-append" id="session-ctrl-train" style="display:none">
+                <input class="form-control" type="number" min="1" step="1" value="40" id="session-iteration">
+                <label class="input-group-text" for "session-iteration">iter</label>
+                <button class="btn btn-outline-primary" id="session-auto" type="button">Loop</button>
+            </div>
+            <div class="input-group-append" id="session-ctrl-trial">
                 <label class="input-group-text" for="session-timeout">sec</label>
                 <div class="progress" id="session-progress" style="display:none">
                     <div class="progress-bar progress-bar-striped bg-success" role="progressbar" aria-valuemin=0 aria-valuemax=100 aria-valuenow=0></div>
                 </div>
-                <button class="btn btn-outline-primary" type="button" id="session-btn">Start</button>
+                <button class="btn btn-outline-primary" id="session-btn" type="button">Start</button>
             </div>
         </div>
     </div>
@@ -132,31 +144,58 @@
             });
 
             $('#session-ctrl')
+                .on('click', '#session-toggle', function() {
+                    if (this.checked) {
+                        sessionToggle('train');
+                        $('#session-ctrl-train').show();
+                        $('#session-ctrl-trial').hide();
+                    } else {
+                        sessionToggle('trial');
+                        $('#session-ctrl-trial').show();
+                        $('#session-ctrl-train').hide();
+                    }
+                })
                 .on('click', '#session-btn', function() {
                     var timeout = $('#session-timeout').val() * 1000;
                     if (!timeout) return;
-                    $('#session-ctrl').trigger('start', {timeout: timeout});
+                    $('#session-ctrl').trigger('trialStart');
                     sessionStart(timeout);
-                    // blinkBlocks(timeout, verbose=true).done(function() {
-                    //     sessionStop(true);
-                    //     $('#session-ctrl').trigger('stop');
-                    // }
                 })
-                .on('start', function(e, p) {
-                    var timeout = p.timeout || $('#session-timeout').val()*1000;
+                .on('trialStart', function(e, p) {
+                    var tout = $('#session-timeout').val() * 1000;
                     $('#session-btn').hide();
                     $('#session-progress')
                         .show()
                         .children('.progress-bar')
                             .css('width', 0)
-                            .animate({width: '100%'}, timeout);
+                            .animate({width: '100%'}, tout);
                 })
-                .on('stop', function() {
+                .on('trialStop', function() {
                     $('#session-progress').hide();
                     $('#session-btn').show();
+                })
+                .on('click', '#session-auto', function() {
+                    if ($(this).text() == 'Loop') {
+                        $(this).text('Stop');
+                        $('#session-ctrl').trigger('trainStart');
+                    } else {
+                        $(this).text('Loop');
+                        $('#session-ctrl').trigger('trainStop');
+                    }
+                })
+                .on('trainStart', function() {
+                    var iter = $('#session-iteration').val();
+                    var tout = $('#session-timeout').val() * 1000;
+                    if (!tout || !iter) return $('#session-auto').click();
+                    eventSend('train.start');
+                    blink_random_flickers(tout, iter);
+                })
+                .on('trainStop', function(e, p) {
+                    window.clearTimeout(window.id_train);
+                    eventSend('train.stop');
                 });
 
-            $('#toggle-display').on('click', function() {
+            $('#display-toggle').on('click', function() {
                 var prompt = $('#display-info');
                 if (prompt.text() == 'Block') {
                     renderAlphabets(ctxAl, layout, true);
@@ -173,6 +212,24 @@
             });
 
             loadEventList();
+
+            function eventHandle(event, ts) {
+                switch (event.name) {
+                    case 'misc.unlock':
+                        $('div#masklayer').hide(300); break;
+                    case 'recorder.start':
+                        var tout = $('#session-timeout').val() * 1000;
+                        blinkBlocks(tout, verbose=false).done(()=>{
+                            sessionStop(true);
+                            $('#session-ctrl').trigger('trialStop');
+                        });
+                        break;
+                    case 'session.result':
+                        sessionResult(); break;
+                    default:
+                        console.log('Unhandled event', event);
+                }
+            }
 
             if (!window.WebSocket) {
                 alert(

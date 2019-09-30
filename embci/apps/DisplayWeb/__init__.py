@@ -22,6 +22,9 @@ Visualization on webpage through WiFi.
 '''
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import time
 import shlex
@@ -32,8 +35,7 @@ import traceback
 import bottle
 import numpy as np
 
-import embci
-from embci.webui import __basedir__ as __webui_basedir__
+from embci.utils import get_boolean
 from embci.apps.streaming import send_message_streaming
 
 from .globalvars import (
@@ -45,7 +47,7 @@ from .utils import process_register, minimize, distributor
 __status__ = os.path.join(__basedir__, 'status.html')
 __display__ = os.path.join(__basedir__, 'display.html')
 
-display = application = bottle.Bottle()
+display = bottle.Bottle()
 inited = False
 
 
@@ -107,16 +109,16 @@ def app_reader_control(method):
     return str(func())
 
 
+@display.route('/srv/<filename:path>', name='srv')
+def app_nonexist(filename):
+    return bottle.HTTPError(404, 'File does not exist.')
+
+
 @display.route('/<filename:path>')
 def app_static_files(filename):
-    '''
-    In order to support DBS run standalone (without embci.webui app-loader),
-    embci.webui.__basedir__ is added in v0.1.5
-    '''
-    for rootdir in [__basedir__, __webui_basedir__]:
-        if os.path.exists(os.path.join(rootdir, filename)):
-            return bottle.static_file(filename, rootdir)
-    return bottle.HTTPError(404, 'File does not exist.')
+    if os.path.exists(os.path.join(__basedir__, filename)):
+        return bottle.static_file(filename, __basedir__)
+    bottle.redirect('/srv/' + filename)
 
 
 # =============================================================================
@@ -239,7 +241,7 @@ def data_config_filter():
     notch = bottle.request.query.get('notch')
     if notch is not None:
         try:
-            pt.notch = embci.utils.get_boolean(notch)
+            pt.notch = get_boolean(notch)
             rst.append('Realtime notch filter state: {}'.format(
                 'ON' if pt.notch else 'OFF'))
         except ValueError:
@@ -300,7 +302,7 @@ def config_freq(freq):
 
 def config_detrend(detrend):
     try:
-        pt.detrend = embci.utils.get_boolean(detrend)
+        pt.detrend = get_boolean(detrend)
     except ValueError:
         return ('Invalid detrend `{}`! '.format(detrend) +
                 'Choose one from `True` | `False`')
@@ -308,7 +310,7 @@ def config_detrend(detrend):
 
 def config_bias(bias):
     try:
-        reader.enable_bias = embci.utils.get_boolean(bias)
+        reader.enable_bias = get_boolean(bias)
     except ValueError:
         return ('Invalid bias `{}`! ' +
                 'Choose one from `True` | `False`').format(bias)
@@ -316,7 +318,7 @@ def config_bias(bias):
 
 def config_impedance(impedance):
     try:
-        reader.measure_impedance = embci.utils.get_boolean(impedance)
+        reader.measure_impedance = get_boolean(impedance)
     except ValueError:
         return ('Invalid impedance: `{}`! '.format(impedance) +
                 'Choose one from `True` | `False`')
@@ -334,18 +336,13 @@ def config_fftfreq(fftfreq):
 def config_recorder(command):
     cmd = shlex.split(command)
     if len(cmd) == 1:
-        recorder.cmd(cmd[0])
+        return recorder.cmd(cmd[0])
     elif len(cmd) == 2:
-        recorder.cmd(**{cmd[0]: cmd[1]})
+        return recorder.cmd(**{cmd[0]: cmd[1]})
     else:
         return 'Invalid command: {}'.format(command)
-    time.sleep(0.5)
 
 
-def main():
-    from embci.webui import main_debug
-    main_debug(application)
-
-
+application = display
 __all__ = ['application']
 # THE END

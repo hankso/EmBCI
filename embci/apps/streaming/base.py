@@ -6,6 +6,9 @@
 # Create: 2019-07-08 21:56:47
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 import sys
 import shlex
@@ -19,7 +22,7 @@ import zmq
 from embci.drivers.ads1299 import INPUT_SOURCES
 from embci.utils import (
     get_boolean, argparse,
-    TempStream, LoopTaskMixin, Singleton
+    TempStream, LoopTaskInThread, Singleton
 )
 
 if platform.machine() in ['arm', 'aarch64']:       # running on embedded device
@@ -100,7 +103,7 @@ def _set_channel(args):
     return 'Channel {} set to {}'.format(args.channel, args.action)
 
 
-def init_parser():
+def make_parser():
     parser = argparse.ArgumentParser(
         prog=__name__, add_help=False, usage='<command> [-h] [param]',
         description='', epilog=' \n%s\n%s' % (CMD_HELP, CMD_USAGE),
@@ -181,22 +184,13 @@ def init_parser():
     return parser
 
 
-class REPL(LoopTaskMixin):
+class REPL(LoopTaskInThread):
     __metaclass__ = Singleton
     _tempstream = TempStream('stderr', 'stdout')
-    _argparser = init_parser()
+    _argparser = make_parser()
 
-    def _stdinfo(self, clean=True):
-        return '\n'.join([
-            self._tempstream.get_string('stdout', clean),
-            self._tempstream.get_string('stderr', clean)
-        ])
-
-    def start(self):
-        if not super(REPL, self).start():
-            return False
-        self.loop(self.repl)
-        return True
+    def __init__(self, *args, **kwargs):
+        super(REPL, self).__init__(self._repl, *args, **kwargs)
 
     def loop_before(self):
         self.reply = get_producer()
@@ -208,21 +202,10 @@ class REPL(LoopTaskMixin):
         self._tempstream.enable()
         # note: logging is not influenced because it saves stdout when imported
 
-    def loop_after(self):
-        try:
-            reader.close()
-        except Exception:
-            pass
-        self._tempstream.disable()
-        self.reply.close()
-        del self.reply, self.poller
-        logger.info('Stopping reader {}'.format(reader))
-        logger.info('ZMQ command listener thread terminated.')
-
-    def repl(self):
+    def _repl(self):
         try:
             # 1 waiting for command
-            if not self.poller.poll(timeout=500):
+            if not self.poller.poll(timeout=1000):
                 return
 
             # 2 parse and execute command
@@ -233,7 +216,13 @@ class REPL(LoopTaskMixin):
         except zmq.ZMQError as e:
             logger.info('ZMQ socket error: {}'.format(e))
         except KeyboardInterrupt as e:
-            raise e  # self.loop default will stop this task
+            raise e  # self.loop will stop this task
+
+    def loop_after(self):
+        self._tempstream.disable()
+        self.reply.close()
+        del self.reply, self.poller
+        logger.info('ZMQ command listener thread terminated.')
 
     def parse_one_cmd(self, cmd):
         cmd = shlex.split(cmd)
@@ -243,35 +232,54 @@ class REPL(LoopTaskMixin):
             # handle parse error
             if not cmd:
                 return ''
-            return self._stdinfo()
+            return self.stdinfo()
         else:
             # execute command
             ret = args.func(args)
-            log = self._stdinfo(clean=False)
+            log = self.stdinfo(clean=False)
             if log:
                 ret += '\n' + log
             return ret
 
+    def stdinfo(self, clean=True):
+        return '\n'.join([
+            self._tempstream.get_string('stdout', clean),
+            self._tempstream.get_string('stderr', clean)
+        ])
 
-def main(arg):
-    repl = REPL()
 
-    # task can safely exit if killed by `kill command` or `user log out`
-    signal.signal(signal.SIGTERM, lambda *a: repl.close())
-    signal.signal(signal.SIGHUP, lambda *a: repl.close())
+# =============================================================================
+# ZMQ & JSONRPC interface
+
+def main():
+    # Keep repl thread alive when the main thread ended. This will be set to
+    # True if RPC service is implemented and occupy main thread
+    repl = REPL(daemon=False)
+
+    def exit(*a):
+        repl.close()
+        # rpcserver.close()
+
+    signal.signal(signal.SIGHUP, exit)   # user log out
+    signal.signal(signal.SIGINT, exit)   # Ctrl-C or kill -2
+    signal.signal(signal.SIGTERM, exit)  # kill -15 by default
 
     logger.debug('Start streaming.')
     logger.debug('Starting {}'.format(reader))
-    logger.info(CMD_HELP + CMD_USAGE)
+    logger.info(CMD_HELP.rstrip())
 
-    # let REPL occupy main thread
     reader.start(method='thread')
     repl.start()
+
+    # block main thread, will be replaced by RPC serve_forever
+    while repl.isAlive():
+        repl.join(3)
 
     # Let reader occupy main thread is not a good idea because `reader`
     # can't handle SIGTERM and SIGINT properly as `repl` does. So this
     # method is not suggested.
-    #  threading.Thread(target=repl.start).start()
+    #  REPL(daemon=True).start()
     #  reader.start(method='block')
+
 
 # THE END

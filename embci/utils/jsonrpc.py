@@ -172,9 +172,8 @@ def __external__():
 
     logger_rpc = config_logger(
         'JSONRPC', level='DEBUG', format='[%(asctime)s] %(name)s %(message)s',
-        datefmt='%Y%m%d-%H:%M:%S')
-    logger_server = config_logger(
-        'RPCServer', level='DEBUG', format='%(message)s')
+        datefmt='%Y%m%d-%H:%M:%S', style='%')
+    logger_server = config_logger('RPCServer', level='DEBUG')
     logger_rpc.setLevel('INFO')      # default be quiet
     logger_server.setLevel('DEBUG')  # default be verbose
     del config_logger

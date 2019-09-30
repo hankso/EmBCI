@@ -37,15 +37,16 @@ A subapp's default name is its folder's name. If a subapp has an attribute
 ``APPNAME``, its value will be displayed on webpage and app-list instead of
 the folder name.
 '''
-from . import WiFi; WiFi.APPNAME = 'Network'                       # noqa: E702
+from . import example
+example.APPNAME = 'Example'
 
 __doc__ += '''
-But you can also change subapp's name by renaming the module object and
-specifing new name in ``embci.apps.__all__``
+You can also change subapp's name by renaming the module object and specifing
+new name in ``embci.apps.__all__``
 '''
-from . import example as Example
+Example = example  # same as above
 
-__all__ += ['WiFi', 'Example']
+__all__ += ['Example']
 
 # =============================================================================
 
@@ -60,3 +61,4 @@ from . import recorder; recorder.HIDDEN = True                     # noqa: E702
 __all__ += ['auth', 'recorder']
 
 # =============================================================================
+# THE END

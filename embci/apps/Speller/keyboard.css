@@ -10,26 +10,65 @@
 }
 
 div#kbd-MENU #select-layouts {
-    max-width: 150px;
+    max-width: 160px;
+}
+
+div#kbd-MENU #display-info {
+    width: 60px;
+}
+
+div#kbd-MENU > div#session-ctrl label#session-toggle-circle {
+    width: 100px;
+    cursor: pointer;
+    border-top: 1px solid #ced4da;
+    border-bottom: 1px solid #ced4da;
+}
+
+div#kbd-MENU > div#session-ctrl label#session-toggle-circle > span {
+    /* display: inline-block; */
+    position: relative;
+    left: -25px;
+    width: 65px;
+    height: 100%;
+    border: 2px solid #E3E3E3;
+    border-radius: 2px 8px 8px 2px;
+    background-color: green;
+    transition: all 0.2s ease-in 0.1s;
+}
+
+div#kbd-MENU > div#session-ctrl #session-toggle:checked + label > span {
+    left: 25px;
+    background-color: blue;
+    border-radius: 8px 2px 2px 8px;
 }
 
 div#kbd-MENU > div#session-ctrl #session-timeout {
-    max-width: 72px;
+    width: 66px;
 }
 
-div#kbd-MENU > div#session-ctrl #session-btn {
-    width: 100px;
+div#kbd-MENU > div#session-ctrl #session-iteration {
+    width: 66px;
 }
 
-div#kbd-MENU > div#session-ctrl #session-progress {
-    width: 100px;
+div#kbd-MENU div#session-ctrl-trial #session-btn{
+    width: 125px;
+}
+
+div#kbd-MENU div#session-ctrl-trial #session-progress {
+    width: 125px;
     height: 100%;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
 
-div#kbd-MENU > div#session-ctrl #session-progress > .progress-bar {
+div#kbd-MENU div#session-ctrl-trial #session-progress > .progress-bar {
     transition-duration: 0s !important;
+}
+
+div#kbd-MENU div#session-ctrl-train #session-auto {
+    width: 61px;
+    border-top-right-radius: inherit;
+    border-bottom-right-radius: inherit;
 }
 
 div#kbd-UI {

@@ -7,10 +7,10 @@
 
 import os
 
-# requirements.txt: network: bottle, bottle-cork, beaker
+# requirements.txt: network: bottle, bottle-cork, bottle-beaker
 import bottle
 import cork
-from beaker.middleware import SessionMiddleware
+from bottle.ext import beaker  # , cork
 
 __basedir__ = os.path.dirname(os.path.abspath(__file__))
 __auth__ = os.path.join(__basedir__, 'secret')
@@ -199,7 +199,7 @@ def auth_manage_users(action):
         bottle.abort(500, 'Invalid action `{}`!'.format(action))
 
 
-application = SessionMiddleware(
+application = beaker.middleware.SessionMiddleware(
     app, {
         'session.cookie_expires': True,
         'session.encrypt_key': 'asfd',

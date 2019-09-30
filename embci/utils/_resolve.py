@@ -25,9 +25,11 @@ import pylsl
 from . import check_input, logger
 
 __all__ = [
-    'find_pylsl_outlets', 'find_serial_ports', 'find_spi_devices',
-    'find_gui_layouts',
-    'get_host_addr', 'get_free_port', 'get_caller_globals', 'get_func_args',
+    'find_pylsl_outlets', 'find_serial_ports',
+    'find_spi_devices', 'find_gui_layouts',
+    'get_host_addr', 'get_free_port',
+    'get_caller_globals', 'get_caller_modname',
+    'get_func_args',
 ]
 
 
@@ -46,21 +48,20 @@ def find_pylsl_outlets(v=None, **kwargs):                          # noqa: C901
 
     If no wanted pylsl stream outlets found, ``RuntimeError`` will be raised.
     '''
-    NAME = '[Find Pylsl Outlets] '
     timeout = v if isinstance(v, (int, float)) else kwargs.pop('timeout', 1)
+    keys = set(kwargs.keys()).intersection({
+        'name', 'type', 'channel_count', 'nominal_srate',
+        'channel_format', 'source_id'
+    })
 
     if isinstance(v, str):
         infos = pylsl.resolve_bypred(v, 0, timeout)
-    elif not kwargs:
+    elif not keys:
         infos = pylsl.resolve_streams(timeout)
     else:
         infos = []
-    if kwargs:
-        for key in set(kwargs.keys()).intersection({
-            'name', 'type', 'channel_count', 'nominal_srate',
-            'channel_format', 'source_id'
-        }):
-            infos += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
+    for key in keys:
+        infos += pylsl.resolve_byprop(key, kwargs[key], 0, timeout)
 
     streams = dict()
     for info in infos:
@@ -69,28 +70,32 @@ def find_pylsl_outlets(v=None, **kwargs):                          # noqa: C901
     stream_list = list(streams.values())
 
     if len(stream_list) == 0:
-        raise RuntimeError(NAME + 'No stream available! Abort.')
+        raise RuntimeError('No stream available! Abort.')
     elif len(stream_list) == 1:
         stream = stream_list[0]
     else:
-        dv = [stream.name() for stream in stream_list]
-        ds = [stream.type() for stream in stream_list]
+        # Display stream as: $No $Name $Type - $CHx$Format $SourceID
         prompt = (
-            '{}Please choose one from all available streams:\n    ' +
-            '\n    '.join(['%d %s - %s' % (i, j, k)
-                           for i, (j, k) in enumerate(zip(dv, ds))]) +
-            '\nstream num(default 0): ').format(NAME)
-        answer = {str(i): stream for i, stream in enumerate(stream_list)}
+            'Please choose one from all available streams:\n    ' +
+            '\n    '.join([
+                '{:2d} {:s}({:s}) CH{:d}x{:s} - `{}`@ {}'.format(
+                    n, s.name(), s.type(), s.channel_count(),
+                    pylsl.pylsl.fmt2type[s.channel_format()]._type_,
+                    s.source_id() and '`%s` ' % s.source_id() or '',
+                    s.hostname()
+                ) for n, s in enumerate(stream_list)
+            ]) + '\nstream num (default 0): '
+        )
+        answer = {str(i): stream_list[i] for i in range(len(stream_list))}
         answer[''] = stream_list[0]
         try:
-            stream = check_input(prompt, answer, timeout=10)
+            stream = check_input(prompt, answer)
+            if stream == '':
+                stream = answer[stream]
         except KeyboardInterrupt:
-            raise RuntimeError(NAME + 'No stream selected! Abort.')
-    logger.info(
-        '{}Select stream `{}` -- {} channel {} {} data from {} on server {}'
-        .format(
-            NAME, stream.name(), stream.channel_count(), stream.type(),
-            stream.channel_format(), stream.source_id(), stream.hostname()))
+            raise RuntimeError('No stream selected! Abort.')
+    logger.info('Using stream `{}`({}) `{}`@ {}'.format(
+        stream.name(), stream.type(), stream.source_id(), stream.hostname()))
     return stream
 
 
@@ -150,7 +155,7 @@ def find_spi_devices():
         except KeyboardInterrupt:
             raise RuntimeError(NAME + 'No divice available! Abort.')
     if not device:
-        RuntimeError(NAME + 'No divice available! Abort.')
+        raise RuntimeError(NAME + 'No divice available! Abort.')
     dev = (re.findall(r'/dev/spidev([0-9])\.([0-9])', device) or [(0, 0)])[0]
     logger.info('{}Select device `{}` -- BUS: {}, CS: {}'
                 .format(NAME, device, *dev))
@@ -249,6 +254,10 @@ def get_caller_globals(depth=0):
             return f.f_globals
         f = f.f_back
     return f.f_globals
+
+
+def get_caller_modname():
+    return get_caller_globals(1)['__name__']
 
 
 if hasattr(inspect, 'signature'):

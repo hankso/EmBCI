@@ -24,14 +24,24 @@ __all__ = ['Event']
 
 class EventObject(AttributeDict):
     def __repr__(self):
-        return '<Event {}>'.format(self.__str__())
+        return '<Event {}>'.format(self.__string__())
+
+    def __int__(self):
+        return self.code
+
+    def __string__(self):
+        return AttributeDict.__str__(self)
+
+    def __str__(self):
+        return self.name or self.__string__()
 
 
 class Event(object):
     '''Payload layer for EventIO: jsonify/unjsonify events.'''
     events = AttributeList()
 
-    def check_event(self, event):
+    @staticmethod
+    def check_event(event):
         '''
         Event 1.0 Object
         ----------------
@@ -44,7 +54,7 @@ class Event(object):
             code = obj.get('code')
             name = obj.get('name')
         except (TypeError, ValueError):
-            raise TypeError('type cannot be `%s`' % typename(event))
+            raise TypeError('event type cannot be `%s`' % typename(event))
         if not isinstance(code, int) or code < 0:
             raise TypeError('invalid event code: `%s`' % code)
         if not isinstance(name, string_types):

@@ -361,7 +361,7 @@ class ADS1299_API(spidev.SpiDev):
             tmp = struct.pack('3B', num[3 * i + 2], num[3 * i + 1], num[3 * i])
             # use time: 1.3us
             byte += tmp + ('\xff' if num[3 * i] > 127 else '\x00')
-        return np.frombuffer(byte, np.int32) * self.scale
+        return np.frombuffer(byte, np.int32) * self.scale, time.time()
 
     def write(self, byte_array):
         '''Write bytes array to ADS1299 through SPI and return value list.'''

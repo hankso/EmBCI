@@ -7,30 +7,20 @@
 #
 
 
-# [testing]
-pytest
-
-# [network]
-beaker
-bottle
-bottle-cork
-gevent
-gevent-websocket
-
-# [machine-learning]
-keras
-sklearn
+# [data]
+mne
+numpy
+pylsl
+scipy
 
 # [drivers]
 gpio4
 pyserial
 spidev
 
-# [data]
-mne
-numpy
-pylsl
-scipy
+# [machine-learning]
+keras
+sklearn
 
 # [necessary]
 decorator
@@ -42,10 +32,21 @@ pywavelets
 pyzmq
 six
 
+# [network]
+bottle
+bottle-beaker
+bottle-cork
+gevent
+gevent-websocket
+
+# [testing]
+pytest
+
 # [optional]
 argparse
-dbus
+dbus-python
 matplotlib
+opencv-python
 python-networkmanager
 wifi
 

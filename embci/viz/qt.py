@@ -12,24 +12,27 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import time
+import traceback
 
 # requirements.txt: data: numpy
-# requirements.txt: optional: matplotlib
+# requirements.txt: optional: matplotlib, opencv-python
 import numpy as np
 try:
-    import matplotlib.pyplot as plt
-    _NO_PLT_ = False
+    import cv2
 except ImportError:
-    _NO_PLT_ = True
+    cv2 = None
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 
 from ..processing import SignalInfo
 
-# TODO: pybci streamviewer
+# TODO: BCI streamviewer
 
 
-def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
-    if _NO_PLT_:
-        return
+def plot_data_matplotlib(data, sample_rate, sample_time, actionname):
+    if plt is None: return  # noqa: E701
     plt.ion()
     if not isinstance(data, np.ndarray):
         data = np.array(data)
@@ -93,6 +96,39 @@ def view_data_with_matplotlib(data, sample_rate, sample_time, actionname):
         plt.grid()
         plt.xlabel('Frequency')
         plt.ylabel('dB/Hz')
+
+
+def plot_data_opencv(data, sample_rate=256, win_width=400,
+                     imgsize=(200, 400), color=(255, 180, 120)):
+    if cv2 is None: return  # noqa: E701
+    if imgsize[1] < win_width:
+        raise RuntimeError('frame width is smaller than'
+                           ' data win length, too narrow.')
+    h, w = imgsize
+    x = np.linspace(0, len(data) / sample_rate, 1 / sample_rate)
+    y = np.atleast_1d(data)
+    y = np.pad(
+        h / 2 - y / y.max() * (h / 2 * 0.95),
+        (0, win_width + 1 - len(y) if len(y) <= win_width else 0),
+        'constant', constant_values=(0, 0))
+    try:
+        for i in range(len(y) - win_width):
+            _x = x[i:i + win_width] - x[i]
+            _y = y[i:i + win_width]
+            _x = _x / max(_x) * (w * 0.95) + w * 0.025
+            pts = np.array([_x, _y]).T
+            img = cv2.polylines(
+                np.zeros(imgsize).astype(np.int8),
+                pts.astype(np.int32), False, 255, 1)
+            cv2.imshow('win', img)
+            if cv2.waitKey(1000 / sample_rate) in [10, 32, 112]:
+                while cv2.waitKey() not in [10, 32, 112]:  # enter | space | p
+                    pass
+    except Exception:
+        traceback.print_exc()
+    while cv2.waitKey() not in [27, 113]:  # esc | q
+        cv2.imshow('win', img)
+    cv2.destroyWindow('win')
 
 
 __all__ = []

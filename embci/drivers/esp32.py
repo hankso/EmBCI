@@ -95,12 +95,12 @@ class ESP32_API(ADS1299_API):
         self._opened = False
 
     @ensure_start
-    def read(self, *args, **kwargs):
+    def read(self, timeout=1, *args, **kwargs):
         if not self._cmd_queue.empty():
             cmd = self._cmd_queue.get()
             self.write(cmd + self._tosend[len(cmd):])
             self._data_buffer = []
-            return np.zeros(8, np.float32)
+            return np.zeros(8, np.float32), self._last_time
 
         if not len(self._data_buffer):
             # spidev lib is written in C language, where value of list will be
@@ -111,10 +111,20 @@ class ESP32_API(ADS1299_API):
             data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
-        while (time.time() - self._last_time) < (0.9 / self._sample_rate):
-            time.sleep(0)
-        self._last_time = time.time()
-        return self._data_buffer.pop(0)
+        starttime = time.time()
+        while (time.time() - starttime) < timeout:
+            dt = time.time() - self._last_time
+            if dt < (0.5 / self._sample_rate):
+                time.sleep(0.4 / self._sample_rate)
+            elif dt < (0.9 / self._sample_rate):
+                time.sleep(0)
+            elif dt > (1.1 / self._sample_rate):
+                self._last_time = time.time()
+                break
+            else:
+                self._last_time += 1.0 / self._sample_rate
+                break
+        return self._data_buffer.pop(0), self._last_time
 
     @ensure_start
     def write(self, byte_array):

@@ -6,22 +6,26 @@
 # Create: 2019-03-14 16:40:56
 
 # built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import sys
 import shlex
-import signal
-import logging
 import traceback
 
-from embci.io import PylslReader as Reader
-from embci.utils import config_logger, input
-from . import Recorder, logger
+from embci.io import LSLReader as Reader
+from embci.utils import input, TimeoutException
+from . import Recorder, logger, debug
 
 HELP = '''
+This file provides a command line interface for user to control a recorder on
+default LabStreamingLayer reader.
+
 Type command and hit return to:
-# TODO: write help message for embci.apps.recorder
+# TODO: write help message for `python -m embci.apps.recorder`
 '''
 
-reader = Reader(sample_time=2, num_channel=8)
+reader = Reader()
 recorder = Recorder(reader)
 
 
@@ -29,26 +33,22 @@ def exit(*a, **k):
     logger.debug('exiting...')
     recorder.cmd(username=None)
     recorder.cmd('close')
+    reader.close()
 
 
 def main(args=sys.argv[1:]):
     reader.start(method='thread', type='Reader Outlet')
-    signal.signal(signal.SIGHUP, exit)
-    signal.signal(signal.SIGTERM, exit)
 
     if '-v' in args:
-        args.pop(args.index('-v'))
-        config_logger(logger, logging.DEBUG, addhdlr=False)
+        args.remove('-v')
+        debug(True)
     recorder.start()
     recorder.cmd(username=(args[0] if len(args) else None))
 
-    try:
-        while recorder.status != 'closed':
-            try:
-                command = input(timeout=3, flist=[sys.stdin, ])
-                cmd = shlex.split(command)
-            except Exception:
-                continue
+    while recorder.started:
+        try:
+            command = input('>>> ')
+            cmd = shlex.split(command)
             if not cmd:
                 continue
             logger.info('Received cmd: `%s`' % command)
@@ -58,14 +58,16 @@ def main(args=sys.argv[1:]):
                 recorder.cmd(**{cmd[0]: cmd[1]})
             else:
                 logger.error('Invalid cmd: `%s`' % command)
-    except KeyboardInterrupt:
-        pass
-    except Exception:
-        logger.error(traceback.format_exc())
-    finally:
-        logger.debug('Main thread listening for commands terminated.')
-        if recorder.status != 'closed':
-            exit()
+        except TimeoutException:
+            pass
+        except KeyboardInterrupt:
+            break
+        except Exception:
+            logger.error(traceback.format_exc())
+            break
+    print('\n')
+    logger.debug('Main thread listening for commands terminated.')
+    exit()
 
 
 if __name__ == '__main__':

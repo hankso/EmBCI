@@ -44,13 +44,13 @@ function renderAlphabets(ctx, lout, detail=false, border=false) {
         }
         if (border && (border == block.name)) {
             ctx.strokeStyle = '#d11';
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 6;
             ctx.strokeRect(block.x + 3, block.y + 3, block.w - 6, block.h - 6);
         }
     }
 }
 
-function renderBlock(ctx, block, method=1) {
+function renderBlockExtend(ctx, block, method=1) {
     switch (method) {
         case 1: // draw rectangle on 2D canvas
             ctx.fillStyle = colors[0 + block.on];
@@ -70,6 +70,11 @@ function renderBlock(ctx, block, method=1) {
             */
             break;
     }
+}
+
+function renderBlock(ctx, block) {
+    ctx.fillStyle = colors[0 + block.on];
+    ctx.fillRect(block.x, block.y, block.w, block.h);
 }
 
 function renderBlocks(ctx, lout=layout) {
@@ -117,7 +122,8 @@ function blinkBlocks(interval, verbose=false, callback=null) {
      * 4. Re-render keyboard area.
      * */
     eventSend('session.start');
-    return LoopTask(stateBlocks, interval, verbose).byTimeout()
+    return LoopTask(stateBlocks, interval, verbose)
+        .byTimeout()
         .done(function() {
             eventSend('session.stop');
             renderBlocks(ctx, layout);
@@ -137,7 +143,7 @@ function sessionStartOld(interval, id=null) {
     function error(xhr, status, error) {
         alert('Cannot start session: ' + error);
         sessionStop(false);
-        $('#session-ctrl').trigger('stop');
+        $('#session-ctrl').trigger('trialStop');
     }
     $.ajax({
         url: 'sess/start',
@@ -145,21 +151,22 @@ function sessionStartOld(interval, id=null) {
         data: {timeout: interval, id: id},
         dataType: 'json',
         success: function(msg) {
-            if (msg['recorder.start'] == undefined) return error();
+            if (!msg['recorder.start']) return error();
             sessID = msg['recorder.start'];
-            blinkBlocks(interval, verbose=true, sessionStop).done(()=>{
-                $('#session-ctrl').trigger('stop');
+            blinkBlocks(interval, verbose=true).done(() => {
+                sessionStop(true);
+                $('#session-ctrl').trigger('trialStop');
             });
         },
         error: error
     });
 }
 
-function sessionStop(result=true) {
+function sessionStop(result=false) {
     eventSend('session.end', {result: result});
 }
 
-function sessionStopOld(result=true) {
+function sessionStopOld(result=false) {
     $.ajax({
         url: 'sess/stop',
         method: 'GET',
@@ -198,9 +205,14 @@ function sessionResult(id=null, maxtry=3) {
         },
         error: function(xhr, status, error) {
             console.error('Session result failed to load: ' + error);
-            --maxtry && setTimeout(()=>sessionResult(id, maxtry), 150);
+            --maxtry && setTimeout(() => sessionResult(id, maxtry), 150);
         }
     });
+}
+
+function sessionToggle(target) {
+    if (!target) return;
+    $.get({url: 'sess/' + target, error: rst  =>  console.warn(rst)});
 }
 
 // ============================================================================
@@ -216,8 +228,9 @@ function eventSend(code_or_name, extra=null) {
         console.error('Unknown event to send', code_or_name);
         return;
     } else if (extra) {
-        event = _.extend(event, extra)
+        event = _.extend(event, extra);
     }
+    console.log('Sending event', event, Date.now() / 1000);
     if (wsEvent) {
         wsEvent.send(JSON.stringify(event));
     } else {
@@ -225,27 +238,9 @@ function eventSend(code_or_name, extra=null) {
             url: 'event',
             method: 'GET',
             data: {'event': JSON.stringify(event)},
-            success: (msg)=>{msg && console.log(msg)},
-            error: (xhr, status, error)=>(console.error(error))
+            success: (msg) => {msg && console.log(msg)},
+            error: (xhr, status, error) => (console.error(error))
         });
-    }
-}
-
-function eventHandle(event, ts=null) {
-    switch (event.name) {
-        case 'misc.unlock':
-            $('div#masklayer').hide(300); break;
-        case 'recorder.start':
-            var timeout = $('#session-timeout').val() * 1000;
-            blinkBlocks(timeout, verbose=false).done(()=>{
-                sessionStop(true);
-                $('#session-ctrl').trigger('stop');
-            });
-            break;
-        case 'session.result':
-            sessionResult(); break;
-        default:
-            console.log('Unhandled event', event);
     }
 }
 
@@ -301,7 +296,7 @@ function loadLayoutNames() {
         layoutNames = lst;
         $s = $('#select-layouts');
         $s.children('option:not([hidden])').remove();
-        layoutNames.forEach((name)=>$s.append(`<option>${name}</option>`));
+        layoutNames.forEach((name) => $s.append(`<option>${name}</option>`));
     });
 }
 
@@ -310,7 +305,7 @@ layout = {
     "name": "/path/to/layout-filename.json",
     "blocks": [{
         "name": "alphabet",
-        "freq": `2 * Math.PI * freq(in Hz)`, "phase": in rad),
+        "freq": 2 * Math.PI * freq(in Hz)c`, "phase": in rad,
         "x": coordinate, "y": in pixel,
         "w": width, "h": height,
         "on": true,
@@ -364,22 +359,40 @@ function test_status(ts) {
 
 function test_loop_flickers(timeout=2000, times=100, delay=1000) {
     console.log('Iteration', times);
-    blinkBlocks(timeout, verbose=false);
+    blinkBlocks(timeout, verbose=true, sessionStop);
     if (--time) {
-        setTimeout(()=>test_loop_flickers(timeout, time), timeout + delay);
+        setTimeout(() => test_loop_flickers(timeout, time), timeout + delay);
     }
 }
 
-function test_random_flickers(timeout=2000, times=100, delay=2500) {
+function test_random_flickers(timeout=2000, times=100, delay=3000) {
     var block = layout[Math.floor(Math.random() * layout.length)];
     console.log('Iteration', times, 'will blink block `' + block.name + '`');
     renderAlphabets(ctxAl, layout, false, block.name);
-    setTimeout(()=>{
+    setTimeout(() => {
         eventSend('session.alphabet', {char: block.name});
-        blinkBlocks(timeout, verbose=false);
-    }, delay);
+        blinkBlocks(timeout, verbose=true, sessionStop);
+    }, delay - 10);
     if (--times) {
-        setTimeout(()=>test_random_flickers(timeout, times), timeout + delay);
+        window.id_test = setTimeout(() => {
+            test_random_flickers(timeout, times, delay);
+        }, timeout + delay + 10);
     }
 }
 
+function blink_random_flickers(timeout=2000, times=100, delay=2000) {
+    // var block = layout[times%layout.length];
+    var block = layout[Math.floor(Math.random() * layout.length)];
+    console.log('Iteration', times, 'will blink block `' + block.name + '`');
+    renderAlphabets(ctxAl, layout, false, block.name);
+    /* you can stop here */
+    window.id_train = setTimeout(() => {
+        eventSend('session.alphabet', {char: block.name});
+        blinkBlocks(timeout, verbose=true, sessionStop);
+        /* also you can stop here */
+        window.id_train = setTimeout(() => {
+            if (--times) blink_random_flickers(timeout, times, delay);
+            else $('#session-auto').click();
+        }, timeout + 100);
+    }, delay - 100);
+}

@@ -32,6 +32,7 @@ CHEBY_GSTOP = 40   # minimum attenuation in the stopband (dB)
 CHEBY_FMIN  = 6    # minimum frequency of sub-bands (Hz)
 CHEBY_FSTEP = 8    # sub-band width in frequency (Hz)
 CHEBY_FMAX  = 90   # maximum frequency of sub-bands (Hz)
+CHEBY_FEDGE = 10   # edge frequency for maximum frequency of sub-bands (Hz)
 CHEBY_EDGE  = 6    # edge frequency between passband and stopband (Hz)
 
 
@@ -93,7 +94,9 @@ class Model(object):
             self._subband_freq = v
         else:
             tmp = np.arange(CHEBY_FMIN, CHEBY_FMAX, CHEBY_FSTEP)
-            self._subband_freq = np.vstack([tmp, tmp - CHEBY_EDGE])
+            self._subband_freq = np.vstack([
+                tmp, tmp - np.array([2, 4] + [CHEBY_EDGE] * (len(tmp) - 2))
+            ])
         self._subband_param_set()
 
     def _subband_param_set(self, v=None):
@@ -109,7 +112,7 @@ class Model(object):
                 # calc order and natural frequency of the filter: N & Wn
                 signal.cheb1ord(
                     [fp / nyq, CHEBY_FMAX / nyq],
-                    [fs / nyq, (CHEBY_FMAX + CHEBY_EDGE) / nyq],
+                    [fs / nyq, (CHEBY_FMAX + CHEBY_FEDGE) / nyq],
                     gpass=CHEBY_GPASS, gstop=CHEBY_GSTOP)
                 for fp, fs in self._subband_freq.T
             ]
@@ -162,27 +165,27 @@ class Model(object):
                 bar.add(0.25 / self.num_subband)
                 time.sleep(0.1)
                 # shape: n_trial x n_channel x n_sample
-                sbdata = sbdata.transpose(2, 0, 1)
+                tsbdata = sbdata.transpose(2, 0, 1)
                 # calc covariance between trials of data on each channel
                 # Method 1: by dot multiply
-                centered = sbdata - sbdata.mean(axis=-1, keepdims=True)
+                centered = tsbdata - tsbdata.mean(axis=-1, keepdims=True)
                 S = np.sum([
                     np.dot(centered[idx1], centered[idx2].T)
-                    for idx1 in range(sbdata.shape[0])
-                    for idx2 in range(idx1 + 1, sbdata.shape[0])
+                    for idx1 in range(tsbdata.shape[0] - 1)
+                    for idx2 in range(idx1 + 1, tsbdata.shape[0])
                 ])
                 bar.add(0.25 / self.num_subband)
                 # Method 2: by np.cov
                 #  nch = self.num_channel
                 #  S = np.sum([
-                #      np.cov(sbdata[idx1], sbdata[idx2])[:nch, nch:]
-                #      for idx1 in range(sbdata.shape[0])
-                #      for idx2 in range(idx1 + 1, sbdata.shape[0])
+                #      np.cov(tsbdata[idx1], tsbdata[idx2])[:nch, nch:]
+                #      for idx1 in range(tsbdata.shape[0] - 1)
+                #      for idx2 in range(idx1 + 1, tsbdata.shape[0])
                 #  ])
                 # shape: n_channel x (n_sample*n_trial)
                 Q = np.cov(np.concatenate(sbdata, axis=-1))
-                w, v = np.linalg.eig(np.dot(np.linalg.inv(Q), S))
-                self.weights[target, sb] = v[:, 0]
+                value, vector = np.linalg.eig(np.dot(np.linalg.inv(Q), S))
+                self.weights[target, sb] = vector[:, 0]
                 bar.add(0.25 / self.num_subband)
         bar.update(self.num_target)
 

@@ -7,15 +7,19 @@
 
 '''Global variables that can be accessed across whole apps.'''
 
+# built-in
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
-__basedir__ = os.path.dirname(os.path.abspath(__file__))
-del os
 
-from embci.io import PylslReader as Reader
+from embci.io import LSLReader as Reader
 from embci.io import SocketTCPServer as Server
 from embci.processing import SignalInfo
 from embci.apps.recorder import Recorder
 from embci.utils import AttributeDict, config_logger
+
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
 
 reader = Reader(sample_time=5, num_channel=8)
 server = Server()

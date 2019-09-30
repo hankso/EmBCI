@@ -30,7 +30,7 @@ from . import logger
 
 __all__ = [
     _ + 'Commander' for _ in (
-        'Torcs', 'Plane', 'Pylsl', 'Serial'
+        'Torcs', 'Plane', 'LSL', 'Serial'
     )
 ]
 __all__ += ['SocketTCPServer']
@@ -134,17 +134,17 @@ class PlaneCommander(BaseCommander):
         self.client.close()
 
 
-class PylslCommander(BaseCommander):
+class LSLCommander(BaseCommander):
     '''
     Broadcast string[s] by pylsl.StreamOutlet as an online command stream.
     '''
     __num__ = 1
 
     def __init__(self, command_dict=None, name=None):
-        super(PylslCommander, self).__init__(
+        super(LSLCommander, self).__init__(
             command_dict,
-            name or '[Pylsl commander %d]' % PylslCommander.__num__)
-        PylslCommander.__num__ += 1
+            name or '[LSL commander %d]' % LSLCommander.__num__)
+        LSLCommander.__num__ += 1
 
     def start(self, name=None, source=None):
         '''
@@ -160,7 +160,7 @@ class PylslCommander(BaseCommander):
 
         Examples
         --------
-        >>> c = PylslCommander(name='pylsl commander 2')
+        >>> c = LSLCommander(name='pylsl commander 2')
         >>> c.start('result of recognition', 'EmBCI Hardware Re.A7.1221')
         >>> pylsl.resolve_bypred("contains('recognition')")
         [<pylsl.pylsl.StreamInfo instance at 0x7f3e82d8c3b0>]
@@ -254,8 +254,7 @@ class SocketTCPServer(LoopTaskInThread):
         if rlist[0] is self._server:
             con, addr = self._server.accept()
             con.settimeout(0.5)
-            logger.debug('{} accept client from {}:{}'.format(
-                self.name, *addr))
+            logger.debug('{} conn client from {}:{}'.format(self.name, *addr))
             self._conns.append(con)
             self._addrs.append(addr)
         # some client maybe closed

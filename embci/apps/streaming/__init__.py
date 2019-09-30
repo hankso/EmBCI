@@ -38,7 +38,7 @@ in case someone want to control the task from webpage using JavaScript.
 
 
 from embci.utils import config_logger
-logger = config_logger(format='%(message)s')
+logger = config_logger(__name__)
 del config_logger
 
 from embci.utils import get_config
@@ -58,6 +58,7 @@ ZMQ interface is listening on `{addr}`, from wich users can set
 parameters of data stream at runtime.
 '''.format(addr=CMD_ADDR)
 
+# TODO: JSONRPC interface
 RPC_HELP = '''
 JSON-RPC Port
 -------------
