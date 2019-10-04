@@ -100,7 +100,7 @@ SUGGESTED_MSH = np.int32([
 
 @decorator
 def ensure_start(func, self, *a, **k):
-    assert self._started
+    assert self._start_time
     return func(self, *a, **k)
 
 
@@ -180,7 +180,7 @@ class ADS1299_API(spidev.SpiDev):
 
         self._lock = Lock()
         self._opened = False
-        self._started = False
+        self._start_time = 0
         self._enable_bias = False
         self._measure_impedance = False
 
@@ -228,7 +228,7 @@ class ADS1299_API(spidev.SpiDev):
         power supplies have stabilized.
         '''
         assert self._opened, 'you need to open a spi device first'
-        if self._started:
+        if self._start_time != 0:
             return
 
         #  Power up chip
@@ -250,7 +250,7 @@ class ADS1299_API(spidev.SpiDev):
 
         # Start streaming data
         self.write(CMD_RDATAC)
-        self._started = True
+        self._start_time = time.time()
 
     def close(self):
         if not self._opened:
@@ -258,7 +258,7 @@ class ADS1299_API(spidev.SpiDev):
         self.write(CMD_SDATAC)
         self.write(CMD_STOP)
         super(ADS1299_API, self).close()
-        self._started = False
+        self._start_time = 0
         self._epoll.unregister(self._DRDY)
         self._DRDY.export = False
         # self._START.export = False
@@ -361,7 +361,8 @@ class ADS1299_API(spidev.SpiDev):
             tmp = struct.pack('3B', num[3 * i + 2], num[3 * i + 1], num[3 * i])
             # use time: 1.3us
             byte += tmp + ('\xff' if num[3 * i] > 127 else '\x00')
-        return np.frombuffer(byte, np.int32) * self.scale, time.time()
+        data = np.frombuffer(byte, np.int32)
+        return data * self.scale, time.time() - self._start_time
 
     def write(self, byte_array):
         '''Write bytes array to ADS1299 through SPI and return value list.'''

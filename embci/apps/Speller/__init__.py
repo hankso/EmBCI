@@ -362,7 +362,8 @@ def app_init():
     global reader, model, event, outlet, recorder, app_init
     reader = Reader(250, 5, 8)
     reader.start(type='Reader Outlet', method='process')
-    model = Model(reader)
+    model = Model(reader.sample_rate, reader.num_channel,
+                  reader.window_size, 40)
     event = Event()
     event.load_file(__events__)
     outlet = pylsl.StreamOutlet(pylsl.StreamInfo(

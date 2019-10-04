@@ -42,7 +42,6 @@ import scipy.io
 import scipy.signal
 import pylsl
 import serial
-from six import string_types
 
 from ..utils import (
     ensure_unicode, ensure_bytes, get_boolean, format_size,
@@ -55,7 +54,7 @@ from ..drivers.esp32 import ESP32_API
 from ..configs import DIR_PID, DIR_TMP
 from . import logger
 
-__all__ = ['valid_name_reader', 'FakeDataGenerator', ] + [
+__all__ = ['validate_readername', 'FakeDataGenerator', ] + [
     _ + 'Reader' for _ in (
         'Files', 'LSL', 'Serial',
         'ADS1299SPI', 'ESP32SPI',
@@ -67,7 +66,7 @@ __all__ = ['valid_name_reader', 'FakeDataGenerator', ] + [
 # Reader MixIn and utilities
 
 _name_reader_pattern = re.compile(r'^(\w+)_(\d+)\.pid$')
-def valid_name_reader(name):                                       # noqa: E302
+def validate_readername(name):                                     # noqa: E302
     '''
     Find suitable name for reader instance in syntax of::
         {ReaderName} {ID}
@@ -211,17 +210,6 @@ class RIOMixin(object):
         data, idx = self._data.copy(), self._index
         return np.concatenate((data[:, idx:], data[:, :idx]), -1)
 
-    def register_buffer(self, obj):
-        if not isinstance(obj, string_types):
-            obj = id(obj)
-        if obj not in self._data_buffer:
-            self._data_buffer[obj] = []
-
-    def unregister_buffer(self, obj):
-        if not isinstance(obj, string_types):
-            obj = id(obj)
-        return np.concatenate(self._data_buffer.pop(obj, [[]]), -1)
-
 
 class RCompatMixin(object):
     '''Methods defined here are for compatibility between all Readers.'''
@@ -299,7 +287,7 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         # Broadcast data to a lab-streaming-layer outlet.  Here we only need
         # to check one time whether send_pylsl is True. If put this work in
         # loop task, it will be checked thousands times.
-        self.name = valid_name_reader(name or self.__class__.name)
+        self.name = validate_readername(name or self.__class__.name)
         self._dtype = np.dtype(datatype or self._dtype)
         if get_boolean(send_pylsl):
             if self._dtype.name not in pylsl.pylsl.string2fmt:
@@ -322,7 +310,6 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         self._file_data = LockedFile(mmapfn)
         self._data = np.zeros(
             (self.num_channel + 1, self.window_size), self._dtype)
-        self._data_buffer = {}  # TODO: reader._data_buffer name & multiprocess
 
         # Indexs used to output data
         # 0:Channel 1:Frame 2:All 3-5: NotUsed
@@ -428,15 +415,14 @@ class FakeDataGenerator(BaseReader):
 
 
 class FilesReader(BaseReader):
-    '''
-    Read data from mat, fif, csv... file and simulate as a common data reader
-    '''
+    '''Read data from file and simulate as a common data reader.'''
 
     def __init__(self, filename,
                  sample_rate=250, sample_time=2, num_channel=1, **k):
         if not os.path.exist(filename):
             raise ValueError('Data file not exist: `%s`' % filename)
         k.setdefault('input_source', filename)
+        k.setdefault('name', filename + '.Reader')
         super(FilesReader, self).__init__(
             sample_rate, sample_time, num_channel, **k)
 
@@ -547,6 +533,7 @@ class SerialReader(BaseReader):
     Connect to a serial port and fetch data into buffer.
     There should be at least one port available.
     '''
+    name = 'SerialReader'
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1, **k):
         super(SerialReader, self).__init__(
@@ -582,6 +569,7 @@ class ADS1299SPIReader(BaseReader):
     '''
     __metaclass__ = Singleton
     API = ADS1299_API
+    name = 'ADS1299Reader'
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1,
                  measure_impedance=False, enable_bias=True, API=None, **k):
@@ -665,12 +653,14 @@ class ESP32SPIReader(ADS1299SPIReader):
     This Reader is only used on ARM. It depends on class ESP32_API.
     '''
     API = ESP32_API
+    name = 'ESP32Reader'
 
 
 class SocketTCPReader(BaseReader):
     '''
     A reader that recieve data from specific host and port through TCP socket.
     '''
+    name = 'SocketTCPReader'
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1, **k):
         super(SocketTCPReader, self).__init__(
@@ -736,6 +726,7 @@ class SocketTCPReader(BaseReader):
 
 class SocketUDPReader(SocketTCPReader):
     '''Socket UDP client, data receiver. Under development.'''
+    name = 'SocketUDPReader'
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1, **k):
         # sample_rate, sample_time, num_channel, name=None

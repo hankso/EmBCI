@@ -17,14 +17,13 @@ import time
 import scipy.signal as signal
 import numpy as np
 
-from embci.utils import TempStream
+from embci.utils import TempStream, NameSpace
 with TempStream(stderr=None):
     from keras.utils.generic_utils import Progbar
 
 # =============================================================================
 # constants
 
-NUM_TARGET  = 40   # number of targets (int)
 NUM_SUBBAND = 5    # number of sub-bands (int)
 CHEBY_RP    = 0.4  # maximum ripple allowed in the passband (float)
 CHEBY_GPASS = 3    # maximum loss in the passband (dB)
@@ -35,52 +34,43 @@ CHEBY_FMAX  = 90   # maximum frequency of sub-bands (Hz)
 CHEBY_FEDGE = 10   # edge frequency for maximum frequency of sub-bands (Hz)
 CHEBY_EDGE  = 6    # edge frequency between passband and stopband (Hz)
 
+_default_params = NameSpace(
+    sample_rate=500, num_channel=8, num_sample=0.5*500, num_target=40
+)
+
 
 class Model(object):
-    def __init__(self, reader, ntarget=NUM_TARGET, nsubband=NUM_SUBBAND, **k):
-        self.sample_rate = reader.sample_rate
-        self.num_channel = reader.num_channel
-        self.num_sample  = reader.window_size
-        self.num_subband = nsubband
-        self.num_target  = ntarget
-
-        self.weights = np.zeros((
-            self.num_target, self.num_subband, self.num_channel
+    def __init__(self, sample_rate, num_channel, num_sample,
+                 num_target, num_subband=NUM_SUBBAND, **k):
+        self.sample_rate = sample_rate
+        self.nchannel = num_channel
+        self.nsample  = num_sample
+        self.nsubband = num_subband
+        self.ntarget  = num_target
+        self.weights  = np.zeros((
+            self.ntarget, self.nsubband, self.nchannel
         ))
 
-    @classmethod
-    def from_config(cls, cfg):
-        cfg.setdefault('')
-        return cls(**cfg)
-
-    def update_config(self, cfg):
-        for attr, value in cfg.items():
-            if not attr.startswith('_'):
-                setattr(self, attr, value)
-
-    def get_config(self):
-        pass
-
     @property
-    def num_target(self):
+    def ntarget(self):
         return self._target_num
 
-    @num_target.setter
-    def num_target(self, v):
+    @ntarget.setter
+    def ntarget(self, v):
         if not isinstance(v, int):
             raise TypeError('Expect int but receive: `%s`' % type(v).__name__)
         self._target_num = v
         self._target_coef = np.zeros((
-            self.num_target, self.num_subband,
-            self.num_channel, self.num_sample
+            self.ntarget, self.nsubband,
+            self.nchannel, self.nsample
         ))
 
     @property
-    def num_subband(self):
+    def nsubband(self):
         return self._subband_num
 
-    @num_subband.setter
-    def num_subband(self, v):
+    @nsubband.setter
+    def nsubband(self, v):
         if not isinstance(v, int):
             raise TypeError('Expect int but receive: `%s`' % type(v).__name__)
         elif v < 0 or v > CHEBY_FMAX // CHEBY_FSTEP:
@@ -128,9 +118,9 @@ class Model(object):
 
     def preprocess(self, data):
         nyq = self.sample_rate // 2
-        N, Wn = signal.buttord([7 / nyq, 90 / nyq], [6 / nyq, 92 / nyq], 3, 40)
+        N, Wn = signal.buttord([7 / nyq, 90 / nyq], [5 / nyq, 98 / nyq], 3, 40)
         B, A = signal.butter(N, Wn, 'bandpass')
-        return signal.lfilter(B, A, data)
+        return signal.lfilter(B, A, data, -1)
 
     def plot_subband_freqresp(self):
         try:
@@ -150,70 +140,72 @@ class Model(object):
     def train(self, X):
         '''X should be of shape: n_target x n_channel x n_sample x n_trial'''
         X = np.array(X, ndmin=4)
-        if X.shape[:3] != (self.num_target, self.num_channel, self.num_sample):
+        if X.shape[:3] != (self.ntarget, self.nchannel, self.nsample):
             raise ValueError('Invalid dataset of shape: {}'.format(X.shape))
-        bar = Progbar(target=self.num_target, interval=2)
-        for target in range(self.num_target):
+        bar = Progbar(target=self.ntarget, interval=2)
+        for target in range(self.ntarget):
             # shape: n_channel x n_sample x n_trial
             data = X[target]
             bar.add(0.25)
             time.sleep(0.1)
-            for sb in range(self.num_subband):
-                # shape: n_channel x n_sample x n_trial
-                sbdata = self.subband(data, sb)
-                self._target_coef[target, sb] = np.mean(sbdata, axis=-1)
-                bar.add(0.25 / self.num_subband)
-                time.sleep(0.1)
+            for sb in range(self.nsubband):
                 # shape: n_trial x n_channel x n_sample
-                tsbdata = sbdata.transpose(2, 0, 1)
+                sbdata = self.subband(data.transpose(2, 0, 1), sb)
+                # shape: n_channel x n_sample
+                self._target_coef[(target, sb)] = np.mean(sbdata, axis=0)
+                bar.add(0.25 / self.nsubband)
+                time.sleep(0.01)
                 # calc covariance between trials of data on each channel
                 # Method 1: by dot multiply
-                centered = tsbdata - tsbdata.mean(axis=-1, keepdims=True)
+                centered = sbdata - sbdata.mean(axis=-1, keepdims=True)
+                # shape: [n_trial*n_trial-1] x n_channel x n_channel
                 S = np.sum([
+                    # shape: n_channel x n_channel
                     np.dot(centered[idx1], centered[idx2].T)
-                    for idx1 in range(tsbdata.shape[0] - 1)
-                    for idx2 in range(idx1 + 1, tsbdata.shape[0])
-                ])
-                bar.add(0.25 / self.num_subband)
-                # Method 2: by np.cov
-                #  nch = self.num_channel
+                    for idx1 in range(sbdata.shape[0])
+                    for idx2 in range(sbdata.shape[0])
+                    if idx1 != idx2
+                ], axis=0)
+                bar.add(0.25 / self.nsubband)
+                # Method 2: by covariance
+                #  nch = self.nchannel
                 #  S = np.sum([
                 #      np.cov(tsbdata[idx1], tsbdata[idx2])[:nch, nch:]
-                #      for idx1 in range(tsbdata.shape[0] - 1)
-                #      for idx2 in range(idx1 + 1, tsbdata.shape[0])
+                #      for idx1 in range(sbdata.shape[0])
+                #      for idx2 in range(sbdata.shape[0])
+                #      if idx1 != idx2
                 #  ])
                 # shape: n_channel x (n_sample*n_trial)
-                Q = np.cov(np.concatenate(sbdata, axis=-1))
+                UX = np.concatenate(sbdata, axis=-1)
+                # shape: n_channel x n_channel
+                Q = np.dot(UX, UX.T)
                 value, vector = np.linalg.eig(np.dot(np.linalg.inv(Q), S))
-                self.weights[target, sb] = vector[:, 0]
-                bar.add(0.25 / self.num_subband)
-        bar.update(self.num_target)
-
-    def save(self):
-        pass
+                self.weights[(target, sb)] = vector[:, 0]
+                bar.add(0.25 / self.nsubband)
+        bar.update(self.ntarget)
 
     def predict(self, X, ensemble=False, *a, **k):
         '''X should be of shape: n_target/n_trial x n_channel x n_sample'''
         X = np.atleast_3d(X)
-        assert X.shape[1:] == (self.num_channel, self.num_sample)
+        assert X.shape[1:] == (self.nchannel, self.nsample)
         rst = []
         for idx, trial in enumerate(X):
-            rst.append(self.predict_one_trial(trial, ensemble))
+            rst.append(self.predict_one_trca(trial, ensemble).argmax())
         return np.array(rst)
 
-    def predict_one_trial(self, X, ensemble=False):
+    def predict_one_trca(self, X, ensemble=False):
         '''X should be of shape: n_channel x n_sample'''
         # `rou` holds results of shape: n_target x n_subband
-        rou = np.zeros((self.num_target, self.num_subband))
-        for target in range(self.num_target):
-            for sb in range(self.num_subband):
+        rou = np.zeros((self.ntarget, self.nsubband))
+        for target in range(self.ntarget):
+            for sb in range(self.nsubband):
                 # trained data shape: n_channel x n_sample
                 trained_data = self._target_coef[target, sb]
                 # test data shape: n_channel x n_sample
                 test_data = self.subband(X, sb)
                 if ensemble:
-                    # w should be of shape: n_target x n_channel matrix
-                    w = self.weights[:, sb, :]
+                    # w should be of shape: 1 x n_channel matrix
+                    w = self.weights[:, sb, :].mean(0, keepdims=True)
                 else:
                     # w should be of shape: 1 x n_channel vector
                     w = self.weights[target, sb, :].reshape(1, -1)
@@ -222,15 +214,30 @@ class Model(object):
                 )[0, 1]
         return np.dot(rou, self._subband_coef)  # n_target vector
 
-    def subband_all(self, data):
-        '''data shape: [n_target x] n_channel x n_sample [x n_trial]'''
-        return data
-
     def subband(self, data, sb):
+        '''data shape: [[n_target x] n_trial x] n_channel x n_sample'''
+        assert data.shape[-2:] == (self.nchannel, self.nsample)
         b, a = self._subband_filter[sb]
         return signal.filtfilt(b, a, data, axis=-1, padlen=0)
 
-    def summary(self):
+    def save(self):
         pass
+
+    def load(self):
+        pass
+
+    @classmethod
+    def from_config(cls, cfg):
+        cfg.setdefault('')
+        return cls(**cfg)
+
+    def update_config(self, cfg):
+        for attr, value in cfg.items():
+            if not attr.startswith('_'):
+                setattr(self, attr, value)
+
+    def get_config(self):
+        pass
+
 
 # THE END

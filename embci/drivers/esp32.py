@@ -55,18 +55,16 @@ class ESP32_API(ADS1299_API):
     embci.drivers.ads1299.ADS1299_API
     '''
     def __init__(self, n_batch=32, scale=4.5/24/2**24, *a, **k):
-        self.n_batch = n_batch
-
         # send `nBatchs * 4Bytes * 8chs` 0x00
         # first 4Bytes is reserved for command to control ESP32
         # [cmd cmd cmd cmd 0x00 0x00 0x00 0x00 ... 0x00]
+        self.n_batch = n_batch
         self._tosend = 4 * 8 * self.n_batch * [0x00]
         self._data_format = '%dB' % len(self._tosend)
         self._cmd_queue = Queue()
         self._data_buffer = []
-        self._last_time = time.time()
-
         super(ESP32_API, self).__init__(scale)
+        self._last_time = time.time()
 
     def open(self, dev, mode=0, max_speed_hz=12.5e6):
         '''ESP32 SPI mode set to 0b00 (CPOL=0 & CPHA=0)'''
@@ -79,17 +77,17 @@ class ESP32_API(ADS1299_API):
         power supplies have stabilized.
         '''
         assert self._opened, 'you need to open a spi device first'
-        if self._started:
+        if self._start_time != 0:
             return
-        self._started = True
         self.set_sample_rate(sample_rate)
+        self._start_time = time.time()
 
     def close(self):
         if not self._opened:
             return
         self._data_buffer = []
         super(ADS1299_API, self).close()
-        self._started = False
+        self._start_time = 0
         self._epoll.unregister(self._DRDY)
         self._DRDY.export = False
         self._opened = False
@@ -100,7 +98,7 @@ class ESP32_API(ADS1299_API):
             cmd = self._cmd_queue.get()
             self.write(cmd + self._tosend[len(cmd):])
             self._data_buffer = []
-            return np.zeros(8, np.float32), self._last_time
+            return np.zeros(8, np.float32), self._last_time - self._start_time
 
         if not len(self._data_buffer):
             # spidev lib is written in C language, where value of list will be
@@ -111,8 +109,8 @@ class ESP32_API(ADS1299_API):
             data = np.frombuffer(data, np.int32).reshape(self.n_batch, 8)
             self._data_buffer = list(data * self.scale)
 
-        starttime = time.time()
-        while (time.time() - starttime) < timeout:
+        ts = time.time()
+        while (time.time() - ts) < timeout:
             dt = time.time() - self._last_time
             if dt < (0.5 / self._sample_rate):
                 time.sleep(0.4 / self._sample_rate)
@@ -124,7 +122,7 @@ class ESP32_API(ADS1299_API):
             else:
                 self._last_time += 1.0 / self._sample_rate
                 break
-        return self._data_buffer.pop(0), self._last_time
+        return self._data_buffer.pop(0), self._last_time - self._start_time
 
     @ensure_start
     def write(self, byte_array):

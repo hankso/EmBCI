@@ -34,7 +34,7 @@ __all__ = [
     'create_data_dict', 'find_data_info',
     'save_trials', 'save_chunks', 'save_action',
     'load_data', 'load_mat', 'load_label_data',
-    'valid_name_datafile',
+    'validate_datafile',
 ]
 
 
@@ -96,7 +96,7 @@ def find_data_info(username):
     return label_dict, name_dict, summary
 
 
-def valid_name_datafile(username, label='default', checkname=False):
+def validate_datafile(username, label='default', checkname=False):
     if checkname:
         username = ''.join([
             c for c in validate_filename(username) if c not in '()[]'
@@ -209,11 +209,11 @@ def save_trials(username, data_dict, suffix='mat', summary=False):
     # function create_data_dict maybe offer mne.Info object
     if 'fif' in suffix and not isinstance(info, mne.Info):
         info = mne.create_info(data.shape[1], srate)
-    username = valid_name_datafile(username, checkname=True)[1]
+    username = validate_datafile(username, checkname=True)[1]
 
     for trial in data:
         fn = '{}.{}'.format(
-            valid_name_datafile(username, label)[0], suffix)
+            validate_datafile(username, label)[0], suffix)
         try:
             if suffix == 'mat':
                 data_dict[key] = trial

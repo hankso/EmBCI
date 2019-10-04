@@ -19,10 +19,8 @@ import threading
 import bottle
 import numpy as np
 
-from embci.io import (
-    create_data_dict, valid_name_datafile,
-    save_trials, save_chunks
-)
+from embci.io import (create_data_dict, validate_datafile,
+                      save_trials, save_chunks)
 from embci.utils import LoopTaskInThread, Event, find_task_by_name
 
 from . import logger
@@ -159,7 +157,7 @@ class Recorder(LoopTaskInThread):
             self.save()
         else:
             self.clear()
-        _, name = valid_name_datafile(str(name), checkname=True)
+        _, name = validate_datafile(str(name), checkname=True)
         if name.title() in ['None', '-', '_', '']:
             self._username = None
             logger.info('username cleared, recorder paused')
@@ -194,7 +192,7 @@ class Recorder(LoopTaskInThread):
         if hasattr(self, '_data_fobj'):
             self._data_fobj.close()
         if self.chunk:
-            fn = valid_name_datafile(self.username, self.name)[0]
+            fn = validate_datafile(self.username, self.name)[0]
             self._data_fobj = open(fn + '.mat', 'a+b')
 
     def _data_get(self):
