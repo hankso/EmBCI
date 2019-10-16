@@ -1,0 +1,272 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>EmBCI Shield &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ESP32 Reference" href="esp32.html" />
+    <link rel="prev" title="EmBCI Hardware Reference" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">EmBCI Shield</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#board-connection">Board Connection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#electrodes">Electrodes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="esp32.html">On-shield ESP32</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/">ESP-IDF Reference</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://github.com/hankso/EmBCI/blob/release/tools/ADS1299-Datasheet.pdf">ADS1299 Datasheet</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">EmBCI Hardware Reference</a> &raquo;</li>
+        
+      <li>EmBCI Shield</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/hardware/hardware.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="embci-shield">
+<h1>EmBCI Shield<a class="headerlink" href="#embci-shield" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="board-connection">
+<h2>Board Connection<a class="headerlink" href="#board-connection" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Communicate with <a class="reference external" href="http://www.ti.com/product/ADS1299">ADS1299</a> through SPI
+interface on OrangePi pin <code class="docutils literal notranslate"><span class="pre">CS/PA13</span></code>, <code class="docutils literal notranslate"><span class="pre">CLK/PA14</span></code>, <code class="docutils literal notranslate"><span class="pre">MOSI/PA15</span></code> and <code class="docutils literal notranslate"><span class="pre">MISO/PA16</span></code></li>
+<li>On shield Atmega328P(Arduino Uno/Nano) is connected to <code class="docutils literal notranslate"><span class="pre">UART2_TX/PA00</span></code> and
+<code class="docutils literal notranslate"><span class="pre">UART2_RX/PA01</span></code></li>
+<li>Control SSD1306 0.96’ OLED screen by SPI or ILI9325 2.3’ LCD screen through
+on shield Arduino by serial</li>
+<li>Broadcast collected raw data from ADS1299 to wifi port 9999(default) by TCP
+socket, there are two ways to grab data from network<ul>
+<li>Connect OrangePi to your LAN wifi network and check its IP address, you
+can login to router(e.g. TP-Link &#64; <code class="docutils literal notranslate"><span class="pre">192.168.1.1</span></code>) or use any other methods
+to get OrangePi IP address.</li>
+<li>Set OrangePi as a wifi hotpot, connect your PC/laptop/phone to this
+network and this way OrangePi IP address will be <code class="docutils literal notranslate"><span class="pre">192.169.0.1</span></code>(usually)</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="electrodes">
+<h2>Electrodes<a class="headerlink" href="#electrodes" title="Permalink to this headline">¶</a></h2>
+<p>Passive electrodes have no inbuit circuitry. You may need paste/gel between it and subject’s skin/scalp for better signal. Electrodes can be round or needle metal things coated with special alloys, for example gold, tin and silver. Ag / AgCl are supposed to be best.</p>
+<p>Comparing to passive electrodes, active electrodes work by putting a unity-gain amplifier right next to the electrode up on the scalp. This greatly improves the signal quality and avoids the skin preparation like conductive paste and gel.</p>
+<p>A brief history of active eletrodes:</p>
+<ul class="simple">
+<li>Jarek Foltynski created the initial designs and prototypes. <a class="reference external" href="http://bioera.net/ae/">link</a></li>
+<li>Joerg Hansmann refined the v2 circuit design.</li>
+<li>Ian Vincent introduced the idea of using multiple-pin electrodes which can pass through the hair easily.</li>
+<li>Joe Street created a modified design using power cells instead of requiring power from ADC board. <a class="reference external" href="http://openeeg.sourceforge.net/doc/hw/joe_ae/">link</a></li>
+<li>Jim Peters constructed a version of Joerg’s design. <a class="reference external" href="http://uazu.net/eeg/ae.html">link</a></li>
+<li>Pedro Ortega created a simplified version without the shielding/guarding. <a class="reference external" href="http://www.dcc.uchile.cl/~peortega/ae/">link</a></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="esp32.html" class="btn btn-neutral float-right" title="ESP32 Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="EmBCI Hardware Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

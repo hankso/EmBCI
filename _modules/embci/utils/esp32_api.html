@@ -1,0 +1,400 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>embci.utils.esp32_api &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../utils.html">embci.utils</a> &raquo;</li>
+        
+      <li>embci.utils.esp32_api</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for embci.utils.esp32_api</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># coding=utf-8</span>
+<span class="c1">#</span>
+<span class="c1"># File: EmBCI/embci/utils/esp32_api.py</span>
+<span class="c1"># Author: Hankso</span>
+<span class="c1"># Webpage: https://github.com/hankso</span>
+<span class="c1"># Time: Mon 18 Feb 2019 15:25:56 CST</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">ESP32 ADS1299 SPI Buffer API</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c1"># built-in</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Queue</span>
+
+<span class="c1"># requirements.txt: data-processing: numpy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.ads1299_api</span> <span class="k">import</span> <span class="n">ADS1299_API</span><span class="p">,</span> <span class="n">ensure_start</span><span class="p">,</span> <span class="n">SAMPLE_RATE</span><span class="p">,</span> <span class="n">INPUT_SOURCES</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ESP32 Pin mapping</span>
+<span class="c1">#</span>
+<span class="n">PIN_DRDY</span> <span class="o">=</span> <span class="mi">6</span>  <span class="c1"># pin PA06 for esp32 on orangepi zero plus 2</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ESP32 Commands: only used on EmBCI hardware</span>
+<span class="c1">#</span>
+<span class="n">RESET</span>    <span class="o">=</span> <span class="mh">0x06</span>  <span class="c1"># noqa: E221</span>
+<span class="n">START</span>    <span class="o">=</span> <span class="mh">0x08</span>  <span class="c1"># noqa: E221</span>
+<span class="n">STOP</span>     <span class="o">=</span> <span class="mh">0x0A</span>  <span class="c1"># noqa: E221</span>
+<span class="n">RREG</span>     <span class="o">=</span> <span class="mh">0x20</span>  <span class="c1"># noqa: E221</span>
+<span class="n">WREG</span>     <span class="o">=</span> <span class="mh">0x40</span>  <span class="c1"># noqa: E221</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ESP32 Virtual Registers: only used with ESP32 firmware support</span>
+<span class="c1">#</span>
+<span class="n">REG_SR</span>   <span class="o">=</span> <span class="mh">0x50</span>  <span class="c1"># noqa: E221  sample_rate</span>
+<span class="n">REG_IS</span>   <span class="o">=</span> <span class="mh">0x52</span>  <span class="c1"># noqa: E221  input_source</span>
+<span class="n">REG_BIAS</span> <span class="o">=</span> <span class="mh">0x54</span>  <span class="c1"># noqa: E221  enable_bias</span>
+<span class="n">REG_IMP</span>  <span class="o">=</span> <span class="mh">0x56</span>  <span class="c1"># noqa: E221  measure_impedance</span>
+
+
+<span class="k">class</span> <span class="nc">ESP32_API</span><span class="p">(</span><span class="n">ADS1299_API</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Communicator to EmBCI Hardware on-shield ESP32 chip. Drop in replacement</span>
+<span class="sd">    of ADS1299_API. Get source file and compiled firmware for ESP32 at</span>
+<span class="sd">    https://github.com/hankso/EmBCI#Hardware.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    embci.utils.ads1299_api.ADS1299_API</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_batch</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">4.5</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2</span><span class="o">**</span><span class="mi">24</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_batch</span> <span class="o">=</span> <span class="n">n_batch</span>
+
+        <span class="c1"># send `nBatchs * 4Bytes * 8chs` 0x00</span>
+        <span class="c1"># first 4Bytes is reserved for command to control ESP32</span>
+        <span class="c1"># [cmd cmd cmd cmd 0x00 0x00 0x00 0x00 ... 0x00]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tosend</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_batch</span> <span class="o">*</span> <span class="p">[</span><span class="mh">0x00</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">B&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tosend</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cmd_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">ESP32_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_speed_hz</span><span class="o">=</span><span class="mf">12.5e6</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;ESP32 SPI mode set to 0b00 (CPOL=0 &amp; CPHA=0)&#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ESP32_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">max_speed_hz</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Before device power up, all digital and analog inputs must be low.</span>
+<span class="sd">        At the time of power up, keep all of these signals low until the</span>
+<span class="sd">        power supplies have stabilized.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span><span class="p">,</span> <span class="s1">&#39;you need to open a spi device first&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_sample_rate</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ADS1299_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span><span class="o">.</span><span class="n">unregister</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">export</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cmd_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cmd_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tosend</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cmd</span><span class="p">):])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span><span class="p">):</span>
+            <span class="c1"># spidev lib is written in C language, where value of list will be</span>
+            <span class="c1"># changed in-situ. Because we want self._tosend keep as [0x00] * n,</span>
+            <span class="c1"># self._tosend cannot be directly used in self.xfer[2]. Here we</span>
+            <span class="c1"># send a new list created by slicing self._tosend.</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_format</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tosend</span><span class="p">[:]))</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_batch</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_time</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mf">0.9</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_rate</span><span class="p">):</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_buffer</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">byte_array</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ESP32_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">byte_array</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write_register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">byte</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Write register `reg` with value `byte`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">([</span><span class="n">WREG</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">byte</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">write_registers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">byte_array</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Write registers start from `reg` with values `byte_array`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">([</span><span class="n">WREG</span><span class="p">,</span> <span class="n">reg</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">byte_array</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">read_register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Only for compatibility with ADS1299_API. Use ESP32 UART</span>
+<span class="sd">        Command-Line-Interface instead:</span>
+<span class="sd">            `miniterm.py /dev/tty** 115200`</span>
+<span class="sd">        or</span>
+<span class="sd">            `screen /dev/tty** 115200`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">read_registers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Only for compatibility with ADS1299_API. Use ESP32 UART</span>
+<span class="sd">        Command-Line-Interface instead:</span>
+<span class="sd">            `miniterm.py /dev/tty** 115200`</span>
+<span class="sd">        or</span>
+<span class="sd">            `screen /dev/tty** 115200`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">set_sample_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rate</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rate</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SAMPLE_RATE</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[ESP32 API] choose one from supported rate!&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; | &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">SAMPLE_RATE</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_SR</span><span class="p">,</span> <span class="n">SAMPLE_RATE</span><span class="p">[</span><span class="n">rate</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_rate</span> <span class="o">=</span> <span class="n">rate</span>
+        <span class="k">return</span> <span class="n">rate</span>
+
+    <span class="k">def</span> <span class="nf">set_input_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">INPUT_SOURCES</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[ESP32 API] choose one from supported source!&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; | &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">INPUT_SOURCES</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_IS</span><span class="p">,</span> <span class="n">INPUT_SOURCES</span><span class="p">[</span><span class="n">src</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">src</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">enable_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_bias</span>
+
+    <span class="nd">@enable_bias</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">enable_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_BIAS</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">boolean</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_bias</span> <span class="o">=</span> <span class="n">boolean</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">measure_impedance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measure_impedance</span>
+
+    <span class="nd">@measure_impedance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">measure_impedance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_IMP</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">boolean</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_measure_impedance</span> <span class="o">=</span> <span class="n">boolean</span>
+
+
+<span class="c1"># THE END</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

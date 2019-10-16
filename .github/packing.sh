@@ -33,7 +33,7 @@ $GIT checkout gh-pages
 #     --exclude-from=${DIR}/excludes.txt \
 #     --exclude-from=${REPO_PATH}/.gitignore \
 #     ${REPO_PATH}/docs/_build/html/ ${REPO_PATH}/
-cp -Rv ${REPO_PATH}/docs/_build/html/* ${REPO_PATH}/
+cp -av ${REPO_PATH}/docs/_build/html/. ${REPO_PATH}/
 $GIT add . && $GIT commit -m "build documentation for `$GIT tag | tail -n1`"
 $GIT checkout webserver
 # ${GIT} push

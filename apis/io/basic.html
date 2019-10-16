@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Basic I/O functions &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Network IO" href="server.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">I/O</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="readers.html">FIFO Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commanders.html">Misc Commanders</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Basic Input/Output</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-embci.io.base">API</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="server.html">TCP/UDP Server</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">EmBCI Python API</a> &raquo;</li>
+        
+          <li><a href="index.html">I/O API Reference</a> &raquo;</li>
+        
+      <li>Basic I/O functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/apis/io/basic.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="basic-i-o-functions">
+<h1>Basic I/O functions<a class="headerlink" href="#basic-i-o-functions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-embci.io.base">
+<span id="api"></span><h2>API<a class="headerlink" href="#module-embci.io.base" title="Permalink to this headline">¶</a></h2>
+<p>Save and Load Utilities</p>
+<dl class="function">
+<dt id="embci.io.base.create_data_dict">
+<code class="descclassname">embci.io.base.</code><code class="descname">create_data_dict</code><span class="sig-paren">(</span><em>data</em>, <em>label='default'</em>, <em>sample_rate=500</em>, <em>suffix=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#create_data_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.create_data_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a data_dict that can be saved by function <cite>save_trials</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<em>ndarray | array list | instance of mne.Raw</em><em>[</em><em>Array</em><em>] </em><em>| dict</em>) – 1-3d array with a shape of [[num_trial x] num_channel x] window_size</li>
+<li><strong>label</strong> (<em>str</em>) – Action name, data label. Char ‘-‘ is not suggested in label.</li>
+<li><strong>sample_rate</strong> (<em>int</em>) – Sample rate of data, default set to 500Hz.</li>
+<li><strong>suffix</strong> (<em>str</em>) – Currently supported formats are MATLAB-style ‘.mat’(default),
+MNE-style ‘.fif[.gz]’ and raw text ‘.csv’.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>data_dict</strong> – {‘data’: dict, ‘label’: str, ‘sample_rate’: int, …}</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.find_data_info">
+<code class="descclassname">embci.io.base.</code><code class="descname">find_data_info</code><span class="sig-paren">(</span><em>*a</em>, <em>**k</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.base.find_data_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count all saved data files under user’s directory that match a pattern:
+${DIR_DATA}/${username}/${label}-${num}.${suffix}[.gz]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>out</strong> – label_dict, filename_dict and summary string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">find_data_info</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+<span class="go">({</span>
+<span class="go">    &#39;left&#39;: [0, 1, 2, 5, 8, 9, 10],</span>
+<span class="go">    &#39;right&#39;: [2, 3, 4, 5],</span>
+<span class="go">    &#39;thumb_cross&#39;: [1, 2, 3, 4, 5]</span>
+<span class="go">}, {</span>
+<span class="go">    &#39;left&#39;: [&#39;/path/to/left-0.mat&#39;, &#39;/path/to/left-1.fif&#39;, ...],</span>
+<span class="go">    &#39;right&#39;: [&#39;/path/to/right-2.h5&#39;, &#39;/path/to/right-3&#39;, ...],</span>
+<span class="go">    &#39;thumb_cross&#39;: [...]</span>
+<span class="go">}, &#39;There are 3 actions with 16 records.\n&#39;)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.save_trials">
+<code class="descclassname">embci.io.base.</code><code class="descname">save_trials</code><span class="sig-paren">(</span><em>username</em>, <em>data_dict</em>, <em>suffix='mat'</em>, <em>summary=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#save_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.save_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save trials of data into ${DIR_DATA}/${username}/${label}-${num}.${suffix}</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>username</strong> (<em>str</em>) – </li>
+<li><strong>data_dict</strong> (<em>dict</em>) – created by function create_data_dict(data, label, format, sample_rate)</li>
+<li><strong>suffix</strong> (<em>str</em>) – Currently supported formats are MATLAB-style ‘.mat’(default),
+MNE-style ‘.fif[.gz]’ and raw text ‘.csv’. Format setting in
+data_dict will overwrite this argument.</li>
+<li><strong>summary</strong> (<em>bool</em>) – Whether to print summary of currently saved data, default <cite>False</cite>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span> <span class="c1"># 8chs x 4sec x 250Hz data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_trials</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">create_data_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;random_data&#39;</span><span class="p">,</span> <span class="mi">250</span><span class="p">))</span>
+<span class="go">(8, 1000) data saved to ${DIR_DATA}/test/random_data-1.mat</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">raw</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">RawArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mne</span><span class="o">.</span><span class="n">create_info</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">250</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_trials</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">create_data_dict</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;fif.gz&#39;</span><span class="p">))</span>
+<span class="go">(8, 1000) data saved to ${DIR_DATA}/test/default-1.fif.gz</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.save_chunks">
+<code class="descclassname">embci.io.base.</code><code class="descname">save_chunks</code><span class="sig-paren">(</span><em>fn</em>, <em>data_dict</em>, <em>suffix='mat'</em>, <em>append=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#save_chunks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.save_chunks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save chunks of data into ${DIR_DATA}/${username}/${label}-${num}.${suffix}</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fn</strong> (<em>str</em><em> or </em><em>file-like</em>) – </li>
+<li><strong>data_dict</strong> (<em>dict</em>) – created by function create_data_dict(data, label, format, sample_rate)</li>
+<li><strong>suffix</strong> (<em>str</em>) – Currently supported formats are MATLAB-style ‘.mat’(default),
+HDF5-style ‘.h5’ and raw text ‘.csv’. Format setting in
+data_dict will overwrite this argument.</li>
+<li><strong>summary</strong> (<em>bool</em>) – Whether to print summary of currently saved data, default <cite>False</cite>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span> <span class="c1"># 8chs x 4sec x 250Hz data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_trials</span><span class="p">(</span><span class="s1">&#39;./test&#39;</span><span class="p">,</span> <span class="n">create_data_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;random_data&#39;</span><span class="p">,</span> <span class="mi">250</span><span class="p">))</span>
+<span class="go">(8, 1000) data saved to ${DIR_DATA}/test/random_data-1.mat</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">raw</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">RawArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mne</span><span class="o">.</span><span class="n">create_info</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">250</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_trials</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">create_data_dict</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;fif.gz&#39;</span><span class="p">))</span>
+<span class="go">(8, 1000) data saved to ${DIR_DATA}/test/default-1.fif.gz</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.save_action">
+<code class="descclassname">embci.io.base.</code><code class="descname">save_action</code><span class="sig-paren">(</span><em>username, reader, action_list=['relax', 'grab']</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#save_action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.save_action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Guidance on command line interface to save data with label to
+${DIR_DATA}/${username}/${action}-<a href="#id1"><span class="problematic" id="id2">*</span></a>.mat</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>username</strong> (<em>str</em>) – </li>
+<li><strong>reader</strong> (<em>Reader</em>) – Instance of <cite>embci.io.readers.BaseReader</cite>, repersenting a data stream.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.load_data">
+<code class="descclassname">embci.io.base.</code><code class="descname">load_data</code><span class="sig-paren">(</span><em>username</em>, <em>pick=None</em>, <em>summary=True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load all data files under directory ${DIR_DATA}/${username}</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>username</strong> (<em>str</em>) – </li>
+<li><strong>pick</strong> (<em>str | list</em><em> or </em><em>tuple of str | regex pattern | function</em>) – load data files whose label name:
+equal to | inside | match | return True by appling <cite>pick</cite></li>
+<li><strong>summary</strong> (<em>bool</em>) – whether to print summary of currently saved data, default <cite>False</cite>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>out</strong> (<em>tuple</em>) – (data_array, label_list)</li>
+<li><strong>data_array</strong> (<em>ndarray</em>) – 3D array with a shape of n_samples x num_channel x window_size</li>
+<li><strong>label_list</strong> (<em>list</em>) – String list with a length of n_samples. Each element indicate
+label(action name) of corresponding data sample.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">label</span>
+<span class="go">(5, [&#39;default&#39;, &#39;default&#39;, &#39;default&#39;, &#39;right&#39;, &#39;left&#39;])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="n">pick</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">),</span> <span class="n">summary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">There are 3 actions with 5 data recorded.</span>
+<span class="go">  * default        3</span>
+<span class="go">    default-1.fif.gz</span>
+<span class="go">    default-2.fif.gz</span>
+<span class="go">    default-3.mat</span>
+<span class="go">  * right          1</span>
+<span class="go">    right-1.mat</span>
+<span class="go">  * left           1</span>
+<span class="go">    left-1.fif</span>
+<span class="go">There are 2 actions with 2 data loaded.</span>
+<span class="go">  + left           1</span>
+<span class="go">  + right          1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.load_mat">
+<code class="descclassname">embci.io.base.</code><code class="descname">load_mat</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#load_mat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.load_mat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.load_label_data">
+<code class="descclassname">embci.io.base.</code><code class="descname">load_label_data</code><span class="sig-paren">(</span><em>username</em>, <em>label='default'</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#load_label_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.load_label_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load all data files that match ${DIR_DATA}/${username}/${label}-<em>.</em></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>data_list</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="embci.io.base.validate_datafile">
+<code class="descclassname">embci.io.base.</code><code class="descname">validate_datafile</code><span class="sig-paren">(</span><em>username</em>, <em>label='default'</em>, <em>checkname=False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/base.html#validate_datafile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.base.validate_datafile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="server.html" class="btn btn-neutral float-right" title="Network IO" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

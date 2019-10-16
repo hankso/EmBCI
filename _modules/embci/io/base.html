@@ -1,0 +1,748 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>embci.io.base &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>embci.io.base</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for embci.io.base</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># coding=utf-8</span>
+<span class="c1">#</span>
+<span class="c1"># File: EmBCI/embci/io/base.py</span>
+<span class="c1"># Authors: Hank &lt;hankso1106@gmail.com&gt;</span>
+<span class="c1"># Create: 2019-03-16 19:37:41</span>
+
+<span class="sd">&#39;&#39;&#39;Save and Load Utilities&#39;&#39;&#39;</span>
+
+<span class="c1"># built-in</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="c1"># requirements.txt: data: numpy, scipy, mne</span>
+<span class="c1"># requirements.txt: necessary: six</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.io</span>
+<span class="kn">import</span> <span class="nn">mne</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="k">import</span> <span class="n">string_types</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">mkuserdir</span><span class="p">,</span> <span class="n">check_input</span><span class="p">,</span> <span class="n">typename</span><span class="p">,</span> <span class="n">validate_filename</span><span class="p">,</span>
+    <span class="n">TempStream</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..configs</span> <span class="k">import</span> <span class="n">DIR_DATA</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">logger</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;create_data_dict&#39;</span><span class="p">,</span> <span class="s1">&#39;find_data_info&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;save_trials&#39;</span><span class="p">,</span> <span class="s1">&#39;save_chunks&#39;</span><span class="p">,</span> <span class="s1">&#39;save_action&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;load_data&#39;</span><span class="p">,</span> <span class="s1">&#39;load_mat&#39;</span><span class="p">,</span> <span class="s1">&#39;load_label_data&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;validate_datafile&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="n">_name_datafile_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(\w+)-(\d+)\.(\w+)(?:\.gz)?$&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@mkuserdir</span>
+<span class="k">def</span> <span class="nf">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Count all saved data files under user&#39;s directory that match a pattern:</span>
+<span class="sd">    ${DIR_DATA}/${username}/${label}-${num}.${suffix}[.gz]</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : tuple</span>
+<span class="sd">        label_dict, filename_dict and summary string</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; find_data_info(&#39;test&#39;)</span>
+<span class="sd">    ({</span>
+<span class="sd">        &#39;left&#39;: [0, 1, 2, 5, 8, 9, 10],</span>
+<span class="sd">        &#39;right&#39;: [2, 3, 4, 5],</span>
+<span class="sd">        &#39;thumb_cross&#39;: [1, 2, 3, 4, 5]</span>
+<span class="sd">    }, {</span>
+<span class="sd">        &#39;left&#39;: [&#39;/path/to/left-0.mat&#39;, &#39;/path/to/left-1.fif&#39;, ...],</span>
+<span class="sd">        &#39;right&#39;: [&#39;/path/to/right-2.h5&#39;, &#39;/path/to/right-3&#39;, ...],</span>
+<span class="sd">        &#39;thumb_cross&#39;: [...]</span>
+<span class="sd">    }, &#39;There are 3 actions with 16 records.\\n&#39;)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">label_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">name_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_name_datafile_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">label</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">_name_datafile_pattern</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ext</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="s1">&#39;fif&#39;</span><span class="p">,</span> <span class="s1">&#39;h5&#39;</span><span class="p">,</span> <span class="s1">&#39;csv&#39;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">label_dict</span><span class="p">:</span>
+            <span class="n">label_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+            <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">num</span><span class="p">]</span>
+            <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">filename</span><span class="p">]</span>
+    <span class="c1"># construct a neat summary report</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="s1">&#39;There are </span><span class="si">{}</span><span class="s1"> actions with </span><span class="si">{}</span><span class="s1"> data recorded.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">label_dict</span><span class="p">),</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">label_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+    <span class="k">if</span> <span class="n">label_dict</span><span class="p">:</span>
+        <span class="n">maxname</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">fns</span> <span class="ow">in</span> <span class="n">name_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span>
+        <span class="n">summary</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  * &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  * &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">maxname</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">%2d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_dict</span><span class="p">[</span><span class="n">label</span><span class="p">])</span> <span class="o">+</span>
+            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">    &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">    &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">label_dict</span>
+        <span class="p">])</span>
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">name_dict</span><span class="p">:</span>
+        <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">label_dict</span><span class="p">,</span> <span class="n">name_dict</span><span class="p">,</span> <span class="n">summary</span>
+
+
+<div class="viewcode-block" id="validate_datafile"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.validate_datafile">[docs]</a><span class="k">def</span> <span class="nf">validate_datafile</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">checkname</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">checkname</span><span class="p">:</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">validate_filename</span><span class="p">(</span><span class="n">username</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s1">&#39;()[]&#39;</span>
+        <span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">label_dict</span> <span class="o">=</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">label_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">ns</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">num</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">fn</span><span class="p">,</span> <span class="n">username</span></div>
+
+
+<div class="viewcode-block" id="create_data_dict"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.create_data_dict">[docs]</a><span class="k">def</span> <span class="nf">create_data_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">sample_rate</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Create a data_dict that can be saved by function `save_trials`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : ndarray | array list | instance of mne.Raw[Array] | dict</span>
+<span class="sd">        1-3d array with a shape of [[num_trial x] num_channel x] window_size</span>
+<span class="sd">    label : str</span>
+<span class="sd">        Action name, data label. Char &#39;-&#39; is not suggested in label.</span>
+<span class="sd">    sample_rate : int</span>
+<span class="sd">        Sample rate of data, default set to 500Hz.</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        Currently supported formats are MATLAB-style &#39;.mat&#39;(default),</span>
+<span class="sd">        MNE-style &#39;.fif[.gz]&#39; and raw text &#39;.csv&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data_dict : dict</span>
+<span class="sd">        {&#39;data&#39;: dict, &#39;label&#39;: str, &#39;sample_rate&#39;: int, ...}</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">),</span>
+        <span class="s1">&#39;sample_rate&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">),</span>
+        <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="s1">&#39;data&#39;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;suffix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mne</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">BaseRaw</span><span class="p">):</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">info</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;sfreq&#39;</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>  <span class="c1"># num_channel x window_size</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">if</span> <span class="s1">&#39;key&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;array&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;No data key in dict: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">dct</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="n">data_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dct</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Invalid data type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">typename</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Array with too many dimensions: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="n">data_dict</span><span class="p">[</span><span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">data_dict</span></div>
+
+
+<div class="viewcode-block" id="save_trials"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.save_trials">[docs]</a><span class="k">def</span> <span class="nf">save_trials</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Save trials of data into ${DIR_DATA}/${username}/${label}-${num}.${suffix}</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    username : str</span>
+<span class="sd">    data_dict : dict</span>
+<span class="sd">        created by function create_data_dict(data, label, format, sample_rate)</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        Currently supported formats are MATLAB-style &#39;.mat&#39;(default),</span>
+<span class="sd">        MNE-style &#39;.fif[.gz]&#39; and raw text &#39;.csv&#39;. Format setting in</span>
+<span class="sd">        data_dict will overwrite this argument.</span>
+<span class="sd">    summary : bool</span>
+<span class="sd">        Whether to print summary of currently saved data, default `False`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; data = np.random.rand(8, 1000) # 8chs x 4sec x 250Hz data</span>
+<span class="sd">    &gt;&gt;&gt; save_trials(&#39;test&#39;, create_data_dict(data, &#39;random_data&#39;, 250))</span>
+<span class="sd">    (8, 1000) data saved to ${DIR_DATA}/test/random_data-1.mat</span>
+
+<span class="sd">    &gt;&gt;&gt; raw = mne.io.RawArray(data, mne.create_info(8, 250))</span>
+<span class="sd">    &gt;&gt;&gt; save_trials(&#39;test&#39;, create_data_dict(raw, format=&#39;fif.gz&#39;))</span>
+<span class="sd">    (8, 1000) data saved to ${DIR_DATA}/test/default-1.fif.gz</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">label</span>  <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
+        <span class="n">srate</span>  <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">]</span>
+        <span class="n">key</span>    <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;`data_dict` object created by function &#39;</span>
+                        <span class="s1">&#39;`create_data_dict` is preferred.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="n">event</span>  <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">info</span>   <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span>   <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;trial&#39;</span>
+
+    <span class="c1"># function create_data_dict maybe offer mne.Info object</span>
+    <span class="k">if</span> <span class="s1">&#39;fif&#39;</span> <span class="ow">in</span> <span class="n">suffix</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">mne</span><span class="o">.</span><span class="n">Info</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">create_info</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">srate</span><span class="p">)</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">validate_datafile</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">checkname</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">validate_datafile</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">suffix</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;mat&#39;</span><span class="p">:</span>
+                <span class="n">data_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">trial</span>
+                <span class="c1"># TODO: save event channel</span>
+                <span class="n">event</span>
+                <span class="n">scipy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">savemat</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">do_compression</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">trial</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s1">&#39;fif&#39;</span> <span class="ow">in</span> <span class="n">suffix</span><span class="p">:</span>
+                <span class="c1"># mute mne.io.BaseRaw.save info from stdout and stderr</span>
+                <span class="k">with</span> <span class="n">TempStream</span><span class="p">(</span><span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="k">as</span> <span class="n">ts</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">mne</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">RawArray</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">ts</span><span class="o">.</span><span class="n">stderr</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;format `</span><span class="si">%s</span><span class="s1">` is not supported.&#39;</span> <span class="o">%</span> <span class="n">suffix</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;save </span><span class="si">{}</span><span class="s1"> data to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;save </span><span class="si">%s</span><span class="s1"> failed.&#39;</span> <span class="o">%</span> <span class="n">fn</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)[</span><span class="mi">2</span><span class="p">])</span></div>
+
+
+<span class="n">_append_keys</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="save_chunks"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.save_chunks">[docs]</a><span class="k">def</span> <span class="nf">save_chunks</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;mat&#39;</span><span class="p">,</span> <span class="n">append</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Save chunks of data into ${DIR_DATA}/${username}/${label}-${num}.${suffix}</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fn : str or file-like</span>
+<span class="sd">    data_dict : dict</span>
+<span class="sd">        created by function create_data_dict(data, label, format, sample_rate)</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        Currently supported formats are MATLAB-style &#39;.mat&#39;(default),</span>
+<span class="sd">        HDF5-style &#39;.h5&#39; and raw text &#39;.csv&#39;. Format setting in</span>
+<span class="sd">        data_dict will overwrite this argument.</span>
+<span class="sd">    summary : bool</span>
+<span class="sd">        Whether to print summary of currently saved data, default `False`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; data = np.random.rand(8, 1000) # 8chs x 4sec x 250Hz data</span>
+<span class="sd">    &gt;&gt;&gt; save_trials(&#39;./test&#39;, create_data_dict(data, &#39;random_data&#39;, 250))</span>
+<span class="sd">    (8, 1000) data saved to ${DIR_DATA}/test/random_data-1.mat</span>
+
+<span class="sd">    &gt;&gt;&gt; raw = mne.io.RawArray(data, mne.create_info(8, 250))</span>
+<span class="sd">    &gt;&gt;&gt; save_trials(&#39;test&#39;, create_data_dict(raw, format=&#39;fif.gz&#39;))</span>
+<span class="sd">    (8, 1000) data saved to ${DIR_DATA}/test/default-1.fif.gz</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">label</span>  <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+        <span class="n">srate</span>  <span class="o">=</span> <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">]</span>
+        <span class="n">key</span>    <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;`data_dict` object created by function &#39;</span>
+                        <span class="s1">&#39;`create_data_dict` is preferred.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="n">info</span>   <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;info&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span>   <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;chunk&#39;</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">):</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="n">fobj</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;a+b&#39;</span> <span class="k">if</span> <span class="n">append</span> <span class="k">else</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;write&#39;</span><span class="p">):</span>
+        <span class="n">fobj</span><span class="p">,</span> <span class="n">fn</span> <span class="o">=</span> <span class="n">fn</span><span class="p">,</span> <span class="n">fn</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">fobj</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;File object </span><span class="si">%s</span><span class="s1"> has already closed.&#39;</span> <span class="o">%</span> <span class="n">fobj</span><span class="p">)</span>
+        <span class="n">append</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Param `fn` only accepts filename or file-like object&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;mat&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">append</span><span class="p">:</span>
+                <span class="n">data_dict</span> <span class="o">=</span> <span class="n">sort_mat</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">)</span>
+            <span class="n">scipy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">savemat</span><span class="p">(</span><span class="n">fobj</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">do_compression</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;fif&#39;</span> <span class="ow">in</span> <span class="n">suffix</span><span class="p">:</span>
+            <span class="c1"># TODO: append data to fif file</span>
+            <span class="n">info</span><span class="p">,</span> <span class="n">srate</span><span class="p">,</span> <span class="n">label</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;h5&#39;</span><span class="p">:</span>
+            <span class="c1"># TODO: append data to HDF5 file</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">fobj</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;format `</span><span class="si">%s</span><span class="s1">` is not supported.&#39;</span> <span class="o">%</span> <span class="n">suffix</span><span class="p">)</span>
+        <span class="n">fobj</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;save </span><span class="si">{}</span><span class="s1"> data to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">fn</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;save </span><span class="si">%s</span><span class="s1"> failed.&#39;</span> <span class="o">%</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
+            <span class="n">fobj</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fobj</span></div>
+
+
+<span class="k">def</span> <span class="nf">sort_mat</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">fn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_append_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">loadmat</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">ks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ks</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)]</span>
+            <span class="k">del</span> <span class="n">data</span>
+        <span class="n">_append_keys</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ks</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">_append_keys</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">replicate</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">keys</span> <span class="k">if</span> <span class="n">_</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">replicate</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">replicate</span><span class="p">))]</span> <span class="o">=</span> <span class="n">data_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="n">_append_keys</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">data_dict</span>
+
+
+<div class="viewcode-block" id="load_mat"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.load_mat">[docs]</a><span class="k">def</span> <span class="nf">load_mat</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="n">fn</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># file-like object or filename</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">loadmat</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;trial&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;trial&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;raw&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;Data file </span><span class="si">{}</span><span class="s1"> not support&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="s1">&#39;chunk&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dct</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">while</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span><span class="p">:</span>
+                <span class="n">keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">replst</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">_</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">keys</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">_</span><span class="p">)))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">replst</span><span class="p">]</span>
+            <span class="n">dct</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dct</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="k">pass</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;chunk&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s1">&#39;data&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Unrecognized mat file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">dct</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;Data file </span><span class="si">{}</span><span class="s1"> not support&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">))</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;raw&#39;</span>
+    <span class="n">dct</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">dct</span></div>
+
+
+<div class="viewcode-block" id="load_label_data"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.load_label_data">[docs]</a><span class="k">def</span> <span class="nf">load_label_data</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Load all data files that match ${DIR_DATA}/${username}/${label}-*.*</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data_list : list</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">data_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;.gz&#39;</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;mat&#39;</span><span class="p">:</span>
+                <span class="n">dct</span> <span class="o">=</span> <span class="n">load_mat</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="p">[</span><span class="n">dct</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;fif&#39;</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">TempStream</span><span class="p">(</span><span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                    <span class="c1">#  data = mne.io.RawFIF(fn).get_data()</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">mne</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">RawFIF</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">preload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">_data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;format `</span><span class="si">%s</span><span class="s1">` is not supported.&#39;</span> <span class="o">%</span> <span class="n">suffix</span><span class="p">)</span>
+            <span class="n">data_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load </span><span class="si">{}</span><span class="s1"> data from </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Load </span><span class="si">%s</span><span class="s1"> failed.&#39;</span> <span class="o">%</span> <span class="n">fn</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">data_list</span></div>
+
+
+<div class="viewcode-block" id="load_data"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.load_data">[docs]</a><span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">pick</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Load all data files under directory ${DIR_DATA}/${username}</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    username : str</span>
+<span class="sd">    pick : str | list or tuple of str | regex pattern | function</span>
+<span class="sd">        load data files whose label name:</span>
+<span class="sd">        equal to | inside | match | return True by appling `pick`</span>
+<span class="sd">    summary : bool</span>
+<span class="sd">        whether to print summary of currently saved data, default `False`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : tuple</span>
+<span class="sd">        (data_array, label_list)</span>
+<span class="sd">    data_array : ndarray</span>
+<span class="sd">        3D array with a shape of n_samples x num_channel x window_size</span>
+<span class="sd">    label_list : list</span>
+<span class="sd">        String list with a length of n_samples. Each element indicate</span>
+<span class="sd">        label(action name) of corresponding data sample.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; data, label = load_data(&#39;test&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; len(data), label</span>
+<span class="sd">    (5, [&#39;default&#39;, &#39;default&#39;, &#39;default&#39;, &#39;right&#39;, &#39;left&#39;])</span>
+
+<span class="sd">    &gt;&gt;&gt; _, _ = load_data(&#39;test&#39;, pick=(&#39;left&#39;, &#39;right&#39;), summary=True)</span>
+<span class="sd">    There are 3 actions with 5 data recorded.</span>
+<span class="sd">      * default        3</span>
+<span class="sd">        default-1.fif.gz</span>
+<span class="sd">        default-2.fif.gz</span>
+<span class="sd">        default-3.mat</span>
+<span class="sd">      * right          1</span>
+<span class="sd">        right-1.mat</span>
+<span class="sd">      * left           1</span>
+<span class="sd">        left-1.fif</span>
+<span class="sd">    There are 2 actions with 2 data loaded.</span>
+<span class="sd">      + left           1</span>
+<span class="sd">      + right          1</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">filterer</span><span class="p">(</span><span class="n">label</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pick</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">label</span> <span class="o">==</span> <span class="n">pick</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pick</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">pick</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pick</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">_pattern_type</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">pick</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">pick</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">pick</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="c1"># pick labels that match the rule from label_dict</span>
+    <span class="n">label_dict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">filterer</span><span class="p">,</span> <span class="n">label_dict</span><span class="p">))</span>
+
+    <span class="n">data_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">label_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">load_label_data</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="n">data_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">label_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">label</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">There are </span><span class="si">{}</span><span class="s1"> actions with </span><span class="si">{}</span><span class="s1"> data loaded.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_list</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_list</span><span class="p">):</span>
+            <span class="n">maxname</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">6</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  + &#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  + &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="n">label</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">maxname</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">%2d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">label_list</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
+            <span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">msg</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="c1"># data_list: n_samples x (num_channel x window_size)</span>
+    <span class="c1"># label_list: n_samples</span>
+    <span class="k">return</span> <span class="n">data_list</span><span class="p">,</span> <span class="n">label_list</span></div>
+
+
+<div class="viewcode-block" id="save_action"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.save_action">[docs]</a><span class="k">def</span> <span class="nf">save_action</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">action_list</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;relax&#39;</span><span class="p">,</span> <span class="s1">&#39;grab&#39;</span><span class="p">]):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Guidance on command line interface to save data with label to</span>
+<span class="sd">    ${DIR_DATA}/${username}/${action}-*.mat</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    username : str</span>
+<span class="sd">    reader : Reader</span>
+<span class="sd">        Instance of `embci.io.readers.BaseReader`, repersenting a data stream.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;You have to finish each action in </span><span class="si">{}</span><span class="s1"> seconds.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">reader</span><span class="o">.</span><span class="n">sample_time</span><span class="p">))</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">((</span><span class="s1">&#39;How many times would you like to record for each &#39;</span>
+                       <span class="s1">&#39;action?(empty to abort): &#39;</span><span class="p">),</span> <span class="p">{},</span> <span class="n">times</span><span class="o">=</span><span class="mi">999</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">num</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+        <span class="k">return</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    <span class="n">action_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">action</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">validate_filename</span><span class="p">(</span><span class="o">*</span><span class="n">action_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">action</span>
+    <span class="p">]</span>
+    <span class="n">name_list</span> <span class="o">=</span> <span class="n">action_list</span> <span class="o">*</span> <span class="n">num</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">name_list</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">name_list</span><span class="p">:</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">name_list</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;action name: </span><span class="si">%s</span><span class="s1">, start recording in 2s&#39;</span> <span class="o">%</span> <span class="n">action</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Start&#39;</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">sample_time</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Stop&#39;</span><span class="p">)</span>
+        <span class="n">save_trials</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_dict</span><span class="o">=</span><span class="n">create_data_dict</span><span class="p">(</span>
+            <span class="n">reader</span><span class="o">.</span><span class="n">data_frame</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">reader</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<span class="c1"># THE END</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

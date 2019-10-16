@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Network IO &mdash; EmBCI v0.1.4 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../',
+              VERSION:'0.1.4',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../TODO.html">TODO</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+      <li>Network IO</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/apis/io/TCPServer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="network-io">
+<h1>Network IO<a class="headerlink" href="#network-io" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="get-data-from-matlab">
+<h2>Get data from matlab<a class="headerlink" href="#get-data-from-matlab" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Here we use Orange Pi + EmBCI Shield Rev.A7,</li>
+<li>Make sure Orange Pi and your PC are in same LAN,</li>
+<li>Example to fetch data through socket in <cite>Matlab</cite>.</li>
+</ul>
+<div class="code matlab highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span> <span class="n">socket</span> <span class="n">server</span> <span class="n">on</span> <span class="n">orangepi</span> <span class="n">default</span> <span class="n">listen</span> <span class="n">on</span> <span class="n">port</span> <span class="mf">9999.</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">tcpclient</span><span class="p">(</span><span class="s1">&#39;192.168.10.10&#39;</span><span class="p">,</span> <span class="mi">9999</span><span class="p">)</span>
+
+<span class="o">%</span> <span class="mi">8</span><span class="o">-</span><span class="n">channel</span> <span class="n">float32</span> <span class="n">data</span> <span class="o">--&gt;</span> <span class="mi">8</span><span class="n">_ch</span> <span class="o">*</span> <span class="mi">32</span><span class="n">_bits</span> <span class="o">/</span> <span class="mi">8</span><span class="n">_bits</span> <span class="o">=</span> <span class="mi">32</span> <span class="nb">bytes</span> <span class="n">data</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+
+<span class="o">%</span> <span class="n">unpack</span> <span class="nb">bytes</span> <span class="n">into</span> <span class="n">float32</span><span class="p">(</span><span class="n">single</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">typecast</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;single&#39;</span><span class="p">)</span>
+
+<span class="o">%</span> <span class="n">data</span> <span class="ow">is</span> <span class="mi">1</span><span class="n">x8</span> <span class="n">vector</span>
+<span class="n">data</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-data-with-reader">
+<h2>Get data with Reader<a class="headerlink" href="#get-data-with-reader" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>EmBCI python package provide two network data reader:</dt>
+<dd><ul class="first last">
+<li><cite>embci.io.SocketTCPReader</cite></li>
+<li><cite>embci.io.SocketUDPReader</cite></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li>Example to fetch data through socket in <cite>Python</cite>.</li>
+</ul>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">embci</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">500</span>  <span class="c1"># this has to match sample rate of out data stream</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample_time</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># buffer 2 seconds of data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">num_channel</span> <span class="o">=</span> <span class="mi">8</span>  <span class="c1"># if out data stream only provide 6 channels, change it</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">embci</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">SocketTCPReader</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="go">Please input an address in format &quot;host,port&quot;.</span>
+<span class="go">Type `quit` to abort.</span>
+<span class="go">&gt; 192.168.0.1:8888 (example)</span>
+<span class="go">&gt; 10.0.0.1:80</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span>
+<span class="go">&lt;started - Socket TCP Reader 1: 500Hz, 8chs, 2.0sec, at 0xdeadbeef&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

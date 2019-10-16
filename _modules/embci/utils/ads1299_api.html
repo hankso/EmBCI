@@ -1,0 +1,607 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>embci.utils.ads1299_api &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../utils.html">embci.utils</a> &raquo;</li>
+        
+      <li>embci.utils.ads1299_api</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for embci.utils.ads1299_api</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1">#</span>
+<span class="c1"># File: EmBCI/embci/utils/ads1299_api.py</span>
+<span class="c1"># Author: Hankso</span>
+<span class="c1"># Webpage: https://github.com/hankso</span>
+<span class="c1"># Time: Wed 23 May 2018 02:16:40 CST</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">ADS1299 API</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c1"># built-in</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">select</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Lock</span>
+
+<span class="c1"># requirements.txt: necessary: decorator</span>
+<span class="c1"># requirements.txt: data-processing: numpy</span>
+<span class="c1"># requirements.txt: drivers: spidev, gpio4</span>
+<span class="kn">import</span> <span class="nn">spidev</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">gpio4</span> <span class="k">import</span> <span class="n">SysfsGPIO</span>
+<span class="kn">from</span> <span class="nn">decorator</span> <span class="k">import</span> <span class="n">decorator</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ADS1299 Pin mapping</span>
+<span class="c1">#</span>
+<span class="c1"># PIN_PWRDN = 2  # pin PA02</span>
+<span class="c1"># PIN_START = 3  # pin PA03</span>
+<span class="n">PIN_DRDY</span> <span class="o">=</span> <span class="mi">6</span>  <span class="c1"># pin PA06 only for ads1299 direct connection</span>
+<span class="c1"># PIN_RESET = 7  # pin PA07</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ADS1299 Registers</span>
+<span class="c1">#</span>
+<span class="n">REG_CONFIG1</span>     <span class="o">=</span> <span class="mh">0x01</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_CONFIG2</span>     <span class="o">=</span> <span class="mh">0x02</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_CONFIG3</span>     <span class="o">=</span> <span class="mh">0x03</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_CHnSET_BASE</span> <span class="o">=</span> <span class="mh">0x05</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_BIAS_SENSP</span>  <span class="o">=</span> <span class="mh">0x0D</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_BIAS_SENSN</span>  <span class="o">=</span> <span class="mh">0x0E</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_LOFF_SENSP</span>  <span class="o">=</span> <span class="mh">0x0F</span>  <span class="c1"># noqa: E221</span>
+<span class="n">REG_MISC</span>        <span class="o">=</span> <span class="mh">0x15</span>  <span class="c1"># noqa: E221</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># ADS1299 Commands</span>
+<span class="c1">#</span>
+<span class="n">WAKEUP</span>          <span class="o">=</span> <span class="mh">0x02</span>  <span class="c1"># noqa: E221</span>
+<span class="n">STANDBY</span>         <span class="o">=</span> <span class="mh">0x04</span>  <span class="c1"># noqa: E221</span>
+<span class="n">RESET</span>           <span class="o">=</span> <span class="mh">0x06</span>  <span class="c1"># noqa: E221</span>
+<span class="n">START</span>           <span class="o">=</span> <span class="mh">0x08</span>  <span class="c1"># noqa: E221</span>
+<span class="n">STOP</span>            <span class="o">=</span> <span class="mh">0x0A</span>  <span class="c1"># noqa: E221</span>
+<span class="n">RDATAC</span>          <span class="o">=</span> <span class="mh">0x10</span>  <span class="c1"># noqa: E221</span>
+<span class="n">SDATAC</span>          <span class="o">=</span> <span class="mh">0x11</span>  <span class="c1"># noqa: E221</span>
+<span class="n">RDATA</span>           <span class="o">=</span> <span class="mh">0x12</span>  <span class="c1"># noqa: E221</span>
+<span class="n">RREG</span>            <span class="o">=</span> <span class="mh">0x20</span>  <span class="c1"># noqa: E221</span>
+<span class="n">WREG</span>            <span class="o">=</span> <span class="mh">0x40</span>  <span class="c1"># noqa: E221</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Contants</span>
+<span class="c1">#</span>
+<span class="c1"># ADS1299 Sample data rate dict, set REG_CONFIG1 to this value</span>
+<span class="n">SAMPLE_RATE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">250</span><span class="p">:</span>        <span class="mb">0b110</span><span class="p">,</span>
+    <span class="mi">500</span><span class="p">:</span>        <span class="mb">0b101</span><span class="p">,</span>
+    <span class="mi">1000</span><span class="p">:</span>       <span class="mb">0b100</span><span class="p">,</span>
+    <span class="mi">2000</span><span class="p">:</span>       <span class="mb">0b011</span><span class="p">,</span>
+    <span class="mi">4000</span><span class="p">:</span>       <span class="mb">0b010</span><span class="p">,</span>
+    <span class="mi">8000</span><span class="p">:</span>       <span class="mb">0b001</span><span class="p">,</span>
+    <span class="mi">16000</span><span class="p">:</span>      <span class="mb">0b000</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># ADS1299 channel data input sources</span>
+<span class="n">INPUT_SOURCES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;normal&#39;</span><span class="p">:</span>   <span class="mb">0b000</span><span class="p">,</span>
+    <span class="s1">&#39;shorted&#39;</span><span class="p">:</span>  <span class="mb">0b001</span><span class="p">,</span>
+    <span class="s1">&#39;mvdd&#39;</span><span class="p">:</span>     <span class="mb">0b011</span><span class="p">,</span>
+    <span class="s1">&#39;temper&#39;</span><span class="p">:</span>   <span class="mb">0b100</span><span class="p">,</span>
+    <span class="s1">&#39;test&#39;</span><span class="p">:</span>     <span class="mb">0b101</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># OrangePi supported spidev max_speed_hz: 100MHz divided by 1, 2, 3, ... n</span>
+<span class="n">SUGGESTED_MSH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">([</span>
+    <span class="mf">100e6</span><span class="p">,</span> <span class="mf">50e6</span><span class="p">,</span> <span class="mf">33.33e6</span><span class="p">,</span> <span class="mf">25e6</span><span class="p">,</span> <span class="mf">20e6</span><span class="p">,</span> <span class="mf">12.5e6</span><span class="p">,</span> <span class="mf">11.11e6</span><span class="p">,</span> <span class="mf">10e6</span><span class="p">,</span>
+    <span class="mf">5e6</span><span class="p">,</span> <span class="mf">4e6</span><span class="p">,</span> <span class="mf">3.33e6</span><span class="p">,</span> <span class="mf">3.03e6</span><span class="p">,</span> <span class="mf">2.5e6</span><span class="p">,</span> <span class="mf">2e6</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span>
+    <span class="mf">8e5</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">,</span> <span class="mf">4e5</span><span class="p">,</span> <span class="mf">3.33e5</span><span class="p">,</span> <span class="mf">2.5e5</span><span class="p">,</span> <span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e5</span>
+<span class="p">])</span>
+
+
+<span class="nd">@decorator</span>
+<span class="k">def</span> <span class="nf">ensure_start</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span>
+    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ADS1299_API</span><span class="p">(</span><span class="n">spidev</span><span class="o">.</span><span class="n">SpiDev</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    There is a module named RaspberryPiADS1299 to communicate with ADS1299</span>
+<span class="sd">    within Python through spidev. But it is not well written. Actually it&#39;s</span>
+<span class="sd">    un-pythonic at all. Hard to understand, hard to use.</span>
+<span class="sd">    So I rewrite it with spidev and SysfsGPIO(Unlike RPi.GPIO, SysfsGPIO</span>
+<span class="sd">    works on both RaspberryPI, BananaPi, OrangePi and any hardware running</span>
+<span class="sd">    Linux, theoretically).</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    open: open device</span>
+<span class="sd">    start: start Read DATA Continuously mode, you must call open first</span>
+<span class="sd">    close: close device</span>
+<span class="sd">    read_raw: return raw 8-channel * 3 = 24 bytes data</span>
+<span class="sd">    read: return parsed np.ndarray data with shape of (8,)</span>
+<span class="sd">    write: transfer bytes list to ads1299</span>
+<span class="sd">    write_register: write one register with index and value</span>
+<span class="sd">    write_registers: write series registers with start index and values</span>
+<span class="sd">    set_input_source: choose one source from available:</span>
+<span class="sd">        normal: normal electrode input</span>
+<span class="sd">        shorted: input shorted, to measure noise</span>
+<span class="sd">        MVDD: supply measurement</span>
+<span class="sd">        temper: temperature sensor</span>
+<span class="sd">        test: test signal(internal or external generated test square wave)</span>
+<span class="sd">    set_sample_rate: 250 | 500 | 1k | 2k | 4k | 8k | 16k Hz</span>
+<span class="sd">    measure_impedance: property, set it to True or False</span>
+<span class="sd">    enable_bias: property, set it to True or False</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    First establish connection to ADS1299 @ /dev/spi0.0, sample rate is 1kHz</span>
+<span class="sd">    &gt;&gt;&gt; ads = ADS1299_API()</span>
+<span class="sd">    &gt;&gt;&gt; ads.open((0, 0))</span>
+<span class="sd">    &gt;&gt;&gt; ads.start(1000)</span>
+<span class="sd">    &gt;&gt;&gt; ads.measure_impedance</span>
+<span class="sd">    False</span>
+<span class="sd">    &gt;&gt;&gt; ads.read()</span>
+<span class="sd">    array([1.234e-3, ...])  # raw data</span>
+
+<span class="sd">    Then you can set to measure impedance mode.</span>
+<span class="sd">    &gt;&gt;&gt; ads.measure_impedance = True</span>
+<span class="sd">    &gt;&gt;&gt; ads.read()</span>
+<span class="sd">    array([1.234, ...])  # this will return impedance value of each channel</span>
+
+<span class="sd">    Attention</span>
+<span class="sd">    ---------</span>
+<span class="sd">    Ads1299 accept data from DIN at raising edge and transfer data out from</span>
+<span class="sd">    DOUT to OrangePi at falling edge. Set SPI mode to 0b10 (CPOL=1 &amp; CPHA=0)</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Because ADS1299_API inherits spidev.SpiDev, methods list of instance may be</span>
+<span class="sd">    pretty confusing, you can compare them by following table:</span>
+<span class="sd">        ADS1299_API                     | spidev.SpiDev</span>
+<span class="sd">        --------------------------------+-------------------------------------</span>
+<span class="sd">        open(device, max_speed_hz)      | open(bus, device)</span>
+<span class="sd">        start(sample_rate)              | max_speed_hz = 1e6</span>
+<span class="sd">        close()                         | close()</span>
+<span class="sd">        read()                          | readbytes(len)</span>
+<span class="sd">        write(byte_array)               | writebytes(byte_array)</span>
+<span class="sd">        read_register(reg)              | bits_per_word = 8</span>
+<span class="sd">        read_registers(reg, num)        | mode = 0 # number in [0, 1, 2, 3]</span>
+<span class="sd">        write_register(reg, byte)       | xfer(byte_array)</span>
+<span class="sd">        write_registers(reg, byte_array)| xfer2(byte_array)</span>
+<span class="sd">        set_sample_rate(rate)           | cshigh = True | False</span>
+<span class="sd">        set_input_source(src)           | threewire = True | False</span>
+<span class="sd">        enable_bias = True | False      | loop = True | False</span>
+<span class="sd">        measure_impedance = True | False| lsbfirst = True | False</span>
+<span class="sd">                                        | fileno</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">4.5</span><span class="o">/</span><span class="mi">24</span><span class="o">/</span><span class="mi">2</span><span class="o">**</span><span class="mi">24</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span> <span class="o">=</span> <span class="n">SysfsGPIO</span><span class="p">(</span><span class="n">PIN_DRDY</span><span class="p">)</span>
+        <span class="c1"># self._PWRDN = SysfsGPIO(PIN_PWRDN)</span>
+        <span class="c1"># self._RESET = SysfsGPIO(PIN_RESET)</span>
+        <span class="c1"># self._START = SysfsGPIO(PIN_START)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_bias</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_measure_impedance</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_speed_hz</span><span class="o">=</span><span class="mi">12500000</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        connect to user space SPI interface `/dev/spidev*.*`</span>
+<span class="sd">        param `dev` must be tuple/list, e.g. (1, 0) means `/dev/spidev1.0`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span><span class="p">,</span> <span class="s1">&#39;already used spidev</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_dev</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ADS1299_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dev</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dev</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">msh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_speed_hz</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">msh</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUGGESTED_MSH</span><span class="p">:</span>
+            <span class="n">msh</span> <span class="o">=</span> <span class="n">SUGGESTED_MSH</span><span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">SUGGESTED_MSH</span> <span class="o">-</span> <span class="n">max_speed_hz</span><span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[ADS1299 API] max speed of spidev set to </span><span class="si">%d</span><span class="s1">Hz&#39;</span> <span class="o">%</span> <span class="n">msh</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_speed_hz</span> <span class="o">=</span> <span class="n">msh</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dev</span> <span class="o">=</span> <span class="n">dev</span>
+        <span class="c1"># self._START.export = True</span>
+        <span class="c1"># self._START.direction = &#39;out&#39;</span>
+        <span class="c1"># self._START.value = 0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">export</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="s1">&#39;in&#39;</span>
+
+        <span class="c1"># TODO: bugfix</span>
+        <span class="c1"># a SysfsGPIO must be read at least once first then it can be polled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">edge</span> <span class="o">=</span> <span class="s1">&#39;falling&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span> <span class="o">=</span> <span class="n">select</span><span class="o">.</span><span class="n">epoll</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="p">,</span> <span class="n">select</span><span class="o">.</span><span class="n">EPOLLET</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Before device power up, all digital and analog inputs must be low.</span>
+<span class="sd">        At the time of power up, keep all of these signals low until the</span>
+<span class="sd">        power supplies have stabilized.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span><span class="p">,</span> <span class="s1">&#39;you need to open a spi device first&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1">#</span>
+        <span class="c1"># Power Up</span>
+        <span class="c1">#</span>
+        <span class="c1"># self._PWRDN.value=1  # we pull it up to high on PCB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RESET</span><span class="p">)</span>  <span class="c1"># self._RESET.value=1</span>
+        <span class="c1"># wait for tPOR(2**18 * 666.0 / 1e9 = 0.1746) and tBG(assume 0.83)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.17</span> <span class="o">+</span> <span class="mf">0.83</span><span class="p">)</span>
+        <span class="c1"># Device wakes up at RDATAC mode. Send SDATAC then config registers.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+
+        <span class="c1">#</span>
+        <span class="c1"># Configure Registers</span>
+        <span class="c1">#</span>
+        <span class="c1"># common setting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG1</span><span class="p">,</span> <span class="mb">0b10010000</span> <span class="o">|</span> <span class="n">SAMPLE_RATE</span><span class="p">[</span><span class="n">sample_rate</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG2</span><span class="p">,</span> <span class="mb">0b11010000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG3</span><span class="p">,</span> <span class="mb">0b11100000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_MISC</span><span class="p">,</span> <span class="mb">0b00100000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="p">[</span><span class="mb">0b01100000</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">START</span><span class="p">)</span>  <span class="c1"># self._START.value = 1</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1">#</span>
+        <span class="c1"># Start Streaming Data</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">STOP</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ADS1299_API</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span><span class="o">.</span><span class="n">unregister</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DRDY</span><span class="o">.</span><span class="n">export</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># self._START.export = False</span>
+        <span class="c1"># self._PWRDN.export = False</span>
+        <span class="c1"># self._RESET.export = False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opened</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">set_sample_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rate</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rate</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SAMPLE_RATE</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[ADS1299 API] choose one from supported rate!&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; | &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">SAMPLE_RATE</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+            <span class="k">return</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="n">SAMPLE_RATE</span><span class="p">[</span><span class="n">rate</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_register</span><span class="p">(</span><span class="n">REG_CONFIG1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG1</span><span class="p">,</span> <span class="n">v</span> <span class="o">&amp;</span> <span class="o">~</span><span class="mb">0b111</span> <span class="o">|</span> <span class="n">rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rate</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">set_input_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">src</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">INPUT_SOURCES</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[ADS1299 API] choose one from supported source!&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; | &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">INPUT_SOURCES</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+            <span class="k">return</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">INPUT_SOURCES</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="n">vs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="n">vs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">v</span> <span class="o">&amp;</span> <span class="o">~</span><span class="mb">0b111</span> <span class="o">|</span> <span class="n">src</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="n">vs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">src</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">enable_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enable_bias</span>
+
+    <span class="nd">@enable_bias</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">enable_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">boolean</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_BIAS_SENSP</span><span class="p">,</span> <span class="mb">0b11111111</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_BIAS_SENSN</span><span class="p">,</span> <span class="mb">0b11111111</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG3</span><span class="p">,</span> <span class="mb">0b11101100</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">boolean</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_BIAS_SENSP</span><span class="p">,</span> <span class="mb">0b00000000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_BIAS_SENSN</span><span class="p">,</span> <span class="mb">0b00000000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_CONFIG3</span><span class="p">,</span> <span class="mb">0b11100000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_enable_bias</span> <span class="o">=</span> <span class="n">boolean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">measure_impedance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measure_impedance</span>
+
+    <span class="nd">@measure_impedance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">measure_impedance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">boolean</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="n">vs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="n">vs</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="mb">0b111</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">boolean</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_LOFF_SENSP</span><span class="p">,</span> <span class="mb">0b11111111</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="n">vs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">boolean</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_register</span><span class="p">(</span><span class="n">REG_LOFF_SENSP</span><span class="p">,</span> <span class="mb">0b00000000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_registers</span><span class="p">(</span><span class="n">REG_CHnSET_BASE</span><span class="p">,</span> <span class="p">[</span><span class="n">v</span> <span class="o">|</span> <span class="mb">0b110</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_measure_impedance</span> <span class="o">=</span> <span class="n">boolean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read chunk bytes from ADS1299 and decode into `float32` array&#39;&#39;&#39;</span>
+        <span class="c1"># ======================================================================</span>
+        <span class="c1"># method No.1</span>
+        <span class="c1"># ======================================================================</span>
+        <span class="c1"># while (time.time() - self.last_time) &lt; 1.0 / self.sample_rate:</span>
+        <span class="c1">#     time.sleep(0)</span>
+        <span class="c1"># self.last_time = time.time()</span>
+
+        <span class="c1"># ======================================================================</span>
+        <span class="c1"># method No.2</span>
+        <span class="c1"># ======================================================================</span>
+        <span class="c1"># while self._DRDY.value == 1:</span>
+        <span class="c1">#     time.sleep(0)</span>
+
+        <span class="c1"># ======================================================================</span>
+        <span class="c1"># method No.3</span>
+        <span class="c1"># ======================================================================</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epoll</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>  <span class="c1"># this will block until interrupt on DRDY detected</span>
+
+        <span class="n">num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">([</span><span class="mh">0x00</span><span class="p">]</span> <span class="o">*</span> <span class="mi">27</span><span class="p">)[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="n">byte</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+            <span class="c1"># tmp = chr(num[3 * i + 2]) + chr(num[3 * i + 1]) + chr(num[3 * i])</span>
+            <span class="c1"># use time: 4.3us</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;3B&#39;</span><span class="p">,</span> <span class="n">num</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">],</span> <span class="n">num</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span><span class="p">])</span>
+            <span class="c1"># use time: 1.3us</span>
+            <span class="n">byte</span> <span class="o">+=</span> <span class="n">tmp</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\xff</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">num</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">127</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">byte</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">byte_array</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Write bytes array to ADS1299 through SPI and return value list.&#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">byte_array</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">byte_array</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">byte_array</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xfer2</span><span class="p">(</span><span class="n">byte_array</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">write_register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">byte</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Write register `reg` with value `byte`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">([</span><span class="n">reg</span> <span class="o">|</span> <span class="n">WREG</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">,</span> <span class="n">byte</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">write_registers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">byte_array</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Write registers start from `reg` with values `byte_array`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">([</span><span class="n">reg</span> <span class="o">|</span> <span class="n">WREG</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">byte_array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">byte_array</span><span class="p">)</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">read_register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read single register at `reg`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">([</span><span class="n">RREG</span> <span class="o">|</span> <span class="n">reg</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">])[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nd">@ensure_start</span>
+    <span class="k">def</span> <span class="nf">read_registers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Read `num` registers start from `reg`&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SDATAC</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">([</span><span class="n">RREG</span> <span class="o">|</span> <span class="n">reg</span><span class="p">,</span> <span class="n">num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">RDATAC</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="c1"># THE END</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

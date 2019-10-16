@@ -1,0 +1,936 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Commanders &mdash; EmBCI v0.2.2 User Guide</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../',
+              VERSION:'0.2.2',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> EmBCI
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Get Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">Get Started 中文</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">I/O</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="readers.html">FIFO Readers</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Misc Commanders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-embci.io.commanders">API</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html">Basic Input/Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="server.html">TCP/UDP Server</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Configurations.html">Configurations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Copyrights.html">Copyrights</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../TODO.html">TODOs</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EmBCI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">EmBCI Python API</a> &raquo;</li>
+        
+          <li><a href="index.html">I/O API Reference</a> &raquo;</li>
+        
+      <li>Commanders</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/apis/io/commanders.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="commanders">
+<h1>Commanders<a class="headerlink" href="#commanders" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-embci.io.commanders">
+<span id="api"></span><h2>API<a class="headerlink" href="#module-embci.io.commanders" title="Permalink to this headline">¶</a></h2>
+<p>Commanders</p>
+<dl class="class">
+<dt id="embci.io.commanders.TorcsCommander">
+<em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">TorcsCommander</code><span class="sig-paren">(</span><em>*a</em>, <em>**k</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#TorcsCommander"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.TorcsCommander" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send command to TORCS (The Open Race Car Simulator)
+You can output predict result from classifier to the
+game to control race car(left, right, throttle, brake…)</p>
+<p class="rubric">Methods</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>flush</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>get_command</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>read</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>seek</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>send</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>start</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>tell</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>truncate</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#TorcsCommander.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.TorcsCommander.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.get_command">
+<code class="descname">get_command</code><span class="sig-paren">(</span><em>cmd</em>, <em>warning=True</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.get_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.TorcsCommander.name">
+<code class="descname">name</code><em class="property"> = '[embci.io.Commander]'</em><a class="headerlink" href="#embci.io.commanders.TorcsCommander.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.read">
+<code class="descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.seek">
+<code class="descname">seek</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.seek" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>key</em>, <em>prob</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#TorcsCommander.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.TorcsCommander.send" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.start">
+<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#TorcsCommander.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.TorcsCommander.start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.tell">
+<code class="descname">tell</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.tell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.TorcsCommander.truncate">
+<code class="descname">truncate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.TorcsCommander.truncate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="embci.io.commanders.PlaneCommander">
+<em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">PlaneCommander</code><span class="sig-paren">(</span><em>command_dict={'_desc': 'plane war game support command:ntleft, right, up, down, disconnect', 'disconnect': ['9', 0.5], 'down': ['2', 0.5], 'left': ['3', 0.5], 'right': ['4', 0.5], 'up': ['1', 0.5]}</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#PlaneCommander"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.PlaneCommander" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send command to plane war game. Control plane with commands
+[<cite>left</cite>, <cite>right</cite>, <cite>up</cite> and <cite>down</cite>].</p>
+<p class="rubric">Methods</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>flush</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>get_command</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>read</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>seek</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>send</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>start</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>tell</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>truncate</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#PlaneCommander.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.PlaneCommander.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.get_command">
+<code class="descname">get_command</code><span class="sig-paren">(</span><em>cmd</em>, <em>warning=True</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.get_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.PlaneCommander.name">
+<code class="descname">name</code><em class="property"> = '[Plane commander]'</em><a class="headerlink" href="#embci.io.commanders.PlaneCommander.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.read">
+<code class="descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.seek">
+<code class="descname">seek</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.seek" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>key</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#PlaneCommander.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.PlaneCommander.send" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.start">
+<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#PlaneCommander.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.PlaneCommander.start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.tell">
+<code class="descname">tell</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.tell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.PlaneCommander.truncate">
+<code class="descname">truncate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.PlaneCommander.truncate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="embci.io.commanders.LSLCommander">
+<em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">LSLCommander</code><span class="sig-paren">(</span><em>command_dict=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#LSLCommander"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.LSLCommander" title="Permalink to this definition">¶</a></dt>
+<dd><p>Broadcast string[s] by pylsl.StreamOutlet as an online command stream.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.commanders.LSLCommander.start" title="embci.io.commanders.LSLCommander.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([name,&nbsp;source])</td>
+<td>Initialize and start pylsl outlet.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>flush</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>get_command</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>read</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>seek</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>send</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>tell</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>truncate</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#LSLCommander.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.LSLCommander.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.get_command">
+<code class="descname">get_command</code><span class="sig-paren">(</span><em>cmd</em>, <em>warning=True</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.get_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.LSLCommander.name">
+<code class="descname">name</code><em class="property"> = '[embci.io.Commander]'</em><a class="headerlink" href="#embci.io.commanders.LSLCommander.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.read">
+<code class="descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.seek">
+<code class="descname">seek</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.seek" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>key</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#LSLCommander.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.LSLCommander.send" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.start">
+<code class="descname">start</code><span class="sig-paren">(</span><em>name=None</em>, <em>source=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#LSLCommander.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.LSLCommander.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize and start pylsl outlet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Name describes the data stream or session name.</li>
+<li><strong>source</strong> (<em>str</em>) – Source specifies an unique identifier of the device or
+data generator, such as serial number or MAC.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">LSLCommander</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;pylsl commander 2&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="s1">&#39;result of recognition&#39;</span><span class="p">,</span> <span class="s1">&#39;EmBCI Hardware Re.A7.1221&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylsl</span><span class="o">.</span><span class="n">resolve_bypred</span><span class="p">(</span><span class="s2">&quot;contains(&#39;recognition&#39;)&quot;</span><span class="p">)</span>
+<span class="go">[&lt;pylsl.pylsl.StreamInfo instance at 0x7f3e82d8c3b0&gt;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.tell">
+<code class="descname">tell</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.tell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.LSLCommander.truncate">
+<code class="descname">truncate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.LSLCommander.truncate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="embci.io.commanders.SerialCommander">
+<em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">SerialCommander</code><span class="sig-paren">(</span><em>command_dict=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SerialCommander"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SerialCommander" title="Permalink to this definition">¶</a></dt>
+<dd><p class="rubric">Methods</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="60%" />
+<col width="40%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>flush</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>get_command</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>read</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>reconnect</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>seek</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>send</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>start</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>tell</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>truncate</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SerialCommander.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SerialCommander.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.get_command">
+<code class="descname">get_command</code><span class="sig-paren">(</span><em>cmd</em>, <em>warning=True</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.get_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SerialCommander.name">
+<code class="descname">name</code><em class="property"> = '[embci.io.Commander]'</em><a class="headerlink" href="#embci.io.commanders.SerialCommander.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.read">
+<code class="descname">read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.reconnect">
+<code class="descname">reconnect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SerialCommander.reconnect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SerialCommander.reconnect" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.seek">
+<code class="descname">seek</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.seek" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>key</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SerialCommander.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SerialCommander.send" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.start">
+<code class="descname">start</code><span class="sig-paren">(</span><em>port=None</em>, <em>baudrate=9600</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SerialCommander.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SerialCommander.start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.tell">
+<code class="descname">tell</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.tell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SerialCommander.truncate">
+<code class="descname">truncate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SerialCommander.truncate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="embci.io.commanders.SocketTCPServer">
+<em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">SocketTCPServer</code><span class="sig-paren">(</span><em>host='0.0.0.0'</em>, <em>port=0</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Socket TCP server on host:port, default to 0.0.0.0:0
+Data sender.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.daemon" title="embci.io.commanders.SocketTCPServer.daemon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">daemon</span></code></a></dt>
+<dd><p class="first last">A boolean value indicating whether this thread is a daemon thread (True) or not (False).</p>
+</dd>
+<dt><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.ident" title="embci.io.commanders.SocketTCPServer.ident"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ident</span></code></a></dt>
+<dd><p class="first last">Thread identifier of this thread or None if it has not been started.</p>
+</dd>
+<dt><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.name" title="embci.io.commanders.SocketTCPServer.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code></a></dt>
+<dd><p class="first last">A string used for identification purposes only.</p>
+</dd>
+<dt><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.started" title="embci.io.commanders.SocketTCPServer.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
+<dd><p class="first last">Started of the loopTask is read-only</p>
+</dd>
+<dt><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.status" title="embci.io.commanders.SocketTCPServer.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
+<dd><p class="first last">Status of the loopTask is read-only</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.isAlive" title="embci.io.commanders.SocketTCPServer.isAlive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">isAlive</span></code></a>()</td>
+<td>Return whether the thread is alive.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.is_alive" title="embci.io.commanders.SocketTCPServer.is_alive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_alive</span></code></a>()</td>
+<td>Return whether the thread is alive.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.join" title="embci.io.commanders.SocketTCPServer.join"><code class="xref py py-obj docutils literal notranslate"><span class="pre">join</span></code></a>([timeout])</td>
+<td>Wait until the thread terminates.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.loop_after" title="embci.io.commanders.SocketTCPServer.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<td>Hook function executed inside self.loop after loop task.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="server.html#embci.io.commanders.SocketTCPServer.loop_before" title="embci.io.commanders.SocketTCPServer.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<td>Hook function executed inside self.loop before loop task.</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="63%" />
+<col width="37%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><strong>add</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>getName</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>getaddr</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>has_listeners</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>isDaemon</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>loop</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>multicast</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>pause</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>restart</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>resume</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>run</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>send</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>setDaemon</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>setName</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>start</strong></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>sock</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SocketTCPServer.daemon">
+<code class="descname">daemon</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.daemon" title="Permalink to this definition">¶</a></dt>
+<dd><p>A boolean value indicating whether this thread is a daemon thread (True) or not (False).</p>
+<p>This must be set before start() is called, otherwise RuntimeError is
+raised. Its initial value is inherited from the creating thread; the
+main thread is not a daemon thread and therefore all threads created in
+the main thread default to daemon = False.</p>
+<p>The entire Python program exits when no alive non-daemon threads are
+left.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.getName">
+<code class="descname">getName</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.getName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.getaddr">
+<code class="descname">getaddr</code><span class="sig-paren">(</span><em>sock</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.getaddr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.getaddr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.has_listeners">
+<code class="descname">has_listeners</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.has_listeners"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.has_listeners" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SocketTCPServer.ident">
+<code class="descname">ident</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.ident" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread identifier of this thread or None if it has not been started.</p>
+<p>This is a nonzero integer. See the thread.get_ident() function. Thread
+identifiers may be recycled when a thread exits and another thread is
+created. The identifier is available even after the thread has exited.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.isAlive">
+<code class="descname">isAlive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.isAlive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the thread is alive.</p>
+<p>This method returns True just before the run() method starts until just
+after the run() method terminates. The module function enumerate()
+returns a list of all alive threads.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.isDaemon">
+<code class="descname">isDaemon</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.isDaemon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.is_alive">
+<code class="descname">is_alive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.is_alive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the thread is alive.</p>
+<p>This method returns True just before the run() method starts until just
+after the run() method terminates. The module function enumerate()
+returns a list of all alive threads.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.join">
+<code class="descname">join</code><span class="sig-paren">(</span><em>timeout=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait until the thread terminates.</p>
+<p>This blocks the calling thread until the thread whose join() method is
+called terminates – either normally or through an unhandled exception
+or until the optional timeout occurs.</p>
+<p>When the timeout argument is present and not None, it should be a
+floating point number specifying a timeout for the operation in seconds
+(or fractions thereof). As join() always returns None, you must call
+isAlive() after join() to decide whether a timeout happened – if the
+thread is still alive, the join() call timed out.</p>
+<p>When the timeout argument is not present or None, the operation will
+block until the thread terminates.</p>
+<p>A thread can be join()ed many times.</p>
+<p>join() raises a RuntimeError if an attempt is made to join the current
+thread as that would cause a deadlock. It is also an error to join() a
+thread before it has been started and attempts to do so raises the same
+exception.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.loop">
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.loop_after">
+<code class="descname">loop_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed inside self.loop after loop task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.loop_before">
+<code class="descname">loop_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed inside self.loop before loop task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.multicast">
+<code class="descname">multicast</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.multicast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.multicast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SocketTCPServer.name">
+<code class="descname">name</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string used for identification purposes only.</p>
+<p>It has no semantics. Multiple threads may be given the same name. The
+initial name is set by the constructor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.pause">
+<code class="descname">pause</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.pause" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.restart">
+<code class="descname">restart</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.restart" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.resume">
+<code class="descname">resume</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.resume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method representing the thread’s activity.</p>
+<p>You may override this method in a subclass. The standard run() method
+invokes the callable object passed to the object’s constructor as the
+target argument, if any, with sequential and keyword arguments taken
+from the args and kwargs arguments, respectively.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.send">
+<code class="descname">send</code><span class="sig-paren">(</span><em>con</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.send" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.setDaemon">
+<code class="descname">setDaemon</code><span class="sig-paren">(</span><em>daemonic</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.setDaemon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.setName">
+<code class="descname">setName</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.setName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.start">
+<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the thread’s activity.</p>
+<p>It must be called at most once per thread object. It arranges for the
+object’s run() method to be invoked in a separate thread of control.</p>
+<p>This method will raise a RuntimeError if called more than once on the
+same thread object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SocketTCPServer.started">
+<code class="descname">started</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.started" title="Permalink to this definition">¶</a></dt>
+<dd><p>Started of the loopTask is read-only</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="embci.io.commanders.SocketTCPServer.status">
+<code class="descname">status</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Status of the loopTask is read-only</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Hankso and individual contributors
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
