@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>FIFO Data Readers &mdash; EmBCI v0.2.2 User Guide</title>
+  <title>FIFO Data Readers &mdash; EmBCI v0.2.3 User Guide</title>
   
 
   
@@ -23,7 +23,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'0.2.2',
+              VERSION:'0.2.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -69,7 +69,7 @@
             
             
               <div class="version">
-                0.2.2
+                0.2.3
               </div>
             
           
@@ -242,10 +242,10 @@ process. For example, a LSL inlet cannot be used in different processes.</dd>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.started" title="embci.io.readers.FakeDataGenerator.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.status" title="embci.io.readers.FakeDataGenerator.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -259,10 +259,19 @@ process. For example, a LSL inlet cannot be used in different processes.</dd>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.loop_after" title="embci.io.readers.FakeDataGenerator.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.hook_after" title="embci.io.readers.FakeDataGenerator.hook_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_after</span></code></a>()</td>
+<td>Hook function executed outside self.loop before close.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.hook_before" title="embci.io.readers.FakeDataGenerator.hook_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_before</span></code></a>()</td>
+<td>Hook function executed outside self.loop after start.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.loop_actions" title="embci.io.readers.FakeDataGenerator.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.loop_after" title="embci.io.readers.FakeDataGenerator.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.loop_before" title="embci.io.readers.FakeDataGenerator.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FakeDataGenerator.loop_before" title="embci.io.readers.FakeDataGenerator.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -342,14 +351,34 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.FakeDataGenerator.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.FakeDataGenerator.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.FakeDataGenerator.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.FakeDataGenerator.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.FakeDataGenerator.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.FakeDataGenerator.loop_after">
@@ -411,13 +440,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.FakeDataGenerator.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.FakeDataGenerator.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.FakeDataGenerator.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -449,10 +478,10 @@ Start from where index equals to 0.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.FilesReader.started" title="embci.io.readers.FilesReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.FilesReader.status" title="embci.io.readers.FilesReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -466,10 +495,19 @@ Start from where index equals to 0.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FilesReader.loop_after" title="embci.io.readers.FilesReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FilesReader.hook_after" title="embci.io.readers.FilesReader.hook_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_after</span></code></a>()</td>
+<td>Hook function executed outside self.loop before close.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FilesReader.hook_before" title="embci.io.readers.FilesReader.hook_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_before</span></code></a>()</td>
+<td>try to open data file and load data into RAM</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FilesReader.loop_actions" title="embci.io.readers.FilesReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FilesReader.loop_after" title="embci.io.readers.FilesReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.FilesReader.loop_before" title="embci.io.readers.FilesReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.FilesReader.loop_before" title="embci.io.readers.FilesReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -549,14 +587,34 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.FilesReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FilesReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.FilesReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#FilesReader.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.FilesReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>try to open data file and load data into RAM</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.FilesReader.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FilesReader.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.FilesReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FilesReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FilesReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.FilesReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.FilesReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.FilesReader.loop_after">
@@ -618,13 +676,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.FilesReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.FilesReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.FilesReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.FilesReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -657,10 +715,10 @@ There should be at least one stream available.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.LSLReader.started" title="embci.io.readers.LSLReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.LSLReader.status" title="embci.io.readers.LSLReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -674,13 +732,16 @@ There should be at least one stream available.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.LSLReader.loop_after" title="embci.io.readers.LSLReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.LSLReader.loop_actions" title="embci.io.readers.LSLReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.LSLReader.loop_after" title="embci.io.readers.LSLReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.LSLReader.loop_before" title="embci.io.readers.LSLReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.LSLReader.loop_before" title="embci.io.readers.LSLReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.LSLReader.start" title="embci.io.readers.LSLReader.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>(*a,&nbsp;**k)</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.LSLReader.start" title="embci.io.readers.LSLReader.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>(*a,&nbsp;**k)</td>
 <td>Here we take window_size(sample_rate x sample_time) as max_buflen</td>
 </tr>
 </tbody>
@@ -692,6 +753,12 @@ There should be at least one stream available.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>hook_after</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>is_streaming</strong></td>
@@ -757,14 +824,34 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.LSLReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#LSLReader.hook_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.LSLReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.LSLReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#LSLReader.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.LSLReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.LSLReader.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.LSLReader.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.LSLReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.LSLReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.LSLReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.LSLReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.LSLReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.LSLReader.loop_after">
@@ -827,13 +914,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.LSLReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.LSLReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.LSLReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.LSLReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -866,10 +953,10 @@ There should be at least one port available.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.SerialReader.started" title="embci.io.readers.SerialReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.SerialReader.status" title="embci.io.readers.SerialReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -883,10 +970,13 @@ There should be at least one port available.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SerialReader.loop_after" title="embci.io.readers.SerialReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SerialReader.loop_actions" title="embci.io.readers.SerialReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.SerialReader.loop_after" title="embci.io.readers.SerialReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.SerialReader.loop_before" title="embci.io.readers.SerialReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SerialReader.loop_before" title="embci.io.readers.SerialReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -898,6 +988,12 @@ There should be at least one port available.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>hook_after</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>is_streaming</strong></td>
@@ -966,14 +1062,34 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.SerialReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#SerialReader.hook_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.SerialReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SerialReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#SerialReader.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.SerialReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.SerialReader.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SerialReader.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SerialReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SerialReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SerialReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SerialReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SerialReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SerialReader.loop_after">
@@ -1035,13 +1151,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.SerialReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.SerialReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.SerialReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.SerialReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -1082,10 +1198,10 @@ This Reader is only used on ARM. It depends on class ADS1299_API.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.started" title="embci.io.readers.ADS1299SPIReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.status" title="embci.io.readers.ADS1299SPIReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -1102,10 +1218,13 @@ This Reader is only used on ARM. It depends on class ADS1299_API.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.API" title="embci.io.readers.ADS1299SPIReader.API"><code class="xref py py-obj docutils literal notranslate"><span class="pre">API</span></code></a></td>
 <td>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">embci.drivers.ads1299.ADS1299_API</span></code></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.loop_after" title="embci.io.readers.ADS1299SPIReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.loop_actions" title="embci.io.readers.ADS1299SPIReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.loop_after" title="embci.io.readers.ADS1299SPIReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.loop_before" title="embci.io.readers.ADS1299SPIReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ADS1299SPIReader.loop_before" title="embci.io.readers.ADS1299SPIReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -1117,6 +1236,12 @@ This Reader is only used on ARM. It depends on class ADS1299_API.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>hook_after</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>is_streaming</strong></td>
@@ -1196,6 +1321,18 @@ Start from where index equals to 0.</p>
 <dd><p>Whether to enable BIAS output on BIAS pin</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="embci.io.readers.ADS1299SPIReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#ADS1299SPIReader.hook_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.ADS1299SPIReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#ADS1299SPIReader.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="embci.io.readers.ADS1299SPIReader.input_source">
 <code class="descname">input_source</code><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.input_source" title="Permalink to this definition">¶</a></dt>
@@ -1208,8 +1345,16 @@ Start from where index equals to 0.</p>
 
 <dl class="method">
 <dt id="embci.io.readers.ADS1299SPIReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.ADS1299SPIReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.ADS1299SPIReader.loop_after">
@@ -1277,13 +1422,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.ADS1299SPIReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.ADS1299SPIReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.ADS1299SPIReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -1324,10 +1469,10 @@ This Reader is only used on ARM. It depends on class ESP32_API.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.started" title="embci.io.readers.ESP32SPIReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.status" title="embci.io.readers.ESP32SPIReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -1344,10 +1489,13 @@ This Reader is only used on ARM. It depends on class ESP32_API.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.API" title="embci.io.readers.ESP32SPIReader.API"><code class="xref py py-obj docutils literal notranslate"><span class="pre">API</span></code></a></td>
 <td>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">embci.drivers.esp32.ESP32_API</span></code></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.loop_after" title="embci.io.readers.ESP32SPIReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.loop_actions" title="embci.io.readers.ESP32SPIReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.loop_after" title="embci.io.readers.ESP32SPIReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.loop_before" title="embci.io.readers.ESP32SPIReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.ESP32SPIReader.loop_before" title="embci.io.readers.ESP32SPIReader.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -1359,6 +1507,12 @@ This Reader is only used on ARM. It depends on class ESP32_API.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><strong>close</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>hook_after</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>is_streaming</strong></td>
@@ -1438,6 +1592,18 @@ Start from where index equals to 0.</p>
 <dd><p>Whether to enable BIAS output on BIAS pin</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="embci.io.readers.ESP32SPIReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.ESP32SPIReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="embci.io.readers.ESP32SPIReader.input_source">
 <code class="descname">input_source</code><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.input_source" title="Permalink to this definition">¶</a></dt>
@@ -1450,8 +1616,16 @@ Start from where index equals to 0.</p>
 
 <dl class="method">
 <dt id="embci.io.readers.ESP32SPIReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.ESP32SPIReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.ESP32SPIReader.loop_after">
@@ -1519,13 +1693,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.ESP32SPIReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.ESP32SPIReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.ESP32SPIReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -1557,10 +1731,10 @@ Start from where index equals to 0.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.SocketTCPReader.started" title="embci.io.readers.SocketTCPReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.SocketTCPReader.status" title="embci.io.readers.SocketTCPReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -1574,6 +1748,12 @@ Start from where index equals to 0.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SocketTCPReader.hook_after" title="embci.io.readers.SocketTCPReader.hook_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_after</span></code></a>()</td>
+<td>Keep in mind that socket <cite>client</cite> is continously receiving from server in other process/thread, so directly close client is dangerous because client may be blocking that process/thread by client.recv(n).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.SocketTCPReader.loop_actions" title="embci.io.readers.SocketTCPReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SocketTCPReader.loop_after" title="embci.io.readers.SocketTCPReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
@@ -1591,31 +1771,34 @@ Start from where index equals to 0.</p>
 <tr class="row-odd"><td><strong>close</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>is_streaming</strong></td>
+<tr class="row-even"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>loop</strong></td>
+<tr class="row-odd"><td><strong>is_streaming</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>pause</strong></td>
+<tr class="row-even"><td><strong>loop</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>restart</strong></td>
+<tr class="row-odd"><td><strong>pause</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>resume</strong></td>
+<tr class="row-even"><td><strong>restart</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>set_channel</strong></td>
+<tr class="row-odd"><td><strong>resume</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>set_channel_num</strong></td>
+<tr class="row-even"><td><strong>set_channel</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>set_sample_rate</strong></td>
+<tr class="row-odd"><td><strong>set_channel_num</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>start</strong></td>
+<tr class="row-even"><td><strong>set_sample_rate</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>start</strong></td>
 <td>&#160;</td>
 </tr>
 </tbody>
@@ -1657,14 +1840,37 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.SocketTCPReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#SocketTCPReader.hook_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.SocketTCPReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep in mind that socket <cite>client</cite> is continously receiving from server
+in other process/thread, so directly close client is dangerous because
+client may be blocking that process/thread by client.recv(n). We need
+to let server socket close the connection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SocketTCPReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/readers.html#SocketTCPReader.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.readers.SocketTCPReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.SocketTCPReader.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketTCPReader.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SocketTCPReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketTCPReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketTCPReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SocketTCPReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketTCPReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SocketTCPReader.loop_after">
@@ -1726,13 +1932,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.SocketTCPReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.SocketTCPReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.SocketTCPReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.SocketTCPReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>
@@ -1764,10 +1970,10 @@ Start from where index equals to 0.</p>
 <dt><strong>realtime_samplerate</strong></dt>
 <dd></dd>
 <dt><a class="reference internal" href="#embci.io.readers.SocketUDPReader.started" title="embci.io.readers.SocketUDPReader.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.readers.SocketUDPReader.status" title="embci.io.readers.SocketUDPReader.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -1781,6 +1987,12 @@ Start from where index equals to 0.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SocketUDPReader.hook_after" title="embci.io.readers.SocketUDPReader.hook_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hook_after</span></code></a>()</td>
+<td>Keep in mind that socket <cite>client</cite> is continously receiving from server in other process/thread, so directly close client is dangerous because client may be blocking that process/thread by client.recv(n).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.readers.SocketUDPReader.loop_actions" title="embci.io.readers.SocketUDPReader.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#embci.io.readers.SocketUDPReader.loop_after" title="embci.io.readers.SocketUDPReader.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
@@ -1798,31 +2010,34 @@ Start from where index equals to 0.</p>
 <tr class="row-odd"><td><strong>close</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>is_streaming</strong></td>
+<tr class="row-even"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>loop</strong></td>
+<tr class="row-odd"><td><strong>is_streaming</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>pause</strong></td>
+<tr class="row-even"><td><strong>loop</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>restart</strong></td>
+<tr class="row-odd"><td><strong>pause</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>resume</strong></td>
+<tr class="row-even"><td><strong>restart</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>set_channel</strong></td>
+<tr class="row-odd"><td><strong>resume</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>set_channel_num</strong></td>
+<tr class="row-even"><td><strong>set_channel</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>set_sample_rate</strong></td>
+<tr class="row-odd"><td><strong>set_channel_num</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>start</strong></td>
+<tr class="row-even"><td><strong>set_sample_rate</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>start</strong></td>
 <td>&#160;</td>
 </tr>
 </tbody>
@@ -1864,14 +2079,37 @@ Start from where index equals to 0.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.readers.SocketUDPReader.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep in mind that socket <cite>client</cite> is continously receiving from server
+in other process/thread, so directly close client is dangerous because
+client may be blocking that process/thread by client.recv(n). We need
+to let server socket close the connection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SocketUDPReader.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.readers.SocketUDPReader.is_streaming">
 <code class="descname">is_streaming</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.is_streaming" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SocketUDPReader.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.readers.SocketUDPReader.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.readers.SocketUDPReader.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.readers.SocketUDPReader.loop_after">
@@ -1933,13 +2171,13 @@ Start from where index equals to 0.</p>
 <dl class="attribute">
 <dt id="embci.io.readers.SocketUDPReader.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.readers.SocketUDPReader.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.readers.SocketUDPReader.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.readers.SocketUDPReader.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>

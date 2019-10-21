@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>embci.utils &mdash; EmBCI v0.2.2 User Guide</title>
+  <title>embci.utils &mdash; EmBCI v0.2.3 User Guide</title>
   
 
   
@@ -23,7 +23,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'0.2.2',
+              VERSION:'0.2.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                0.2.2
+                0.2.3
               </div>
             
           
@@ -253,9 +253,13 @@
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Utilities</span>
 
+<span class="k">def</span> <span class="nf">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">get_caller_globals</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;__name__&#39;</span><span class="p">]</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span> <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;INFO&#39;</span><span class="p">)</span>
+
+
 <span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">get_caller_globals</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;__name__&#39;</span><span class="p">])</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span> <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;INFO&#39;</span><span class="p">)</span>
+    <span class="n">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">null_func</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
@@ -686,7 +690,8 @@
     <span class="fm">__bool__</span> <span class="o">=</span> <span class="n">__nonzero__</span>
 
 
-<span class="k">def</span> <span class="nf">timestamp</span><span class="p">(</span><span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">-%H:%M:%S&#39;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">timestamp</span><span class="p">(</span><span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Default ISO time string format&#39;&#39;&#39;</span>
     <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">ctime</span><span class="p">))</span>
 
 
@@ -1300,6 +1305,17 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">time_dict</span><span class="p">[</span><span class="n">_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+
+<span class="k">def</span> <span class="nf">embedded_only</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s1">&#39;Skip execution on current platform&#39;</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="nd">@decorator</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;arm&#39;</span><span class="p">,</span> <span class="s1">&#39;aarch64&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="n">platform</span><span class="o">.</span><span class="n">platform</span><span class="p">()))</span>
+            <span class="k">return</span> <span class="n">retval</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
 

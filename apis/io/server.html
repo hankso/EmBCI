@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Network IO &mdash; EmBCI v0.2.2 User Guide</title>
+  <title>Network IO &mdash; EmBCI v0.2.3 User Guide</title>
   
 
   
@@ -23,7 +23,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'0.2.2',
+              VERSION:'0.2.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.2.2
+                0.2.3
               </div>
             
           
@@ -262,10 +262,10 @@ Data sender.</p>
 <dd><p class="first last">A string used for identification purposes only.</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.started" title="embci.io.commanders.SocketTCPServer.started"><code class="xref py py-obj docutils literal notranslate"><span class="pre">started</span></code></a></dt>
-<dd><p class="first last">Started of the loopTask is read-only</p>
+<dd><p class="first last"><cite>started</cite> of the loopTask is read-only</p>
 </dd>
 <dt><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.status" title="embci.io.commanders.SocketTCPServer.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a></dt>
-<dd><p class="first last">Status of the loopTask is read-only</p>
+<dd><p class="first last"><cite>status</cite> of the loopTask is read-only</p>
 </dd>
 </dl>
 </td>
@@ -288,10 +288,13 @@ Data sender.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.join" title="embci.io.commanders.SocketTCPServer.join"><code class="xref py py-obj docutils literal notranslate"><span class="pre">join</span></code></a>([timeout])</td>
 <td>Wait until the thread terminates.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_after" title="embci.io.commanders.SocketTCPServer.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_actions" title="embci.io.commanders.SocketTCPServer.loop_actions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_actions</span></code></a>()</td>
+<td>Hook function called inside self.loop in each iteration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_after" title="embci.io.commanders.SocketTCPServer.loop_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_after</span></code></a>()</td>
 <td>Hook function executed inside self.loop after loop task.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_before" title="embci.io.commanders.SocketTCPServer.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_before" title="embci.io.commanders.SocketTCPServer.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
 </tbody>
@@ -315,6 +318,12 @@ Data sender.</p>
 <td>&#160;</td>
 </tr>
 <tr class="row-odd"><td><strong>has_listeners</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>hook_after</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>isDaemon</strong></td>
@@ -389,6 +398,18 @@ left.</p>
 <code class="descname">has_listeners</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.has_listeners"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.has_listeners" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.hook_after">
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop before close.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.hook_before">
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function executed outside self.loop after start.</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="embci.io.commanders.SocketTCPServer.ident">
 <code class="descname">ident</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.ident" title="Permalink to this definition">¶</a></dt>
@@ -444,8 +465,16 @@ exception.</p>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.loop">
-<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em>, <em>before=None</em>, <em>after=None</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loop</code><span class="sig-paren">(</span><em>func</em>, <em>args=()</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.loop_actions">
+<code class="descname">loop_actions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.loop_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook function called inside self.loop in each iteration. May be
+overridden by a subclass / Mixin to implement any code that needs
+to be run even SkipIteration error is raised.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.loop_after">
@@ -525,13 +554,13 @@ same thread object.</p>
 <dl class="attribute">
 <dt id="embci.io.commanders.SocketTCPServer.started">
 <code class="descname">started</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.started" title="Permalink to this definition">¶</a></dt>
-<dd><p>Started of the loopTask is read-only</p>
+<dd><p><cite>started</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="embci.io.commanders.SocketTCPServer.status">
 <code class="descname">status</code><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Status of the loopTask is read-only</p>
+<dd><p><cite>status</cite> of the loopTask is read-only</p>
 </dd></dl>
 
 </dd></dl>

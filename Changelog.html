@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Changelog &mdash; EmBCI v0.2.2 User Guide</title>
+  <title>Changelog &mdash; EmBCI v0.2.3 User Guide</title>
   
 
   
@@ -23,7 +23,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'0.2.2',
+              VERSION:'0.2.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.2.2
+                0.2.3
               </div>
             
           
@@ -105,7 +105,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">0.2.3 [2019-10-13]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">0.2.3 [2019-10-22]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id2">0.2.2 [2019-09-29]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id3">0.2.1 [2019-09-15]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id4">0.2.0 [2019-09-01]</a></li>
@@ -183,25 +183,32 @@
   <div class="section" id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="id1">
-<h2>0.2.3 [2019-10-13]<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<h2>0.2.3 [2019-10-22]<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[Speller] Save user’s configurations in browser to recover the same layout last time visit. Add width &amp; height attributes to each layout. Copy recognition result to clipboard by double clicking result field.</li>
+<li>[Speller] Save user’s configurations in browser to recover the same layout at next visit. Add width &amp; height attributes to each layout. Copy recognition result to clipboard by double clicking result field. Finish all TODOs.</li>
 <li>[DisplayWeb] Add a second rendering method “scroll whole frame”. This can be enabled by one click of a toggle button. Optimize realtime render performance.</li>
+<li>[Recorder] Fix recorder command entrance multi-command bug. Provide CLI data stream recorder application at <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">embci.apps.recorder</span></code> (like a LSL LabRecorder implemented in Python) which supports stream selection, recording pause &amp; resume and data filename/username configuration.</li>
+<li>[Recorder] Add web-based recorder console at <code class="docutils literal notranslate"><span class="pre">http://${EMBCI_HOST}/app/recorder</span></code>. List and control all alive recorders in your browser.</li>
+<li>[Streaming] Add JSON-RPC interface to control ESP32 data stream and LSL outlet by Remote Procedure Call. JSON-RPC protocal support communication from C/Python/JavaScript/… See more at module doc <code class="docutils literal notranslate"><span class="pre">embci.apps.streaming.__doc__</span></code>.</li>
+<li>[WebUI] Add <code class="docutils literal notranslate"><span class="pre">webui_static_host</span></code> function to register multiple source directories for static file serving. It supports updating on exist routes.</li>
+<li>[File Manager] New feature: data files manager in subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.baseserver</span></code>.</li>
+<li>[JSONRPC] History container informatic summary output. Allow CORS POST by setting <code class="docutils literal notranslate"><span class="pre">Access-Control-Allow-Origin</span></code> in response header.</li>
+<li>Enable subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.system</span></code> to shutdown/reboot/update the EmBCI device. Use <code class="docutils literal notranslate"><span class="pre">embedded_only</span></code> decorator to avoid dangerous command on PC.</li>
 </ul>
 </div>
 <div class="section" id="id2">
 <h2>0.2.2 [2019-09-29]<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[logging] Use single character in logging level output. Support colorful output in shell/terminal</li>
+<li>[logging] Use single character in logging level output. Support colorful output in shell/terminal.</li>
 <li>[IO] Add <code class="docutils literal notranslate"><span class="pre">save_chunk(append=False)</span></code> and <code class="docutils literal notranslate"><span class="pre">save_trial</span></code>.</li>
-<li>[Recorder] recorder well tested.</li>
+<li>[Recorder] Subapp recorder well tested. Check <code class="docutils literal notranslate"><span class="pre">embci.apps.recorder.__doc__</span></code> for more detail about configuration and usage.</li>
 </ul>
 </div>
 <div class="section" id="id3">
 <h2>0.2.1 [2019-09-15]<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>Add <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">__future__</span> <span class="pre">import</span> <span class="pre">absolute_import,</span> <span class="pre">division,</span> <span class="pre">print_function</span></code> to each module.</li>
-<li>Use <code class="docutils literal notranslate"><span class="pre">//</span></code> for floor division and <code class="docutils literal notranslate"><span class="pre">/</span></code> for float division.</li>
+<li>Use <code class="docutils literal notranslate"><span class="pre">//</span></code> for floor division and <code class="docutils literal notranslate"><span class="pre">/</span></code> for float division (immigrating to py3).</li>
 <li>[WebUI] HTML snippets loader support keywords arguments by setting attributes like <code class="docutils literal notranslate"><span class="pre">data-foo=&quot;bar&quot;</span></code>. Add webui debug application runner and pick random port.</li>
 <li>[Drivers] Add package <code class="docutils literal notranslate"><span class="pre">embci.drivers</span></code>. Move <code class="docutils literal notranslate"><span class="pre">embci.utils.xxx_api</span></code> to <code class="docutils literal notranslate"><span class="pre">embci.drivers.xxx</span></code> as hardware APIs.</li>
 <li>[Utils] Add <code class="docutils literal notranslate"><span class="pre">get_free_port</span></code> to resolve an avaiable port number. Support event sending and receiving by EventIO system implemented at <code class="docutils literal notranslate"><span class="pre">embci.utils._event</span></code></li>

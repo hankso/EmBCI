@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>embci.io.base &mdash; EmBCI v0.2.2 User Guide</title>
+  <title>embci.io.base &mdash; EmBCI v0.2.3 User Guide</title>
   
 
   
@@ -23,7 +23,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.2.2',
+              VERSION:'0.2.3',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                0.2.2
+                0.2.3
               </div>
             
           
@@ -207,11 +207,8 @@
 <span class="p">]</span>
 
 
-<span class="n">_name_datafile_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^(\w+)-(\d+)\.(\w+)(?:\.gz)?$&#39;</span><span class="p">)</span>
-
-
-<span class="nd">@mkuserdir</span>
-<span class="k">def</span> <span class="nf">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+<span class="n">_name_datafile_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^([ \w\.-]+)-(\d+)\.(\w+)(?:\.gz)?$&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="find_data_info"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.find_data_info">[docs]</a><span class="k">def</span> <span class="nf">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>                                      <span class="c1"># noqa: W611</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Count all saved data files under user&#39;s directory that match a pattern:</span>
 <span class="sd">    ${DIR_DATA}/${username}/${label}-${num}.${suffix}[.gz]</span>
@@ -237,6 +234,8 @@
     <span class="n">label_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">name_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">label_dict</span><span class="p">,</span> <span class="n">name_dict</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">)):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_name_datafile_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
             <span class="k">continue</span>
@@ -262,19 +261,21 @@
         <span class="p">])</span>
     <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">name_dict</span><span class="p">:</span>
         <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">name_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
-    <span class="k">return</span> <span class="n">label_dict</span><span class="p">,</span> <span class="n">name_dict</span><span class="p">,</span> <span class="n">summary</span>
+    <span class="k">return</span> <span class="n">label_dict</span><span class="p">,</span> <span class="n">name_dict</span><span class="p">,</span> <span class="n">summary</span></div>
 
 
-<div class="viewcode-block" id="validate_datafile"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.validate_datafile">[docs]</a><span class="k">def</span> <span class="nf">validate_datafile</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">checkname</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="nd">@mkuserdir</span>
+<span class="k">def</span> <span class="nf">validate_datafile</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">checkname</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">checkname</span><span class="p">:</span>
         <span class="n">username</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
             <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">validate_filename</span><span class="p">(</span><span class="n">username</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s1">&#39;()[]&#39;</span>
         <span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">validate_filename</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
     <span class="n">label_dict</span> <span class="o">=</span> <span class="n">find_data_info</span><span class="p">(</span><span class="n">username</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">ns</span> <span class="o">=</span> <span class="n">label_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">[])</span>
     <span class="n">num</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">ns</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_DATA</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">num</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">fn</span><span class="p">,</span> <span class="n">username</span></div>
+    <span class="k">return</span> <span class="n">fn</span><span class="p">,</span> <span class="n">username</span>
 
 
 <div class="viewcode-block" id="create_data_dict"><a class="viewcode-back" href="../../../apis/io/basic.html#embci.io.base.create_data_dict">[docs]</a><span class="k">def</span> <span class="nf">create_data_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">sample_rate</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
