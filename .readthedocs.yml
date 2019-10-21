@@ -4,4 +4,4 @@ sphinx:
 formats: all
 python:
     install:
-        - requirements: requirements-dev.txt
+        - requirements: docs/requirements.txt
