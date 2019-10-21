@@ -29,7 +29,7 @@ import re
 import time
 import subprocess
 
-# requirements.txt: network bottle
+# requirements.txt: network: bottle
 import bottle
 
 from embci.utils import embedded_only, config_logger

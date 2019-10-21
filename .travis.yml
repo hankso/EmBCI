@@ -25,8 +25,7 @@ git:
     depth: 1
 
 before_install:
-  - cp -v .github/_pytransform_$(uname -m).so embci/_pytransform.so
-  - tools/genrequire.py -v embci -o requirements.txt
+  - tools/genrequire.py -v ./ -o requirements.txt
 
 install:
   - pip install pytest codecov pytest-cov
