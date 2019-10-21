@@ -11,23 +11,15 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import os
 
-from embci.io import LSLReader as Reader
-from embci.io import SocketTCPServer as Server
 from embci.processing import SignalInfo
-from embci.apps.recorder import Recorder
-from embci.utils import AttributeDict, config_logger
+signalinfo = SignalInfo(0)
 
-__basedir__ = os.path.dirname(os.path.abspath(__file__))
-
-reader = Reader(sample_time=5, num_channel=8)
+from embci.io import SocketTCPServer as Server
 server = Server()
-signalinfo = SignalInfo(reader.sample_rate)
-recorder = Recorder(reader)
-logger = config_logger('.'.join(__name__.split('.')[:-1]))
 
 # a container that can hold all parameters
+from embci.utils import AttributeDict
 pt = paramtree = AttributeDict()
 
 pt.notch = rtnotch = False

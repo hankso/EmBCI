@@ -9,12 +9,13 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import os
 import sys
+import time
 import shlex
 import signal
 import platform
 import traceback
+from pydoc import getdoc
 
 # requirements.txt: necessary: pyzmq
 import zmq
@@ -22,7 +23,7 @@ import zmq
 from embci.drivers.ads1299 import INPUT_SOURCES
 from embci.utils import (
     get_boolean, argparse,
-    TempStream, LoopTaskInThread, Singleton
+    TempStream, LoopTaskInThread, Singleton, NameSpace, jsonrpc
 )
 
 if platform.machine() in ['arm', 'aarch64']:       # running on embedded device
@@ -30,7 +31,7 @@ if platform.machine() in ['arm', 'aarch64']:       # running on embedded device
 else:                                              # running on computer
     from embci.io import FakeDataGenerator as Reader
 
-from . import logger, CMD_ADDR, CMD_HELP, CMD_USAGE
+from . import logger, STM_HOST, CMD_ADDR, RPC_ADDR, RPC_PORT, EPILOG
 from .utils import get_producer
 
 
@@ -43,13 +44,14 @@ bias_output = True
 input_source = 'normal'
 measure_impedance = False
 stream_control = 'start'
-reader = Reader(sample_rate, sample_time=1, num_channel=8, send_pylsl=True)
+reader = None
 
 
 # =============================================================================
-# argparse parser & callback functions
+# argparse parser, RPC server and callback functions
 
-def summary(args):
+def summary(*args):
+    '''Summary of current stream status'''
     ret = 'Status:\n'
     ret += 'sample_rate:\t{:.2f}/{} Hz\n'.format(
         reader.realtime_samplerate, sample_rate)
@@ -60,6 +62,16 @@ def summary(args):
     ret += 'impedance:\t{}\n'.format(
         'enabled' if measure_impedance else 'disabled')
     return ret
+
+
+def exit(*args):
+    '''Terminate this task (BE CAREFUL!)'''
+    try:
+        reader.close()
+        repl.close(); time.sleep(1)  # wait for poller's timeout   # noqa: E702
+        server.server_close()
+    except Exception:
+        logger.error(traceback.format_exc())
 
 
 def _subcommand(args):
@@ -76,7 +88,15 @@ def _subcommand(args):
 
 
 def _set_sample_rate(param):
-    '''TODO: doc here'''
+    '''
+    example:
+    >>> sample_rate
+    500
+    >>> sample_rate 250
+    Set sample_rate to 250
+    >>> rate // alias of sample_rate
+    250
+    '''
     reader.set_sample_rate(param)
 
 
@@ -97,6 +117,15 @@ def _set_measure_impedance(param):
 
 
 def _set_channel(args):
+    '''
+    Raw signal quality will be better if useless channels are disabled.
+    Suppose you use only CH1-CH7 and left CH8 suspended in the air, you can
+    directly disable CH8 by:
+    >>> channel 7 false // index of CH8 is 7
+    Channel 7 set to False
+    >>> channel 0 True|true|On|on|1
+    Channel 0 set to True
+    '''
     if args.action is None:
         return 'Not implemented yet: get channel status'
     reader.set_channel(args.channel, args.action)
@@ -106,23 +135,15 @@ def _set_channel(args):
 def make_parser():
     parser = argparse.ArgumentParser(
         prog=__name__, add_help=False, usage='<command> [-h] [param]',
-        description='', epilog=' \n%s\n%s' % (CMD_HELP, CMD_USAGE),
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        description='', epilog=(
+            'See `<command> -h` for more help on each command.\n' + EPILOG
+        ), formatter_class=argparse.RawDescriptionHelpFormatter)
     subparsers = parser.add_subparsers(
         prog='', title='Stream commands are', metavar='')
 
-    # Command: set channel
-    sparser = subparsers.add_parser(
-        'set_channel', aliases=['ch'], epilog=_set_channel.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        help='Enable/disable specific channel')
-    sparser.add_argument('channel', type=int)
-    sparser.add_argument('action', nargs='?', type=get_boolean)
-    sparser.set_defaults(func=_set_channel)
-
     # Command: sample rate
     sparser = subparsers.add_parser(
-        'sample_rate', aliases=['rate'], epilog=_set_sample_rate.__doc__,
+        'sample_rate', aliases=['rate'], epilog=getdoc(_set_sample_rate),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help='Set/get data stream sample rate')
     sparser.add_argument(
@@ -132,7 +153,7 @@ def make_parser():
 
     # Command: bias output
     sparser = subparsers.add_parser(
-        'bias_output', aliases=['bias'], epilog=_set_bias_output.__doc__,
+        'bias_output', aliases=['bias'], epilog=getdoc(_set_bias_output),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help='Generate signal on BIAS')
     sparser.add_argument('param', nargs='?', type=get_boolean)
@@ -140,7 +161,7 @@ def make_parser():
 
     # Command: input source
     sparser = subparsers.add_parser(
-        'input_source', aliases=['in'], epilog=_set_input_source.__doc__,
+        'input_source', aliases=['in'], epilog=getdoc(_set_input_source),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help='Select ADS1299 input source')
     sparser.add_argument('param', nargs='?', choices=INPUT_SOURCES.keys())
@@ -148,7 +169,7 @@ def make_parser():
 
     # Command: stream control
     sparser = subparsers.add_parser(
-        'stream_ctrl', aliases=['st'], epilog=_set_stream_control.__doc__,
+        'stream_ctrl', aliases=['sct'], epilog=getdoc(_set_stream_control),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         help='Control data stream status')
     sparser.add_argument('param', nargs='?', choices=SCTL)
@@ -156,19 +177,27 @@ def make_parser():
 
     # Command: measure impedance
     sparser = subparsers.add_parser(
-        'impedance', aliases=['ipd'],
+        'impedance', aliases=['ipd'], epilog=getdoc(_set_measure_impedance),
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=_set_measure_impedance.__doc__,
         help='Measure impedance of channels')
     sparser.add_argument('param', nargs='?', type=get_boolean)
     sparser.set_defaults(func=_subcommand, subcmd='measure_impedance')
+
+    # Command: set channel
+    sparser = subparsers.add_parser(
+        'set_channel', aliases=['ch'], epilog=getdoc(_set_channel),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        help='Enable/disable specific channel')
+    sparser.add_argument('channel', type=int)
+    sparser.add_argument('action', nargs='?', type=get_boolean)
+    sparser.set_defaults(func=_set_channel)
 
     #  subparsers = parser.add_subparsers(
     #      prog='', title='Task commands are', metavar='')
 
     # Command: summary
     subparsers.add_parser(
-        'summary', aliases=['info'], help='Summary of current stream status'
+        'summary', aliases=['info'], help=summary.__doc__
     ).set_defaults(func=summary)
 
     # Command: help
@@ -177,26 +206,47 @@ def make_parser():
     ).set_defaults(func=lambda args: parser.format_help())
 
     # Command: exit
-    subparsers.add_parser(
-        'exit', help='Terminate this task (BE CAREFUL!)'
-    ).set_defaults(func=lambda args: os.kill(os.getpid(), signal.SIGINT))
+    subparsers.add_parser('exit', help=exit.__doc__).set_defaults(func=exit)
 
     return parser
 
 
+def make_server():
+    server = jsonrpc.JSONRPCServer(
+        (STM_HOST, RPC_PORT), bind_and_activate=False)
+    server.register_introspection_functions()
+
+    def helper(name):
+        def pass_args(*args):
+            cmd = name + ' ' + ' '.join(map(str, args))
+            return repl.parse_one_cmd(cmd).strip()
+        pass_args.__doc__ = globals()['_set_' + name].__doc__
+        return pass_args
+    server.register_function(helper('sample_rate'), 'sample_rate')
+    server.register_function(helper('bias_output'), 'bias_output')
+    server.register_function(helper('input_source'), 'input_source')
+    server.register_function(helper('stream_control'), 'stream_control')
+    server.register_function(helper('measure_impedance'), 'measure_impedance')
+    server.register_function(lambda channel, *args: _set_channel(NameSpace(
+        channel = channel, action = args and args[0] or None
+    )), 'set_channel')
+    server.register_function(summary, 'summary')
+    server.register_function(exit, 'exit')
+    return server
+
+
 class REPL(LoopTaskInThread):
     __metaclass__ = Singleton
-    _tempstream = TempStream('stderr', 'stdout')
-    _argparser = make_parser()
+    argparser = make_parser()
 
     def __init__(self, *args, **kwargs):
+        self._tempstream = TempStream('stderr', 'stdout')
         super(REPL, self).__init__(self._repl, *args, **kwargs)
 
     def loop_before(self):
         self.reply = get_producer()
         self.poller = zmq.Poller()
         self.poller.register(self.reply, zmq.POLLIN)  # | zmq.POLLOUT)
-        logger.info('Listening on `{}`'.format(CMD_ADDR))
         # parser will print error & help info to sys.stderr & sys.stdout
         # so redirect them to socket.send
         self._tempstream.enable()
@@ -209,10 +259,11 @@ class REPL(LoopTaskInThread):
                 return
 
             # 2 parse and execute command
-            ret = self.parse_one_cmd(self.reply.recv()).strip()
+            cmd = self.reply.recv().decode('utf8')
+            ret = self.parse_one_cmd(cmd).strip()
 
             # 3 return result of command
-            self.reply.send(str(ret or '') + '\n')
+            self.reply.send(ret.encode('utf8'))
         except zmq.ZMQError as e:
             logger.info('ZMQ socket error: {}'.format(e))
         except KeyboardInterrupt as e:
@@ -227,7 +278,7 @@ class REPL(LoopTaskInThread):
     def parse_one_cmd(self, cmd):
         cmd = shlex.split(cmd)
         try:
-            args = self._argparser.parse_args(cmd)
+            args = self.argparser.parse_args(cmd)
         except SystemExit:
             # handle parse error
             if not cmd:
@@ -237,9 +288,7 @@ class REPL(LoopTaskInThread):
             # execute command
             ret = args.func(args)
             log = self.stdinfo(clean=False)
-            if log:
-                ret += '\n' + log
-            return ret
+            return str(ret) + (log and ('\n' + log) or '')
 
     def stdinfo(self, clean=True):
         return '\n'.join([
@@ -252,28 +301,38 @@ class REPL(LoopTaskInThread):
 # ZMQ & JSONRPC interface
 
 def main():
-    # Keep repl thread alive when the main thread ended. This will be set to
-    # True if RPC service is implemented and occupy main thread
-    repl = REPL(daemon=False)
-
-    def exit(*a):
-        repl.close()
-        # rpcserver.close()
+    global reader, repl, server
+    reader = Reader(sample_rate, sample_time=1, num_channel=8, send_pylsl=True)
+    server = make_server()
+    repl = REPL()
+    try:
+        assert reader.start(method='thread'), 'Cannot start {}'.format(reader)
+    except Exception:
+        logger.error(traceback.format_exc())
+        return exit() or 1
+    try:
+        repl.start()
+        server.server_bind()
+        server.server_activate()
+    except Exception as e:
+        logger.error(e)
+    else:
+        logger.info(EPILOG)
+        logger.info('{} listening on `{}`'.format(repl, CMD_ADDR))
+        logger.info('{} listening on `{}`'.format(server, RPC_ADDR))
+        logger.info('Data stream {} started'.format(reader))
 
     signal.signal(signal.SIGHUP, exit)   # user log out
-    signal.signal(signal.SIGINT, exit)   # Ctrl-C or kill -2
     signal.signal(signal.SIGTERM, exit)  # kill -15 by default
 
-    logger.debug('Start streaming.')
-    logger.debug('Starting {}'.format(reader))
-    logger.info(CMD_HELP.rstrip())
-
-    reader.start(method='thread')
-    repl.start()
-
-    # block main thread, will be replaced by RPC serve_forever
-    while repl.isAlive():
-        repl.join(3)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        logger.info('RPC server stopped.')
+    except Exception:
+        logger.error(traceback.format_exc())
+    finally:
+        exit()
 
     # Let reader occupy main thread is not a good idea because `reader`
     # can't handle SIGTERM and SIGINT properly as `repl` does. So this

@@ -15,6 +15,15 @@
     <script src="/js/underscore.min.js"></script>
     <script src="/js/numjs.min.js"></script>
     <script src="/js/sniploader.js"></script>
+    <script type="text/javascript" id="globalVars">
+        var colors = ['#000', '#fff', '#ddd', '#bbb', '#888', '#666', '#444'];
+        var ctx, ctxAl, ctxOs;
+        var pt = localStorage; // use Storage object as a parameter tree
+        var layout, layoutNames = [], width, height;
+        var callbacks = {};
+        var wsEvent, sessID, eventList = [];
+        var timeout = parseInt(pt.getItem('sessTimeout')) || 300;
+    </script>
 </head>
 
 <body>
@@ -22,7 +31,7 @@
     <div data-include="navbar.html"></div>
     <div data-include="recorder-box.html" data-display="block"></div>
     <div class="panel">
-        <h3>SSVEP Online Demo</h3>
+        <h3>SSVEP Online Web-based Application</h3>
         <h5 id="display-fps"></h5>
     </div>
     <div id="kbd-MENU" class="form-inline panel">
@@ -35,8 +44,8 @@
                 <option hidden>None</option>
             </select>
             <div class="input-group-append">
-                <label class="input-group-text" id="display-info">Block</label>
-                <button class="btn btn-outline-primary" type="button" id="display-toggle">Toggle</button>
+                <label class="input-group-text" hidden>DisplayInfo</label>
+                <button class="btn btn-outline-primary" type="button" id="display-toggle" title="Change displayed information">Toggle</button>
             </div>
         </div>
         <div class="input-group col-auto" id="session-ctrl">
@@ -46,25 +55,32 @@
                 <label id="session-toggle-circle" for="session-toggle"><span></span></label>
                 <span class="input-group-text" style="color: blue">Train</span>
             </div>
-            <input class="form-control" type="number" min="0" step="0.1" value="0.3" id="session-timeout">
-            <div class="input-group-append" id="session-ctrl-train" style="display:none">
-                <input class="form-control" type="number" min="1" step="1" value="40" id="session-iteration">
-                <label class="input-group-text" for "session-iteration">iter</label>
-                <button class="btn btn-outline-primary" id="session-auto" type="button">Loop</button>
-            </div>
-            <div class="input-group-append" id="session-ctrl-trial">
+            <input class="form-control" type="number" min="0" step="0.1" id="session-timeout">
+            <div class="input-group-append">
                 <label class="input-group-text" for="session-timeout">sec</label>
                 <div class="progress" id="session-progress" style="display:none">
                     <div class="progress-bar progress-bar-striped bg-success" role="progressbar" aria-valuemin=0 aria-valuemax=100 aria-valuenow=0></div>
                 </div>
                 <button class="btn btn-outline-primary" id="session-btn" type="button">Start</button>
+                <button class="btn btn-outline-primary" id="session-loop" type="button">Online</button>
+            </div>
+        </div>
+        <div class="input-group col-auto" id="train-ctrl" style="display:none">
+            <input class="form-control" type="number" min="1" step="1" value="5" id="train-trials">
+            <div class="input-group-append">
+                <label class="input-group-text" for "train-trials">trials</label>
+                <button class="btn btn-outline-primary" id="train-model" type="button" disabled>Train</button>
+                <div class="progress" id="train-progress" style="display:none">
+                    <div class="progress-bar progress-bar-striped bg-success" role="progressbar" aria-valuemin=0 aria-valuemax=100 aria-valuenow=0></div>
+                </div>
+                <button class="btn btn-outline-primary" id="train-record" type="button">Loop</button>
             </div>
         </div>
     </div>
     <div id="kbd-UI">
         <form id="session-result">
             <span id="input-prompt">>></span>
-            <input id="input-result" type="text" placeholder="HIGH SPEED BCI">
+            <input id="input-result" type="text" title="Double click to copy text" placeholder="HIGH SPEED BCI" readonly>
         </form>
         <canvas id="layer-keyboard" style="z-index: 1"></canvas>
         <canvas id="layer-alphabet" style="z-index: 2"></canvas>
@@ -73,24 +89,47 @@
     
     <script src="utils.js"></script>
     <script src="keyboard.js"></script>
-    <script type="text/javascript">
-        var colors = ['#000', '#fff'];
-        var ctx, ctxAl, ctxOs;
-        var layout, layoutNames = [];
-        var callbacks = {};
-        var width = 800, height = 500, ratio = width / height;
-        var wsEvent, sessID, eventList = [];
-
+    <script type="text/javascript" id="entrance">
+        $(function() {
+            setTimeout(() => window.requestAnimationFrame(getFPS), 1000);
+            ctx = setContext($('#layer-keyboard')[0], '2d', {alpha: false});
+            ctxAl = setContext($('#layer-alphabet')[0], '2d');
+            ctxOs = setContext($('<canvas>')[0], '2d');
+            if (ctx && ctxAl && ctxOs) {
+                window.addEventListener('resize', resizeKeyboard);
+                window.stateBlocks = window.stateBlocksOffScreen;
+                _bindCallbacks();
+                _initLayout();
+            } else {
+                alert('Cannot get canvas context');
+                $('canvas').text(
+                    "Sorry, your browser doesn't support the Canvas " +
+                    "element or failed to construct 2D Canvas Context."
+                );
+                return;
+            }
+            if (!window.WebSocket) {
+                alert(
+                    'Your browser doesn\'t support WebSocket. EventIO ' +
+                    'rollback to legacy API, which may cause performance ' + 
+                    'degradation. We recommend updating your browser or ' +
+                    'use Chrome/Firefox.'
+                );
+                window.sessionStart = window.sessionStartOld;
+                window.sessionStop  = window.sessionStopOld;
+            } else _initEventIO();
+        });
+    </script>
+    <script type="text/javascript" id="">
         var _lastwidth;
         function resizeKeyboard() {
-            var w = window.innerWidth - 30;
+            let w = window.innerWidth - 30, css = '';
             if (w == _lastwidth) return;
             else if (_lastwidth > width && w > width) return;
             else _lastwidth = w;
             if (w < width) {  // scale smaller by setting CSS
-                var css = w + 'px';
+                css += w + 'px';
             } else {          // scale back to normal
-                var css = '';
                 w = width;
             }
             if (ctxOs.canvas.style.width != css) {
@@ -100,39 +139,75 @@
             }
             $('div#kbd-UI')
                 .css('width', w + 2 * (5 + 1))
-                .css('height', w / ratio + 2 * (5 + 1) + 40);
+                .css('height', w / width * height + 2 * (5 + 1) + 40);
             $('div#kbd-MENU').css('max-width', w + 2 * (5 + 1));
         }
-        
-        ctx = setContext(document.getElementById('layer-keyboard'), '2d', {alpha: false});
-        ctxAl = setContext(document.getElementById('layer-alphabet'), '2d');
-        ctxOs = setContext(document.createElement('canvas'), '2d');
-        if (ctx && ctxAl && ctxOs) {
-            ctxAl.canvas.width  = width;
-            ctxOs.canvas.width  = width;
-            ctx.canvas.width    = width;
-            ctxAl.canvas.height = height;
-            ctxOs.canvas.height = height;
-            ctx.canvas.height   = height;
-            resizeKeyboard();  // initialize
-        } else alert('Cannot construct canvas context');
-        window.stateBlocks = window.stateBlocksOffScreen;
+
+        function _initEventIO() {
+            wsEvent = new WebSocket(
+                'ws://' + location.host + location.pathname.replace(
+                    'index.html', 'event/ws'
+                )
+            );
+            wsEvent.onopen = ()=>console.log('EventIO connected.');
+            wsEvent.onclose = ()=>console.log('EventIO disconnected.');
+            wsEvent.onerror = (err)=>console.error('EventIO ' + err);
+            wsEvent.onmessage = function(msg) {
+                var t = msg.timeStamp, event = JSON.parse(msg.data);
+                eventHandle(event, t);
+            };
+
+            let _old = window.onbeforeunload;
+            window.onbeforeunload = function() {
+                _old && _old();
+                wsEvent.onclose = null;
+                wsEvent.close();
+            };
+
+            window.eventHandle = function(event, ts) {
+                switch (event.name) {
+                case 'misc.unlock': $('div#masklayer').hide(300); break;
+                case 'session.result': sessionResult(); break;
+                case 'recorder.start':
+                    $('#session-ctrl').trigger('start');
+                    blinkBlocks(timeout, verbose=false).done(()=>{
+                        sessionStop(true);
+                        $('#session-ctrl').trigger('stop');
+                    });
+                    break;
+                case 'train.start':
+                    $('#train-model').hide();
+                    $('#train-progress').show();
+                    $('#train-ctrl').trigger('acquire');
+                    window._tprog = 0, window._tbar = $('#train-progress')
+                        .children('.progress-bar').css('width', 0);
+                    break;
+                case 'train.progress':
+                    if (event.progress < 1) {
+                        _tprog += event.progress * 100;
+                    } else _tprog = 100;
+                    _tbar.css('width', _tprog + '%');
+                    break;
+                case 'train.stop':
+                    delete _tprog;
+                    delete _tbar;
+                    $('#train-ctrl').trigger('release');
+                    $('#train-progress').hide();
+                    $('#train-model')
+                        .show().text('Trained')
+                        .removeClass('btn-outline-primary')
+                        .addClass('btn-outline-success')
+                        .prop('disabled', true);
+                    break;
+                default: console.log('Unhandled event', event);
+                }
+            };
+        }
     </script>
     <script type="text/javascript">
-        $(function() {
-            if (!ctx || !ctxAl) {
-                $('canvas').text(
-                    "Sorry, your browser doesn't support the Canvas " +
-                    "element or failed to construct 2D Canvas Context."
-                );
-                return;
-            } else addEventListener('resize', resizeKeyboard);
-            
+        function _bindCallbacks() {
             $('#select-layouts').on('change', function() {
-                loadLayoutByName(this.value).then(function() {
-                    renderAlphabets(ctxAl, layout);
-                    renderBlocks(ctx, layout);
-                });
+                loadLayoutByName(this.value, renderKeyboard);
             });
             
             $('#layer-alphabet').on('click', function(event) {
@@ -143,126 +218,174 @@
                 a && selectAlphabet(a.name);
             });
 
+            $('#input-result').on('dblclick', function() {
+                if (!this.value) return;
+                this.select();
+                document.execCommand('copy') && alert('Text copied!');
+                // copyToClipboard(this.value);
+                window.getSelection().removeAllRanges();
+            });
+
             $('#session-ctrl')
                 .on('click', '#session-toggle', function() {
                     if (this.checked) {
-                        sessionToggle('train');
-                        $('#session-ctrl-train').show();
-                        $('#session-ctrl-trial').hide();
+                        sessionConfig({task: 'train'});
+                        $('#train-ctrl').show();
+                        $('#session-btn').prop('disabled', true);
+                        $('#session-loop').prop('disabled', true);
                     } else {
-                        sessionToggle('trial');
-                        $('#session-ctrl-trial').show();
-                        $('#session-ctrl-train').hide();
+                        sessionConfig({task: 'trial'});
+                        $('#session-btn').prop('disabled', false);
+                        $('#session-loop').prop('disabled', false);
+                        $('#train-ctrl').hide();
                     }
                 })
                 .on('click', '#session-btn', function() {
-                    var timeout = $('#session-timeout').val() * 1000;
-                    if (!timeout) return;
-                    $('#session-ctrl').trigger('trialStart');
+                    if (!$('#recorder').hasClass('recording')) {
+                        return warning('#recorder');
+                    }
+                    let tout = $('#session-timeout').val() * 1000;
+                    if (!tout) return warning('#session-timeout');
+                    else if (tout != timeout) {
+                        timeout = tout;
+                        sessionConfig({timeout: timeout});
+                    }
                     sessionStart(timeout);
                 })
-                .on('trialStart', function(e, p) {
-                    var tout = $('#session-timeout').val() * 1000;
+                .on('start', function(e, p) {
                     $('#session-btn').hide();
                     $('#session-progress')
                         .show()
                         .children('.progress-bar')
                             .css('width', 0)
-                            .animate({width: '100%'}, tout);
+                            .animate({width: '100%'}, timeout);
                 })
-                .on('trialStop', function() {
+                .on('stop', function() {
                     $('#session-progress').hide();
                     $('#session-btn').show();
                 })
-                .on('click', '#session-auto', function() {
-                    if ($(this).text() == 'Loop') {
+                .on('click', '#session-loop', function() {
+                    if (!$('#recorder').hasClass('recording')) {
+                        return warning('#recorder');
+                    }
+                    if ($(this).text() == 'Online') {
+                        let tout = $('#session-timeout').val() * 1000;
+                        if (!tout) return warning('#session-timeout');
+                        else if (tout != timeout) {
+                            timeout = tout;
+                            sessionConfig({timeout: timeout});
+                        }
+                        $('#session-ctrl').trigger('acquire');
+                        sessionOnline(timeout);
                         $(this).text('Stop');
-                        $('#session-ctrl').trigger('trainStart');
                     } else {
-                        $(this).text('Loop');
-                        $('#session-ctrl').trigger('trainStop');
+                        window.clearTimeout(id_online);
+                        $(this).text('Online');
+                        $('#session-ctrl').trigger('release');
                     }
                 })
-                .on('trainStart', function() {
-                    var iter = $('#session-iteration').val();
-                    var tout = $('#session-timeout').val() * 1000;
-                    if (!tout || !iter) return $('#session-auto').click();
-                    eventSend('train.start');
-                    blink_random_flickers(tout, iter);
+                .on('acquire', function() {
+                    $('#session-timeout').prop('disabled', true);
+                    $('#session-toggle').prop('disabled', true);
+                    $('#session-btn').prop('disabled', true);
+                }).on('release', function() {
+                    $('#session-timeout').prop('disabled', false);
+                    $('#session-toggle').prop('disabled', false);
+                    $('#session-btn').prop('disabled', false);
+                });
+
+            $('#train-ctrl')
+                .on('click', '#train-record', function() {
+                    if (!$('#recorder').hasClass('recording')) {
+                        return warning('#recorder');
+                    }
+                    if ($(this).text() == 'Loop') {
+                        var tout = $('#session-timeout').val() * 1000;
+                        if (!tout) return warning('#session-timeout');
+                        else if (tout != timeout) {
+                            timeout = tout;
+                            sessionConfig({timeout: timeout});
+                        }
+                        let trials = $('#train-trials').val();
+                        if (!trials) return warning('#train-trials');
+                        $('#train-ctrl').trigger('start');
+                    } else {
+                        $('#train-ctrl').trigger('stop');
+                    }
                 })
-                .on('trainStop', function(e, p) {
+                .on('click', '#train-model', function() {
+                    eventSend('train.start');
+                })
+                .on('start', function() {
+                    let trials = $('#train-trials').val();
+                    eventSend('train.init');
+                    cue_random_flickers(timeout, trials);
+                    $('#train-ctrl').trigger('acquire');
+                    $('#train-record').text('Stop');
+                })
+                .on('stop', function(e, p) {
                     window.clearTimeout(window.id_train);
-                    eventSend('train.stop');
+                    eventSend('train.end');
+                    $('#train-ctrl').trigger('release');
+                    $('#train-record').text('Loop');
+                    setTimeout(checkTrainData, 3000);
+                })
+                .on('acquire', function() {
+                    $('#session-timeout').prop('disabled', true);
+                    $('#session-toggle').prop('disabled', true);
+                    $('#train-trials').prop('disabled', true);
+                }).on('release', function() {
+                    $('#session-timeout').prop('disabled', false);
+                    $('#session-toggle').prop('disabled', false);
+                    $('#train-trials').prop('disabled', false);
                 });
 
             $('#display-toggle').on('click', function() {
-                var prompt = $('#display-info');
-                if (prompt.text() == 'Block') {
+                if ('Block' == pt.getItem('layoutInfo')) {
+                    pt.setItem('layoutInfo', 'Detail');
                     renderAlphabets(ctxAl, layout, true);
-                    prompt.text('Detail');
                 } else {
+                    pt.setItem('layoutInfo', 'Block');
                     renderAlphabets(ctxAl, layout, false);
-                    prompt.text('Block');
                 }
             });
 
-            loadLayoutNames().done(function() {
-                $('#select-layouts > option:not([hidden]):first')
-                    .prop('selected', true).change();
-            });
-
-            loadEventList();
-
-            function eventHandle(event, ts) {
-                switch (event.name) {
-                    case 'misc.unlock':
-                        $('div#masklayer').hide(300); break;
-                    case 'recorder.start':
-                        var tout = $('#session-timeout').val() * 1000;
-                        blinkBlocks(tout, verbose=false).done(()=>{
-                            sessionStop(true);
-                            $('#session-ctrl').trigger('trialStop');
+            $('[data-include="recorder-box.html"]').on('load', function() {
+                console.log('Binding callback functions to div#recorder');
+                $('div#recorder')
+                    .on('start', recorderCallback)
+                    .on('pause', recorderCallback)
+                    .on('resume', recorderCallback)
+                    .on('update', function recorderUpdate(event, param) {
+                        if (param && param.username) {
+                            recorderCallback('username ' + param.username);
+                            return setTimeout(recorderUpdate, 800);
+                        }
+                        recorderCallback('username', (name) => {
+                            $('div#recorder').trigger('set', {username: name});
                         });
-                        break;
-                    case 'session.result':
-                        sessionResult(); break;
-                    default:
-                        console.log('Unhandled event', event);
+                    })
+                    .trigger('update');
+            });
+        }
+
+        function _initLayout() {
+            loadLayoutNames().done(function() {
+                let name = pt.getItem('layoutName');
+                if (!layoutNames.includes(name)) {
+                    name = layoutNames[0];
                 }
+                $(`#select-layouts > option[value="${name}"]`)
+                    .prop('selected', true).trigger('change');
+            });
+            $('#session-timeout').val(timeout / 1000);
+            sessionConfig({timeout: timeout});
+            loadEventList();
+            if ('train' == pt.getItem('sessTask')) {
+                $('#session-toggle').click();
+                checkTrainData(0);
             }
-
-            if (!window.WebSocket) {
-                alert(
-                    'Your browser doesn\'t support WebSocket. EventIO ' +
-                    'rollback to legacy API, which may cause performance ' + 
-                    'degradation. We recommend updating your browser or ' +
-                    'use Chrome/Firefox.'
-                );
-                window.sessionStart = window.sessionStartOld;
-                window.sessionStop  = window.sessionStopOld;
-            } else {
-                wsEvent = new WebSocket(
-                    'ws://' + location.host + location.pathname.replace(
-                        'index.html', 'event/ws'
-                    )
-                );
-                wsEvent.onopen = ()=>console.log('EventIO connected.');
-                wsEvent.onclose = ()=>console.log('EventIO disconnected.');
-                wsEvent.onerror = (err)=>console.error('EventIO ' + err);
-                wsEvent.onmessage = function(msg) {
-                    var t = msg.timeStamp, event = JSON.parse(msg.data);
-                    eventHandle(event, t);
-                };
-
-                var old = window.onbeforeunload;
-                window.onbeforeunload = function() {
-                    old && old();
-                    wsEvent.onclose = null;
-                    wsEvent.close();
-                };
-            }
-        });
+        }
     </script>
 </body>
-    
 </html>

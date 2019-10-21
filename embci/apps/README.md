@@ -36,7 +36,7 @@ __basedir__ = os.path.dirname(os.path.abspath(__file__))
 def index(name):
     name = bottle.request.get_cookie('name', 'new_guest')
     if name == 'new_guest':
-        bottle.respond.set_cookie('name', 'asdf')
+        bottle.respond.set_cookie('name', 'testing')
     return bottle.template(os.path.join(__basedir__, 'index.html'), name=name)
 
 application = bottle.default_app()

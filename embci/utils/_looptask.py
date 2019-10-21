@@ -35,6 +35,7 @@ def _ensure_tasks_closed():
         try:
             task = _tasks.pop()
             if task.started:
+                logger.debug('close %s at exit' % task)
                 task.close()
         except Exception:
             pass
@@ -61,7 +62,7 @@ def find_task_by_name(name, cls=None, arr=None):
 
 def find_tasks_by_class(cls, arr=None):
     arr = arr if arr is not None else _tasks
-    return list(filter(lambda task: task.__class__ == cls, arr))
+    return list(filter(lambda task: issubclass(task.__class__, cls), arr))
 
 
 class SkipIteration(Exception):
@@ -146,12 +147,12 @@ class LoopTaskMixin(object):
 
     @property
     def status(self):
-        '''Status of the loopTask is read-only'''
+        '''`status` of the loopTask is read-only'''
         return ensure_unicode(self.__status__)
 
     @property
     def started(self):
-        '''Started of the loopTask is read-only'''
+        '''`started` of the loopTask is read-only'''
         return self.__started__
 
     def start(self, *a, **k):
@@ -164,11 +165,21 @@ class LoopTaskMixin(object):
         self.__started__ = True
         self.__status__ = b'started'
         self.start_time = time.time()
+        try:
+            self.hook_before()
+        except Exception:
+            logger.error(traceback.format_exc())
+            self.close()
+            return False
         return True
 
     def close(self):
         if not self.started:
             return False
+        try:
+            self.hook_after()
+        except Exception:
+            logger.error(traceback.format_exc())
         self.__flag_close__.set()
         self.__flag_pause__.clear()
         # you can restart this task now
@@ -195,15 +206,29 @@ class LoopTaskMixin(object):
         self.__status__ = b'resumed'
         return True
 
+    def hook_before(self):
+        '''Hook function executed outside self.loop after start.'''
+        pass
+
+    def hook_after(self):
+        '''Hook function executed outside self.loop before close.'''
+        pass
+
     def loop_before(self):
         '''Hook function executed inside self.loop before loop task.'''
         pass
 
-    def loop(self, func, args=(), kwargs={}, before=None, after=None):
-        assert callable(func), 'Loop function `%s` is not callable' % func
-        self.loop_before()
-        if callable(before):
-            before()
+    def loop_after(self):
+        '''Hook function executed inside self.loop after loop task.'''
+        pass
+
+    def loop(self, func, args=(), kwargs={}):
+        try:
+            assert callable(func), 'Loop function `%s` is not callable' % func
+            self.loop_before()
+        except Exception:
+            logger.error(traceback.format_exc())
+            return self.close()
         try:
             while not self.__flag_close__.is_set():
                 if self.__flag_pause__.wait(2):
@@ -211,18 +236,24 @@ class LoopTaskMixin(object):
                         func(*args, **kwargs)
                     except SkipIteration as e:
                         logger.warning(e)
+                self.loop_actions()
         except KeyboardInterrupt:
             logger.info('KeyboardInterrupt detected.')
         except Exception:
             logger.error(traceback.format_exc())
+        try:
+            self.loop_after()
+        except Exception:
+            logger.error(traceback.format_exc())
         if self.started:
             self.close()
-        if callable(after):
-            after()
-        self.loop_after()
 
-    def loop_after(self):
-        '''Hook function executed inside self.loop after loop task.'''
+    def loop_actions(self):
+        '''
+        Hook function called inside self.loop in each iteration. May be
+        overridden by a subclass / Mixin to implement any code that needs
+        to be run even SkipIteration error is raised.
+        '''
         pass
 
 
@@ -291,8 +322,8 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
         if callable(after):
             self.loop_after = after
         self._floop_ = func
-        self._fargs_, self._fkwargs = args, kwargs
-        k.setdefault('name', 'LoopFunc: %s' % getattr(func, '__name__', None))
+        self._fargs_, self._fkwargs_ = args, kwargs
+        k.setdefault('name', 'LoopFunc(%s)' % getattr(func, '__name__', None))
         k.setdefault('daemon', True)
         self._init_thread_ = functools.partial(self._init_thread_, **k)
         self._init_thread_()
@@ -310,25 +341,22 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
             extra += ' daemon'
         if self.ident is not None:
             extra += ' %s' % self.ident
-        return '<{name} ({status}){extra}>'.format(
+        return '<{name} {status}{extra}>'.format(
             name=self.name, status=self.status, extra=extra)
 
     def start(self):
-        if not LoopTaskMixin.start(self):
-            return False
+        return LoopTaskMixin.start(self)
+
+    def hook_before(self):
         if not self._thread_inited_:
             self._init_thread_()
         threading.Thread.start(self)
-        return True
 
-    def close(self):
-        if not LoopTaskMixin.close(self):
-            return False
+    def hook_after(self):
         self._thread_inited_ = False
-        return True
 
     def run(self):
-        self.loop(self._floop_, self._fargs_, self._fkwargs)
+        self.loop(self._floop_, self._fargs_, self._fkwargs_)
         logger.debug('{} stopped.'.format(self))
 
 

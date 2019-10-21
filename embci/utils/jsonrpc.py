@@ -29,7 +29,8 @@ There are three logical layers of JSON-RPC:
 
 Features
 --------
-- Positional argument, keyword arugment and both (not define in spec).
+- Positional argument, keyword arugment and both (not define in spec but
+implemented in this module).
 - MultiCall, Notifications and mixture of them.
 - Mark request as notification at runtime by passing keyword parameters.
 - Support both RPC version 1.0 and 2.0
@@ -371,7 +372,7 @@ class Payload(object):
         -----------------------
         jsonrpc : MUST be exactly "2.0"
         result : MUST NOT exist if error and REQUIRED on success
-        error : MUST NOT exist on success and REQUIRES if error
+        error : MUST NOT exist on success and REQUIRED if error
         id : MUST be None | the same ID as request's
 
         Error Object
@@ -455,12 +456,17 @@ class Payload(object):
 class History(object):
     requests = []
     responses = []
+    history_size = 100
 
     def add_response(self, response):
         self.responses.append(response)
+        while len(self.responses) > self.history_size:
+            self.responses.pop(0)
 
     def add_request(self, request):
         self.requests.append(request)
+        while len(self.requests) > self.history_size:
+            self.requests.pop(0)
 
     @property
     def response(self):
@@ -474,8 +480,32 @@ class History(object):
         del self.requests[:], self.responses[:]
 
     def __repr__(self):
-        return '<History %s at 0x%x>' % (
-            'TODO: list of reqs and reps', id(self))
+        return '<History at 0x%x>' % id(self)
+
+    def summary(self):
+        reqs = [req.get('id') for req in self.requests if req.get('id')]
+        reps = list(map(lambda rep: rep.get('id'), self.responses))
+        repi = []
+        for idx, rep in enumerate(reps):
+            if rep is None:
+                continue
+            if rep not in reqs:
+                repi.append(rep)
+                reqs.insert(idx, 'None')
+            else:
+                repi += ['None'] * (reqs.index(rep) - len(repi)) + [rep]
+        repi.extend(['None'] * (len(reqs) - len(repi)))
+        reqs.extend(['None'] * (len(repi) - len(reqs)))
+        if reqs and repi:
+            ml = max(map(len, reqs + repi))
+            msg = ':\n %s\n' % '\n '.join([
+                (req or 'None').ljust(ml) + ' - ' + (rep or 'None').ljust(ml)
+                for req, rep in zip(reqs, repi)
+            ])
+        else:
+            msg = ' '
+        return 'History%ssum: %d requests, %d responds' % (
+            msg, len(self.requests), len(self.responses))
 
 
 History = History()
@@ -735,14 +765,18 @@ class JSONRPCRequestHandler(ext.xmlrpc_server.SimpleXMLRPCRequestHandler):
             data = ''
             while size_remaining:
                 string = self.rfile.read(min(size_remaining, max_chunk_size))
-                data += string; size_remaining -= len(string)      # noqa: E702
+                size_remaining -= len(string)
+                data += string.decode('utf8')
             response = self.server._marshaled_dispatch(data)
             self.send_response(200)
         except Exception as e:
             response = ext.dumps(Payload.error(-32603, ext.format_exc(e)))
+            ext.logger_rpc.error(response)
             self.send_response(500)
         if not isinstance(response, bytes):  # py 2 & 3
             response = response.encode('utf8')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.send_header('Content-type', 'application/json-rpc')
         self.send_header('Content-length', str(len(response)))
         self.end_headers()

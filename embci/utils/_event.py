@@ -16,7 +16,7 @@ import os
 # requirements.txt: necessary: six
 from six import string_types
 
-from . import AttributeList, AttributeDict, typename
+from . import AttributeList, AttributeDict, logger, typename
 from ._json import loads, minimize
 
 __all__ = ['Event']
@@ -86,6 +86,8 @@ class Event(object):
             return False
         with open(fn, 'r') as f:
             loaded = self.load_json(f.read())
+        if not loaded:
+            logger.error('Load events failed from %s' % fn)
         return loaded
 
     def load_json(self, s):
@@ -102,6 +104,7 @@ class Event(object):
         elif isinstance(d, (dict, AttributeDict, EventObject)):
             events = d.get('events', [d])
         else:
+            logger.error('Invalid event type: %s' % typename(d))
             return False
         for event in events:
             try:

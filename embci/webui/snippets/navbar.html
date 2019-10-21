@@ -8,16 +8,13 @@
 
     <div class="collapse navbar-collapse" id="header-navbar">
         <div class="navbar-nav navbar-links">
-            <a class="nav-item nav-link active" href="/index.html">Home</a>
-            <a class="nav-item nav-link" href="#">Documentation</a>
+            <a class="nav-item nav-link active" href="#" title="TODO: host doc on same site">Documentation</a>
             <a class="nav-item nav-link" href="#" hidden>Link</a>
             <div class="dropdown">
                 <a class="nav-item nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true">Applications</a>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item" href="#">Example</a>
-                    <a class="dropdown-item" href="#">Auth</a>
+                <div class="dropdown-menu" id="dropdown-apps">
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Something else here</a>
+                    <a class="dropdown-item" href="/index.html" title="See all applications">Full List</a>
                 </div>
             </div>
             <div class="dropdown">
@@ -35,15 +32,52 @@
                 </div>
             </div>
             <div id="batteryBar" style="height:38px;width:38px;margin:auto 10px;cursor:pointer">
-                <!-- TODO: runtime load javascript -->
-                <button class="btn" onclick="var s1 = document.createElement('script'), s2 = document.createElement('script'); var head = document.getElementsByTagName('head')[0]; s1.src = '/js/progressbar.min.js'; head.append(s1); s2.src = '/js/batterybar.js'; head.append(s2);">Battery</button>
+                <button class="btn btn-default">Battery</button>
             </div>
         </div>
         <div hidden>
             <form class="form-inline my-2 my-lg-0">
                 <input class="form-control mr-sm-2" type="search" placeholder="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
             </form>
         </div>
     </div>
+    <script type="text/javascript" id="TODO-replace-with-requirejs">
+        function requestJS(src) {
+            if ($('script[src]').filter((i, s) => s.src.endsWith(src)).length) {
+                return;
+            }
+            $('head').append($('<script>').attr('src', src).prop('async', true));
+        }
+        function requestCSS(src) {
+            if ($('link[href]').filter((i, s) => s.href.endsWith(src)).length) {
+                return;
+            }
+            $('head').append($('<link rel="stylesheet">').attr('href', src));
+        }
+    </script>
+    <script type="text/javascript">
+        $(function() {
+            requestJS('/js/bootstrap.min.js');
+            requestCSS('/css/bootstrap.min.css');
+            let $nav = $('nav#headbar');
+            $.getJSON('/appinfo', obj => {
+                if (!obj.subapps.length) return;
+                let $lst = $nav.find('#dropdown-apps');
+                $lst.prev().addClass('active');
+                $lst.children('a:not([title])').remove();
+                $lst.prepend(obj.subapps.reduce((filtered, app) => {
+                    if (!app.hidden) {
+                        let an = $('<a class="dropdown-item">').text(app.name);
+                        filtered.push(an.attr('href', app.target));
+                    }
+                    return filtered;
+                }, []));
+            }, (xhr, status, error) => {console.log(error)});
+            $nav.on('click', '#batteryBar button', function() {
+                requestJS('/js/progressbar.min.js');
+                requestJS('/js/batterybar.js');
+            });
+        });
+    </script>
 </nav>

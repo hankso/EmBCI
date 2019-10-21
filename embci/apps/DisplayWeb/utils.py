@@ -11,89 +11,20 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import time
 import base64
-import traceback
 
-# requirements.txt: network: bottle, gevent-websocket
-# requirements.txt: data: numpy
+# requirements.txt: network: bottle
 import bottle
-import geventwebsocket
-import numpy as np
 
-from embci.utils import (                                          # noqa: W611
-    serialize, deserialize, minimize,
-    ensure_bytes, ensure_unicode,
-    LoopTaskInThread
-)
+from embci.utils import serialize, deserialize, ensure_bytes, ensure_unicode
 
-from .globalvars import reader, server, signalinfo, logger, pt
-
-
-class WebSocketMulticaster(LoopTaskInThread):
-    def __init__(self, paramtree):
-        self.ws_list = []
-        self.pt = paramtree
-        LoopTaskInThread.__init__(self, self._data_multicast)
-
-    def _data_fetch(self):
-        data = process_realtime(reader.data_channel, self.pt)
-        server.multicast(data)
-        return data
-
-    def _data_cache(self):
-        cached_data = []
-        while len(cached_data) < self.pt.batch_size:
-            cached_data.append(self._data_fetch())
-        data = np.float32(cached_data).T  # n_channel x n_batch_size
-        if self.pt.detrend and reader.input_source != 'test':
-            data = signalinfo.detrend(data)
-        # data = data[self.pt.channel_range.n]
-        # TODO: displayweb: scale matrix can amp each channel differently
-        data = data * self.pt.scale_list.a[self.pt.scale_list.i]
-        return bytearray(data)
-
-    def _data_multicast(self):
-        '''Cache and multicast data continuously if there are ws clients.'''
-        if not self.ws_list:
-            return time.sleep(1)
-        data = self._data_cache()
-        for ws in self.ws_list[:]:
-            if not self.data_send(ws, data):
-                self.remove(ws)
-
-    def data_send(self, ws, data, binary=True):
-        try:
-            ws.send(data, binary)
-            return True
-        except geventwebsocket.websocket.WebSocketError:
-            ws.close()
-        except Exception:
-            logger.error(traceback.format_exc())
-        return False
-
-    def add(self, ws):
-        if not isinstance(ws, geventwebsocket.websocket.WebSocket):
-            raise TypeError('Invalid websocket. Must be gevent-websocket.')
-        if ws.closed:
-            raise ValueError('Websocket %s is already closed.' % ws)
-        self.ws_list.append(ws)
-
-    def remove(self, ws):
-        if ws not in self.ws_list:
-            return
-        self.ws_list.remove(ws)
-
-
-distributor = WebSocketMulticaster(pt)
+from .globalvars import signalinfo, pt
 
 
 def process_register(data, pt=pt):
-    signalinfo.notch(data, register=True)
-    signalinfo.bandpass(
-        data, pt.bandpass.get('low', 4), pt.bandpass.get('high', 10),
-        register=True
-    )
+    signalinfo.notch(data, pt.notch or 50, register=True)
+    low, high = pt.bandpass.get('low', 4), pt.bandpass.get('high', 40)
+    signalinfo.bandpass(data, low, high, register=True)
 
 
 def process_realtime(data, pt=pt):
@@ -106,7 +37,7 @@ def process_realtime(data, pt=pt):
 
 def process_fullarray(data, pt=pt):
     if pt.notch:
-        data = signalinfo.notch(data)
+        data = signalinfo.notch(data, Hz=pt.notch)
     if pt.bandpass:
         data = signalinfo.bandpass(data, **pt.bandpass)
     return data
@@ -116,7 +47,6 @@ def set_token(data, username='user', key='token', max_age=60):
     token = base64.b64encode(serialize(data))
     secret = base64.b64encode(ensure_bytes(username))
     bottle.response.set_cookie('name', ensure_unicode(username))
-    # Anti-XSS(Cross Site Scripting): HttpOnly + Escape(TODO)
     bottle.response.set_cookie(
         key, token, secret=secret, max_age=max_age, httponly=True)
     return data
@@ -128,6 +58,7 @@ def check_token(key='token'):
     token = bottle.request.get_cookie(key, secret=secret)
     if token is None:
         bottle.abort(408, 'Cache expired or user\'s report not generated yet!')
-    return deserialize(base64.b64decode(token))
+    return deserialize(bottle.html_escape(base64.b64decode(token)))
+
 
 # THE END

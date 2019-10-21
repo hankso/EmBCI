@@ -86,11 +86,12 @@ class EmBCIFormatter(Formatter):
 
     def __init__(self, fmt=None, datefmt=DATEFORMAT, style='{', useColor=True):
         if PY2:
-            fmt = ensure_unicode(fmt or '{message}')
-            if style not in '{$':
-                raise ValueError('Style must be one of: {, $')
+            if fmt is None:
+                fmt, style = '{message}', '{'
+            if style not in '%{':
+                raise ValueError('Style must be one of: `%`, `{`')
             self._style = style
-            Formatter.__init__(self, fmt, datefmt)
+            Formatter.__init__(self, ensure_unicode(fmt), datefmt)
         else:
             Formatter.__init__(self, fmt, datefmt, style)
         self._useColor = useColor

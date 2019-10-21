@@ -50,6 +50,7 @@ WEBUI_PORT = 80
 DIR_ENSURE_EXIST = True
 DIR_SRC = __basedir__
 DIR_BASE = os.path.dirname(__basedir__)  # Suppose `embci` is not installed yet
+DIR_DOC = os.path.join(DIR_BASE, 'docs')
 if os.name == 'nt':
     DIR_PID = os.path.expanduser('~/.embci/pid')
     DIR_LOG = os.path.expanduser('~/.embci/log')

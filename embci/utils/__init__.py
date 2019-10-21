@@ -84,9 +84,13 @@ del PytestRunner
 # =============================================================================
 # Utilities
 
+def debug_helper(v, name=None):
+    name = name or get_caller_globals(1)['__name__']
+    logging.getLogger(name).setLevel('DEBUG' if get_boolean(v) else 'INFO')
+
+
 def debug(v=True):
-    logger = logging.getLogger(get_caller_globals(1)['__name__'])
-    logger.setLevel('DEBUG' if get_boolean(v) else 'INFO')
+    debug_helper(v)
 
 
 def null_func(*a, **k):
@@ -517,7 +521,8 @@ class BoolString(str):
     __bool__ = __nonzero__
 
 
-def time_stamp(ctime=None, fmt='%Y%m%d-%H:%M:%S'):
+def timestamp(ctime=None, fmt='%Y-%m-%dT%H:%M:%SZ'):
+    '''Default ISO time string format'''
     return time.strftime(fmt, time.localtime(ctime))
 
 
@@ -1131,6 +1136,17 @@ def duration(sec, name=None, warning=None):
         else:
             time_dict[_name] = time.time()
             return func(*args, **kwargs)
+    return wrapper
+
+
+def embedded_only(reason='Skip execution on current platform', retval=None):
+    @decorator
+    def wrapper(func, *args, **kwargs):
+        if platform.machine() in ['arm', 'aarch64']:
+            return func(*args, **kwargs)
+        else:
+            logger.warning('%s: `%s`' % (reason, platform.platform()))
+            return retval
     return wrapper
 
 

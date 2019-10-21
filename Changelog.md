@@ -1,12 +1,23 @@
 
+## 0.2.3 [2019-10-22]
+- [Speller] Save user's configurations in browser to recover the same layout at next visit. Add width & height attributes to each layout. Copy recognition result to clipboard by double clicking result field. Finish all TODOs.
+- [DisplayWeb] Add a second rendering method "scroll whole frame". This can be enabled by one click of a toggle button. Optimize realtime render performance.
+- [Recorder] Fix recorder command entrance multi-command bug. Provide CLI data stream recorder application at `python -m embci.apps.recorder` (like a LSL LabRecorder implemented in Python) which supports stream selection, recording pause & resume and data filename/username configuration.
+- [Recorder] Add web-based recorder console at `http://${EMBCI_HOST}/app/recorder`. List and control all alive recorders in your browser.
+- [Streaming] Add JSON-RPC interface to control ESP32 data stream and LSL outlet by Remote Procedure Call. JSON-RPC protocal support communication from C/Python/JavaScript/... See more at module doc `embci.apps.streaming.__doc__`.
+- [WebUI] Add `webui_static_host` function to register multiple source directories for static file serving. It supports updating on exist routes.
+- [File Manager] New feature: data files manager in subapp `embci.apps.baseserver`.
+- [JSONRPC] History container informatic summary output. Allow CORS POST by setting `Access-Control-Allow-Origin` in response header.
+- Enable subapp `embci.apps.system` to shutdown/reboot/update the EmBCI device. Use `embedded_only` decorator to avoid dangerous command on PC.
+
 ## 0.2.2 [2019-09-29]
-- [logging] Use single character in logging level output. Support colorful output in shell/terminal
+- [logging] Use single character in logging level output. Support colorful output in shell/terminal.
 - [IO] Add `save_chunk(append=False)` and `save_trial`.
-- [Recorder] recorder well tested.
+- [Recorder] Subapp recorder well tested. Check `embci.apps.recorder.__doc__` for more detail about configuration and usage.
 
 ## 0.2.1 [2019-09-15]
 - Add `from __future__ import absolute_import, division, print_function` to each module.
-- Use ``//`` for floor division and ``/`` for float division.
+- Use ``//`` for floor division and ``/`` for float division (immigrating to py3).
 - [WebUI] HTML snippets loader support keywords arguments by setting attributes like ``data-foo="bar"``. Add webui debug application runner and pick random port.
 - [Drivers] Add package `embci.drivers`. Move `embci.utils.xxx_api` to `embci.drivers.xxx` as hardware APIs.
 - [Utils] Add `get_free_port` to resolve an avaiable port number. Support event sending and receiving by EventIO system implemented at `embci.utils._event`

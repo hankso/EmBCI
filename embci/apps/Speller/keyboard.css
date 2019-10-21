@@ -9,6 +9,8 @@
     text-align: center;
 }
 
+.input-group {padding: 10px;}
+
 div#kbd-MENU #select-layouts {
     max-width: 160px;
 }
@@ -46,29 +48,32 @@ div#kbd-MENU > div#session-ctrl #session-timeout {
     width: 66px;
 }
 
-div#kbd-MENU > div#session-ctrl #session-iteration {
-    width: 66px;
+div#kbd-MENU > div#session-ctrl #session-btn{
+    width: 100px;
 }
 
-div#kbd-MENU div#session-ctrl-trial #session-btn{
-    width: 125px;
-}
-
-div#kbd-MENU div#session-ctrl-trial #session-progress {
-    width: 125px;
+div#kbd-MENU > div#session-ctrl #session-progress {
+    width: 100px;
     height: 100%;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
 
-div#kbd-MENU div#session-ctrl-trial #session-progress > .progress-bar {
+div#kbd-MENU > div#session-ctrl #session-progress > .progress-bar {
     transition-duration: 0s !important;
 }
 
-div#kbd-MENU div#session-ctrl-train #session-auto {
-    width: 61px;
-    border-top-right-radius: inherit;
-    border-bottom-right-radius: inherit;
+div#kbd-MENU > div#train-ctrl #train-trials {
+    width: 60px;
+}
+
+div#kbd-MENU > div#train-ctrl #train-progress {
+    width: 150px;
+    height: 100%;
+}
+
+div#kbd-MENU > div#train-ctrl #train-progress > .progress-bar {
+    transition-duration: 0s !important;
 }
 
 div#kbd-UI {
@@ -102,5 +107,6 @@ div#kbd-UI form#session-result #input-result {
     font: normal 20px/28px monospace;
     border-width: 0;
     outline: none;
+    cursor: copy;
     background-color: white;
 }

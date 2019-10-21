@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Online SignalViewer Backends</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/numjs.min.js"></script>
+    <script src="/d3/d3.v3.min.js"></script>
+    <style type="text/css">
+        h3 {text-align: center; margin-top: 20px;}
+    </style>
+</head>
+
+<body>
+    <script>
+        var srate = 500, nchannel = 8, nsample = 1000;
+        var width = 600, height = 400;
+        var arr2d = nj.random([8, 1000]);
+    </script>
+
+    <h3>CanvasJS</h3>
+    <script src="/canvasjs/canvasjs-2.3.2.jquery.min.js"></script>
+    <div id="chartCanvasjs"></div>
+    <script>
+        console.time('canvasjs');
+        for (var datac = [], ch = 0; ch < 8; ch++) {
+            datac.push({
+                name: 'CH' + ch, type: 'line',
+                showInLegend: 'true', dataPoints: []
+            });
+            for (var len = arr2d.shape[1], x = 0; x < len; x++) {
+                datac[ch].dataPoints.push({y: arr2d.get(ch, x) + ch});
+            }
+        }
+        var chartc = $('#chartCanvasjs').css('width', width).css('height', height).CanvasJSChart({
+            animationEnabled: true,
+            exportEnabled: true,
+            zoomEnabled: true,
+            theme: 'light2',
+            title: {text: 'realtime update'},
+            subtitles: [{text: 'subtitle', fontSize: 15}],
+            axisY: {
+                title: 'Amp / mV',
+                includeZero: false,
+                titleFontSize: 24,
+            },
+            axisX: {
+                crosshair: {enabled: true, snapToDataPoint: true},
+            },
+            legend: {
+                cursor: 'pointer',
+                fontSize: 16,
+                horizontalAlign: 'center',
+                itemclick: (e) => {
+                    if (undefined === e.dataSeries.visible) {
+                        e.dataSeries.visible = true;
+                    }
+                    e.dataSeries.visible = !e.dataSeries.visible;
+                    e.chart.render();
+                }
+            },
+            toolTip: {
+                shared: true
+            },
+            data: datac,
+        }).CanvasJSChart();
+        console.timeLog('canvasjs');
+        chartc.render();
+        console.timeEnd('canvasjs');
+    </script>
+
+    <!--
+    <h3>EpochJS on D3</h3>
+    <script src="/epochjs/epoch-0.8.4.min.js"></script>
+    <link rel="stylesheet" href="/epochjs/epoch-0.8.4.min.css">
+    <div id="chartEpochjs" class="epoch category10"></div>
+    <script>
+        console.time('epochjs');
+        for (var datae = [], ch = 0; ch < 8; ch++) {
+            datae.push({label: 'CH' + ch, values: []});
+            for (var len = arr2d.shape[1], x = 0; x < len; x++) {
+                datae[ch].values.push({time: x, y: arr2d.get(ch, x) + ch});
+            }
+        }
+        console.timeLog('epochjs');
+        var charte = $('#chartEpochjs').css('width', width).css('height', height).epoch({
+            type: 'time.line',
+            axes: ['left', 'bottom', 'right'],
+            fps: 60,
+            //windowSize: 500,
+            //historySize: 10,
+            data: datae
+        });
+        console.timeEnd('epochjs');
+        // charte.push();
+    </script>
+
+    <h3>Echarts</h3>
+    <script src="/echarts/echarts-4.2.1.min.js"></script>
+    <div id="chartEcharts"></div>
+    <script>
+        var charts = echarts.init(
+                document.getElementById('chartEcharts'), null,
+                {width: width, height: height});
+        console.time('echarts');
+        for (var datas = [], ch = 0; ch < 8; ch++){
+            datas.push({
+                type: 'line', showSymbol: false, hoverAnimation: false,
+                smooth: false, lineStyle: {width: 0.8}, data: []
+            });
+            for (var len = arr2d.shape[1], x = 0; x < len; x++) {
+                datas[ch].data.push([x, arr2d.get(ch, x) + ch]);
+            }
+        }
+        console.timeLog('echarts');
+        charts.setOption({
+            legend: {
+                type: 'plain', itemHeight: 14, itemWidth: 16, orient: 'veritcal'
+            },
+            grid: {left: 20, right: 30, top: 50, bottom: 20, show: true},
+            toolbox: {feature: {dataZoom: {}, restore: {}, saveAsImage: {}}},
+            xAxis: {type: 'value', min: 'dataMin', max: 'dataMax'},
+            yAxis: {type: 'value', min: -1, max: 9}, series: datas,
+        });
+        console.timeEnd('echarts');
+    </script>
+    -->
+
+    <h3>Rickshaw on D3</h3>
+    <!-- <script src="/d3/d3.v5.min.js"></script> -->
+    <link rel="stylesheet" href="/rickshaw/rickshaw.min.css">
+    <script src="/rickshaw/rickshaw-1.6.6.min.js"></script>
+    <div id="chartRickshaw">
+        <style>
+            #chartRickshaw-y {position: absolute; width: 40px;}
+            #chartRickshaw-c {position: absolute; left: 40px;}
+            #chartRickshaw-l {position: absolute; right: 20px;}
+            #chartRickshaw {width: 600px; height: 500px;}
+        </style>
+        <div id="chartRickshaw-y"></div>
+        <div id="chartRickshaw-c">
+            <div id="chartRickshaw-h"></div>
+        </div>
+        <div id="chartRickshaw-l"></div>
+    </div>
+    <script>
+        var palette = new Rickshaw.Color.Palette();
+        console.time('rickshaw');
+        for (var datar = [], ch = 0; ch < 8; ch++) {
+            datar.push({color: palette.color(ch), data: []});
+            for (var len = arr2d.shape[1], x = 0; x < len; x++) {
+                datar[ch].data.push({x: x / srate, y: arr2d.get(ch, x) + ch});
+            }
+        }
+        var chartr = new Rickshaw.Graph({
+            element: document.getElementById('chartRickshaw-c'),
+            width: width, height: height,
+            renderer: 'line', min: -1, max: 9,
+            series: datar,
+        });
+        var yaxes = new Rickshaw.Graph.Axis.Y({
+            graph: chartr, element: document.getElementById('chartRickshaw-y'),
+            orientation: 'left', tickFormat: Rickshaw.Fixtures.Number.formatKMBT
+        });
+        /*
+        var xaxes = new Rickshaw.Graph.Axis.Time({graph: chartr});
+        var hover = new Rickshaw.Graph.HoverDetail({graph: chartr});
+        var legend = new Rickshaw.Graph.Legend({
+            graph: chartr, element: document.getElementById('chartRickshaw-l'),
+        });
+        */
+        console.timeLog('rickshaw');
+        chartr.render();
+        console.timeEnd('rickshaw');
+    </script>
+    <script>
+        var id_loop = setInterval(function() {
+            console.log('start time', Date.now() / 1000);
+            console.time('loop-prepare');
+            arr2d = nj.concatenate(arr2d.slice([], 25), nj.random([8, 25]));
+            for (var ch = 0; ch < 8; ch++) {
+                for (var len = arr2d.shape[1], x = 0; x < len; x++) {
+                    datar[ch].data[x].y = arr2d.get(ch, x) + ch;
+                    //datas[ch].data[x][1] = arr2d.get(ch, x) + ch;
+                    //datae[ch].values[x].y = arr2d.get(ch, x) + ch;
+                    datac[ch].dataPoints[x].y = arr2d.get(ch, x) + ch;
+                }
+            }
+            console.timeEnd('loop-prepare');
+            console.time('loop-rickshaw');
+            chartr.render();
+            console.timeEnd('loop-rickshaw');
+            console.time('loop-echarts');
+            charts.setOption({series: datas});
+            console.timeEnd('loop-echarts');
+            console.time('loop-canvasjs');
+            chartc.render();
+            console.timeEnd('loop-canvasjs');
+        }, 200);
+        clearInterval(id_loop);
+    </script>
+</body>
+</html>

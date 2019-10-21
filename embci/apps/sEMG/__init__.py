@@ -15,7 +15,7 @@ import time
 import json
 import traceback
 
-from embci.utils import time_stamp, check_input
+from embci.utils import timestamp, check_input
 from embci.io import load_data, save_action
 from embci.configs import DIR_DATA
 
@@ -72,7 +72,7 @@ def main(username, reader, model, commander):
                             '(not recommended)\ndelete data? [Y/n] ')):
                 os.system('rm ' + os.path.join(DIR_DATA, username, '*.mat'))
 
-            model_name = './model/%s/%s.h5' % (username, time_stamp())
+            model_name = './model/%s/%s.h5' % (username, timestamp())
             model.save(model_name)
             with open(model_name[:-3] + '-action-dict.json', 'w') as f:
                 json.dump(action_dict, f)

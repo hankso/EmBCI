@@ -12,7 +12,7 @@ window.cancelAnimationFrame = (
     window.mozCancelAnimationFrame
 ) || window.clearTimeout;
 
-setTimeout(() => window.requestAnimationFrame(function getFPS(ts, times=5) {
+function getFPS(ts, times=5) {
     if (window.FPS != undefined) window.FPS.push(ts); else window.FPS = [ts];
     if (--times) window.requestAnimationFrame(ts => getFPS(ts, times));
     else {
@@ -22,7 +22,7 @@ setTimeout(() => window.requestAnimationFrame(function getFPS(ts, times=5) {
         window.FPS = 1000 / (sum / (l - 1));
         console.log('Browser refresh rate detected as', window.FPS.toFixed(2), 'Hz');
     }
-}), 3000);
+}
 
 var LoopTask = function(callback, timeout=1000, verbose=false) {
     var fps = 0;
@@ -131,4 +131,17 @@ var LoopTask = function(callback, timeout=1000, verbose=false) {
         },
         done: function(callback) { doneHooks.push(callback); return this; }
     }
+}
+
+function copyToClipboard(text) {
+    $("body")
+        .append($('<textarea id="tmptextarea" hidden readonly>' ).val(text))
+        .find("#tmptextarea").select();
+    try {
+        let succ = document.execCommand('copy');
+        alert('Text copied to clipboard!');
+    } catch (e) {
+        window.prompt("To copy the text to clipboard: Ctrl+C, Enter", text);
+    }
+    $("#tmptextarea").remove();
 }

@@ -30,7 +30,6 @@ import time
 import mmap
 import socket
 import warnings
-import traceback
 import threading
 import multiprocessing as mp
 from ctypes import c_bool, c_char_p, c_uint8, c_uint16, c_float
@@ -119,7 +118,7 @@ class RStMixin(object):
             st, msg = 'not initialized', ''
         else:
             st = self.status
-            msg = ': {}Hz, {}CHs, {:.2f}Sec'.format(
+            msg = ' {}Hz, {}CHs, {:.2f}Sec'.format(
                 self.sample_rate, self.num_channel, self.sample_time)
             if self.status != 'closed':
                 msg += ', ' + format_size(self._data.nbytes)
@@ -318,11 +317,6 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
     def start(self, method='process', *a, **k):
         if not LoopTaskMixin.start(self):
             return False
-        try:
-            self._hook_before()
-        except Exception:
-            logger.error(traceback.format_exc())
-            return False
 
         # lock files to protect writing permission
         self._file_pid.acquire()
@@ -355,25 +349,12 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
     def close(self, *a, **k):
         if not LoopTaskMixin.close(self):
             return False
-        try:
-            self._hook_after()
-        except Exception:
-            logger.error(traceback.format_exc())
-            return False
         self._data = self._data.copy()  # remove reference to old data buffer
         self._file_mmap.close()
         self._file_data.release()
         self._file_pid.release()
         logger.debug(self.name + ' stream stopped')
         return True
-
-    def _hook_before(self):
-        '''Hook function executed outside task(block/thread/process)'''
-        pass
-
-    def _hook_after(self):
-        '''Hook function executed outside task(block/thread/process)'''
-        pass
 
     def _loop_func_lsl(self):
         data, ts = self._data_fetch()
@@ -398,9 +379,7 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
 # Readers on different input sources
 
 class FakeDataGenerator(BaseReader):
-    '''
-    Generate random data, same as any Reader defined in `embci/io/readers.py`
-    '''
+    '''Generate random data.'''
     name = 'FDGen'
 
     def __init__(self, sample_rate=250, sample_time=2, num_channel=1, **k):
@@ -410,7 +389,7 @@ class FakeDataGenerator(BaseReader):
 
     def _data_fetch(self):
         time.sleep(0.9 / self.sample_rate)
-        data = np.random.rand(self.num_channel) / 100
+        data = (np.random.rand(self.num_channel) - 0.5) / 100
         return data, time.time() - self.start_time
 
 
@@ -426,7 +405,7 @@ class FilesReader(BaseReader):
         super(FilesReader, self).__init__(
             sample_rate, sample_time, num_channel, **k)
 
-    def _hook_before(self):
+    def hook_before(self):
         '''try to open data file and load data into RAM'''
         logger.debug(self.name + ' reading data file ' + self.input_source)
         if self.input_source.endswith('.mat'):
@@ -504,7 +483,7 @@ class LSLReader(BaseReader):
         #  self.start_time = info.created_at()
         return super(LSLReader, self).start(**k)
 
-    def _hook_before(self):
+    def hook_before(self):
         fs = self._lsl_inlet_info.nominal_srate()
         if fs not in [self.sample_rate, pylsl.IRREGULAR_RATE]:
             self.set_sample_rate(fs)
@@ -515,7 +494,7 @@ class LSLReader(BaseReader):
         self.input_source = '{}@{}'.format(
             self._lsl_inlet_info.name(), self._lsl_inlet_info.source_id())
 
-    def _hook_after(self):
+    def hook_after(self):
         time.sleep(0.2)
         self._lsl_inlet.close_stream()
 
@@ -547,19 +526,21 @@ class SerialReader(BaseReader):
         self._serial.baudrate = baudrate
         return super(SerialReader, self).start(**k)
 
-    def _hook_before(self):
+    def hook_before(self):
         self._serial.open()
         self.input_source = 'Serial@{}'.format(self._serial.port)
         logger.debug(self.name + ' `%s` opened.' % self.input_source)
         self._check_num_channel(len(self._data_fetch()[0]))
 
-    def _hook_after(self):
+    def hook_after(self):
         self._serial.close()
 
     def _data_fetch(self):
-        msg = self._serial.read_until().decode('utf-8').split(',')
-        data = [float(i.strip()) for i in msg if i.strip()]
-        return np.array(data, self._dtype), time.time() - self.start_time
+        #  data = self._serial.read_until().decode('utf-8')
+        #  data = [i.strip() for i in data.split(',')]
+        #  data = np.array([float(i) for i in data if i], self._dtype)
+        data = np.loadtxt(self._serial, self._dtype, delimiter='.')
+        return data, time.time() - self.start_time
 
 
 class ADS1299SPIReader(BaseReader):
@@ -634,13 +615,13 @@ class ADS1299SPIReader(BaseReader):
         self._api._dev = device and tuple(device) or find_spi_devices()
         return super(ADS1299SPIReader, self).start(**k)
 
-    def _hook_before(self):
+    def hook_before(self):
         self._api.open(self._api._dev)
         self._api.start(self.sample_rate)
         logger.info(self.name + ' `/dev/spidev%d-%d` opened.' % self._api._dev)
         #  self._check_num_channel()
 
-    def _hook_after(self):
+    def hook_after(self):
         self._api.close()
 
     def _data_fetch(self):
@@ -667,7 +648,7 @@ class SocketTCPReader(BaseReader):
             sample_rate, sample_time, num_channel, **k)
         self._client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def _hook_before(self):
+    def hook_before(self):
         # IP addr and port are offered by user, connect to host:port
         logger.debug(self.name + ' configure IP address')
         extra = ''
@@ -705,7 +686,7 @@ class SocketTCPReader(BaseReader):
         self._check_num_channel(len(self._data_fetch()[0]))
         self._client_size = self.num_channel * self._dtype.itemsize
 
-    def _hook_after(self):
+    def hook_after(self):
         '''
         Keep in mind that socket `client` is continously receiving from server
         in other process/thread, so directly close client is dangerous because

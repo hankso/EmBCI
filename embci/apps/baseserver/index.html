@@ -13,9 +13,18 @@
 
 <body>
     <div data-include="navbar.html"></div>
-    <div data-include="masklayer.html" data-display="none"></div>
+    <div style="margin: 100px auto; width: 80%">
+        <h3>Base Static Server</h3>
+        <p>This simple application serves static files from local storage on the machine where EmBCI WebUI is running.</p>
+        <h5>Documentation</h5>
+        <p>EmBCI WebUI tries to compile and host the latest doc files locally at <a href="/doc/">this page</a>.</p>
+        <p>Also online EmBCI documentation can be accessed at <a href="https://hankso.github.io/EmBCI">Github</a> and <a href="https://embci.readthedocs.io/en/latest">Read the Docs</a>.</p>
+        <h5>Data Files Manager</h5>
+        <p>View, download or delete recorded / generated data files on this machine at <a href="datafile.html">here</a>.</p>
+        <h5>Recorders Dashboard</h5>
+        <p>Monitor and control all alive recorders in the same process with current server in <a href="../recorder/">this page</a>.</p>
+    </div>
     <div data-include="bottom.html"></div>
-    <div data-include="recorder.html" data-display="block" data-replace="true"></div>
 </body>
 
 </html>

@@ -29,9 +29,12 @@ Develop target of subapp `recorder`
 This file will make recorder a module and provide class `Recorder`
 '''
 
-from embci.utils import config_logger, debug as _debug
+from embci.utils import config_logger, debug_helper as _debug_helper
 logger = config_logger(__name__)
-debug = lambda v=True: _debug(v)                                   # noqa: E731
+debug = lambda v=True: _debug_helper(v)                            # noqa: E731
 del config_logger
 
-from .base import Recorder, application                            # noqa: W611
+APPNAME = 'Recorder'
+
+from .base import Recorder                                         # noqa: W611
+from .server import application                                    # noqa: W611

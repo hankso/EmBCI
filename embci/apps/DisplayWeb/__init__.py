@@ -27,39 +27,51 @@ from __future__ import division
 from __future__ import print_function
 import os
 import time
-import shlex
 import traceback
 
-# requirements.txt: network: bottle
+# requirements.txt: network: bottle, gevent-websocket
 # requirements.txt: data: numpy, pylsl
 import bottle
+import geventwebsocket
 import numpy as np
 
-from embci.utils import get_boolean
-from embci.apps.streaming import send_message_streaming
-
-from .globalvars import (
-    reader, server, recorder, signalinfo, logger,
-    pt, __basedir__
+from embci.utils import (
+    get_boolean, minimize, null_func, config_logger,
+    LoopTaskInThread
 )
-from .utils import process_register, minimize, distributor
+from embci.apps.streaming import send_message_streaming
+from embci.apps.recorder import Recorder
+from embci.io import LSLReader as Reader
 
+from .globalvars import server, signalinfo, pt
+from .utils import process_register, process_fullarray, process_realtime
+
+__basedir__ = os.path.dirname(os.path.abspath(__file__))
 __status__ = os.path.join(__basedir__, 'status.html')
 __display__ = os.path.join(__basedir__, 'display.html')
 
 display = bottle.Bottle()
-inited = False
+logger = config_logger(__name__)
 
 
 # =============================================================================
 # General API
 
+def app_init():
+    global app_init, reader, recorder, distributor
+    reader = Reader(sample_time=5, num_channel=8)
+    app_reader_control('init')
+    recorder = Recorder(reader)
+    recorder.start()
+    distributor = WebSocketMulticaster(pt)
+    distributor.start()
+    server.start()
+    app_init = null_func
+
+
 @display.route('/')
 def app_index():
-    global inited
-    if not inited:
-        app_reader_control('init')
-        inited = True
+    app_init()
     bottle.redirect('display.html')
 
 
@@ -71,32 +83,18 @@ def app_server_info():
     return {'messages': msg}
 
 
-@display.route('/recorder/<attr>')
-def app_recorder_attr(attr):
-    if not hasattr(recorder, attr):
-        bottle.abort(400, 'Unknown attribute `{}`'.format(attr))
-    return str(getattr(recorder, attr))
-
-
 @display.route('/reader/<method>')
 def app_reader_control(method):
     if method in ['init', 'start']:
         try:
-            rst = reader.start(
-                'starts-with(source_id, "spi")', type='Reader Outlet',
-                method='process')
+            rst = reader.start(type='Reader Outlet', method='process')
         except Exception:
             logger.error(traceback.format_exc())
             bottle.abort(500, 'Cannot start data stream reader.')
         if not rst:
             return 'data stream already started'
-        time.sleep(1.5)
-        process_register(reader.data_frame)
-        if method == 'init':
-            signalinfo.sample_rate = reader.sample_rate
-            distributor.start()
-            recorder.start()
-            server.start()
+        signalinfo.sample_rate = reader.sample_rate
+        process_register(reader.data_all)
         return 'data stream started'
     elif method in ['pause', 'resume', 'close', 'restart']:
         getattr(reader, method)()
@@ -109,7 +107,12 @@ def app_reader_control(method):
     return str(func())
 
 
-@display.route('/srv/<filename:path>', name='srv')
+@display.route('/recorder/<command>')
+def app_recorder_hook(command):
+    return recorder.cmd(command)
+
+
+@display.route('/srv/<filename:path>')
 def app_nonexist(filename):
     return bottle.HTTPError(404, 'File does not exist.')
 
@@ -165,9 +168,11 @@ def data_get_websocket():
 @display.route('/data/freq')
 def data_get_freq():
     # y_amp: nch x length
+    data = signalinfo.detrend(reader.data_frame[pt.channel_range.n])
     y_amp = signalinfo.fft_amp_only(
-        signalinfo.detrend(reader.data_frame[pt.channel_range.n]),
-        resolution=pt.fft_resolution)[:]  # this maybe multi-channels
+        process_fullarray(data),
+        resolution=pt.fft_resolution
+    )[:]  # this maybe multi-channels
     y_amp = y_amp[:, 0:pt.fft_range * pt.fft_resolution] * 1000
     x_freq = np.arange(0, pt.fft_range, 1.0 / pt.fft_resolution).reshape(1, -1)
     return minimize(np.concatenate((x_freq, y_amp)).T.tolist())
@@ -178,7 +183,7 @@ def data_get_status(pt=pt):
     msg = [
         ['SPLITBAR', 'Parameters tree'],
         ['Realtime Detrend (baseline)', 'ON' if pt.detrend else 'OFF'],
-        ['Realtime Notch Filter', 'ON' if pt.notch else 'OFF'],
+        ['Realtime Notch Filter', pt.notch or 'OFF'],
         ['Realtime Bandpass Filter', pt.bandpass or 'OFF'],
         ['Current Amplify Scale', '%.4fx' % pt.scale_list.a[pt.scale_list.i]],
         ['Current Frequent Channel', 'CH%d' % (pt.channel_range.n + 1)],
@@ -241,11 +246,15 @@ def data_config_filter():
     notch = bottle.request.query.get('notch')
     if notch is not None:
         try:
-            pt.notch = get_boolean(notch)
-            rst.append('Realtime notch filter state: {}'.format(
-                'ON' if pt.notch else 'OFF'))
+            freq = int(notch)
         except ValueError:
-            bottle.abort(400, traceback.format_exc())
+            try:
+                pt.notch = get_boolean(notch)
+            except ValueError:
+                bottle.abort(400, 'Invalid notch value: %s' % notch)
+        else:
+            pt.notch = freq
+        rst.append('Realtime notch filter state: {}'.format(pt.notch or 'OFF'))
     low = bottle.request.query.get('low')
     high = bottle.request.query.get('high')
     if None not in [low, high]:
@@ -333,16 +342,65 @@ def config_fftfreq(fftfreq):
                     fftfreq, reader.sample_rate // 2))
 
 
-def config_recorder(command):
-    cmd = shlex.split(command)
-    if len(cmd) == 1:
-        return recorder.cmd(cmd[0])
-    elif len(cmd) == 2:
-        return recorder.cmd(**{cmd[0]: cmd[1]})
-    else:
-        return 'Invalid command: {}'.format(command)
+# =============================================================================
+# Distributor used for multicasting
+
+class WebSocketMulticaster(LoopTaskInThread):
+    def __init__(self, paramtree):
+        self.ws_list = []
+        self.pt = paramtree
+        LoopTaskInThread.__init__(self, self._data_multicast)
+
+    def _data_fetch(self):
+        data = process_realtime(reader.data_channel, self.pt)
+        server.multicast(data)
+        return data
+
+    def _data_cache(self):
+        cached_data = []
+        while len(cached_data) < self.pt.batch_size:
+            cached_data.append(self._data_fetch())
+        data = np.float32(cached_data).T  # n_channel x n_batch_size
+        if self.pt.detrend and reader.input_source != 'test':
+            data = signalinfo.detrend(data)
+        # data = data[self.pt.channel_range.n]
+        # TODO: displayweb: scale matrix can amp each channel differently
+        data = data * self.pt.scale_list.a[self.pt.scale_list.i]
+        return bytearray(data)
+
+    def _data_multicast(self):
+        '''Cache and multicast data continuously if there are ws clients.'''
+        if not self.ws_list:
+            return time.sleep(1)
+        data = self._data_cache()
+        for ws in self.ws_list[:]:
+            if not self.data_send(ws, data):
+                self.remove(ws)
+
+    def data_send(self, ws, data, binary=True):
+        try:
+            ws.send(data, binary)
+            return True
+        except geventwebsocket.websocket.WebSocketError:
+            ws.close()
+        except Exception:
+            logger.error(traceback.format_exc())
+        return False
+
+    def add(self, ws):
+        if not isinstance(ws, geventwebsocket.websocket.WebSocket):
+            raise TypeError('Invalid websocket. Must be gevent-websocket.')
+        if ws.closed:
+            raise ValueError('Websocket %s is already closed.' % ws)
+        self.ws_list.append(ws)
+
+    def remove(self, ws):
+        if ws not in self.ws_list:
+            return
+        self.ws_list.remove(ws)
 
 
+APPNAME = 'Visualization'
 application = display
 __all__ = ['application']
 # THE END

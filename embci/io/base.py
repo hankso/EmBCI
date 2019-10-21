@@ -38,11 +38,8 @@ __all__ = [
 ]
 
 
-_name_datafile_pattern = re.compile(r'^(\w+)-(\d+)\.(\w+)(?:\.gz)?$')
-
-
-@mkuserdir
-def find_data_info(username):
+_name_datafile_pattern = re.compile(r'^([ \w\.-]+)-(\d+)\.(\w+)(?:\.gz)?$')
+def find_data_info(username):                                      # noqa: W611
     '''
     Count all saved data files under user's directory that match a pattern:
     ${DIR_DATA}/${username}/${label}-${num}.${suffix}[.gz]
@@ -68,6 +65,8 @@ def find_data_info(username):
     label_dict = {}
     name_dict = {}
     root = os.path.join(DIR_DATA, username)
+    if not os.path.exists(root):
+        return label_dict, name_dict, ''
     for filename in sorted(os.listdir(root)):
         if not _name_datafile_pattern.match(filename):
             continue
@@ -96,11 +95,13 @@ def find_data_info(username):
     return label_dict, name_dict, summary
 
 
+@mkuserdir
 def validate_datafile(username, label='default', checkname=False):
     if checkname:
         username = ''.join([
             c for c in validate_filename(username) if c not in '()[]'
         ]).replace(' ', '_').replace('.', ' ')
+    label = validate_filename(label)
     label_dict = find_data_info(username)[0]
     ns = label_dict.get(label, [])
     num = list(set(range(len(ns) + 1)).difference(ns))[0]
@@ -364,6 +365,11 @@ def load_mat(fn):
             replst = [_ for _ in keys[1:] if _.startswith(k)] + [k]
             arrays = [dct.pop(keys.pop(keys.index(_))) for _ in replst]
             dct[k] = [arr[0] if arr.size else [] for arr in arrays]
+            if isinstance(dct[k][0], (np.ndarray, list, tuple)):
+                try:
+                    dct[k] = np.concatenate(dct[k], -1)
+                except Exception:
+                    pass
         key = dct.get('key', 'chunk')[0]
         data = dct.pop(key)
     elif 'data' in dct:

@@ -1,0 +1,32 @@
+.panel {
+    margin: 20px auto;
+    width: 100%;
+    text-align: center;
+}
+
+.chart {
+    margin: 20px auto;
+    width: 95%;
+    border: 1px solid #E3E3E3;
+    border-radius: 10px;
+    box-shadow:0 0 7px 5px #E3E3E3;
+}
+
+#filter-notch-freq {
+    max-width: 70px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.form-inline {
+    padding: 0 20px;
+}
+
+.input-group {
+    padding: 10px;
+}
+
+@media screen and (min-width: 768px) {
+    .panel {
+        width: 80%;
+    }

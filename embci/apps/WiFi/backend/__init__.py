@@ -67,11 +67,13 @@ __targets__ = [
 
 
 # built-in
-import sys
-import logging
 import importlib
 import traceback
 
+import sys
+__module__ = sys.modules[__name__]  # reference to current module
+del sys
+from .. import logger
 __all__ = []
 __backends__ = [
     {
@@ -85,8 +87,6 @@ __backends__ = [
         'module': 'wifi_backend'
     },
 ]
-__module__ = sys.modules[__name__]  # reference to current module
-logger = logging.getLogger('.'.join(__name__.split('.')[:-1]))
 
 for bd in __backends__:
     try:
@@ -101,34 +101,32 @@ for bd in __backends__:
         logger.warning('Importing `%s` failed.' % __backend__)
         logger.error(traceback.format_exc())
         continue
+    if (
+        hasattr(mod, '__all__') and
+        not set(mod.__all__).issuperset(__targets__)
+    ):
+        continue
     logger.debug('Using %s backend from %s.' % (bd['name'], __backend__))
 
-    # =========================================================================
     # runtime `from .xxx_backend import *`
-    #
-    if not hasattr(mod, '__all__'):
-        mod.__all__ = __targets__
     # method 1
     try:
-        for entry in mod.__all__:
+        for entry in __targets__:
             setattr(__module__, entry, getattr(mod, entry))
     except AttributeError:
-        logger.error(
-            'Invalid backend %s. Missing entry `%s`.' % (bd['name'], entry))
+        logger.error('Invalid backend %s. ' % bd['name'] +
+                     'Missing entry `%s`.' % entry)
         continue
     else:
         break
-
     # method 2
     # TODO: WiFi.backend: importlib.__import__ doesn't support relative import
-    #  importlib.__import__(bd['module'], globals(), locals(), mod.__all__)
-
-for entry in __all__:
-    if not hasattr(__module__, entry):
-        raise RuntimeError('Cannot load backend. Terminate.')
+    #  importlib.__import__(bd['module'], globals(), locals(), __targets__)
+else:
+    raise RuntimeError('Cannot load backend. Terminate.')
 
 try:
-    del sys, logging, importlib, __module__, bd, mod, req, entry
+    del __module__, importlib, bd, mod, req, entry
 except NameError:
     pass
 

@@ -25,10 +25,12 @@ Subapps are actually modules. App with a value of ``None`` means it has been
     2. use command option ``python -m embci.webui --exclude=AppNoUse``
 '''
 no_exist_app = None
-system = None  # do not load app system by webui
-baseserver = None  # may be used to serve document in the future
+system = None  # do not load app system by webui (temporarily)
+streaming = None  # ZMQ/RPC command interface application, no webui
+SignalInfo = TGAM = MotorImagery = sEMG = None  # not well implemented yet
 
-__all__ += ['no_exist_app', 'system', 'baseserver']
+__all__ += ['no_exist_app', 'system', 'streaming']
+__all__ += ['SignalInfo', 'TGAM', 'MotorImagery', 'sEMG']
 
 # =============================================================================
 
@@ -56,9 +58,8 @@ will be displayed on webpage and in app-list (embci.webui still can load it
 correctly).
 '''
 from . import auth; auth.HIDDEN = True                             # noqa: E702
-from . import recorder; recorder.HIDDEN = True                     # noqa: E702
 
-__all__ += ['auth', 'recorder']
+__all__ += ['auth']
 
 # =============================================================================
 # THE END

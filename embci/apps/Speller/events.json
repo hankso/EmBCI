@@ -26,6 +26,9 @@
     {"_comment.EventIO": "Training"},
     {"code": 400, "name": "train.start"},
     {"code": 401, "name": "train.stop"},
+    {"code": 402, "name": "train.init"},
+    {"code": 403, "name": "train.progress"},
+    {"code": 404, "name": "train.end"},
 
     {"_comment.others": "Misc"},
     {"code": 800, "name": "misc.unlock"},

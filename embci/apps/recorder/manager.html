@@ -1,0 +1,101 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>EmBCI - Recorder Dashboard</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <!-- <link rel="stylesheet" href="/css/tabulator.min.css"> -->
+    <!-- <link rel="stylesheet" href="/tabulator/tabulator_midnight.min.css"> -->
+    <link rel="stylesheet" href="/tabulator/tabulator_simple.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/tabulator.min.js"></script>
+    <script src="/js/sniploader.js"></script>
+    <style>
+        #rec-table {
+            width: 90%;
+            margin: 100px auto;
+            border: 1px solid #999;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+    
+<body>
+    <div data-include="navbar.html"></div>
+    <!-- <div data-include="recorder-box.html"> -->
+    <div id="rec-table"></div>
+    <div data-include="bottom.html"></div>
+
+    <script src="table-options.js"></script>
+    <script type="text/javascript">
+        function recorderUpdate(row) {
+            $.getJSON(`info/${row.getData().info.name}`, (info) => {
+                table.updateRow(row.getIndex(), {info: info});
+            });
+        }
+        function recorderCommand(name, cmd, callback=recorderUpdate) {
+            if (typeof name == 'object' && name.getData) {
+                if (cmd === undefined) {
+                    let idx = name.getField().split('.');
+                    if (idx.length < 2 || idx[0] == 'gen') return;
+                    cmd = Object.fromEntries([[idx[1], name.getValue()]]);
+                }
+                var row = name.getRow();
+                name = name.getData().info.name;
+            } else {
+                var row = table.getRows().filter(
+                    row => row.getData().info.name == name
+                )[0];
+            }
+            if (!row) return console.error('Invalid recorder name', name);
+            let url = 'command/' + name, data = {};
+            switch (typeof cmd) {
+                case 'string': url += '/' + cmd; break;
+                case 'object': data = cmd; break;
+                case 'undefined': return callback && callback(row);
+                default: return console.error('Invalid recorder command', cmd);
+            }
+            //console.log(name, cmd, row);
+            $.get(url, data, (rst) => {
+                // if (rst != cmd) console.log('command failed');
+                callback && callback(row);
+            });
+        }
+    </script>
+    <script type="text/javascript">
+        $(function() {
+            window.table = new Tabulator('#rec-table', {
+                ajaxURL: 'list',
+                ajaxResponse: (url, param, obj) => {
+                    console.log(
+                        'Recorder server: ' + obj.session + ' hosted by ' +
+                        obj.server + ' in Process-' + obj.pid
+                    )
+                    return obj.recorders;
+                },
+                movableRows: true,
+                movableColumns: true,
+                columns: columns,
+                tooltips: true,
+                // reactiveData: true,
+                printAsHtml: true,
+                printCopyStyle: true,
+                printVisibleRows: false,
+                printHeader: '<h3>Recorder mangement dashboard</h3>',
+                placeholder: 'No alive recorders',
+                headerVisible: true,
+                layout: 'fitDataFill',
+                //height: 400,
+                selectable: true,
+                selectableRangeMode: 'click',
+                pagination: 'local',
+                paginationSize: 5,
+                paginationSizeSelector: [5, 10, 20, 50],
+            });
+        });
+    </script>
+</body>
+</html>

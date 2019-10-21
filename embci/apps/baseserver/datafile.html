@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>EmBCI - Data files manager</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/tabulator/tabulator_semantic-ui.min.css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/tabulator.min.js"></script>
+    <script src="/js/sniploader.js"></script>
+</head>
+    
+<body>
+    <div data-include="navbar.html"></div>
+    <div class="container" id="datafile-table" style="margin:100px auto"></div>
+    <div data-include="bottom.html"></div>
+
+    <script src="datafile.js"></script>
+    <script type="text/javascript">
+        function callback(){}
+    </script>
+    <script type="text/javascript">
+        $(function() {
+            window.table = new Tabulator('#datafile-table', {
+                ajaxURL: 'datafiles',
+                ajaxResponse: (url, param, obj) => {
+                    console.log('Data files for: ', obj.users);
+                    return obj.datalist;
+                },
+                //movableRows: true,
+                movableColumns: true,
+                columns: columns,
+                //tooltips: true,
+                //reactiveData: true,
+                printAsHtml: true,
+                printCopyStyle: true,
+                printVisibleRows: false,
+                placeholder: '-',
+                headerVisible: true,
+                layout: 'fitDataFill',
+                responsiveLayout: 'hide',
+                //height: 400,
+                selectable: true,
+                selectableRangeMode: 'click',
+                pagination: 'local',
+                paginationSize: 50,
+                paginationSizeSelector: [10, 20, 50, 100],
+                //groupBy: ['username', 'gen.label'],
+                groupBy: 'username',
+                groupHeader: (value, count, data, group) => {
+                    return $('<span>').css('font-weight', 'normal').html(
+                        'Username ' + `<strong><i>${value}</i></strong> ` +
+                        `(${count} data files)`
+                    )[0];
+                },
+            });
+        });
+    </script>
+</body>
+</html>

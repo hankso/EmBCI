@@ -15,8 +15,6 @@ import time
 import zmq
 from six import string_types
 
-from embci.utils import ensure_bytes, ensure_unicode
-
 from . import CMD_ADDR
 
 
@@ -55,11 +53,11 @@ def send_message(cmd_or_args, delay=0.2):
     else:
         cmd = cmd_or_args
     c = get_consumer()
-    c.send(ensure_bytes(cmd))
+    c.send(cmd.encode('utf8'))
     if cmd in ['exit', 'quit']:
         ret = ''
     else:
         time.sleep(delay)
         ret = c.recv()
     c.close()
-    return ensure_unicode(ret)
+    return ret.decode('utf8')

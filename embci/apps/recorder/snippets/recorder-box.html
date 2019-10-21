@@ -4,25 +4,28 @@
             position: fixed;
             right: 3%;
             bottom: 10%;
-            z-index: 2;
+            height: 44px;
+            width: 44px;
+            border: 2px solid #BBBBBB;
+            border-radius: 15px;
+            z-index: 5;
             display: none;
         }
         div#recorder > button#record-btn {
             position: absolute;
             right: 0;
             bottom: 0;
-            height: 44px;
-            width: 44px;
+            height: 40px;
+            width: 40px;
             padding: 0;
-            border: 2px solid #DDDDDD;
-            border-radius: 15px;
+            border: none;
             outline: none;
             background: none;
         }
         div#recorder > button#record-btn span {
             position: absolute;
-            top: 0;
-            left: 0;
+            right: 0;
+            bottom: 0;
             width: 28px;
             height: 28px;
             margin: 6px;
@@ -32,9 +35,9 @@
             background-color: red;
         }
         div#recorder > button#record-btn[aria-expanded="true"] span {
-            height: 20px;
-            width: 20px;
-            margin: 10px;
+            height: 22px;
+            width: 22px;
+            margin: 9px;
             border-radius: 25%;
         }
         /*
@@ -48,21 +51,20 @@
         }
         */
         div#recorder > form#record-form {
-            position: relative;
-            right: 0px;
-            bottom: 45px;
+            position: absolute;
+            right: 0;
+            bottom: 42px;
             height: 35px;
-            overflow: hidden;
+            width: 200px;
+            transition: all 500ms linear;
         }
         div#recorder > form#record-form span {
             cursor: pointer;
             line-height: 35px;
             font-size: 22px;
             color: grey;
+            width: 40px;
             text-align: center;
-        }
-        div#recorder > form#record-form span#record-icon-user {
-            width: 44px;
         }
         div#recorder > form#record-form input#record-user {
             float: right;
@@ -71,10 +73,10 @@
             padding-right: 30px;
             border-width: 0 0 2px 0;
             border-color: #33DDFFAA;
-            background: transparent;
+            background: #FFFFFFDD;
             height: 100%;
-            width: 150px;
-            transition: all 1200ms;
+            width: 160px;
+            transition: all 500ms linear;
         }
         div#recorder > form#record-form span#record-icon-confirm {
             width: 30px;
@@ -83,21 +85,24 @@
             right: 0;
             z-index: 3;
             display: none;
+            color: green;
+        }
+        div#recorder > form#record-form.fold {
+            width: 40px;
         }
         div#recorder > form#record-form.fold input#record-user {
             width: 0;
             padding: 0;
         }
         div#recorder.recording #record-icon-user {color: green;}
+        div#recorder.recording {border-color: green;}
     </style>
-    <form class="collapse fold" id="record-form">
-        <span class="fas fa-user" id="record-icon-user"></span>
+    <form class="collapse fold" id="record-form" action="javascript:void(0)">
+        <span class="fas fa-user" id="record-icon-user" title="Set/Check current username"></span>
         <input type="text" name="username" placeholder="Username" id="record-user">
-        <span class="fas fa-check-circle" id="record-icon-confirm"></span>
+        <span class="fas fa-check-circle" id="record-icon-confirm" title="Update username"></span>
     </form>
-    <button id="record-btn" data-toggle="collapse"
-        data-target="div#recorder form#record-form"
-        aria-expanded="false">
+    <button id="record-btn" data-toggle="collapse" data-target="form#record-form" aria-expanded="false" title="Resume data recording">
         <span></span>
     </button>
     <script type="text/javascript">
@@ -113,19 +118,39 @@
                     recorder.hide();
                     recorder.trigger('update', {username: 'none'});
                 })
-                .on('show', ()=>recorder.show())
-                .on('start').on('stop').on('pause').on('resume').on('update');
+                .on('show', () => recorder.show())
+                .on('set', (e, p) => {
+                    if (undefined === p || undefined === p.username) return;
+                    if (undefined != p.username) {
+                        var user = p.username;
+                        if (user != 'None') {
+                            recorder.find('input#record-user').val(user);
+                            recorder.addClass('recording');
+                        } else {
+                            recorder.find('input#record-user').val('');
+                            recorder.removeClass('recording');
+                        }
+                    }
+                });
             recorder.find('input#record-user')
                 .on('focus', ()=>recorder.find('#record-icon-confirm').show(300))
                 .on('blur', ()=>recorder.find('#record-icon-confirm').hide(300));
             recorder.find('button#record-btn').on('click', function() {
                 if ($(this).attr('aria-expanded') == 'true') {
-                    recorder.trigger('pause');
                     recorder.children('form#record-form').addClass('fold');
+                    recorder.trigger('pause');
+                    $(this).attr('title', 'Resume data recording');
                 } else {
                     recorder.trigger('resume');
+                    $(this).attr('title', 'Pause data recording');
                 }
             });
+            recorder.find('form#record-form')[0].onkeypress = function(e) {
+                /* Disable default action when Enter is hit. */
+                if ((e.keyCode || e.which) === 13) {
+                    e.preventDefault();
+                }
+            };
             recorder.find('#record-icon-user').on('click', function() {
                 /*
                  * If icon is clicked while recording, update user status.
@@ -135,14 +160,19 @@
                 if (recorder.hasClass('recording')) {
                     recorder.trigger('update');
                 } else if (!recorder.children('#record-form').hasClass('fold')) {
-                    recorder.find('#record-icon-confirm').click();
+                    return recorder.find('#record-icon-confirm').click();
                 }
                 recorder.children('#record-form').toggleClass('fold');
             });
             recorder.find('#record-icon-confirm').on('click', function() {
                 var name = recorder.find('input#record-user').val();
                 recorder.trigger('update', {username: name});
+                recorder.find('form#record-form').addClass('fold');
             });
+            recorder
+                .on('start').on('stop')
+                .on('pause').on('resume')
+                .on('update');
         });
     </script>
 </div>

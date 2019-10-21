@@ -12,28 +12,28 @@ Data streaming task is defined at `embci.apps.streaming`.
 It provides a `pylsl` data stream available on this machine. Multiple clients
 can connect to this stream and fetch realtime data from it simultaneously.
 The default data input of this stream is ESP32 MCU on EmBCI Hardware (embedded
-system), while fake data generator is used on PC platform. Because each clients
-may apply different processing algorithums on their fetched data, such as
-denoising or component analysis, data output of this stream is raw data
-(i.e. without any preprocessing).
+system), but fake data generator is used on PC platform. Because each clients
+may need to apply different processing algorithums on their fetched data,
+such as denoising or component analysis. This stream provides raw data from
+amplifier and ADC.
 
 Communication
 -------------
-Two interface is provided to access the control of this task:
+Two interfaces are available for communicating with this task:
     - JSON-RPC
     - ZMQ + python-argparse
 
 JSON Remote Procedure Call (JSON-RPC) is an excellent protocal for
-interprocess communication both locally and through network.
-But the second method is of higher priority. In this task ZMQ and argparse
-are used cooperatively to construct a command-recieve-and-execute server.
+interprocess communication both locally and through network. However, the
+second method is more suggested. In this task ZMQ and argparse are used
+cooperatively to construct a command-recieve-and-execute server.
 Comparing to JSON-RPC, ZMQ also support local or remote TCP request (and many
 more mechanisms like PGM, IPC and In-proc). Argparse can provide a neat help
 output and error handle interface, as well as support to subcommands.
 
-ZMQ is more suggested if you want to communicate with this task from
-C++/Python/Java or even command line. And JSON-RPC is suitable for web users
-in case someone want to control the task from webpage using JavaScript.
+ZMQ is preferred if you want to interact with this task from C++/Python/Java
+or even command line. JSON-RPC is suitable for web users in case someone want
+to control the task from webpage using JavaScript.
 '''
 
 
@@ -42,32 +42,22 @@ logger = config_logger(__name__)
 del config_logger
 
 from embci.utils import get_config
-CMD_HOST = get_config('STREAMING_CMD_HOST', '0.0.0.0')
+STM_HOST = get_config('STREAMING_HOST', '0.0.0.0')
 CMD_PORT = get_config('STREAMING_CMD_PORT', 9997, type=int)
-RPC_HOST = get_config('STREAMING_RPC_HOST', '0.0.0.0')
 RPC_PORT = get_config('STREAMING_RPC_PORT', 9996, type=int)
 del get_config
 
-CMD_ADDR = 'tcp://{}:{}'.format(CMD_HOST, CMD_PORT)
-RPC_ADDR = 'Not implemented yet'
+CMD_ADDR = 'tcp://{}:{}'.format(STM_HOST, CMD_PORT)
+RPC_ADDR = 'http://{}:{}'.format(STM_HOST, RPC_PORT)
 
-CMD_HELP = '''
-ZMQ Address
------------
-ZMQ interface is listening on `{addr}`, from wich users can set
-parameters of data stream at runtime.
-'''.format(addr=CMD_ADDR)
-
-# TODO: JSONRPC interface
-RPC_HELP = '''
-JSON-RPC Port
--------------
-Not implemented yet.
-'''
+HELP = '''
+ZMQ interface is listening on `{}`, from wich users can set
+parameters of data stream at runtime. RPC server binds to `{}`.
+'''.format(CMD_ADDR, RPC_ADDR)
 
 CMD_USAGE = '''
-Usage
------
+ZMQ Example
+-----------
 >>> import zmq
 >>> c = zmq.Context()
 >>> q = c.socket(zmq.REQ)
@@ -95,11 +85,46 @@ input_source:   normal
 stream_control: paused
 impedance:      disabled
 $ stream_control resume
-
-See `<command> -h` for more information on each command.
 '''.format(addr=CMD_ADDR)
 
-__doc__ = '\n'.join([__doc__, CMD_HELP, RPC_HELP])
+RPC_USAGE = '''
+RPC Example
+-----------
+You can use RPC service in JavaScript like:
+> var request = {{
+      method: 'system.describe',  // cascaded function name
+      params: ['all'],            // parameters are optional
+      id: '0xdeadbeef',           // id may be omitted
+      jsonrpc: 2.0,               // see JSON-RPC Specification for version
+  }};
+> jQuery.ajax({{
+      url: '{addr}',
+      method: 'POST',                 // or type: 'POST'
+      crossDomain: true,              // enable CORS ajax request
+      data: JSON.stringify(request),  // must pass data in string
+      dataType: 'json',               // response format
+      success: obj => console.log('Result', obj.result || obj.error),
+      error: (xhr, status, error) => console.error(error)
+  }});
+
+In Python, you can use client class provided by embci.utils.jsonrpc.
+>>> from embci.utils import jsonrpc
+>>> client = jsonrpc.JSONRPCClient('{addr}')
+>>> client.stream_control('close')
+>>> client.measure_impedance('true')
+>>> print(client.summary())
+Status:
+sample_rate:    500/500 Hz
+bias_output:    enabled
+input_source:   normal
+stream_control: closed
+impedance:      enabled
+>>> print(jsonrpc.__doc__)  # for more help message on JSON-RPC
+'''.format(addr=RPC_ADDR)
+
+EPILOG = HELP + CMD_USAGE + RPC_USAGE
+
+__doc__ += EPILOG
 
 from .utils import send_message as send_message_streaming
 

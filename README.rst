@@ -1,11 +1,11 @@
-.. image:: https://raw.github.com/hankso/EmBCI/release/files/images/logo-blue.png
+.. image:: https://raw.github.com/hankso/EmBCI/master/files/images/logo-blue.png
    :alt: EmBCI LOGO
    :align: center
    :target: https://hankso.github.io/EmBCI
 
 -------
 
-.. image:: https://img.shields.io/travis/hankso/EmBCI/release.svg?label=Travis%20CI
+.. image:: https://img.shields.io/travis/hankso/EmBCI/master.svg?label=Travis%20CI
    :alt: Travis CI
    :target: https://travis-ci.org/hankso/EmBCI
 
@@ -19,7 +19,7 @@
 
 .. image:: https://img.shields.io/github/languages/code-size/hankso/EmBCI.svg
    :alt: GitHub code size in bytes
-   :target: https://github.com/hankso/EmBCI/archive/release.zip
+   :target: https://github.com/hankso/EmBCI/archive/master.zip
 
 .. image:: https://img.shields.io/github/license/hankso/EmBCI.svg
    :alt: GitHub License
@@ -54,17 +54,18 @@
 
 Welcome to the EmBCI!
 =====================
-English | `中文 <https://github.com/hankso/EmBCI/blob/release/README_zh.md>`_
+English | `中文 <https://github.com/hankso/EmBCI/blob/master/README_zh.md>`_
 
-This README file is only a quick start.
-Check out full documentation `here <https://embci.readthedocs.io/en/latest>`_.
+**EmBCI** is fully open source on Github since release v.0.2.3!
+
+This README file is only a quick start. Check out full documentation `here <https://hankso.github.io/EmBCI>`_.
 
 **EmBCI** is still under developing. Any contributions are welcomed.
 
 .. Contents::
 
 .. - `What is EmBCI?`_
-.. - `Why should you choose EmBCI?`_
+.. - `Features`_
 .. - `Hardware support`_
 .. - `Software support`_
 ..     - `Requirements`_
@@ -91,12 +92,13 @@ __ `embci.apps`_
 
 
 
-Why should you choose EmBCI?
-============================
+Features
+========
 - **Fast prototyping**: EmBCI provide lots of data streaming and IO interfaces. Build your app within 100 lines of code!
 - **Signal processing**: baseline-correction, denoising, time-frequency algorithms, and many many more.
-- **Biosignal features**: SSVEP, P300, MotorImagery, sEMG-Recognition... Support both EEG, EMG, and ECG.
+- **Multiple Biosignal**: support EEG, EMG, ECG... We implemented gesture-recognition based on sEMG and SSVEP Speller based on EEG in the same platform.
 - **It's embedded**: 40mm x 40mm wearable device, small but powerful, get rid of PC!
+- **WiFi connection**: data visualization, files management, visual stimulus keyboard and more Web UI applications are accessable by simply connect to a hotspots.
 
 
 
@@ -121,8 +123,8 @@ It integrates:
 __ `files/hardware`_
 
 .. README will be included in docs/readme.rst, so use absolute URL here
-.. _ADS1299:  https://github.com/hankso/EmBCI/blob/release/tools/ADS1299-Datasheet.pdf
-.. _ESP32:    https://github.com/hankso/EmBCI/tree/release/files/esp32
+.. _ADS1299:  https://github.com/hankso/EmBCI/blob/master/tools/ADS1299-Datasheet.pdf
+.. _ESP32:    https://github.com/hankso/EmBCI/tree/master/files/esp32
 
 
 
@@ -138,7 +140,7 @@ Installation
 ------------
 Install from pypi
 +++++++++++++++++
-:code:`pip install embci` (most suggested way)
+:code:`pip install embci`
 
 Install from source
 +++++++++++++++++++
@@ -168,7 +170,7 @@ On ``arm`` and ``aarch64`` embedded Linux platforms, ``setup.py`` will also inst
 
 To autostart EmBCI applications at boot on PC and other systems, you have to `config autorun manually`__.
 
-__ _files/service
+__ `files/service`_
 
 
 Extra files
@@ -231,7 +233,7 @@ See `docs/Configurations`_ for more details.
 
 Documentation
 =============
-Get full documentation `here <https://embci.readthedocs.io/en/latest>`_.
+Get full documentation `here <https://hankso.github.io/EmBCI>`_.
 
 
 
@@ -265,18 +267,18 @@ Files outline
 | `files/service`_  | Linux service configurations                          |
 +-------------------+-------------------------------------------------------+
 
-.. _files/esp32:     https://github.com/hankso/EmBCI/tree/release/files/esp32
-.. _files/cases:     https://github.com/hankso/EmBCI/tree/release/files/cases
-.. _files/hardware:  https://github.com/hankso/EmBCI/tree/release/files/hardware
-.. _files/service:   https://github.com/hankso/EmBCI/tree/release/files/service
+.. _files/esp32:     https://github.com/hankso/EmBCI/tree/master/files/esp32
+.. _files/cases:     https://github.com/hankso/EmBCI/tree/master/files/cases
+.. _files/hardware:  https://github.com/hankso/EmBCI/tree/master/files/hardware
+.. _files/service:   https://github.com/hankso/EmBCI/tree/master/files/service
 
-.. _embci:        https://github.com/hankso/EmBCI/blob/release/embci/__init__.py
-.. _embci.apps:   https://github.com/hankso/EmBCI/tree/release/embci/apps
-.. _embci.gyms:   https://github.com/hankso/EmBCI/tree/release/embci/gyms
-.. _embci.io:     https://github.com/hankso/EmBCI/tree/release/embci/io
-.. _embci.utils:  https://github.com/hankso/EmBCI/tree/release/embci/utils
-.. _embci.viz:    https://github.com/hankso/EmBCI/tree/release/embci/viz
-.. _embci.webui:  https://github.com/hankso/EmBCI/tree/release/embci/webui
+.. _embci:        https://github.com/hankso/EmBCI/blob/master/embci/__init__.py
+.. _embci.apps:   https://github.com/hankso/EmBCI/tree/master/embci/apps
+.. _embci.gyms:   https://github.com/hankso/EmBCI/tree/master/embci/gyms
+.. _embci.io:     https://github.com/hankso/EmBCI/tree/master/embci/io
+.. _embci.utils:  https://github.com/hankso/EmBCI/tree/master/embci/utils
+.. _embci.viz:    https://github.com/hankso/EmBCI/tree/master/embci/viz
+.. _embci.webui:  https://github.com/hankso/EmBCI/tree/master/embci/webui
 
 
 
@@ -302,7 +304,7 @@ License
 =======
 MIT license. See `LICENSE.txt`_
 
-.. _LICENSE.txt:  https://github.com/hankso/EmBCI/blob/release/LICENSE.txt
+.. _LICENSE.txt:  https://github.com/hankso/EmBCI/blob/master/LICENSE.txt
 
 
 

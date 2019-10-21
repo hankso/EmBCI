@@ -10,11 +10,11 @@ import sys
 
 from . import application, __basedir__
 
-from embci.webui import webui_static_factory, main_debug
+from embci.webui import webui_static_host, main_debug
 
 if __name__ == '__main__':
-    idx = [r.name for r in application.routes].index('srv')
-    application.routes[idx].callback = webui_static_factory(
+    webui_static_host(
+        application, '/srv/<filename:path>',
         os.path.abspath(os.path.join(__basedir__, '../recorder'))
     )
     sys.exit(main_debug(application))

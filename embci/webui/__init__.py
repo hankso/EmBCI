@@ -28,15 +28,13 @@ from logging.handlers import RotatingFileHandler
 
 # requirements.txt: network: bottle, gevent, gevent-websocket
 import bottle
-from gevent.pywsgi import WSGIServer
-from geventwebsocket.handler import WebSocketHandler
 
 from ..utils import (
-    argparse, config_logger, get_config,
+    argparse, config_logger, get_config, validate_filename,
     get_host_addr, get_free_port, get_caller_globals,
     LockedFile, LoggerStream, AttributeDict, AttributeList, BoolString
 )
-from ..configs import DIR_PID, DIR_LOG
+from ..configs import DIR_PID, DIR_LOG, DIR_DOC
 from .. import version
 
 
@@ -44,6 +42,9 @@ from .. import version
 # constants & objects
 #
 __basedir__  = os.path.dirname(os.path.abspath(__file__))
+__external__ = os.path.join(__basedir__, 'external')
+__logview__  = os.path.join(__basedir__, 'views', 'logview.html')
+__docdir__   = os.path.join(DIR_DOC, '_build', 'html')
 __port__     = get_config('WEBUI_PORT', 80, type=int)
 __host__     = get_host_addr(get_config('WEBUI_HOST', '0.0.0.0'))
 __index__    = os.path.join(__basedir__, 'index.html')
@@ -62,13 +63,18 @@ DEFAULT_ICON = '/images/icon2.png'
 #
 @root.route('/')
 def webui_root():
-    bottle.redirect('/index.html')
+    bottle.redirect('index.html')
 
 
-@root.route('/index.html')
-@bottle.view(__index__)
-def webui_index():
-    return webui_appinfo()
+@root.route('/doc/')
+def webui_doc_update():
+    # subprocess.call('make -C %s html' % DIR_DOC)
+    bottle.redirect('index.html')
+
+
+@root.route('/doc/<filename:path>')
+def webui_doc_static(filename):
+    return bottle.static_file(filename, root=__docdir__)
 
 
 @root.route('/appinfo')
@@ -83,20 +89,51 @@ def webui_appinfo():
     return {'subapps': apps}
 
 
+@root.route('/snippets')
+def webui_snippets():
+    fns = []
+    for d in SNIPDIRS:
+        fns.extend([
+            [fn, os.path.join(d, fn), '/snippets/' + fn]
+            for fn in os.listdir(d)
+            if not fn.startswith('.') and fn.endswith('.html')
+        ])
+    return {'snippets': fns, '_comment': '# filename, # absolute path, # link'}
+
+
 @root.route('/snippets/<filename:path>')
-def webui_snippets(filename):
+def webui_snippet_load(filename):
     for root in SNIPDIRS:
         if os.path.exists(os.path.join(root, filename)):
             return bottle.static_file(filename, root)
     bottle.abort(404, 'File does not exist.')
 
 
-@root.route('/log/<filename:path>')
-def webui_logfiles(filename):
+@root.route('/logfiles')
+def webui_logfiles():
+    fns = []
+    for d in LOGDIRS:
+        if not os.path.exists(d):
+            continue
+        fns.extend([
+            [fn, os.path.join(d, fn), '/logfiles/' + fn]
+            for fn in os.listdir(d)
+            if not fn.startswith('.')
+        ])
+    return {'logfiles': fns, '_comment': '# filename, # absolute path, # link'}
+
+
+@root.route('/logfiles/<filename:path>')
+def webui_logfile_view(filename, logview=False):
     for root in LOGDIRS:
         if os.path.exists(os.path.join(root, filename)):
-            return bottle.static_file(filename, root)
-    bottle.abort(404, 'File does not exist.')
+            rst = bottle.static_file(filename, root)
+            break
+    else:
+        bottle.abort(404, 'File does not exist.')
+    if bottle.request.query.get('logview', logview):
+        return bottle.template(__logview__, body=rst.body.read())
+    return rst
 
 
 def webui_static_factory(*dirs):
@@ -113,7 +150,7 @@ def webui_static_factory(*dirs):
     You can also bind callback function by:
     >>> bottle.route('/static/<filename>', 'GET', webui_static_factory('/srv'))
     '''
-    dirs = set(dirs).union({__basedir__})
+    dirs = set(dirs).union({__basedir__, __external__})
     def static_files(*fn, **fns):                                  # noqa: E306
         if fn or fns:
             fn = (fn and fn[0]) or (fns and fns.popitem()[1])
@@ -126,7 +163,30 @@ def webui_static_factory(*dirs):
     return static_files
 
 
-root.route('/<filename:path>', 'GET', webui_static_factory())
+def webui_static_host(app, path='/', *roots):
+    '''
+    Add / update route for bottle app to serve static files.
+    It can host static files from directories specified by argument `roots`,
+    as well as some usually used paths in WebUI like `logfiles`, 'snippets',
+    and even `external` folder with jQuery & bootstrap etc.
+
+    Examples
+    --------
+    >>> from embci.webui import webui_static_host
+    >>> webui_static_host(bottle.Bottle(), '/srv/<filename:path>', './')
+    >>> webui_static_host(bottle.app(), 'doc', '/opt/embci/doc')
+    '''
+    if 'file' not in path or not path.endswith('>'):
+        path = os.path.join(path, '<filename:path>')
+    lst = list(filter(lambda r: r.rule == path, app.routes))
+    if lst:
+        lst[0].callback = webui_static_factory(*roots)
+        logger.debug('Route updated to %s' % lst[0])
+    else:
+        app.route(path, 'GET', webui_static_factory(*roots))
+        logger.debug('Route added at %s' % app.routes[-1])
+
+# TODO: EmBCI special 404 page
 
 
 # =============================================================================
@@ -211,7 +271,9 @@ def mount_apps(applist=subapps):
     for app in applist:
         if app.obj is None:  # skip masked apps
             continue
-        app.target = '/apps/' + app.name.lower()
+        app.target = '/apps/' + ''.join([
+            c for c in validate_filename(app.name) if c not in '()[]'
+        ]).replace(' ', '_').lower()
         root.mount(app.target, app.obj)
         logger.debug('link `{target}` to `{name}`'.format(**app))
         app.icon = os.path.join(app.path, 'icon.png')
@@ -227,14 +289,26 @@ def mount_apps(applist=subapps):
 class GeventWebsocketServer(bottle.ServerAdapter):
     '''Gevent websocket server using local logger.'''
     def run(self, app):
+        from gevent.pywsgi import WSGIServer
+        from geventwebsocket.handler import WebSocketHandler
+
+        class WebSocketHandlerNeatLogging(WebSocketHandler):
+            def format_request(self):
+                return '%s %s %s %s' % (
+                    self.requestline or '-',
+                    (self._orig_status or self.status or '000').split()[0],
+                    self.response_length or '-',
+                    ('%.6f' % (self.time_finish - self.time_start)
+                     if self.time_finish else '-'))
+
         _logger = self.options.get('logger', logger)
         server = WSGIServer(
             listener=(self.host, self.port),
             application=app,
-            # Fix WebSocketHandler log_request, see more below:
             #  log=LoggerStream(_logger, logging.DEBUG),
             error_log=LoggerStream(_logger, logging.ERROR),
-            handler_class=WebSocketHandler)
+            handler_class=WebSocketHandlerNeatLogging)
+
         # WebSocketHandler use `server.logger.info`
         # instead of `server.log.debug`
         server.logger = _logger
@@ -339,6 +413,7 @@ def main(args=None):
     # mask apps from command line
     masked.update(args.exclude or [])
     mount_apps(subapps)
+    webui_static_host(root, '/<filename:path>')
 
     __pidfile__ = args.pidfile
     pidfile = LockedFile(__pidfile__, pidfile=True)

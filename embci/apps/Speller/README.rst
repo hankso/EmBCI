@@ -4,20 +4,12 @@ A speller system is a special system design for disabilities to ``spell`` words 
 
 Users can watch the UI through computer, tablet or even mobile phone. 
 
-TODOs
-=====
-1. validate that frequencies of flickers equal to the setting value
-2. finish implementation of TRCA and make it workable
-3. 
-
 
 Technique details
 -----------------
-
 Display stimulus using HTML + JS + CSS
 ======================================
 The most important work of rendering stimulus on webpage is to ensure that the frequency of flickers are constant and equal to the setting value. Color changing of stimulus must be strictly evenly spaced.
-
 
 setTimeout and setInterval
 ==========================
@@ -68,6 +60,7 @@ Although we use requestAnimationFrame instead of setTimeout (multiple drawings w
     ctx.drawImage(ctxOs.canvas, 0, 0);              // render to onscreen canvas
 
 Alpha channel(transparency) of keyboard canvas is disabled to optimize the performance. And alphabets are rendered on an individual canvas above keyboard layer because this layer doesn't need to be redrawn once initialized.
+
 
 Optimization
 ------------

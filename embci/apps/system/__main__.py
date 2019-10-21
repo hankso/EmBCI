@@ -5,15 +5,8 @@
 # Authors: Hank <hankso1106@gmail.com>
 # Create: 2019-07-03 17:21:59
 
-'''__doc__'''
-
-import bottle
-
 from . import system
-
-from embci.utils import get_config
+from embci.webui import main_debug as main
 
 if __name__ == '__main__':
-    host = get_config('EMBCISYS_HOST', '0.0.0.0')
-    port = get_config('EMBCISYS_PORT', 0, int)
-    bottle.run(system, host=host, port=port)
+    main(system)

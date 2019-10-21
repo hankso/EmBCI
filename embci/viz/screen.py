@@ -31,7 +31,7 @@ from decorator import decorator
 from ..configs import DIR_SRC
 from ..io import SerialCommander
 from ..drivers.ili9341 import ILI9341_API, rgb565to888, rgb888to565
-from ..utils import (time_stamp, find_gui_layouts, ensure_unicode,
+from ..utils import (timestamp, find_gui_layouts, ensure_unicode,
                      get_config, serialize, deserialize, get_func_args,
                      AttributeDict, AttributeList, Singleton, LoopTaskInThread)
 from ..constants import (command_dict_uart_screen_winbond_v1,
@@ -269,7 +269,7 @@ class DrawElementMixin(object):
     def default_callback(self, x, y, bt):
         '''default button callback'''
         logger.info('[Touch Screen] touch button {} - `{}` at ({}, {}) at {}'
-                    .format(bt['id'], bt['s'], x, y, time_stamp()))
+                    .format(bt['id'], bt['s'], x, y, timestamp()))
 
     @_pre_draw_check('img')
     def draw_img(self, x, y, img, color_bg=None, **k):
@@ -872,9 +872,9 @@ class GUIControlMixin(object):
 
         # dir_or_file: non-exist file | exist file | exist directory
         if os.path.isdir(dir_or_file):
-            fn = os.path.join(dir_or_file, 'layout-%s.pcl' % time_stamp())
+            fn = os.path.join(dir_or_file, 'layout-%s.pcl' % timestamp())
         elif os.path.exists(dir_or_file) and not overwrite:
-            fn = os.path.join(parent_dir, 'layout-%s.pcl' % time_stamp())
+            fn = os.path.join(parent_dir, 'layout-%s.pcl' % timestamp())
         else:
             fn = dir_or_file
 
@@ -1116,11 +1116,8 @@ class SerialScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
 # ===============================================================================
 # SPI Screen: ILI9341 2.4' 320x240 LCD
 
-try:
-    from ..configs import PIN_ILI9341_DC, PIN_ILI9341_RST
-except ImportError:
-    PIN_ILI9341_DC = get_config('PIN_ILI9341_DC', 2)
-    PIN_ILI9341_RST = get_config('PIN_ILI9341_RST')  # , 3)
+PIN_ILI9341_DC = get_config('PIN_ILI9341_DC', 2, type=int)
+PIN_ILI9341_RST = get_config('PIN_ILI9341_RST')  # , 3)
 
 
 def spiscreen_ili9341_carray(v):

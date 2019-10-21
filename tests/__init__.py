@@ -53,7 +53,7 @@ from embci.configs import DIR_TEST
 
 
 embeddedonly = pytest.mark.skipif(
-    platform.platform() not in ['arm', 'aarch64'],
+    platform.machine() not in ['arm', 'aarch64'],
     reason='Only test it on embedded device.'
 )
 
