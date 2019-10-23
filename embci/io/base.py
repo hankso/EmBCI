@@ -16,7 +16,7 @@ import re
 import time
 import traceback
 
-# requirements.txt: data: numpy, scipy, mne
+# requirements.txt: data: numpy, scipy, mne==0.17
 # requirements.txt: necessary: six
 import numpy as np
 import scipy.io

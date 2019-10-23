@@ -50,7 +50,6 @@ WEBUI_PORT = 80
 DIR_ENSURE_EXIST = True
 DIR_SRC = __basedir__
 DIR_BASE = os.path.dirname(__basedir__)  # Suppose `embci` is not installed yet
-DIR_DOC = os.path.join(DIR_BASE, 'docs')
 if os.name == 'nt':
     DIR_PID = os.path.expanduser('~/.embci/pid')
     DIR_LOG = os.path.expanduser('~/.embci/log')
@@ -80,24 +79,25 @@ cp = configparser.ConfigParser()
 cp.optionxform = str
 cp.read(DEFAULT_CONFIG_FILES)
 
-# DO NOT use `globals().update(cp.items)` here. It may cause recursive loop
 for _ in cp.sections():
     __module__.__dict__.update(cp.items(_))
 
 __module__.__dict__.setdefault('DIR_DATA', os.path.join(DIR_BASE, 'data'))
+__module__.__dict__.setdefault('DIR_DOC',  os.path.join(DIR_BASE, 'docs'))
 __module__.__dict__.setdefault('DIR_TEST', os.path.join(DIR_BASE, 'tests'))
 
 if str(DIR_ENSURE_EXIST).lower() in ['true', 'yes', 'y', '1']:
-    DIRS = set(filter(lambda _: _.startswith('DIR_'), __module__.__dict__))
-    for DIR in DIRS.difference(['DIR_ENSURE_EXIST', ]):
-        DIR = getattr(__module__, DIR)
-        if not isinstance(DIR, string_types) or os.path.exists(DIR):
+    for path in set(
+        filter(lambda _: _.startswith('DIR_'), __module__.__dict__)
+    ).difference(['DIE_ENSURE_EXIST', ]):
+        path = getattr(__module__, path)
+        if not isinstance(path, string_types) or os.path.exists(path):
             continue
         try:
-            os.makedirs(DIR, 0o775)
+            os.makedirs(path, 0o775)
         except OSError as e:
-            sys.stderr.write('Cannot make directory `%s`: %s' % (DIR, e))
-    del DIR, DIRS
+            sys.stderr.write('Cannot make directory `%s`: %s\n' % (path, e))
+    del path
 
 try:
     del (

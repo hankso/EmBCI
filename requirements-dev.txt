@@ -8,7 +8,7 @@
 
 
 # [data]
-mne
+mne==0.17
 numpy
 pylsl
 scipy
@@ -45,7 +45,9 @@ pytest
 # [optional]
 argparse
 dbus-python
+m2r
 matplotlib
+numpydoc
 opencv-python
 python-networkmanager
 wifi
