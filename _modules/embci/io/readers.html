@@ -100,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../update.html">Updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
@@ -252,7 +253,7 @@
     <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">ids</span><span class="p">))[</span><span class="mi">0</span><span class="p">])</span></div>
 
 
-<span class="k">class</span> <span class="nc">RStMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">StatusMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">is_streaming</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_task&#39;</span><span class="p">):</span>
             <span class="n">alive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">is_alive</span><span class="p">()</span>
@@ -294,7 +295,7 @@
         <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%s</span><span class="s1">)</span><span class="si">%s</span><span class="s1"> at 0x</span><span class="si">%x</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
 
-<span class="k">class</span> <span class="nc">RIOMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">ReaderIOMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">set_sample_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">sample_time</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sample_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sample_time</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -379,7 +380,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">data</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">:],</span> <span class="n">data</span><span class="p">[:,</span> <span class="p">:</span><span class="n">idx</span><span class="p">]),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">RCompatMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">CompatMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Methods defined here are for compatibility between all Readers.&#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="nf">set_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">en</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Reader setting: </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">en</span><span class="p">))</span>
@@ -405,48 +406,50 @@
         <span class="c1"># TODO: set sample_rate</span>
 
 
-<span class="k">class</span> <span class="nc">BaseReader</span><span class="p">(</span><span class="n">LoopTaskMixin</span><span class="p">,</span> <span class="n">RIOMixin</span><span class="p">,</span> <span class="n">RCompatMixin</span><span class="p">,</span> <span class="n">RStMixin</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">BaseReader</span><span class="p">(</span><span class="n">LoopTaskMixin</span><span class="p">,</span> <span class="n">ReaderIOMixin</span><span class="p">,</span> <span class="n">CompatMixin</span><span class="p">,</span> <span class="n">StatusMixin</span><span class="p">):</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;embci.io.Reader&#39;</span>
     <span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;LoopTaskMixin required attributes are defined here.&#39;&#39;&#39;</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">LoopTaskMixin</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="c1"># stream control flags used by `embci.utils.LoopTaskMixin`</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">__flag_pause__</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">__flag_close__</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
         <span class="c1"># Basic stream reader attributes.</span>
         <span class="c1"># These values may be accessed in another thread or process.</span>
         <span class="c1"># So make them multiprocessing.Value and serve as properties.</span>
-        <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span>
             <span class="p">(</span><span class="s1">&#39;_index&#39;</span><span class="p">,</span>         <span class="n">c_uint16</span><span class="p">,</span>  <span class="mi">0</span><span class="p">),</span>
             <span class="p">(</span><span class="s1">&#39;__status__&#39;</span><span class="p">,</span>     <span class="n">c_char_p</span><span class="p">,</span>  <span class="sa">b</span><span class="s1">&#39;closed&#39;</span><span class="p">),</span>
             <span class="p">(</span><span class="s1">&#39;__started__&#39;</span><span class="p">,</span>    <span class="n">c_bool</span><span class="p">,</span>    <span class="kc">False</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;start_time&#39;</span><span class="p">,</span>     <span class="n">c_float</span><span class="p">,</span>   <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()),</span>
-            <span class="p">(</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span>    <span class="n">c_uint16</span><span class="p">,</span>  <span class="mi">250</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;sample_time&#39;</span><span class="p">,</span>    <span class="n">c_float</span><span class="p">,</span>   <span class="mi">2</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;window_size&#39;</span><span class="p">,</span>    <span class="n">c_uint16</span><span class="p">,</span>  <span class="mi">500</span><span class="p">),</span>
-            <span class="p">(</span><span class="s1">&#39;num_channel&#39;</span><span class="p">,</span>    <span class="n">c_uint8</span><span class="p">,</span>   <span class="mi">1</span><span class="p">)</span>
+            <span class="p">(</span><span class="s1">&#39;input_source&#39;</span><span class="p">,</span>   <span class="n">c_char_p</span><span class="p">,</span>  <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span>    <span class="n">c_uint16</span><span class="p">,</span>  <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;sample_time&#39;</span><span class="p">,</span>    <span class="n">c_float</span><span class="p">,</span>   <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;window_size&#39;</span><span class="p">,</span>    <span class="n">c_uint16</span><span class="p">,</span>  <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;num_channel&#39;</span><span class="p">,</span>    <span class="n">c_uint8</span><span class="p">,</span>   <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;start_time&#39;</span><span class="p">,</span>     <span class="n">c_float</span><span class="p">,</span>   <span class="mi">0</span><span class="p">),</span>
         <span class="p">]:</span>
-            <span class="n">source</span> <span class="o">=</span> <span class="s1">&#39;_mp_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;_mp_&#39;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">BaseReader</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
                 <span class="k">continue</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="nb">property</span><span class="p">(</span>
-                <span class="n">fget</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">source</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-                <span class="n">fset</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">source</span><span class="p">:</span> <span class="nb">setattr</span><span class="p">(</span>
-                    <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span>
-                <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;property `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="n">target</span><span class="p">))</span>
-        <span class="c1"># input source indicate data source of stream</span>
-        <span class="n">obj</span><span class="o">.</span><span class="n">_mp_input_source</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">c_char_p</span><span class="p">,</span>  <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">input_source</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
-            <span class="n">fget</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="n">ensure_unicode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mp_input_source</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
-            <span class="n">fset</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">setattr</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_mp_input_source</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ensure_bytes</span><span class="p">(</span><span class="n">value</span><span class="p">)),</span>
-            <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Data source of stream.&#39;</span><span class="p">)</span>
-        <span class="c1"># stream control used flags for `embci.utils.LoopTaskMixin`</span>
-        <span class="n">obj</span><span class="o">.</span><span class="n">__flag_pause__</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
-        <span class="n">obj</span><span class="o">.</span><span class="n">__flag_close__</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">type</span> <span class="ow">is</span> <span class="n">c_char_p</span><span class="p">:</span>
+                <span class="n">fget</span> <span class="o">=</span> <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">attr</span><span class="p">:</span> <span class="p">(</span>                   <span class="c1"># noqa: E731</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+                <span class="n">fset</span> <span class="o">=</span> <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">attr</span><span class="p">:</span> <span class="p">(</span>            <span class="c1"># noqa: E731</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ensure_bytes</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fget</span> <span class="o">=</span> <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">attr</span><span class="p">:</span> <span class="p">(</span>                   <span class="c1"># noqa: E731</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">fset</span> <span class="o">=</span> <span class="k">lambda</span> <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">attr</span><span class="p">:</span> <span class="p">(</span>            <span class="c1"># noqa: E731</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">BaseReader</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="nb">property</span><span class="p">(</span>
+                <span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;property &#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">obj</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">input_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">send_pylsl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+                 <span class="n">input_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">broadcast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">datatype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
         <span class="c1"># Update basic info with arguments</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_sample_rate</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_channel_num</span><span class="p">(</span><span class="n">num_channel</span><span class="p">)</span>
@@ -457,19 +460,12 @@
         <span class="c1"># loop task, it will be checked thousands times.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">validate_readername</span><span class="p">(</span><span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">datatype</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">send_pylsl</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">broadcast</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">pylsl</span><span class="o">.</span><span class="n">string2fmt</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid data type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_outlet_info</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamInfo</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;Reader Outlet&#39;</span><span class="p">,</span>
-                <span class="n">channel_count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channel</span><span class="p">,</span> <span class="n">nominal_srate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span>
-                <span class="n">channel_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">source_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_outlet</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamOutlet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lsl_outlet_info</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; pylsl outlet established&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_func_lsl</span><span class="p">,</span> <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_send</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_func</span><span class="p">,</span> <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_send</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="c1"># Locked file used to share data among processes</span>
         <span class="n">pidfn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DIR_PID</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.pid&#39;</span><span class="p">)</span>
@@ -483,7 +479,7 @@
         <span class="c1"># 0:Channel 1:Frame 2:All 3-5: NotUsed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lasti</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
 
-    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;process&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">LoopTaskMixin</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
 
@@ -501,15 +497,28 @@
         <span class="c1"># in case that restarted with smaller window_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;block&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_send</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_info</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamInfo</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;Reader Outlet&#39;</span><span class="p">,</span>
+                <span class="n">channel_count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channel</span><span class="p">,</span> <span class="n">nominal_srate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span>
+                <span class="n">channel_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">source_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lsl_outlet</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamOutlet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lsl_info</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; pylsl outlet established&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_func_lsl</span><span class="p">,</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_func</span><span class="p">,</span> <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loop_method</span> <span class="o">=</span> <span class="n">method</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_loop_method&#39;</span><span class="p">,</span> <span class="s1">&#39;process&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loop_method</span> <span class="o">==</span> <span class="s1">&#39;block&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;thread&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loop_method</span> <span class="o">==</span> <span class="s1">&#39;thread&#39;</span><span class="p">:</span>
             <span class="n">method</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span>
-        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;process&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loop_method</span> <span class="o">==</span> <span class="s1">&#39;process&#39;</span><span class="p">:</span>
             <span class="n">method</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;unknown method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;unknown method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_method</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_loop_args</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># LoopTask manager will close readers safely</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -524,6 +533,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_file_pid</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; stream stopped&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">();</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">);</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>                <span class="c1"># noqa: E702</span>
 
     <span class="k">def</span> <span class="nf">_loop_func_lsl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">data</span><span class="p">,</span> <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_fetch</span><span class="p">()</span>
@@ -712,12 +724,11 @@
         <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span></div>
 
 
-<div class="viewcode-block" id="ADS1299SPIReader"><a class="viewcode-back" href="../../../apis/io/readers.html#embci.io.readers.ADS1299SPIReader">[docs]</a><span class="k">class</span> <span class="nc">ADS1299SPIReader</span><span class="p">(</span><span class="n">BaseReader</span><span class="p">):</span>
+<div class="viewcode-block" id="ADS1299SPIReader"><a class="viewcode-back" href="../../../apis/io/readers.html#embci.io.readers.ADS1299SPIReader">[docs]</a><span class="k">class</span> <span class="nc">ADS1299SPIReader</span><span class="p">(</span><span class="n">BaseReader</span><span class="p">,</span> <span class="n">Singleton</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Read data through SPI connection with ADS1299.</span>
 <span class="sd">    This Reader is only used on ARM. It depends on class ADS1299_API.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">Singleton</span>
     <span class="n">API</span> <span class="o">=</span> <span class="n">ADS1299_API</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ADS1299Reader&#39;</span>
 
@@ -729,9 +740,6 @@
             <span class="n">sample_rate</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">,</span> <span class="n">num_channel</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enable_bias</span> <span class="o">=</span> <span class="n">enable_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">measure_impedance</span> <span class="o">=</span> <span class="n">measure_impedance</span>
-
-    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">Singleton</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ADS1299SPIReader.set_channel"><a class="viewcode-back" href="../../../apis/io/readers.html#embci.io.readers.ADS1299SPIReader.set_channel">[docs]</a>    <span class="k">def</span> <span class="nf">set_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">en</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_api</span><span class="o">.</span><span class="n">set_channel</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">en</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

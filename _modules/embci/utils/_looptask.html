@@ -100,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../update.html">Updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
@@ -187,7 +188,7 @@
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">ensure_unicode</span><span class="p">,</span> <span class="n">get_boolean</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">get_boolean</span><span class="p">,</span> <span class="n">ensure_unicode</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;LoopTaskMixin&#39;</span><span class="p">,</span> <span class="s1">&#39;LoopTaskInThread&#39;</span><span class="p">,</span> <span class="s1">&#39;SkipIteration&#39;</span><span class="p">,</span>
@@ -515,20 +516,22 @@
         <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">{name}</span><span class="s1"> </span><span class="si">{status}{extra}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="n">extra</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">LoopTaskMixin</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">hook_before</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">LoopTaskMixin</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_inited_</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_init_thread_</span><span class="p">()</span>
         <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">hook_after</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">LoopTaskMixin</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_thread_inited_</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_floop_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fargs_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fkwargs_</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> stopped.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
 
 
 <span class="c1"># THE END</span>

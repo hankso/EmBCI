@@ -116,6 +116,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../update.html">Updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../Changelog.html">Changelog</a></li>
@@ -245,8 +246,7 @@
 <dl class="class">
 <dt id="embci.io.commanders.SocketTCPServer">
 <em class="property">class </em><code class="descclassname">embci.io.commanders.</code><code class="descname">SocketTCPServer</code><span class="sig-paren">(</span><em>host='0.0.0.0'</em>, <em>port=0</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Socket TCP server on host:port, default to 0.0.0.0:0
-Data sender.</p>
+<dd><p>Socket TCP server on host:port, default to 0.0.0.0:0. A data broadcaster.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -297,6 +297,9 @@ Data sender.</p>
 <tr class="row-even"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.loop_before" title="embci.io.commanders.SocketTCPServer.loop_before"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_before</span></code></a>()</td>
 <td>Hook function executed inside self.loop before loop task.</td>
 </tr>
+<tr class="row-odd"><td><a class="reference internal" href="#embci.io.commanders.SocketTCPServer.manager" title="embci.io.commanders.SocketTCPServer.manager"><code class="xref py py-obj docutils literal notranslate"><span class="pre">manager</span></code></a>()</td>
+<td>This loop task does following things to manage connections:     1.</td>
+</tr>
 </tbody>
 </table>
 <table border="1" class="docutils">
@@ -317,25 +320,31 @@ Data sender.</p>
 <tr class="row-even"><td><strong>getaddr</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>has_listeners</strong></td>
+<tr class="row-odd"><td><strong>handle_client</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>hook_after</strong></td>
+<tr class="row-even"><td><strong>has_listeners</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>hook_before</strong></td>
+<tr class="row-odd"><td><strong>hook_after</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>isDaemon</strong></td>
+<tr class="row-even"><td><strong>hook_before</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>loop</strong></td>
+<tr class="row-odd"><td><strong>isDaemon</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td><strong>multicast</strong></td>
+<tr class="row-even"><td><strong>loop</strong></td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><strong>pause</strong></td>
+<tr class="row-odd"><td><strong>multicast</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td><strong>pause</strong></td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td><strong>remove</strong></td>
 <td>&#160;</td>
 </tr>
 <tr class="row-even"><td><strong>restart</strong></td>
@@ -363,12 +372,12 @@ Data sender.</p>
 </table>
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.add">
-<code class="descname">add</code><span class="sig-paren">(</span><em>sock</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.add" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add</code><span class="sig-paren">(</span><em>sock</em>, <em>addr=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.add" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.close">
-<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.close" title="Permalink to this definition">¶</a></dt>
+<code class="descname">close</code><span class="sig-paren">(</span><em>*a</em>, <em>**k</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.close" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -394,19 +403,24 @@ left.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.handle_client">
+<code class="descname">handle_client</code><span class="sig-paren">(</span><em>sock</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.handle_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.handle_client" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.has_listeners">
 <code class="descname">has_listeners</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.has_listeners"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.has_listeners" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.hook_after">
-<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_after" title="Permalink to this definition">¶</a></dt>
+<code class="descname">hook_after</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.hook_after"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_after" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hook function executed outside self.loop before close.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.hook_before">
-<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_before" title="Permalink to this definition">¶</a></dt>
+<code class="descname">hook_before</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.hook_before"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.hook_before" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hook function executed outside self.loop after start.</p>
 </dd></dl>
 
@@ -489,6 +503,20 @@ to be run even SkipIteration error is raised.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.manager">
+<code class="descname">manager</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.manager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.manager" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>This loop task does following things to manage connections:</dt>
+<dd><ol class="first last arabic simple">
+<li>wait for new clients and add them into a list</li>
+<li>remove closed clients</li>
+<li>recieve msg from all clients and run callback functions</li>
+</ol>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.multicast">
 <code class="descname">multicast</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.multicast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.multicast" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -504,6 +532,11 @@ initial name is set by the constructor.</p>
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.pause">
 <code class="descname">pause</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.pause" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="embci.io.commanders.SocketTCPServer.remove">
+<code class="descname">remove</code><span class="sig-paren">(</span><em>sock</em>, <em>addr=None</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/embci/io/commanders.html#SocketTCPServer.remove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.remove" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -543,7 +576,7 @@ from the args and kwargs arguments, respectively.</p>
 
 <dl class="method">
 <dt id="embci.io.commanders.SocketTCPServer.start">
-<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.start" title="Permalink to this definition">¶</a></dt>
+<code class="descname">start</code><span class="sig-paren">(</span><em>*a</em>, <em>**k</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.io.commanders.SocketTCPServer.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the thread’s activity.</p>
 <p>It must be called at most once per thread object. It arranges for the
 object’s run() method to be invoked in a separate thread of control.</p>

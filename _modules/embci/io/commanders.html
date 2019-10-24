@@ -100,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apis/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../update.html">Updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
@@ -191,31 +192,32 @@
 <span class="kn">import</span> <span class="nn">pylsl</span>
 <span class="kn">import</span> <span class="nn">serial</span>
 
-<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="p">(</span><span class="n">ensure_unicode</span><span class="p">,</span> <span class="n">find_serial_ports</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span>
-                     <span class="n">LoopTaskInThread</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">..gyms</span> <span class="k">import</span> <span class="n">TorcsEnv</span><span class="p">,</span> <span class="n">PlaneClient</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ensure_unicode</span><span class="p">,</span> <span class="n">ensure_bytes</span><span class="p">,</span> <span class="n">find_serial_ports</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span>
+    <span class="n">LoopTaskInThread</span><span class="p">,</span> <span class="n">Singleton</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">..constants</span> <span class="k">import</span> <span class="n">command_dict_null</span><span class="p">,</span> <span class="n">command_dict_plane</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">logger</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">_</span> <span class="o">+</span> <span class="s1">&#39;Commander&#39;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s1">&#39;Torcs&#39;</span><span class="p">,</span> <span class="s1">&#39;Plane&#39;</span><span class="p">,</span> <span class="s1">&#39;LSL&#39;</span><span class="p">,</span> <span class="s1">&#39;Serial&#39;</span>
-    <span class="p">)</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SocketTCPServer&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+    <span class="n">_</span> <span class="o">+</span> <span class="s1">&#39;Commander&#39;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Torcs&#39;</span><span class="p">,</span> <span class="s1">&#39;Plane&#39;</span><span class="p">,</span> <span class="s1">&#39;LSL&#39;</span><span class="p">,</span> <span class="s1">&#39;Serial&#39;</span><span class="p">)</span>
 <span class="p">]</span>
-<span class="n">__all__</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;SocketTCPServer&#39;</span><span class="p">]</span>
+
 
 <span class="c1"># TODO: embci.io.commander: valid_name</span>
+<span class="k">def</span> <span class="nf">validate_commandername</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">name</span>
 
 
 <span class="k">class</span> <span class="nc">BaseCommander</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[embci.io.Commander]&#39;</span>
-    <span class="n">_command_dict</span> <span class="o">=</span> <span class="n">command_dict_null</span>
+    <span class="n">cmd_dict</span> <span class="o">=</span> <span class="n">command_dict_null</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_command_dict</span> <span class="o">=</span> <span class="n">command_dict</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command_dict</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">validate_commandername</span><span class="p">(</span><span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_dict</span> <span class="o">=</span> <span class="n">cmd_dict</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_dict</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[Command Dict] </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command_dict</span><span class="p">[</span><span class="s1">&#39;_desc&#39;</span><span class="p">])</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[Command Dict] </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_dict</span><span class="p">[</span><span class="s1">&#39;_desc&#39;</span><span class="p">])</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s1">&#39;[Command Dict] current command dict does not have a &#39;</span>
@@ -233,12 +235,12 @@
     <span class="n">seek</span> <span class="o">=</span> <span class="n">truncate</span> <span class="o">=</span> <span class="n">tell</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">:</span> <span class="mi">0</span>
 
     <span class="k">def</span> <span class="nf">get_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">cmd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command_dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cmd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_dict</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">warning</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> command </span><span class="si">{}</span><span class="s1"> is not supported&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
             <span class="k">return</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command_dict</span><span class="p">[</span><span class="n">cmd</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_dict</span><span class="p">[</span><span class="n">cmd</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;you can not directly use this class&#39;</span><span class="p">)</span>
@@ -246,18 +248,14 @@
 
 <div class="viewcode-block" id="TorcsCommander"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.TorcsCommander">[docs]</a><span class="k">class</span> <span class="nc">TorcsCommander</span><span class="p">(</span><span class="n">BaseCommander</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Send command to TORCS (The Open Race Car Simulator)</span>
-<span class="sd">    You can output predict result from classifier to the</span>
-<span class="sd">    game to control race car(left, right, throttle, brake...)</span>
+<span class="sd">    Send command to TORCS (The Open Race Car Simulator). You can output</span>
+<span class="sd">    predict result from classifier to the game to control race car like turn</span>
+<span class="sd">    left, turn right, throttle, brake etc.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">__num__</span> <span class="o">=</span> <span class="mi">1</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">TorcsCommander</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;[Torcs commander </span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="n">TorcsCommander</span><span class="o">.</span><span class="n">__num__</span><span class="p">)</span>
-        <span class="n">TorcsCommander</span><span class="o">.</span><span class="n">__num__</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;TorcsCommander&#39;</span>
 
 <div class="viewcode-block" id="TorcsCommander.start"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.TorcsCommander.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..gyms</span> <span class="k">import</span> <span class="n">TorcsEnv</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; initializing TORCS...&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">TorcsEnv</span><span class="p">(</span><span class="n">vision</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">throttle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">gear_change</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
@@ -273,21 +271,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">end</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="PlaneCommander"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.PlaneCommander">[docs]</a><span class="k">class</span> <span class="nc">PlaneCommander</span><span class="p">(</span><span class="n">BaseCommander</span><span class="p">):</span>
+<div class="viewcode-block" id="PlaneCommander"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.PlaneCommander">[docs]</a><span class="k">class</span> <span class="nc">PlaneCommander</span><span class="p">(</span><span class="n">BaseCommander</span><span class="p">,</span> <span class="n">Singleton</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Send command to plane war game. Control plane with commands</span>
 <span class="sd">    [`left`, `right`, `up` and `down`].</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">__singleton__</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[Plane commander]&#39;</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command_dict</span><span class="o">=</span><span class="n">command_dict_plane</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">PlaneCommander</span><span class="o">.</span><span class="n">__singleton__</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;There is already one &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">PlaneCommander</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">command_dict</span><span class="p">)</span>
-        <span class="n">PlaneCommander</span><span class="o">.</span><span class="n">__singleton__</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;PlaneCommander&#39;</span>
+    <span class="n">cmd_dict</span> <span class="o">=</span> <span class="n">command_dict_plane</span>
 
 <div class="viewcode-block" id="PlaneCommander.start"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.PlaneCommander.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">..gyms</span> <span class="k">import</span> <span class="n">PlaneClient</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">PlaneClient</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="PlaneCommander.send"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.PlaneCommander.send">[docs]</a>    <span class="nd">@duration</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;PlaneCommander&#39;</span><span class="p">)</span>
@@ -307,15 +300,9 @@
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Broadcast string[s] by pylsl.StreamOutlet as an online command stream.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">__num__</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LSLCommander&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">LSLCommander</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">command_dict</span><span class="p">,</span>
-            <span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;[LSL commander </span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="n">LSLCommander</span><span class="o">.</span><span class="n">__num__</span><span class="p">)</span>
-        <span class="n">LSLCommander</span><span class="o">.</span><span class="n">__num__</span> <span class="o">+=</span> <span class="mi">1</span>
-
-<div class="viewcode-block" id="LSLCommander.start"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.LSLCommander.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LSLCommander.start"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.LSLCommander.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;Result&#39;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Initialize and start pylsl outlet.</span>
 
@@ -334,31 +321,24 @@
 <span class="sd">        &gt;&gt;&gt; pylsl.resolve_bypred(&quot;contains(&#39;recognition&#39;)&quot;)</span>
 <span class="sd">        [&lt;pylsl.pylsl.StreamInfo instance at 0x7f3e82d8c3b0&gt;]</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_outlet</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamOutlet</span><span class="p">(</span>
-            <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamInfo</span><span class="p">(</span>
-                <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;predict result&#39;</span><span class="p">,</span>
-                <span class="n">channel_format</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="n">source_id</span><span class="o">=</span><span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outlet</span> <span class="o">=</span> <span class="n">pylsl</span><span class="o">.</span><span class="n">StreamOutlet</span><span class="p">(</span><span class="n">pylsl</span><span class="o">.</span><span class="n">StreamInfo</span><span class="p">(</span>
+            <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span> <span class="n">channel_count</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">channel_format</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="n">source_id</span><span class="o">=</span><span class="n">source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LSLCommander.send"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.LSLCommander.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> only accept str but got </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">key</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_outlet</span><span class="o">.</span><span class="n">push_sample</span><span class="p">([</span><span class="n">ensure_unicode</span><span class="p">(</span><span class="n">key</span><span class="p">)])</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outlet</span><span class="o">.</span><span class="n">push_sample</span><span class="p">([</span><span class="n">ensure_unicode</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">])</span></div>
 
 <div class="viewcode-block" id="LSLCommander.close"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.LSLCommander.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outlet</span></div></div>
 
 
 <div class="viewcode-block" id="SerialCommander"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.SerialCommander">[docs]</a><span class="k">class</span> <span class="nc">SerialCommander</span><span class="p">(</span><span class="n">BaseCommander</span><span class="p">):</span>
-    <span class="n">__num__</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;SerialCommander&#39;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SerialCommander</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">command_dict</span><span class="p">,</span>
-            <span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;[Serial Commander </span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="n">SerialCommander</span><span class="o">.</span><span class="n">__num__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SerialCommander</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_command_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_command_serial</span> <span class="o">=</span> <span class="n">serial</span><span class="o">.</span><span class="n">Serial</span><span class="p">()</span>
-        <span class="n">SerialCommander</span><span class="o">.</span><span class="n">__num__</span> <span class="o">+=</span> <span class="mi">1</span>
 
 <div class="viewcode-block" id="SerialCommander.start"><a class="viewcode-back" href="../../../apis/io/commanders.html#embci.io.commanders.SerialCommander.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">baudrate</span><span class="o">=</span><span class="mi">9600</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_command_serial</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span> <span class="ow">or</span> <span class="n">find_serial_ports</span><span class="p">()</span>
@@ -370,7 +350,7 @@
         <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command_lock</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_command_serial</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_command_serial</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ensure_bytes</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
@@ -389,27 +369,50 @@
 
 <div class="viewcode-block" id="SocketTCPServer"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer">[docs]</a><span class="k">class</span> <span class="nc">SocketTCPServer</span><span class="p">(</span><span class="n">LoopTaskInThread</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Socket TCP server on host:port, default to 0.0.0.0:0</span>
-<span class="sd">    Data sender.</span>
+<span class="sd">    Socket TCP server on host:port, default to 0.0.0.0:0. A data broadcaster.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">__num__</span> <span class="o">=</span> <span class="mi">1</span>
-
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
-        <span class="n">LoopTaskInThread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manage_connections</span><span class="p">)</span>
-        <span class="c1"># Reset name of this Thread</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[Socket server </span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="n">SocketTCPServer</span><span class="o">.</span><span class="n">__num__</span>
-        <span class="n">SocketTCPServer</span><span class="o">.</span><span class="n">__num__</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+        <span class="n">LoopTaskInThread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">manager</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">%s</span><span class="s1"> 0x</span><span class="si">%x</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">LoopTaskInThread</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+<div class="viewcode-block" id="SocketTCPServer.hook_before"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.hook_before">[docs]</a>    <span class="k">def</span> <span class="nf">hook_before</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">getsockname</span><span class="p">()</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> binding socket server at </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> socket server is listening on </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span></div>
 
-    <span class="k">def</span> <span class="nf">_manage_connections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SocketTCPServer.handle_client"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.handle_client">[docs]</a>    <span class="k">def</span> <span class="nf">handle_client</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">):</span>
+        <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getaddr</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="c1"># client sent some data</span>
+        <span class="k">if</span> <span class="n">msg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;shutdown&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> recv </span><span class="si">{}</span><span class="s1"> from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="s1">&#39;onmessage&#39;</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">sock</span><span class="o">.</span><span class="n">onmessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="k">return</span>
+        <span class="c1"># client shutdown and we should clear correspond server</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;shutdown&#39;</span><span class="p">)</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SHUT_RDWR</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sock</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SocketTCPServer.manager"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.manager">[docs]</a>    <span class="k">def</span> <span class="nf">manager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        This loop task does following things to manage connections:</span>
 <span class="sd">            1. wait for new clients and add them into a list</span>
@@ -419,41 +422,12 @@
         <span class="n">rlist</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">select</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">,</span> <span class="p">[],</span> <span class="p">[],</span> <span class="mi">3</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">rlist</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="c1"># new connection</span>
-        <span class="k">if</span> <span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">:</span>  <span class="c1"># new connection</span>
             <span class="n">con</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
             <span class="n">con</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> conn client from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">con</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
-        <span class="c1"># some client maybe closed</span>
-        <span class="k">elif</span> <span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">:</span>
-            <span class="n">con</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">getaddr</span><span class="p">(</span><span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
-            <span class="c1"># client sent some data</span>
-            <span class="k">if</span> <span class="n">msg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;shutdown&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> recv `</span><span class="si">{}</span><span class="s1">` from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="s1">&#39;onmessage&#39;</span><span class="p">):</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="n">con</span><span class="o">.</span><span class="n">onmessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
-                <span class="k">return</span>
-            <span class="c1"># client shutdown and we should clear correspond server</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">con</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="s1">&#39;shutdown&#39;</span><span class="p">)</span>
-                <span class="n">con</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SHUT_RDWR</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
-                <span class="k">pass</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
-            <span class="k">finally</span><span class="p">:</span>
-                <span class="n">con</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">con</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> lost client from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">addr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>                         <span class="c1"># some client maybe closed</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">handle_client</span><span class="p">(</span><span class="n">rlist</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="SocketTCPServer.send"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">con</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -462,14 +436,14 @@
             <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="SocketTCPServer.multicast"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.multicast">[docs]</a>    <span class="k">def</span> <span class="nf">multicast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">ensure_bytes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">con</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">con</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">con</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SocketTCPServer.close"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SocketTCPServer.hook_after"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.hook_after">[docs]</a>    <span class="k">def</span> <span class="nf">hook_after</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">con</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">:</span>
             <span class="n">con</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="n">LoopTaskInThread</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; Socket server shut down.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SocketTCPServer.has_listeners"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.has_listeners">[docs]</a>    <span class="k">def</span> <span class="nf">has_listeners</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -480,11 +454,27 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sock</span><span class="p">)]</span>
         <span class="k">return</span> <span class="n">sock</span><span class="o">.</span><span class="n">getpeername</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="SocketTCPServer.add"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">):</span>
-        <span class="c1"># TODO: ensure socket open and get addr</span>
-        <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getaddr</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+<div class="viewcode-block" id="SocketTCPServer.add"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">,</span> <span class="n">addr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sock</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">addr</span> <span class="o">=</span> <span class="n">addr</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">getaddr</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> add client from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SocketTCPServer.remove"><a class="viewcode-back" href="../../../apis/io/server.html#embci.io.commanders.SocketTCPServer.remove">[docs]</a>    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">,</span> <span class="n">addr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sock</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">addr</span> <span class="o">=</span> <span class="n">addr</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">getaddr</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sock</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addrs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">addr</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> lost client from </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">))</span></div></div>
 
 
 <span class="c1"># THE END</span>

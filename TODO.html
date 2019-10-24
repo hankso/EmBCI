@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="apis/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="service.html">Linux Service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update.html">Updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Changelog.html">Changelog</a></li>
@@ -184,12 +185,8 @@
 <li>EmBCI lib docs</li>
 </ul>
 <blockquote>
-<div><p>Documentation is like sex: when it is good, it is very, very good; and when
-it is bad, it is better than nothing.</p>
-<ul class="simple">
-<li>Dick B.</li>
-</ul>
-</div></blockquote>
+<div>Documentation is like sex: when it is good, it is very, very good; and when
+it is bad, it is better than nothing. - Dick B.</div></blockquote>
 </div>
 <div class="section" id="hardware-design">
 <h2>Hardware Design<a class="headerlink" href="#hardware-design" title="Permalink to this headline">¶</a></h2>
@@ -200,6 +197,12 @@ it is bad, it is better than nothing.</p>
 </ul>
 </li>
 <li>PCB shielding cases</li>
+<li>3-axis acceleration chip</li>
+<li>Layout<ul>
+<li>Move amplifier to bottom, USB cable to left edge and power button to left-upper corner.</li>
+<li>Move power management components to the back of ESP32.</li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="apps">
@@ -207,13 +210,11 @@ it is bad, it is better than nothing.</p>
 <ul class="simple">
 <li>[ ] Auth: authentication before accessing websocket</li>
 <li>[ ] apps.system: automatic updating through WiFi &amp; git-server</li>
-<li>embci.io.readers: register buffer into shared array between multi-processes</li>
 </ul>
 </div>
 <div class="section" id="application">
 <h2>Application<a class="headerlink" href="#application" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[ ] Online SSVEP mind-typing</li>
 <li>Sign language sEMG recognition</li>
 <li>Motor Imagery</li>
 </ul>
