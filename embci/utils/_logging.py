@@ -84,7 +84,7 @@ class EmBCIFormatter(Formatter):
         logging.CRITICAL: 'red'
     }
 
-    def __init__(self, fmt=None, datefmt=DATEFORMAT, style='{', useColor=True):
+    def __init__(self, fmt=None, datefmt=DATEFORMAT, style='{', usecolor=True):
         if PY2:
             if fmt is None:
                 fmt, style = '{message}', '{'
@@ -94,8 +94,8 @@ class EmBCIFormatter(Formatter):
             Formatter.__init__(self, ensure_unicode(fmt), datefmt)
         else:
             Formatter.__init__(self, fmt, datefmt, style)
-        self._useColor = useColor
-        if self._useColor:
+        self._usecolor = usecolor
+        if self._usecolor:
             if 'start' not in self._fmt:
                 self._fmt = '{start}' + self._fmt
             if 'reset' not in self._fmt:
@@ -112,7 +112,7 @@ class EmBCIFormatter(Formatter):
     def formatMessage(self, record):
         self._robj.__dict__.clear()
         self._robj.__dict__.update(record.__dict__)
-        if self._useColor:
+        if self._usecolor:
             c = self.LEVEL2COLOR.get(record.levelno, 'white')
             self._robj.start = TERMINAL_COLOR2VALUE[c]
             self._robj.__dict__.update(TERMINAL_COLOR2VALUE)
@@ -144,7 +144,8 @@ class EmBCIFormatter(Formatter):
 
 def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     '''
-    Create / config a `Logger` with current namespace's `__name__`.
+    Create or re-config a `Logger` with parameters. If no name specified,
+    current namespace's `__name__` will be used, e.g. `embci.utils`.
 
     Parameters
     ----------
@@ -154,23 +155,31 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
         Logging level. Default `logging.INFO`, i.e. 20.
     format : str, optional
         Format string for handlers. Default `embci.configs.LOGFORMAT`
+    style : str, optional
+        One of `%`, `{` and `$`. Python2 only supports `%` and `{` while
+        Python3 supports all. Default `{`.
 
-    And more in `kwargs` will be parsed as logging.basicConfig do.
+    Extra arguments in `kwargs` will be parsed as logging.basicConfig do.
+
 
     Notes
     -----
-    Do not wrap or call `config_logger` indirectly, because it will always
-    execute on direct caller's __name__, e.g.:
-    >>> # content of foo.py
+    Do not wrap this function or call indirectly, because it will resolve the
+    first outer frame's __name__. For example in your script foo.py:
+    >>> from embci.utils import config_logger
+    >>> config_logger().name
+    foo
+
+    If you wrap config_logger in a function in foo.py:
     >>> def do_config_logger():
             return config_logger()
 
-    >>> # content of bar.py
+    But call the wrapper function in bar.py:
     >>> from foo import do_config_logger
     >>> l1 = do_config_logger()
     >>> l2 = config_logger()
-    >>> print('logger from foo.py: %s, from bar.py: %s' % (l1.name, l2.name))
-    logger from foo.py: foo, from bar.py: bar
+    >>> l1.name, l2.name
+    ('foo', 'bar')
 
     See Also
     --------
@@ -194,6 +203,7 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
     addhdlr   = kwargs.pop('addhdlr', True)
     hdlrlevel = kwargs.pop('hdlrlevel', None)
     filename  = kwargs.pop('filename', None)
+    usecolor  = kwargs.pop('usecolor', not filename)
 
     if filename is not None:
         filename = os.path.abspath(os.path.expanduser(filename))
@@ -210,7 +220,7 @@ def config_logger(name=None, level=logging.INFO, format=LOGFORMAT, **kwargs):
             hdlr = hdlr(**kwargs)
     hdlr.setLevel(hdlrlevel or hdlr.level)
 
-    formatter = EmBCIFormatter(format, datefmt, style, not filename)
+    formatter = EmBCIFormatter(format, datefmt, style, usecolor)
     hdlr.setFormatter(formatter)
     if addhdlr:
         logger.addHandler(hdlr)

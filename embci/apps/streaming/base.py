@@ -235,8 +235,7 @@ def make_server():
     return server
 
 
-class REPL(LoopTaskInThread):
-    __metaclass__ = Singleton
+class REPL(LoopTaskInThread, Singleton):
     argparser = make_parser()
 
     def __init__(self, *args, **kwargs):

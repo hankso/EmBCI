@@ -22,31 +22,32 @@ import traceback
 import pylsl
 import serial
 
-from ..utils import (ensure_unicode, find_serial_ports, duration,
-                     LoopTaskInThread)
-from ..gyms import TorcsEnv, PlaneClient
+from ..utils import (
+    ensure_unicode, ensure_bytes, find_serial_ports, duration,
+    LoopTaskInThread, Singleton
+)
 from ..constants import command_dict_null, command_dict_plane
 from . import logger
 
-__all__ = [
-    _ + 'Commander' for _ in (
-        'Torcs', 'Plane', 'LSL', 'Serial'
-    )
+__all__ = ['SocketTCPServer'] + [
+    _ + 'Commander' for _ in ('Torcs', 'Plane', 'LSL', 'Serial')
 ]
-__all__ += ['SocketTCPServer']
+
 
 # TODO: embci.io.commander: valid_name
+def validate_commandername(name):
+    return name
 
 
 class BaseCommander(object):
     name = '[embci.io.Commander]'
-    _command_dict = command_dict_null
+    cmd_dict = command_dict_null
 
-    def __init__(self, command_dict=None, name=None, *a, **k):
-        self.name = name or self.name
-        self._command_dict = command_dict or self._command_dict
+    def __init__(self, cmd_dict=None, name=None, *a, **k):
+        self.name = validate_commandername(name or self.__class__.name)
+        self.cmd_dict = cmd_dict or self.cmd_dict
         try:
-            logger.debug('[Command Dict] %s' % self._command_dict['_desc'])
+            logger.debug('[Command Dict] %s' % self.cmd_dict['_desc'])
         except KeyError:
             logger.warning(
                 '[Command Dict] current command dict does not have a '
@@ -64,12 +65,12 @@ class BaseCommander(object):
     seek = truncate = tell = lambda *a: 0
 
     def get_command(self, cmd, warning=True):
-        if cmd not in self._command_dict:
+        if cmd not in self.cmd_dict:
             if warning:
                 logger.warning('{} command {} is not supported'.format(
                     self.name, cmd))
             return
-        return self._command_dict[cmd]
+        return self.cmd_dict[cmd]
 
     def close(self):
         raise NotImplementedError('you can not directly use this class')
@@ -77,18 +78,14 @@ class BaseCommander(object):
 
 class TorcsCommander(BaseCommander):
     '''
-    Send command to TORCS (The Open Race Car Simulator)
-    You can output predict result from classifier to the
-    game to control race car(left, right, throttle, brake...)
+    Send command to TORCS (The Open Race Car Simulator). You can output
+    predict result from classifier to the game to control race car like turn
+    left, turn right, throttle, brake etc.
     '''
-    __num__ = 1
-
-    def __init__(self, *a, **k):
-        super(TorcsCommander, self).__init__(
-            name='[Torcs commander %d]' % TorcsCommander.__num__)
-        TorcsCommander.__num__ += 1
+    name = 'TorcsCommander'
 
     def start(self):
+        from ..gyms import TorcsEnv
         logger.debug(self.name + ' initializing TORCS...')
         self.env = TorcsEnv(vision=True, throttle=False, gear_change=False)
         self.env.reset()
@@ -104,21 +101,16 @@ class TorcsCommander(BaseCommander):
         self.env.end()
 
 
-class PlaneCommander(BaseCommander):
+class PlaneCommander(BaseCommander, Singleton):
     '''
     Send command to plane war game. Control plane with commands
     [`left`, `right`, `up` and `down`].
     '''
-    __singleton__ = True
-    name = '[Plane commander]'
-
-    def __init__(self, command_dict=command_dict_plane):
-        if PlaneCommander.__singleton__ is False:
-            raise RuntimeError('There is already one ' + self.name)
-        super(PlaneCommander, self).__init__(command_dict)
-        PlaneCommander.__singleton__ = False
+    name = 'PlaneCommander'
+    cmd_dict = command_dict_plane
 
     def start(self):
+        from ..gyms import PlaneClient
         self.client = PlaneClient()
 
     @duration(1, 'PlaneCommander')
@@ -138,15 +130,9 @@ class LSLCommander(BaseCommander):
     '''
     Broadcast string[s] by pylsl.StreamOutlet as an online command stream.
     '''
-    __num__ = 1
+    name = 'LSLCommander'
 
-    def __init__(self, command_dict=None, name=None):
-        super(LSLCommander, self).__init__(
-            command_dict,
-            name or '[LSL commander %d]' % LSLCommander.__num__)
-        LSLCommander.__num__ += 1
-
-    def start(self, name=None, source=None):
+    def start(self, name=None, type='Result', source=None):
         '''
         Initialize and start pylsl outlet.
 
@@ -165,31 +151,24 @@ class LSLCommander(BaseCommander):
         >>> pylsl.resolve_bypred("contains('recognition')")
         [<pylsl.pylsl.StreamInfo instance at 0x7f3e82d8c3b0>]
         '''
-        self._outlet = pylsl.StreamOutlet(
-            pylsl.StreamInfo(
-                name or self.name, type='predict result',
-                channel_format='string', source_id=source or self.name))
+        self._outlet = pylsl.StreamOutlet(pylsl.StreamInfo(
+            name or self.name, type=type, channel_count=1,
+            channel_format='string', source_id=source or self.name))
 
     def send(self, key, *args, **kwargs):
-        if not isinstance(key, str):
-            raise TypeError('{} only accept str but got {}: {}'.format(
-                self.name, type(key), key))
-        self._outlet.push_sample([ensure_unicode(key)])
+        self._outlet.push_sample([ensure_unicode(key), ])
 
     def close(self):
         del self._outlet
 
 
 class SerialCommander(BaseCommander):
-    __num__ = 1
+    name = 'SerialCommander'
 
-    def __init__(self, command_dict=None, name=None):
-        super(SerialCommander, self).__init__(
-            command_dict,
-            name or '[Serial Commander %d]' % SerialCommander.__num__)
+    def __init__(self, *a, **k):
+        super(SerialCommander, self).__init__(*a, **k)
         self._command_lock = threading.Lock()
         self._command_serial = serial.Serial()
-        SerialCommander.__num__ += 1
 
     def start(self, port=None, baudrate=9600):
         self._command_serial.port = port or find_serial_ports()
@@ -201,7 +180,7 @@ class SerialCommander(BaseCommander):
         if ret is None:
             return
         with self._command_lock:
-            self._command_serial.write(ret[0])
+            self._command_serial.write(ensure_bytes(ret[0]))
             time.sleep(ret[1])
         return ret[0]
 
@@ -220,27 +199,50 @@ class SerialCommander(BaseCommander):
 
 class SocketTCPServer(LoopTaskInThread):
     '''
-    Socket TCP server on host:port, default to 0.0.0.0:0
-    Data sender.
+    Socket TCP server on host:port, default to 0.0.0.0:0. A data broadcaster.
     '''
-    __num__ = 1
-
     def __init__(self, host='0.0.0.0', port=0):
-        self._conns = []
-        self._addrs = []
+        self.host, self.port = host, port
+        self._conns, self._addrs = [], []
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        LoopTaskInThread.__init__(self, self._manage_connections)
-        # Reset name of this Thread
-        self.name = '[Socket server %d]' % SocketTCPServer.__num__
-        SocketTCPServer.__num__ += 1
-        self._server.bind((host, port))
+        LoopTaskInThread.__init__(self, self.manager)
+
+    def __repr__(self):
+        return '<%s 0x%x>' % (LoopTaskInThread.__repr__(self)[1:-1], id(self))
+
+    def hook_before(self):
+        self._server.bind((self.host, self.port))
         self._server.listen(5)
         self._server.settimeout(0.5)
         self.host, self.port = self._server.getsockname()
-        logger.info('{} binding socket server at {}:{}'.format(
+        logger.info('{} socket server is listening on {}:{}'.format(
             self.name, self.host, self.port))
 
-    def _manage_connections(self):
+    def handle_client(self, sock):
+        addr = self.getaddr(sock)
+        msg = sock.recv(4096).decode('utf8').strip()
+        # client sent some data
+        if msg not in ['shutdown', '']:
+            logger.info('{} recv {} from {}:{}'.format(self.name, msg, *addr))
+            if hasattr(sock, 'onmessage'):
+                try:
+                    sock.onmessage(msg)
+                except Exception:
+                    logger.error(traceback.format_exc())
+            return
+        # client shutdown and we should clear correspond server
+        try:
+            sock.sendall(b'shutdown')
+            sock.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            pass
+        except Exception:
+            logger.error(traceback.format_exc())
+        finally:
+            sock.close()
+        self.remove(sock, addr)
+
+    def manager(self):
         '''
         This loop task does following things to manage connections:
             1. wait for new clients and add them into a list
@@ -250,41 +252,12 @@ class SocketTCPServer(LoopTaskInThread):
         rlist, _, _ = select.select([self._server] + self._conns, [], [], 3)
         if not rlist:
             return
-        # new connection
-        if rlist[0] is self._server:
+        if rlist[0] is self._server:  # new connection
             con, addr = self._server.accept()
             con.settimeout(0.5)
-            logger.debug('{} conn client from {}:{}'.format(self.name, *addr))
-            self._conns.append(con)
-            self._addrs.append(addr)
-        # some client maybe closed
-        elif rlist[0] in self._conns:
-            con, addr = rlist[0], self.getaddr(rlist[0])
-            msg = con.recv(4096)
-            # client sent some data
-            if msg not in ['shutdown', '']:
-                logger.info('{} recv `{}` from {}:{}'.format(
-                    self.name, msg, *addr))
-                if hasattr(con, 'onmessage'):
-                    try:
-                        con.onmessage(msg)
-                    except Exception:
-                        logger.error(traceback.format_exc())
-                return
-            # client shutdown and we should clear correspond server
-            try:
-                con.sendall('shutdown')
-                con.shutdown(socket.SHUT_RDWR)
-            except socket.error:
-                pass
-            except Exception:
-                logger.error(traceback.format_exc())
-            finally:
-                con.close()
-            self._conns.remove(con)
-            self._addrs.remove(addr)
-            logger.debug('{} lost client from {}:{}'.format(
-                self.name, *addr))
+            self.add(con, addr)
+        else:                         # some client maybe closed
+            self.handle_client(rlist[0])
 
     def send(self, con, data):
         try:
@@ -293,14 +266,14 @@ class SocketTCPServer(LoopTaskInThread):
             pass
 
     def multicast(self, data):
-        data = bytearray(data)
+        data = ensure_bytes(data)
         for con in self._conns:
-            self.send(data, con)
+            self.send(con, data)
 
-    def close(self):
+    def hook_after(self):
         for con in self._conns:
             con.close()
-        LoopTaskInThread.close(self)
+        self._server.close()
         logger.debug(self.name + ' Socket server shut down.')
 
     def has_listeners(self):
@@ -311,11 +284,27 @@ class SocketTCPServer(LoopTaskInThread):
             return self._addrs[self._conns.index(sock)]
         return sock.getpeername()
 
-    def add(self, sock):
-        # TODO: ensure socket open and get addr
-        addr = self.getaddr(sock)
+    def add(self, sock, addr=None):
+        if sock in self._conns:
+            return
+        try:
+            addr = addr or self.getaddr(sock)
+        except Exception:
+            return
         self._conns.append(sock)
         self._addrs.append(addr)
+        logger.debug('{} add client from {}:{}'.format(self.name, *addr))
+
+    def remove(self, sock, addr=None):
+        if sock not in self._conns:
+            return
+        try:
+            addr = addr or self.getaddr(sock)
+        except Exception:
+            return
+        self._conns.remove(sock)
+        self._addrs.remove(addr)
+        logger.debug('{} lost client from {}:{}'.format(self.name, *addr))
 
 
 # THE END

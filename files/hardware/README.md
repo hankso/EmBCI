@@ -1,22 +1,30 @@
 # EmBCI Shield
 
+## Amplifier Pinout
+![Analog input](../images/Pin-Header.png)
+
+![OPi0+ Pin-out](../images/Orange-Pi-Zero-Plus.png)
+
+![OPi0+2 Pin-out](../images/Orange-Pi-Zero-Plus-2.png)
+
+
 ## Board Connection
 - Communicate with [ADS1299](http://www.ti.com/product/ADS1299) through SPI
 interface on OrangePi pin `CS/PA13`, `CLK/PA14`, `MOSI/PA15` and `MISO/PA16`
 
-- On shield Atmega328P(Arduino Uno/Nano) is connected to `UART2_TX/PA00` and
-`UART2_RX/PA01`
+- On shield Atmega328P(Arduino Uno/Nano) connects to OrangePi by `UART2_TX/PA00`
+and `UART2_RX/PA01`. **Deprecated**
+
+- On shield ESP32 is used as Data Buffer to cache raw data from ADS1299 and send
+out preprocessed data chunk by chunk as SPI slave. Benefit from ESP32's precise
+clock cycle and rich calculation resource, many important IO features are
+implemented.
 
 - Control SSD1306 0.96' OLED screen by SPI or ILI9325 2.3' LCD screen through
-on shield Arduino by serial
+on shield Arduino by serial. **Deprecated**
 
-- Broadcast collected raw data from ADS1299 to wifi port 9999(default) by TCP
-socket, there are two ways to grab data from network
-    - Connect OrangePi to your LAN wifi network and check its IP address, you
-    can login to router(e.g. TP-Link @ `192.168.1.1`) or use any other methods
-    to get OrangePi IP address.
-    - Set OrangePi as a wifi hotpot, connect your PC/laptop/phone to this
-    network and this way OrangePi IP address will be `192.169.0.1`(usually)
+- EmBCI broadcasts collected biosignal data by two ways: Lab-streaming-layer and TCP Server. Before you fetch data through network, make sure that your device and EmBCI machine are in a same local network. You can create a hotspot for EmBCI or login your device to the hotspots created by it.
+
 
 ## Electrodes
 Passive electrodes have no inbuit circuitry. You may need paste/gel between it and subject's skin/scalp for better signal. Electrodes can be round or needle metal things coated with special alloys, for example gold, tin and silver. Ag / AgCl are supposed to be best.

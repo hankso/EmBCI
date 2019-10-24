@@ -37,8 +37,8 @@ def test_save_trials(username, random_data, clean_userdir):
     data_dict = create_data_dict(random_data, 'testing', 500)
     assert 'sample_rate' in data_dict
     save_trials(username, data_dict, suffix='mat')
+    assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-0.mat'))
     assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-1.mat'))
-    assert os.path.exists(os.path.join(DIR_DATA, username, 'testing-2.mat'))
 
 
 def test_load_data(username, random_data, clean_userdir):
@@ -67,7 +67,7 @@ from embci.utils import find_pylsl_outlets
 @pytest.fixture(scope='module')
 def reader():
     reader = Reader(sample_rate=500, sample_time=2,
-                    num_channel=8, pylsl_send=True)
+                    num_channel=8, broadcast=True)
     reader.start()
     yield reader
     reader.close()
@@ -102,7 +102,7 @@ def test_set_sample_rate(reader):
     assert reader.set_sample_rate(250)
     reader.restart()
     time.sleep(3)  # reader need some time to stablize the sample_rate
-    assert abs(reader.realtime_samplerate - 250) < 80
+    assert abs(reader.realtime_samplerate - 250) < 100
 
 
 # =============================================================================
@@ -142,7 +142,7 @@ def test_get_command(obj):
 def test_send_command(obj):
     assert obj.commander.send('action1') == 'asdf'
     time.sleep(0.5)
-    assert obj.serial.read_all() == 'asdf'
+    assert obj.serial.read_all() == b'asdf'
 
 
 def test_send_wait(obj):
@@ -154,12 +154,12 @@ def test_send_wait(obj):
         target=obj.commander.send, args=('action3',)).start()
     # receive first command
     time.sleep(0.5)
-    assert obj.serial.read_all() == 'this is action3'
+    assert obj.serial.read_all() == b'this is action3'
     # receive nothing, commander is still waiting
-    assert obj.serial.read_all() == ''
+    assert obj.serial.read_all() == b''
     time.sleep(1)
     # receive second command
-    assert obj.serial.read_all() == 'this is action3'
+    assert obj.serial.read_all() == b'this is action3'
 
 
 def test_write_method(obj):

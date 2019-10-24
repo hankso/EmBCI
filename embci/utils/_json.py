@@ -22,10 +22,10 @@ import traceback
 # requirements.txt: data: numpy
 # requirements.txt: necessary: dill
 import dill
-import numpy
+import numpy as np
 from six import string_types
 
-from . import logger, AttributeDict, AttributeList
+from . import logger, AttributeDict, AttributeList, CachedProperty
 
 __all__ = [
     'MiscJsonEncoder', 'MiscJsonDecoder',
@@ -141,7 +141,7 @@ class MiscJsonEncoder(JSONEncoder):
     bytearray_encoding = 'cp437'
     masked = (
         types.BuiltinFunctionType, types.FunctionType, types.MethodType,
-        numpy.ndarray, AttributeDict, AttributeList, bytearray
+        np.ndarray, AttributeDict, AttributeList, bytearray
     )
 
     def default(self, o):
@@ -157,10 +157,13 @@ class MiscJsonEncoder(JSONEncoder):
     def jsonify_function_hook(self, o):
         try:
             fstr = marshal.dumps(o.__code__)
+            encoder = 'marshal'
         except ValueError:
             fstr = dill.dumps(o)
+            encoder = 'dill'
         return {
             '__callable__': bytearray(fstr),
+            '__encoder__': encoder,
             '__module__': o.__module__,
             '__class__': o.__class__.__name__,
             '__name__': o.__name__
@@ -182,7 +185,8 @@ class MiscJsonEncoder(JSONEncoder):
                 'dtype': str(o.dtype)}
 
     def jsonify_bytearray_hook(self, o):
-        o = zlib.compress(str(o), 9)
+        '''bytearray => bytes => bytes => str'''
+        o = zlib.compress(bytes(o), 9)
         return {'__bytearray__': o.decode(self.bytearray_encoding),
                 'encoding': self.bytearray_encoding}
 
@@ -203,9 +207,9 @@ class MiscJsonDecoder(json.JSONDecoder):
 
     _hook_pattern = re.compile(r'unjsonify_(\w)+_hook')
 
-    @property
+    @CachedProperty
     def decode_hooks(self):
-        return [hook_name for hook_name in MiscJsonDecoder.__dict__
+        return [hook_name for hook_name in dir(self)
                 if self._hook_pattern.match(hook_name)]
 
     def object_hook(self, dct):
@@ -226,32 +230,43 @@ class MiscJsonDecoder(json.JSONDecoder):
         return dct
 
     def unjsonify_bytearray_hook(self, dct):
-        return zlib.decompress(dct['__bytearray__'].encode(dct['encoding']))
+        '''str => bytes => bytes => bytearray'''
+        sbytes = dct['__bytearray__'].encode(dct['encoding'])
+        return bytearray(zlib.decompress(sbytes))
 
     def unjsonify_ndarray_hook(self, dct):
-        return numpy.frombuffer(
-            dct['__ndarray__'],
-            numpy.dtype(dct['dtype'])
+        abytes = bytes(dct['__ndarray__'])
+        return np.frombuffer(
+            abytes, dtype=np.dtype(dct['dtype'])
         ).reshape(*dct['shape'])
 
     def unjsonify_instance_hook(self, dct):
-        module = importlib.import_module(dct['__module__'])
         try:
+            module = importlib.import_module(dct['__module__'])
             cls = getattr(module, dct['__class__'])
+        except ImportError:
+            logger.error(traceback.format_exc())
         except AttributeError:
-            return
+            return None
         else:
             return cls(dct['object'])
 
-    def unjsonify_callable__hook(self, dct):
-        fstr = dct['__callable__']
-        try:
-            fcode = marshal.loads(fstr)
-        except ValueError:
-            return dill.loads(fstr)
+    def unjsonify_callable_hook(self, dct):
+        fbytes = bytes(dct['__callable__'])
+        if dct['__encoder__'] == 'dill':
+            try:
+                return dill(fbytes)
+            except Exception:
+                return None
+        elif dct['__encoder__'] == 'marshal':
+            try:
+                module = importlib.import_module(dct['__module__'])
+                fcode = marshal.loads(fbytes)
+            except (ImportError, ValueError):
+                return None
+            return types.FunctionType(fcode, module.__dict__)
         else:
-            fname = dct['__name__'].encode('utf8')
-            return types.FunctionType(fcode, globals(), fname)
+            raise NotImplementedError
 
 
 _default_encoder = MiscJsonEncoder()

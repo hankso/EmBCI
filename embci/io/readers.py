@@ -83,7 +83,7 @@ def validate_readername(name):                                     # noqa: E302
     return '%s_%d' % (name, list(set(range(len(ids) + 1)).difference(ids))[0])
 
 
-class RStMixin(object):
+class StatusMixin(object):
     def is_streaming(self):
         if hasattr(self, '_task'):
             alive = self._task.is_alive()
@@ -125,7 +125,7 @@ class RStMixin(object):
         return '<%s (%s)%s at 0x%x>' % (self.name, st, msg, id(self))
 
 
-class RIOMixin(object):
+class ReaderIOMixin(object):
     def set_sample_rate(self, sample_rate, sample_time=None):
         self.sample_rate = int(sample_rate)
         if sample_time is not None and sample_time > 0:
@@ -210,7 +210,7 @@ class RIOMixin(object):
         return np.concatenate((data[:, idx:], data[:, :idx]), -1)
 
 
-class RCompatMixin(object):
+class CompatMixin(object):
     '''Methods defined here are for compatibility between all Readers.'''
     def set_channel(self, ch, en):
         print('Reader setting: {}, {}'.format(ch, en))
@@ -236,48 +236,50 @@ class RCompatMixin(object):
         # TODO: set sample_rate
 
 
-class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
+class BaseReader(LoopTaskMixin, ReaderIOMixin, CompatMixin, StatusMixin):
     name = 'embci.io.Reader'
     _dtype = np.dtype('float32')
 
     def __new__(cls, *a, **k):
+        '''LoopTaskMixin required attributes are defined here.'''
         obj = LoopTaskMixin.__new__(cls)
+        # stream control flags used by `embci.utils.LoopTaskMixin`
+        obj.__flag_pause__ = mp.Event()
+        obj.__flag_close__ = mp.Event()
         # Basic stream reader attributes.
         # These values may be accessed in another thread or process.
         # So make them multiprocessing.Value and serve as properties.
-        for target, t, v in [
+        for name, type, value in [
             ('_index',         c_uint16,  0),
             ('__status__',     c_char_p,  b'closed'),
             ('__started__',    c_bool,    False),
-            ('start_time',     c_float,   time.time()),
-            ('sample_rate',    c_uint16,  250),
-            ('sample_time',    c_float,   2),
-            ('window_size',    c_uint16,  500),
-            ('num_channel',    c_uint8,   1)
+            ('input_source',   c_char_p,  b''),
+            ('sample_rate',    c_uint16,  0),
+            ('sample_time',    c_float,   0),
+            ('window_size',    c_uint16,  0),
+            ('num_channel',    c_uint8,   0),
+            ('start_time',     c_float,   0),
         ]:
-            source = '_mp_{}'.format(target)
-            setattr(obj, source, mp.Value(t, v))
-            if target in cls.__dict__:
+            attr = '_mp_' + name
+            setattr(obj, attr, mp.Value(type, value))
+            if hasattr(BaseReader, name):
                 continue
-            setattr(cls, target, property(
-                fget=lambda self, attr=source: getattr(self, attr).value,
-                fset=lambda self, value, attr=source: setattr(
-                    getattr(self, attr), 'value', value),
-                fdel=None, doc='property `%s`' % target))
-        # input source indicate data source of stream
-        obj._mp_input_source = mp.Value(c_char_p,  b'')
-        cls.input_source = property(
-            fget=lambda self: ensure_unicode(self._mp_input_source.value),
-            fset=lambda self, value: setattr(
-                self._mp_input_source, 'value', ensure_bytes(value)),
-            fdel=None, doc='Data source of stream.')
-        # stream control used flags for `embci.utils.LoopTaskMixin`
-        obj.__flag_pause__ = mp.Event()
-        obj.__flag_close__ = mp.Event()
+            if type is c_char_p:
+                fget = lambda self, attr=attr: (                   # noqa: E731
+                    getattr(self, attr).value.decode('utf8'))
+                fset = lambda self, value, attr=attr: (            # noqa: E731
+                    setattr(getattr(self, attr), 'value', ensure_bytes(value)))
+            else:
+                fget = lambda self, attr=attr: (                   # noqa: E731
+                    getattr(self, attr).value)
+                fset = lambda self, value, attr=attr: (            # noqa: E731
+                    setattr(getattr(self, attr), 'value', value))
+            setattr(BaseReader, name, property(
+                fget, fset, fdel=None, doc='property ' + name))
         return obj
 
     def __init__(self, sample_rate, sample_time, num_channel, name=None,
-                 input_source=None, send_pylsl=False, datatype=None, *a, **k):
+                 input_source=None, broadcast=False, datatype=None, *a, **k):
         # Update basic info with arguments
         self.set_sample_rate(sample_rate, sample_time)
         self.set_channel_num(num_channel)
@@ -288,19 +290,12 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         # loop task, it will be checked thousands times.
         self.name = validate_readername(name or self.__class__.name)
         self._dtype = np.dtype(datatype or self._dtype)
-        if get_boolean(send_pylsl):
+        if get_boolean(broadcast):
             if self._dtype.name not in pylsl.pylsl.string2fmt:
                 raise ValueError('Invalid data type: %s' % self._dtype)
-            self._lsl_outlet_info = pylsl.StreamInfo(
-                name=self.__class__.name, type='Reader Outlet',
-                channel_count=self.num_channel, nominal_srate=self.sample_rate,
-                channel_format=self._dtype.name, source_id=self.name
-            )
-            self._lsl_outlet = pylsl.StreamOutlet(self._lsl_outlet_info)
-            logger.debug(self.name + ' pylsl outlet established')
-            self._loop_args = (self._loop_func_lsl, )
+            self._lsl_send = True
         else:
-            self._loop_args = (self._loop_func, )
+            self._lsl_send = False
 
         # Locked file used to share data among processes
         pidfn = os.path.join(DIR_PID, self.name + '.pid')
@@ -314,7 +309,7 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         # 0:Channel 1:Frame 2:All 3-5: NotUsed
         self._lasti = [self._index] * 5
 
-    def start(self, method='process', *a, **k):
+    def start(self, method=None, *a, **k):
         if not LoopTaskMixin.start(self):
             return False
 
@@ -332,15 +327,28 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         # in case that restarted with smaller window_size
         self._index = 0
 
-        if method == 'block':
+        if self._lsl_send:
+            self._lsl_info = pylsl.StreamInfo(
+                name=self.__class__.name, type='Reader Outlet',
+                channel_count=self.num_channel, nominal_srate=self.sample_rate,
+                channel_format=self._dtype.name, source_id=self.name
+            )
+            self._lsl_outlet = pylsl.StreamOutlet(self._lsl_info)
+            logger.debug(self.name + ' pylsl outlet established')
+            self._loop_args = (self._loop_func_lsl, )
+        else:
+            self._loop_args = (self._loop_func, )
+
+        self._loop_method = method or getattr(self, '_loop_method', 'process')
+        if self._loop_method == 'block':
             self.loop(*self._loop_args)
             return True
-        elif method == 'thread':
+        elif self._loop_method == 'thread':
             method = threading.Thread
-        elif method == 'process':
+        elif self._loop_method == 'process':
             method = mp.Process
         else:
-            raise RuntimeError('unknown method {}'.format(method))
+            raise RuntimeError('unknown method {}'.format(self._loop_method))
         self._task = method(target=self.loop, args=self._loop_args)
         self._task.daemon = True  # LoopTask manager will close readers safely
         self._task.start()
@@ -355,6 +363,9 @@ class BaseReader(LoopTaskMixin, RIOMixin, RCompatMixin, RStMixin):
         self._file_pid.release()
         logger.debug(self.name + ' stream stopped')
         return True
+
+    def restart(self):
+        self.close(); time.sleep(0.5); self.start()                # noqa: E702
 
     def _loop_func_lsl(self):
         data, ts = self._data_fetch()
@@ -543,12 +554,11 @@ class SerialReader(BaseReader):
         return data, time.time() - self.start_time
 
 
-class ADS1299SPIReader(BaseReader):
+class ADS1299SPIReader(BaseReader, Singleton):
     '''
     Read data through SPI connection with ADS1299.
     This Reader is only used on ARM. It depends on class ADS1299_API.
     '''
-    __metaclass__ = Singleton
     API = ADS1299_API
     name = 'ADS1299Reader'
 
@@ -560,9 +570,6 @@ class ADS1299SPIReader(BaseReader):
             sample_rate, sample_time, num_channel, **k)
         self.enable_bias = enable_bias
         self.measure_impedance = measure_impedance
-
-    def __del__(self):
-        Singleton.remove(self.__class__)
 
     def set_channel(self, ch, en):
         if self._api.set_channel(ch, get_boolean(en)) is None:

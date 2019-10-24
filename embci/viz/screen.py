@@ -31,13 +31,17 @@ from decorator import decorator
 from ..configs import DIR_SRC
 from ..io import SerialCommander
 from ..drivers.ili9341 import ILI9341_API, rgb565to888, rgb888to565
-from ..utils import (timestamp, find_gui_layouts, ensure_unicode,
-                     get_config, serialize, deserialize, get_func_args,
-                     AttributeDict, AttributeList, Singleton, LoopTaskInThread)
-from ..constants import (command_dict_uart_screen_winbond_v1,
-                         colormapper_uart_screen_winbond_v1,
-                         colormapper_spi_screen_ili9341,
-                         colormapper_default)
+from ..utils import (
+    timestamp, find_gui_layouts, ensure_unicode,
+    get_config, serialize, deserialize, get_func_args,
+    AttributeDict, AttributeList, Singleton, LoopTaskInThread
+)
+from ..constants import (
+    command_dict_uart_screen_winbond_v1,
+    colormapper_uart_screen_winbond_v1,
+    colormapper_spi_screen_ili9341,
+    colormapper_default
+)
 from . import logger
 
 # ===============================================================================
@@ -1130,9 +1134,9 @@ def spiscreen_ili9341_carray(v):
         raise ValueError('invalid array color `{}`'.format(v))
 
 
-class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin):
+class SPIScreenGUI(DrawElementMixin, TouchScreenMixin, GUIControlMixin,
+                   Singleton):
     __doc__ = 'GUI class of SPI controlled screen.\n' + __guidoc__
-    __metaclass__ = Singleton
     _started = False
     name = '[SPI Screen GUI Commander]'
 

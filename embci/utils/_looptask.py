@@ -16,7 +16,7 @@ import functools
 import threading
 import traceback
 
-from . import logger, ensure_unicode, get_boolean
+from . import logger, get_boolean, ensure_unicode
 
 __all__ = [
     'LoopTaskMixin', 'LoopTaskInThread', 'SkipIteration',
@@ -344,20 +344,22 @@ class LoopTaskInThread(threading.Thread, LoopTaskMixin):
         return '<{name} {status}{extra}>'.format(
             name=self.name, status=self.status, extra=extra)
 
-    def start(self):
-        return LoopTaskMixin.start(self)
-
-    def hook_before(self):
+    def start(self, *a, **k):
+        if not LoopTaskMixin.start(self):
+            return False
         if not self._thread_inited_:
             self._init_thread_()
         threading.Thread.start(self)
+        return True
 
-    def hook_after(self):
+    def close(self, *a, **k):
+        if not LoopTaskMixin.close(self):
+            return False
         self._thread_inited_ = False
+        return True
 
     def run(self):
         self.loop(self._floop_, self._fargs_, self._fkwargs_)
-        logger.debug('{} stopped.'.format(self))
 
 
 # THE END

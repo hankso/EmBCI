@@ -21,17 +21,19 @@ from .. import embeddedonly
 from embci.configs import DIR_BASE, DIR_DATA
 from embci.utils import (
     get_boolean, get_func_args, load_configs, get_config, mkuserdir,
-    LoggerStream, TempLogLevel, Singleton,
-    serialize, deserialize, config_logger, duration, validate_filename
+    serialize, deserialize, config_logger, duration, validate_filename,
+    LoggerStream, TempLogLevel, Singleton
 )
 
-logmsg = StringIO()
+
 # redirect logging stream to a StringIO so that we can check log messages
-logger = config_logger(level=logging.INFO, format='%(message)s', stream=logmsg)
+logmsg = StringIO()
+logger = config_logger(
+    level=logging.INFO, format='{message}', stream=logmsg, usecolor=False)
 
 
 def get_log_msg(f=logmsg):
-    msg = f.getvalue(); f.truncate(0); f.seek(0)  # noqa: E702
+    msg = f.getvalue(); f.truncate(0); f.seek(0)                   # noqa: E702
     return msg.strip()
 
 
@@ -47,8 +49,8 @@ def test_serialization():
 
 
 def test_singleton():
-    class Foo(object):
-        __metaclass__ = Singleton
+    class Foo(Singleton):
+        pass
     assert Foo() == Foo()
 
 
@@ -106,11 +108,11 @@ def test_get_func_args():
 def test_load_configs():
     assert load_configs(
         os.path.join(DIR_BASE, 'files/service/embci.conf')
-    ).get('Network', {}).get('WEBUI_HOST') == '10.0.0.1'
+    ).get('NETWORK', {}).get('WEBUI_HOST') == '10.0.0.1'
 
 
 def test_get_config():
-    assert get_config('WEBUI_PORT', type=float) == 80.0
+    assert get_config('WEBUI_PORT', type=float) == 80
 
 
 def test_validate_filename():

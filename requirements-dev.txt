@@ -8,7 +8,7 @@
 
 
 # [data]
-mne==0.17
+mne
 numpy
 pylsl
 scipy

@@ -118,7 +118,7 @@ It integrates:
 
 - Power management chips and others
 
-`EmBCI Shield`__ can also be used as extension board.
+`EmBCI Shield`__ can also be used as an extension shield for OrangePi/RaspberryPi and other 40-Pin compatiable develop boards.
 
 __ `files/hardware`_
 

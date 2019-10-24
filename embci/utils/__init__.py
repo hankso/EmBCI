@@ -554,8 +554,7 @@ def ensure_unicode(*a):
     a = list(a)
     for n, i in enumerate(a):
         if not isinstance(i, allstr):
-            raise TypeError('cannot convert non-string type '
-                            '`%s` to unicode' % typename(i))
+            i = str(i)
         if isinstance(i, bytes):     # py2 str or py3 bytes
             a[n] = i.decode('utf8')  # py2 unicode or py3 str
             # a[n] = u'{}'.format(a[n])
@@ -566,8 +565,7 @@ def ensure_bytes(*a):
     a = list(a)
     for n, i in enumerate(a):
         if not isinstance(i, allstr):
-            raise TypeError('cannot convert non-string type '
-                            '`%s` to bytes' % typename(i))
+            i = str(i)
         if not isinstance(i, bytes):  # py2 unicode or py3 str
             a[n] = i.encode('utf8')   # py2 str or py3 bytes
             # a[n] = b'{}'.format(a[n])
@@ -753,26 +751,27 @@ def get_config(key, default=None, type=None, configfiles=None, section=None):
     return type(value) if type is not None else value
 
 
-class Singleton(type):
+class SingletonMeta(type):
     '''
-    Singleton metaclass
+    Metaclass used to create Singleton classes.
 
     Examples
     --------
-    >>> class Test(object):  # py2 & py3
+    >>> from embci.utils import SingletonMeta, Singleton
+    >>> class Test2(object):                          # Python 2 only
             __metaclass__ = Singleton
+    >>> class Test3(object, metaclass=SingletonMeta)  # Python 3 only
+            pass
+
+    >>> class Test(object, Singleton)                 # Python 2 & 3
             def __init__(self, *a, **k):
                 self.args = a
                 self.kwargs = k
-
-    >>> class Test(object, metaclass=Singleton):  # py3 only
-            pass
-
     >>> Test()
     <__main__.Test at 0x7f3e09e99390>
     >>> Test()
     <__main__.Test at 0x7f3e09e99390>
-    >>> Test() == Test() == _
+    >>> Test() == Test()
     True
 
     Instance can be re-initalized by providing argument `reinit`:
@@ -792,7 +791,8 @@ class Singleton(type):
 
     def __call__(cls, *a, **k):
         if cls not in cls.__instances__:
-            cls.__instances__[cls] = super(Singleton, cls).__call__(*a, **k)
+            instance = super(SingletonMeta, cls).__call__(*a, **k)
+            cls.__instances__[cls] = instance
         elif k.pop('reinit', False):
             cls.__instances__[cls].__init__(*a, **k)
         return cls.__instances__[cls]
@@ -805,6 +805,9 @@ class Singleton(type):
     def remove(cls, v):
         if v in cls.__instances__:
             cls.__instances__.pop(v)
+
+
+Singleton = SingletonMeta('Singleton', (object, ), {})
 
 
 # =============================================================================

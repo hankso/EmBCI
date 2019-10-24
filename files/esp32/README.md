@@ -163,15 +163,11 @@ On-shield `ESP32-WROOM-32` connection with `OrangePi Zero Plus(2)` listed as fol
 | GPIO | T198 R199 | T0   R1   | CS13 CLK14 MO15 MI16 |
 | PIN  | PG06 PG07 | PA00 PA01 | PA13 PA14  PA15 PA16 |
 
-![OPi0+ Pin-out](../images/Orange-Pi-Zero-Plus.png)
-
 ### OPi0+2 Pin Number
 | num  | UART2     | SPI1                 |
 | -    | -         | -                    |
 | GPIO | T0   R1   | CS13 CLK14 MO15 MI16 |
 | PIN  | PA00 PA01 | PA13 PA14  PA15 PA16 |
-
-![OPi0+2 Pin-out](../images/Orange-Pi-Zero-Plus-2.png)
 
 ### ESP32 Pin Number
 | num  | EN | BOOT | DRDY | UART0 | UART1  | HSPI                 |

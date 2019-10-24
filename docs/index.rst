@@ -28,6 +28,7 @@ Lets `get started <readme.html>`_! [`中文 <readme_zh.html>`_]
    Hardware Reference <hardware/index>
    API Reference <apis/index>
    Linux Service <service>
+   Updating <update>
    Configurations
    Copyrights
    Changelog
