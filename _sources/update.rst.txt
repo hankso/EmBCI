@@ -42,7 +42,7 @@ Steps
     squid -a 3128  # proxy server listening on 10.0.0.100:3128
     # on OrangePi
     cd /root/EmBCI && git config http.proxy http://10.0.0.100:3128
-    git remove add github https://github.com/hankso/EmBCI.git
+    git remote add github https://github.com/hankso/EmBCI.git
     git pull --depth=1 github master
     git config --unset http.proxy  # remember to reset the proxy address
 
