@@ -1,0 +1,24 @@
+*************
+SSVEP Speller
+*************
+
+.. contents::
+   :depth: 2
+   :backlinks: top
+
+.. include:: ../../embci/apps/Speller/README.rst
+
+API
+---
+.. automodule:: embci.apps.Speller
+
+Screenshots
+-----------
+.. image:: ../images/app-speller.png
+   :alt: Speller keyboard layout
+
+.. image:: ../images/app-speller-train.png
+   :alt: Record data for training
+
+.. image:: ../images/app-speller-training.png
+   :alt: Training with cue

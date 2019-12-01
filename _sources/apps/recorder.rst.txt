@@ -1,0 +1,19 @@
+********
+Recorder
+********
+
+.. automodule:: embci.apps.recorder
+
+Screenshots
+-----------
+.. image:: ../images/app-recorder-list.png
+   :alt: Recorder manager
+
+.. image:: ../images/app-recorder-edit.png
+   :alt: Setting username
+
+.. image:: ../images/app-recorder-snippet.png
+   :alt: HTML snippet
+
+.. image:: ../images/app-recorder-username.png
+   :alt: Setting username

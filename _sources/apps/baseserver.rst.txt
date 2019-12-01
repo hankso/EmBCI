@@ -1,0 +1,10 @@
+******************
+Base Static Server
+******************
+
+.. mdinclude:: ../../embci/apps/baseserver/README.md
+
+Screenshots
+-----------
+.. image:: ../images/app-datafiles.png
+   :alt: Datafiles manager

@@ -1,12 +1,12 @@
-****************
-EmBCI Python API
-****************
+**************************
+EmBCI Python API Reference
+**************************
 
 .. toctree::
    :maxdepth: 2
 
-   I/O <io/index>
-   Utils <utils/index>
+   Input/Output <io/index>
+   Utilitis <utils/index>
    Visualization <viz/index>
 
 ----

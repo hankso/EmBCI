@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>EmBCI Manager</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="Display Web" href="DisplayWeb.html" />
+  <link rel="prev" title="Streaming" href="streaming.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>EmBCI Manager</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="streaming.html"
+       title="previous chapter">← Streaming</a>
+  </li>
+  <li class="next">
+    <a href="DisplayWeb.html"
+       title="next chapter">Display Web →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <span class="target" id="module-embci.apps.system"></span><div class="section" id="embci-manager">
+<h1>EmBCI Manager<a class="headerlink" href="#embci-manager" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>[ ] Host documentation locally</p></li>
+<li><dl class="simple">
+<dt>Debug</dt><dd><ul>
+<li><p>[x] View log online</p></li>
+<li><p>[x] Data management (user reports, saved mat data etc.)</p></li>
+<li><p>[x] Online JS &lt;=&gt; IPython terminal (redirect to Jupyter server)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>System</dt><dd><ul>
+<li><p>[x] shutdown &amp; reboot</p></li>
+<li><p>[ ] service control: start | restart | status | stop</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>System commands API</p>
+<p>You can reboot / shutdown the device.</p>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="streaming.html"
+       title="previous chapter">← Streaming</a>
+  </li>
+  <li class="next">
+    <a href="DisplayWeb.html"
+       title="next chapter">Display Web →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

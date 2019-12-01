@@ -1,261 +1,285 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>快速开始 &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>快速开始</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'./',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="_static/pygments.css">
+      <link rel="stylesheet" href="_static/theme.css">
+      <link rel="stylesheet" href="_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="_static/jquery.js"></script>
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="EmBCI Hardware Reference" href="hardware/index.html" />
-    <link rel="prev" title="Get Started" href="readme.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="readme.html">Get Started</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Get Started 中文</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#embci">欢迎来到 EmBCI！</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">目录</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id13">EmBCI 是什么？</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="service.html">Linux Service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="update.html">Updating</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Changelog.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="_static/theme-vendors.js"></script>
+      <script src="_static/theme.js" defer></script>
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
-        
-      <li>快速开始</li>
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="next" title="EmBCI Hardware Reference" href="hardware/index.html" />
+  <link rel="prev" title="Get Started" href="readme.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-            
-            <a href="_sources/readme_zh.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 "><a href="readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 current"><a href="#" class="reference internal current">项目简介</a>
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#id1" class="reference internal">快速开始</a></li>
+                
+                  <li class="toctree-l2"><a href="#embci" class="reference internal">欢迎来到 EmBCI！</a></li>
+                
+                  <li class="toctree-l2"><a href="#id3" class="reference internal">目录</a></li>
+                
+                  <li class="toctree-l2"><a href="#id13" class="reference internal">EmBCI 是什么？</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+    <li>快速开始</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="readme.html"
+       title="previous chapter">← Get Started</a>
+  </li>
+  <li class="next">
+    <a href="hardware/index.html"
+       title="next chapter">EmBCI Hardware Reference →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <div class="section" id="id1">
 <h1>快速开始<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <a class="reference external image-reference" href="https://raw.github.com/hankso/EmBCI/release/files/images/logo-blue.png"><img alt="EmBCI Logo" src="https://raw.github.com/hankso/EmBCI/release/files/images/logo-blue.png" /></a>
+</div>
 <hr class="docutils" />
 <div class="section" id="embci">
-<h2>欢迎来到 EmBCI！<a class="headerlink" href="#embci" title="Permalink to this headline">¶</a></h2>
+<h1>欢迎来到 EmBCI！<a class="headerlink" href="#embci" title="Permalink to this headline">¶</a></h1>
 <p><a class="reference external" href="https://github.com/hankso/EmBCI/blob/release/README.rst">English</a> | 中文</p>
 <ul class="simple">
-<li>本 README 将简要介绍 EmBCI 的组件和功能，请阅读<a class="reference external" href="https://embci.readthedocs.io/en/latest">技术文档</a>了解更多详细信息</li>
-<li>EmBCI 仍处在开发过程中，非常欢迎任何形式的贡献</li>
+<li><p>本 README 将简要介绍 EmBCI 的组件和功能，请阅读<a class="reference external" href="https://embci.hankso.site">技术文档</a>了解更多详细信息</p></li>
+<li><p>EmBCI 仍处在开发过程中，非常欢迎任何形式的贡献</p></li>
 </ul>
 </div>
 <div class="section" id="id3">
-<h2>目录<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<h1>目录<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><a class="reference external" href="EmBCI是什么？">EmBCI 是什么？</a></li>
-<li><a class="reference external" href="请使用EmBCI吧！">请使用 EmBCI 吧！</a></li>
-<li><a class="reference external" href="硬件支持">硬件支持</a></li>
-<li><a class="reference external" href="软件支持">软件支持</a></li>
-<li><a class="reference external" href="Linux服务接口">Linux 服务接口</a></li>
-<li><a class="reference external" href="可配置项">可配置项</a></li>
-<li><a class="reference external" href="完整文档">完整文档</a></li>
-<li><a class="reference external" href="项目结构">项目结构</a></li>
-<li><a class="reference external" href="开源许可">开源许可</a></li>
-<li><a class="reference external" href="相关链接">相关链接</a></li>
+<li><p><a class="reference external" href="EmBCI是什么？">EmBCI 是什么？</a></p></li>
+<li><p><a class="reference external" href="请使用EmBCI吧！">请使用 EmBCI 吧！</a></p></li>
+<li><p><a class="reference external" href="硬件支持">硬件支持</a></p></li>
+<li><p><a class="reference external" href="软件支持">软件支持</a></p></li>
+<li><p><a class="reference external" href="Linux服务接口">Linux 服务接口</a></p></li>
+<li><p><a class="reference external" href="可配置项">可配置项</a></p></li>
+<li><p><a class="reference external" href="完整文档">完整文档</a></p></li>
+<li><p><a class="reference external" href="项目结构">项目结构</a></p></li>
+<li><p><a class="reference external" href="开源许可">开源许可</a></p></li>
+<li><p><a class="reference external" href="相关链接">相关链接</a></p></li>
 </ul>
 </div>
 <div class="section" id="id13">
-<h2>EmBCI 是什么？<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h2>
+<h1>EmBCI 是什么？<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h1>
 <p>TODO</p>
 </div>
-</div>
 
 
-           </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="hardware/index.html" class="btn btn-neutral float-right" title="EmBCI Hardware Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="readme.html" class="btn btn-neutral float-left" title="Get Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="readme.html"
+       title="previous chapter">← Get Started</a>
+  </li>
+  <li class="next">
+    <a href="hardware/index.html"
+       title="next chapter">EmBCI Hardware Reference →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
     
-   
-
-</body>
+    
+  </body>
 </html>

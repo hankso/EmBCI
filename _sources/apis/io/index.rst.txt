@@ -1,14 +1,14 @@
-*****************
-I/O API Reference
-*****************
+****************
+IO API Reference
+****************
 
 .. toctree::
    :maxdepth: 2
 
-   FIFO Readers <readers>
+   Basic IO Functions <basic>
+   FIFO Data Readers <readers>
    Misc Commanders <commanders>
-   Basic Input/Output <basic>
-   TCP/UDP Server <server>
+   Network IO <server>
 
 ----
 

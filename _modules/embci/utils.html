@@ -1,171 +1,209 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>embci.utils &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>embci.utils</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'../../',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="../../_static/pygments.css">
+      <link rel="stylesheet" href="../../_static/theme.css">
+      <link rel="stylesheet" href="../../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="../../index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Get Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../readme_zh.html">Get Started 中文</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../service.html">Linux Service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../update.html">Updating</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Changelog.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="../../_static/theme-vendors.js"></script>
+      <script src="../../_static/theme.js" defer></script>
     
-      <li><a href="../../index.html">Docs</a> &raquo;</li>
-        
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-        
-      <li>embci.utils</li>
+  <link rel="index" title="Index" href="../../genindex.html" />
+  <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../../index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="../../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="../index.html">Module code</a> &raquo;</li>
+    
+    <li>embci.utils</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <h1>Source code for embci.utils</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
@@ -254,20 +292,20 @@
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Utilities</span>
 
-<span class="k">def</span> <span class="nf">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="debug_helper"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.debug_helper">[docs]</a><span class="k">def</span> <span class="nf">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">get_caller_globals</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="s1">&#39;__name__&#39;</span><span class="p">]</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span> <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;INFO&#39;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span> <span class="k">if</span> <span class="n">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;INFO&#39;</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="n">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+<div class="viewcode-block" id="debug"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.debug">[docs]</a><span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">debug_helper</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">null_func</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
-    <span class="k">return</span>
+<div class="viewcode-block" id="null_func"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.null_func">[docs]</a><span class="k">def</span> <span class="nf">null_func</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+    <span class="k">return</span></div>
 
 
-<span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">low</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t_low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_high</span><span class="o">=</span><span class="mi">255</span><span class="p">):</span>
+<div class="viewcode-block" id="mapping"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.mapping">[docs]</a><span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">low</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t_low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_high</span><span class="o">=</span><span class="mi">255</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Mapping data to new array values all in duartion [low, high]</span>
 
@@ -288,10 +326,10 @@
         <span class="n">high</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">low</span> <span class="o">==</span> <span class="n">high</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">t_low</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">t_high</span> <span class="o">-</span> <span class="n">t_low</span><span class="p">)</span> <span class="o">+</span> <span class="n">t_low</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">t_high</span> <span class="o">-</span> <span class="n">t_low</span><span class="p">)</span> <span class="o">+</span> <span class="n">t_low</span></div>
 
 
-<span class="k">class</span> <span class="nc">NameSpace</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="NameSpace"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.NameSpace">[docs]</a><span class="k">class</span> <span class="nc">NameSpace</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -307,34 +345,40 @@
         <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span> <span class="o">==</span> <span class="n">other</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span></div>
 
 
-<span class="k">class</span> <span class="nc">AttributeDict</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeDict"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeDict">[docs]</a><span class="k">class</span> <span class="nc">AttributeDict</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Get items like JavaScript way, i.e. by attributes.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
-<span class="sd">    When getting an attribute of the object, method `__getattribute__` will</span>
-<span class="sd">    be called:</span>
-<span class="sd">             d.xxx</span>
+<span class="sd">    When getting an attribute of the object, :meth:`__getattribute__` will</span>
+<span class="sd">    be called::</span>
+
+<span class="sd">        d.xxx</span>
 <span class="sd">        &lt;==&gt; getattr(d, xxx)</span>
 <span class="sd">        &lt;==&gt; d.__getattribute__(&#39;xxx&#39;) + d.__getattr__(&#39;xxx&#39;)</span>
+
 <span class="sd">    &gt;&gt;&gt; d = dict(name=&#39;bob&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; d.clear  # d.__getattribute__(&#39;clear&#39;)</span>
 <span class="sd">    &lt;function clear&gt;</span>
 
-<span class="sd">    If the object doesn&#39;t have that attribute, `__getattribute__` will fail</span>
-<span class="sd">    and then `__getattr__` will be called. If `__getattr__` fails too, python</span>
-<span class="sd">    will raise `AttributeError`.</span>
+<span class="sd">    If the object doesn&#39;t have that attribute, :meth:`__getattribute__` will</span>
+<span class="sd">    fail and then :meth:`__getattr__` will be called. If :meth:`__getattr__`</span>
+<span class="sd">    fails too, python will raise :exc:`AttributeError`.</span>
+
 <span class="sd">    &gt;&gt;&gt; d = {&#39;name&#39;: &#39;bob&#39;, &#39;age&#39;: 20}</span>
 <span class="sd">    &gt;&gt;&gt; d.name</span>
 <span class="sd">    AttributeError: &#39;dict&#39; object has no attribute &#39;name&#39;</span>
 
-<span class="sd">    Getting an item from a dict can be achieved by calling __getitem__:</span>
-<span class="sd">        d.get(key) &lt;==&gt; return d[key] or default</span>
+<span class="sd">    Getting an item from a dict can be achieved by calling</span>
+<span class="sd">    :meth:`__getitem__`::</span>
+
+<span class="sd">        d.get(key) &lt;==&gt; ( d[key] or default )</span>
 <span class="sd">        d[key] &lt;==&gt; d.__getitem__(key)</span>
+
 <span class="sd">    &gt;&gt;&gt; d[&#39;age&#39;]</span>
 <span class="sd">    KeyError: &#39;age&#39;</span>
 <span class="sd">    &gt;&gt;&gt; d.__getitem__(&#39;age&#39;)</span>
@@ -342,10 +386,10 @@
 <span class="sd">    &gt;&gt;&gt; d.get(&#39;age&#39;, 100)</span>
 <span class="sd">    100</span>
 
-<span class="sd">    Default `dict.__getattr__` is not defined. Here we link it to `dict.get`.</span>
-<span class="sd">    After modification, attributes like `pop`, `keys` can be accessed by</span>
-<span class="sd">    `__getattribute__` and items can be accessed by `__getattr__`</span>
-<span class="sd">    and `__getitem__`.</span>
+<span class="sd">    Default :code:`dict.__getattr__` is not defined. Here we link it to</span>
+<span class="sd">    :code:`dict.get`. After modification, attributes like :attr:`pop`,</span>
+<span class="sd">    :attr:`keys` can be accessed by :meth:`__getattribute__` and items can be</span>
+<span class="sd">    accessed by :meth:`__getattr__` and :meth:`__getitem__`.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -357,8 +401,8 @@
 <span class="sd">    &gt;&gt;&gt; d[&#39;age&#39;]  # call d.__getitem__(&#39;age&#39;)</span>
 <span class="sd">    20</span>
 
-<span class="sd">    An element tree can be easily constructed by cascading `AttributeDict`</span>
-<span class="sd">    and `list` or `AttributeList`.</span>
+<span class="sd">    An element tree can be easily constructed by cascading</span>
+<span class="sd">    :class:`AttributeDict` and :class:`AttributeList`.</span>
 
 <span class="sd">    &gt;&gt;&gt; bob = AttributeDict({&#39;name&#39;: &#39;bob&#39;, &#39;age&#39;: 20, &#39;id&#39;: 1})</span>
 <span class="sd">    &gt;&gt;&gt; tim = AttributeDict({&#39;name&#39;: &#39;tim&#39;, &#39;age&#39;: 30, &#39;id&#39;: 2})</span>
@@ -471,7 +515,7 @@
                 <span class="n">dct</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">memo</span><span class="p">[</span><span class="s1">&#39;__cls__&#39;</span><span class="p">](</span><span class="n">dct</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeDict.copy"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        A copy of self. Class of returned instance can be specified by the</span>
 <span class="sd">        optional second argument `cls`, default current class.</span>
@@ -491,28 +535,28 @@
 <span class="sd">        elements: 1, 2</span>
 <span class="sd">        [1, 2]</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">__mapping__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">__mapping__</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__deepcopy__</span><span class="p">({},</span> <span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+<div class="viewcode-block" id="AttributeDict.deepcopy"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeDict.deepcopy">[docs]</a>    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__deepcopy__</span><span class="p">({},</span> <span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeDict.get"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeDict.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="s1">&#39;D.get(k[,d]) -&gt; D[k] if k in D, else d.  d defaults to None.&#39;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mapping__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">default</span>
+            <span class="k">return</span> <span class="n">default</span></div>
 
-    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeDict.pop"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeDict.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__mapping__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">default</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">value</span>
+            <span class="k">return</span> <span class="n">value</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">AttributeList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeList"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList">[docs]</a><span class="k">class</span> <span class="nc">AttributeList</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Get elements in list by attributes of them. It works much like a jQuery</span>
 <span class="sd">    init list. In this list, elements with an `id` attribute can be selected</span>
@@ -607,8 +651,8 @@
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+<div class="viewcode-block" id="AttributeList.insert"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
@@ -619,22 +663,22 @@
     <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeList.index"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.index">[docs]</a>    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
             <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">element</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">element</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">element</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeList.pop"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">default</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">element</span><span class="p">))</span>
+<div class="viewcode-block" id="AttributeList.remove"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.remove">[docs]</a>    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">element</span><span class="p">))</span></div>
 
     <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">__sequence__</span><span class="p">)</span>
@@ -651,7 +695,7 @@
                 <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">element</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">memo</span><span class="p">[</span><span class="s1">&#39;__cls__&#39;</span><span class="p">](</span><span class="n">lst</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AttributeList.copy"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Instance method to make a shallow or deep copy of self.</span>
 
@@ -659,13 +703,13 @@
 <span class="sd">        --------</span>
 <span class="sd">        AttributeDict.copy</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">__sequence__</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__deepcopy__</span><span class="p">({},</span> <span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+<div class="viewcode-block" id="AttributeList.deepcopy"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.AttributeList.deepcopy">[docs]</a>    <span class="k">def</span> <span class="nf">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__deepcopy__</span><span class="p">({},</span> <span class="bp">cls</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">BoolString</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="BoolString"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.BoolString">[docs]</a><span class="k">class</span> <span class="nc">BoolString</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Create a real boolean string. Boolean table can be replaced.</span>
 
@@ -688,38 +732,39 @@
     <span class="k">def</span> <span class="nf">__nonzero__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">BOOLEAN_TABLE</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">get_boolean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
 
-    <span class="fm">__bool__</span> <span class="o">=</span> <span class="n">__nonzero__</span>
+    <span class="fm">__bool__</span> <span class="o">=</span> <span class="n">__nonzero__</span></div>
 
 
-<span class="k">def</span> <span class="nf">timestamp</span><span class="p">(</span><span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="timestamp"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.timestamp">[docs]</a><span class="k">def</span> <span class="nf">timestamp</span><span class="p">(</span><span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">T%H:%M:%SZ&#39;</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Default ISO time string format&#39;&#39;&#39;</span>
-    <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">ctime</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">(</span><span class="n">ctime</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">ensure_unicode</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+<div class="viewcode-block" id="ensure_unicode"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.ensure_unicode">[docs]</a><span class="k">def</span> <span class="nf">ensure_unicode</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    ensure_unicode(s0, s1, ..., sn) ==&gt; (u0, u1, ..., un)</span>
+<span class="sd">    ensure_unicode(str, unicode, bytes, ..., sn) ==&gt; (u0, u1, ..., un)</span>
+
+<span class="sd">    .. digraph:: G</span>
+
+<span class="sd">        label=&quot;Python2&quot;;</span>
+<span class="sd">        object -&gt; basestring -&gt; {&quot;str / bytes&quot;, unicode};</span>
+
+<span class="sd">    .. digraph:: G</span>
+
+<span class="sd">        label=&quot;Python3&quot;;</span>
+<span class="sd">        object -&gt; {bytes, str};</span>
 
 <span class="sd">    In python version prior to 3.0:</span>
-<span class="sd">          object</span>
-<span class="sd">            |</span>
-<span class="sd">            |</span>
-<span class="sd">        basestring</span>
-<span class="sd">           /   \\</span>
-<span class="sd">          /     \\</span>
-<span class="sd">        str[1] unicode</span>
-<span class="sd">    str: 8-bits 0-255 char string</span>
-<span class="sd">    unicode: represent any char in any alphabet heading with u&#39;&#39;</span>
 
-<span class="sd">    In python3:</span>
-<span class="sd">          object</span>
-<span class="sd">           /  \\</span>
-<span class="sd">          /    \\</span>
-<span class="sd">        bytes  str</span>
-<span class="sd">    bytes: 8-bits 0-255 char string heading with b&#39;&#39;</span>
-<span class="sd">    str: unicode string</span>
+<span class="sd">    - str : 8-bits 0-255 char string</span>
+<span class="sd">    - unicode : string heading with ``u&#39;&#39;``</span>
 
-<span class="sd">    Reference: 1. `bytes` is an alias of str in python2(bytes &lt;==&gt; str)</span>
+<span class="sd">    In python3+:</span>
+
+<span class="sd">    - bytes: 8-bits 0-255 char string heading with ``b&#39;&#39;``</span>
+<span class="sd">    - str: unicode string</span>
+
+<span class="sd">    .. note:: bytes is an alias to str in python2</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">a</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
@@ -728,10 +773,11 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>     <span class="c1"># py2 str or py3 bytes</span>
             <span class="n">a</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span>  <span class="c1"># py2 unicode or py3 str</span>
             <span class="c1"># a[n] = u&#39;{}&#39;.format(a[n])</span>
-    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span></div>
 
 
-<span class="k">def</span> <span class="nf">ensure_bytes</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+<div class="viewcode-block" id="ensure_bytes"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.ensure_bytes">[docs]</a><span class="k">def</span> <span class="nf">ensure_bytes</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;ensure_bytes(str, unicode, bytes, ..., sn) ==&gt; (b0, b1, ..., bn)&#39;&#39;&#39;</span>
     <span class="n">a</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">allstr</span><span class="p">):</span>
@@ -739,10 +785,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>  <span class="c1"># py2 unicode or py3 str</span>
             <span class="n">a</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span>   <span class="c1"># py2 str or py3 bytes</span>
             <span class="c1"># a[n] = b&#39;{}&#39;.format(a[n])</span>
-    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span></div>
 
 
-<span class="k">def</span> <span class="nf">format_size</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+<div class="viewcode-block" id="format_size"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.format_size">[docs]</a><span class="k">def</span> <span class="nf">format_size</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Turn number of bytes into human-readable str. Bytes are abbrivated in</span>
 <span class="sd">    upper case, while bits use lower case. Only keyword arguments are accepted</span>
@@ -796,27 +842,27 @@
             <span class="n">exponent</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">base</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">a</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;{:.</span><span class="si">%s</span><span class="s1">f} </span><span class="si">{}</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">decimals</span><span class="p">[</span><span class="n">exponent</span><span class="p">])</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">num</span> <span class="o">/</span> <span class="p">(</span><span class="n">base</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">),</span> <span class="n">units</span><span class="p">[</span><span class="n">exponent</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">a</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">BOOLEAN_TABLE</span><span class="p">):</span>
+<div class="viewcode-block" id="get_boolean"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.get_boolean">[docs]</a><span class="k">def</span> <span class="nf">get_boolean</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">BOOLEAN_TABLE</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;convert string to boolean&#39;&#39;&#39;</span>
     <span class="n">t</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid boolean value: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">table</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">table</span><span class="p">[</span><span class="n">t</span><span class="p">]</span></div>
 
 
-<span class="k">def</span> <span class="nf">typename</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+<div class="viewcode-block" id="typename"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.typename">[docs]</a><span class="k">def</span> <span class="nf">typename</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span></div>
 
 
-<span class="k">def</span> <span class="nf">random_id</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="o">+</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">):</span>
+<div class="viewcode-block" id="random_id"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.random_id">[docs]</a><span class="k">def</span> <span class="nf">random_id</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span><span class="o">+</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Generate a random ID composed of digits and lower ASCII characters.&#39;&#39;&#39;</span>
-    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">choices</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">choices</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">)])</span></div>
 
 
-<span class="k">def</span> <span class="nf">validate_filename</span><span class="p">(</span><span class="o">*</span><span class="n">fns</span><span class="p">):</span>
+<div class="viewcode-block" id="validate_filename"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.validate_filename">[docs]</a><span class="k">def</span> <span class="nf">validate_filename</span><span class="p">(</span><span class="o">*</span><span class="n">fns</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;Validate inputted filename according to system.&#39;&#39;&#39;</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fns</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fns</span><span class="p">):</span>
@@ -834,18 +880,20 @@
             <span class="n">fns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">fns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
-    <span class="k">return</span> <span class="n">fns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">fns</span>
+    <span class="k">return</span> <span class="n">fns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">fns</span></div>
 
 
-<span class="k">def</span> <span class="nf">load_configs</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">fns</span><span class="p">):</span>
+<div class="viewcode-block" id="load_configs"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.load_configs">[docs]</a><span class="k">def</span> <span class="nf">load_configs</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">fns</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Read configuration files and return an AttributeDict.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    This function accepts arbitrary arugments, i.e.:</span>
-<span class="sd">        - one or more filenames</span>
-<span class="sd">        - one list of filenames</span>
+<span class="sd">    This function accepts arbitrary arugments:</span>
+
+<span class="sd">    - one or more filenames</span>
+<span class="sd">    - one list of filenames</span>
+
 <span class="sd">    &gt;&gt;&gt; load_configs(&#39;~/.embci/embci.conf&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; load_configs(&#39;/etc/embci.conf&#39;, &#39;~/.embci/embci.conf&#39;, &#39;no-exist&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; load_configs([&#39;/etc/embci.conf&#39;, &#39;~/.embci/embci.conf&#39;], &#39;no-exist&#39;)</span>
@@ -853,10 +901,12 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    Configurations priority(from low to high)::</span>
+
 <span class="sd">        On Unix-like system:</span>
 <span class="sd">            project config file: &quot;${EmBCI}/files/service/embci.conf&quot;</span>
 <span class="sd">             system config file: &quot;/etc/embci/embci.conf&quot;</span>
 <span class="sd">               user config file: &quot;~/.embci/embci.conf&quot;</span>
+
 <span class="sd">        On Windows system:</span>
 <span class="sd">            project config file: &quot;${EmBCI}/files/service/embci.conf&quot;</span>
 <span class="sd">             system config file: &quot;${APPDATA}/embci.conf&quot;</span>
@@ -877,10 +927,10 @@
     <span class="k">return</span> <span class="n">AttributeDict</span><span class="p">({</span>
         <span class="n">section</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">section</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">sections</span><span class="p">()</span>
-    <span class="p">})</span>
+    <span class="p">})</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">configfiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="get_config"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.get_config">[docs]</a><span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">configfiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Get configurations from environment variables or config files.</span>
 <span class="sd">    EmBCI use `INI-Style &lt;https://en.wikipedia.org/wiki/INI_file&gt;`_</span>
@@ -907,7 +957,7 @@
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    `configparser &lt;https://en.wikipedia.org/wiki/INI_file&gt;`_</span>
+<span class="sd">    :mod:`configparser`</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">configs</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">configfiles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -918,10 +968,10 @@
             <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">cfg</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
     <span class="n">value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">value</span></div>
 
 
-<span class="k">class</span> <span class="nc">SingletonMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+<div class="viewcode-block" id="SingletonMeta"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.SingletonMeta">[docs]</a><span class="k">class</span> <span class="nc">SingletonMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Metaclass used to create Singleton classes.</span>
 
@@ -945,6 +995,7 @@
 <span class="sd">    True</span>
 
 <span class="sd">    Instance can be re-initalized by providing argument `reinit`:</span>
+
 <span class="sd">    &gt;&gt;&gt; Test(1, 2, 3).args</span>
 <span class="sd">    (1, 2, 3)</span>
 <span class="sd">    &gt;&gt;&gt; Test(2, 3, 4).args</span>
@@ -967,14 +1018,14 @@
             <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="SingletonMeta.clear"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.SingletonMeta.clear">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="SingletonMeta.remove"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.SingletonMeta.remove">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="p">:</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">__instances__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div></div>
 
 
 <span class="n">Singleton</span> <span class="o">=</span> <span class="n">SingletonMeta</span><span class="p">(</span><span class="s1">&#39;Singleton&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="p">),</span> <span class="p">{})</span>
@@ -983,16 +1034,20 @@
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Decorators</span>
 
-<span class="k">class</span> <span class="nc">LockedFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="LockedFile"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.LockedFile">[docs]</a><span class="k">class</span> <span class="nc">LockedFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Context manager for creating temp &amp; auto-recycled &amp; locked files</span>
 
 <span class="sd">    Here&#39;s something to be decleared on locking a file:</span>
+
 <span class="sd">    1. fcntl.lockf() most of the time implemented as a wrapper around the</span>
 <span class="sd">       fcntl() locking calls, which bound to processes, not file descriptors.</span>
+
 <span class="sd">    2. fcntl.flock() locks are bound to file descriptors, not processes.</span>
+
 <span class="sd">    3. On at least some systems, fcntl.LOCK_EX can only be used if the file</span>
 <span class="sd">       descriptor refers to a file opened for writing.</span>
+
 <span class="sd">    4. fcntl locks will be released after file is closed or by fcntl.LOCK_UN.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
@@ -1008,7 +1063,7 @@
             <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="LockedFile.acquire"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.LockedFile.acquire">[docs]</a>    <span class="k">def</span> <span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Lock the file object with fcntl.flock&#39;&#39;&#39;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
             <span class="n">d</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
@@ -1028,9 +1083,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span></div>
 
-    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
+<div class="viewcode-block" id="LockedFile.release"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.LockedFile.release">[docs]</a>    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="c1">#  if not self.file_obj.closed:</span>
@@ -1043,7 +1098,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Locked file `</span><span class="si">%s</span><span class="s1">` removed.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-            <span class="k">pass</span>
+            <span class="k">pass</span></div>
 
     <span class="fm">__enter__</span> <span class="o">=</span> <span class="n">acquire</span>
     <span class="fm">__exit__</span>  <span class="o">=</span> <span class="n">release</span>
@@ -1057,20 +1112,20 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-            <span class="k">pass</span>
+            <span class="k">pass</span></div>
 
 
-<span class="k">class</span> <span class="nc">TempStream</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="TempStream"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TempStream">[docs]</a><span class="k">class</span> <span class="nc">TempStream</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Context manager to temporarily mask streams like stdout/stderr/stdin.</span>
+<span class="sd">    Context manager to temporarily mask streams like **stdout/stderr/stdin**.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    You can redirect standard output to a file just like shell command</span>
-<span class="sd">    `$ python test.py &gt; /var/log/foo.log`:</span>
+<span class="sd">    :code:`$ python test.py &gt; /var/log/foo.log`:</span>
 
 <span class="sd">    &gt;&gt;&gt; with TempStream(stdout=&#39;/var/log/foo.log&#39;):</span>
-<span class="sd">            print(&#39;bar&#39;, file=sys.stdout)</span>
+<span class="sd">    ...     print(&#39;bar&#39;, file=sys.stdout)</span>
 <span class="sd">    &gt;&gt;&gt; open(&#39;var/log/foo.log&#39;).read()</span>
 <span class="sd">    bar</span>
 
@@ -1080,14 +1135,14 @@
 
 <span class="sd">    &gt;&gt;&gt; # mask stdout and stderr to a string buffer</span>
 <span class="sd">    &gt;&gt;&gt; with TempStream(&#39;stdout&#39;, &#39;stderr&#39;) as ts:</span>
-<span class="sd">            print(&#39;hello&#39;, file=sys.stdout, end=&#39;&#39;)</span>
-<span class="sd">            print(&#39;error&#39;, file=sys.stderr)</span>
+<span class="sd">    ...     print(&#39;hello&#39;, file=sys.stdout, end=&#39;&#39;)</span>
+<span class="sd">    ...     print(&#39;error&#39;, file=sys.stderr)</span>
 <span class="sd">    &gt;&gt;&gt; type(ts)</span>
 <span class="sd">    embci.utils.AttributeDict</span>
 <span class="sd">    &gt;&gt;&gt; str(ts)</span>
 <span class="sd">    &quot;{&#39;stderr&#39;: &#39;error\\n&#39;, &#39;stdout&#39;: &#39;hello&#39;}&quot;</span>
 <span class="sd">    &gt;&gt;&gt; ts.stdout + &#39; &#39; + ts[&#39;stderr&#39;]</span>
-<span class="sd">    &#39;hello error\n&#39;</span>
+<span class="sd">    &#39;hello error\\n&#39;</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">_disabled</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">_target</span> <span class="o">=</span> <span class="p">{</span>
@@ -1116,14 +1171,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">stream</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_savepos</span><span class="p">[</span><span class="n">stream</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">enable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TempStream.enable"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TempStream.enable">[docs]</a>    <span class="k">def</span> <span class="nf">enable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disabled</span><span class="p">,</span> <span class="s1">&#39;Cannot re-enable a disabled TempStream&#39;</span>
         <span class="c1"># replace origin streams with new streams</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">stream</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span></div>
 
-    <span class="k">def</span> <span class="nf">disable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">):</span>
+<div class="viewcode-block" id="TempStream.disable"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TempStream.disable">[docs]</a>    <span class="k">def</span> <span class="nf">disable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">stream</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="c1"># recover origin stream</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
@@ -1133,9 +1188,9 @@
             <span class="c1"># fetch message as string from new streams</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_string</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
             <span class="n">stream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span></div>
 
-    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="TempStream.get_string"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TempStream.get_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Current stream position is saved so that next time it will read from</span>
 <span class="sd">        where it left this time without cleaning.</span>
@@ -1160,17 +1215,17 @@
             <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">stream</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_savepos</span><span class="p">[</span><span class="n">stream</span><span class="p">]</span> <span class="o">=</span> <span class="n">pos</span>
-        <span class="k">return</span> <span class="n">msg</span>
+        <span class="k">return</span> <span class="n">msg</span></div>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TempStream.disable_all"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TempStream.disable_all">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">disable_all</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_disabled</span> <span class="o">=</span> <span class="kc">True</span></div>
 
     <span class="fm">__enter__</span> <span class="o">=</span> <span class="n">enable</span>
-    <span class="fm">__exit__</span> <span class="o">=</span> <span class="n">disable</span>
+    <span class="fm">__exit__</span> <span class="o">=</span> <span class="n">disable</span></div>
 
 
-<span class="k">class</span> <span class="nc">CachedProperty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="CachedProperty"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.CachedProperty">[docs]</a><span class="k">class</span> <span class="nc">CachedProperty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Descriptor class to construct a property that is only computed once and</span>
 <span class="sd">    then replaces itself as an ordinary attribute. Deleting the attribute</span>
@@ -1185,10 +1240,10 @@
         <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
         <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__func</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span><span class="p">)</span></div>
 
 
-<span class="nd">@decorator</span>
+<div class="viewcode-block" id="verbose"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.verbose">[docs]</a><span class="nd">@decorator</span>
 <span class="k">def</span> <span class="nf">verbose</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Add support to any callable functions or methods to change verbose level</span>
@@ -1216,6 +1271,7 @@
 <span class="sd">    which also means this function can be used under these situations.</span>
 
 <span class="sd">    1. class default verbosity</span>
+
 <span class="sd">    &gt;&gt;&gt; class Testing(object):</span>
 <span class="sd">    ...     def __init__(self):</span>
 <span class="sd">    ...         self.verbose = &#39;INFO&#39;</span>
@@ -1225,16 +1281,19 @@
 <span class="sd">    ...         logger.info(s)</span>
 
 <span class="sd">    2. default argument</span>
+
 <span class="sd">    &gt;&gt;&gt; @verbose</span>
-<span class="sd">        def echo(s, verbose=True):</span>
-<span class="sd">            logger.info(s)</span>
+<span class="sd">    ... def echo(s, verbose=True):</span>
+<span class="sd">    ...     logger.info(s)</span>
 <span class="sd">    &gt;&gt;&gt; echo(&#39;hello&#39;)</span>
 <span class="sd">    hello</span>
 
 <span class="sd">    3. positional argument</span>
+
 <span class="sd">    &gt;&gt;&gt; echo(&#39;hello&#39;, None)</span>
 
 <span class="sd">    4. keyword argument</span>
+
 <span class="sd">    &gt;&gt;&gt; echo(&#39;hello&#39;, verbose=False)</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">level</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1259,10 +1318,10 @@
     <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">TempLogLevel</span><span class="p">(</span><span class="n">level</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">duration</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="duration"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.duration">[docs]</a><span class="k">def</span> <span class="nf">duration</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">warning</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Want to looply execute some function every specific time duration?</span>
 <span class="sd">    You may use this deocrator factory.</span>
@@ -1309,10 +1368,10 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">time_dict</span><span class="p">[</span><span class="n">_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
 
 
-<span class="k">def</span> <span class="nf">embedded_only</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s1">&#39;Skip execution on current platform&#39;</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="embedded_only"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.embedded_only">[docs]</a><span class="k">def</span> <span class="nf">embedded_only</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="s1">&#39;Skip execution on current platform&#39;</span><span class="p">,</span> <span class="n">retval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="nd">@decorator</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;arm&#39;</span><span class="p">,</span> <span class="s1">&#39;aarch64&#39;</span><span class="p">]:</span>
@@ -1320,14 +1379,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">reason</span><span class="p">,</span> <span class="n">platform</span><span class="o">.</span><span class="n">platform</span><span class="p">()))</span>
             <span class="k">return</span> <span class="n">retval</span>
-    <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">wrapper</span></div>
 
 
 <span class="c1"># =============================================================================</span>
 <span class="c1"># I/O</span>
 
 <span class="c1">#  class TimeoutException(TimeoutError):  # py3 only, use this after 2020.1.1</span>
-<span class="k">class</span> <span class="nc">TimeoutException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="TimeoutException"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.TimeoutException">[docs]</a><span class="k">class</span> <span class="nc">TimeoutException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">sec</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
 
@@ -1336,10 +1395,10 @@
             <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sec</span> <span class="ow">and</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">s)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sec</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
             <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="ow">and</span> <span class="s1">&#39;: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
             <span class="n">source</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src</span> <span class="ow">and</span> <span class="s1">&#39; within `</span><span class="si">%s</span><span class="s1">`.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">src</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flist</span><span class="o">=</span><span class="p">[</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">]):</span>
+<div class="viewcode-block" id="input"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.input">[docs]</a><span class="k">def</span> <span class="nf">input</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flist</span><span class="o">=</span><span class="p">[</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">]):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    input([prompt[, timeout[, flist]]]) -&gt; string</span>
 
@@ -1376,10 +1435,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
             <span class="k">continue</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot read from `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot read from `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">answer</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+<div class="viewcode-block" id="check_input"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.check_input">[docs]</a><span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">answer</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
                 <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    This function is to guide user make choices.</span>
@@ -1409,17 +1468,18 @@
             <span class="k">return</span> <span class="n">answer</span><span class="p">[</span><span class="n">rst</span><span class="p">]</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Invalid input `</span><span class="si">%s</span><span class="s1">`! Choose from [ </span><span class="si">%s</span><span class="s1"> ]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">rst</span><span class="p">,</span> <span class="s1">&#39; | &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
         <span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
 
 
-<span class="k">def</span> <span class="nf">mkuserdir</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<div class="viewcode-block" id="mkuserdir"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.mkuserdir">[docs]</a><span class="k">def</span> <span class="nf">mkuserdir</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Create user folder at ${DIR_DATA}/${username} if it doesn&#39;t exists.</span>
+<span class="sd">    Create user folder at ``${DIR_DATA}/${username}`` if it doesn&#39;t exists.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    When used as a decorator, it will automatically detect arguments of wrapped</span>
 <span class="sd">    function to get the specified `username` argument and create its folder.</span>
+
 <span class="sd">    &gt;&gt;&gt; @mkuserdir</span>
 <span class="sd">    ... def save_user_data(username):</span>
 <span class="sd">    ...     path = os.path.join(DIR_DATA, username, &#39;data-1.csv&#39;)</span>
@@ -1428,6 +1488,7 @@
 <span class="sd">    &gt;&gt;&gt; save_user_data(&#39;jack&#39;)  # write_data_to_csv don&#39;t need to care this</span>
 
 <span class="sd">    Or use it with username directly:</span>
+
 <span class="sd">    &gt;&gt;&gt; mkuserdir(&#39;john&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; os.listdir(DIR_DATA)</span>
 <span class="sd">    [&#39;example&#39;, &#39;bob&#39;, &#39;jack&#39;, &#39;john&#39;]</span>
@@ -1457,14 +1518,14 @@
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="mo">0o775</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;User </span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">s folder at </span><span class="si">%s</span><span class="s1"> created.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
         <span class="k">return</span>
-    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;function or string wanted, but got `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="n">typename</span><span class="p">(</span><span class="n">user</span><span class="p">))</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;function or string wanted, but got `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="n">typename</span><span class="p">(</span><span class="n">user</span><span class="p">))</span></div>
 
 
-<span class="nd">@verbose</span>
+<div class="viewcode-block" id="virtual_serial"><a class="viewcode-back" href="../../apis/utils/index.html#embci.io.base.virtual_serial">[docs]</a><span class="nd">@verbose</span>
 <span class="k">def</span> <span class="nf">virtual_serial</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Generate a pair of virtual serial port at /dev/pts/*.</span>
-<span class="sd">    Super useful when debugging without a real UART device.</span>
+<span class="sd">    Generate a pair of virtual serial port at ``/dev/pts/*``. Super useful</span>
+<span class="sd">    when debugging without a real UART device.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1490,7 +1551,8 @@
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; flag = virtual_serial(timeout=-1)[0]</span>
 
-<span class="sd">    Suppose it&#39;s /dev/pts/0 &lt;==&gt; /dev/pts/1</span>
+<span class="sd">    Assuming it&#39;s ``/dev/pts/0 -- /dev/pts/1``</span>
+
 <span class="sd">    &gt;&gt;&gt; s = serial.Serial(&#39;/dev/pts/1&#39;,115200)</span>
 <span class="sd">    &gt;&gt;&gt; m = serial.Serial(&#39;/dev/pts/0&#39;,115200)</span>
 <span class="sd">    &gt;&gt;&gt; s.write(&#39;hello?\\n&#39;)</span>
@@ -1533,7 +1595,7 @@
         <span class="n">killer</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Timer</span><span class="p">(</span><span class="n">timeout</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">:</span> <span class="n">flag_close</span><span class="o">.</span><span class="n">set</span><span class="p">())</span>
         <span class="n">killer</span><span class="o">.</span><span class="n">setDaemon</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">killer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">flag_close</span><span class="p">,</span> <span class="n">port1</span><span class="p">,</span> <span class="n">port2</span>
+    <span class="k">return</span> <span class="n">flag_close</span><span class="p">,</span> <span class="n">port1</span><span class="p">,</span> <span class="n">port2</span></div>
 
 
 <span class="c1"># =============================================================================</span>
@@ -1555,43 +1617,19 @@
 <span class="c1"># THE END</span>
 </pre></div>
 
-           </div>
-           
           </div>
-          <footer>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
     
-   
-
-</body>
+    
+  </body>
 </html>

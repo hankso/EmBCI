@@ -1,0 +1,16 @@
+*************
+Visualization
+*************
+
+.. #toctree::
+   :maxdepth: 2
+
+   LCD/LED Screen <readers>
+   Stream Viewer <viewer>
+   Viz based on PIL/Matplotlib <plots>
+
+----
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>EmBCI Applications</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="Example" href="example.html" />
+  <link rel="prev" title="Visualization" href="../apis/viz/index.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 current"><a href="#" class="reference internal current">Applications</a>
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#a-full-list-of-current-applications" class="reference internal">A full list of current applications</a></li>
+                
+                  <li class="toctree-l2"><a href="#getting-started-developers" class="reference internal">Getting started (developers)</a></li>
+                
+                  <li class="toctree-l2"><a href="#webui" class="reference internal">WebUI</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+    <li>EmBCI Applications</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="../apis/viz/index.html"
+       title="previous chapter">← Visualization</a>
+  </li>
+  <li class="next">
+    <a href="example.html"
+       title="next chapter">Example →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="embci-applications">
+<h1>EmBCI Applications<a class="headerlink" href="#embci-applications" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="a-full-list-of-current-applications">
+<h2>A full list of current applications<a class="headerlink" href="#a-full-list-of-current-applications" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example.html">Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auth.html">Authentication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="baseserver.html">Base Static Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recorder.html">Recorder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="streaming.html">Streaming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="system.html">System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DisplayWeb.html">Display Web</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MotorImagery.html">Motor Imagery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Speller.html">SSVEP Speller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WiFi.html">WiFi Manager</a></li>
+</ul>
+</div>
+<hr class="docutils" />
+<p>TODO: write doc for working flow of embci.webui &amp; embci.apps</p>
+</div>
+<div class="section" id="getting-started-developers">
+<h2>Getting started (developers)<a class="headerlink" href="#getting-started-developers" title="Permalink to this headline">¶</a></h2>
+<p>EmBCI has an example project at <code class="docutils literal notranslate"><span class="pre">embci.apps.example</span></code> <a class="reference external" href="example">link</a>, which is a good place to start developing your own app. Also there are some basic apps in this folder. Once you’ve found a similar app like yours, you can copy that project folder and go through the source code, modify them and build yours.</p>
+<p>Let’s see some basic apps come with EmBCI:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="auth">auth</a>: Authentication system (<strong>under developing</strong>).</p></li>
+<li><p><a class="reference external" href="baseserver">baseserver</a>: Simple HTTP server used to host static files.</p></li>
+<li><p><a class="reference external" href="#">recorder</a>: Record and save stream data into <code class="docutils literal notranslate"><span class="pre">.mat</span></code> or <code class="docutils literal notranslate"><span class="pre">.fif</span></code> file.</p></li>
+<li><p><a class="reference external" href="streaming">streaming</a>: Create a global data-stream as a data broadcaster.</p></li>
+<li><p><a class="reference external" href="#">system</a>: Some commands deeply relied on operation system.</p></li>
+<li><p><a class="reference external" href="DisplayWeb">DisplayWeb</a>: HTML &amp; JS based realtime signal visualization tool.</p></li>
+<li><p><a class="reference external" href="#">DBS</a>: <strong>Deprecated</strong> in <a class="reference external" href="../../Changelog.md">v0.2.0</a>. Assistant application to rehabilitate Parkinson’s Disease patients after Deep-Brain-Stimulation operation.</p></li>
+<li><p><a class="reference external" href="MotorImagery">MotorImagery</a>: EEG classification applet by Motor Imagery (<strong>under developing</strong>).</p></li>
+<li><p><a class="reference external" href="#">sEMG</a>: Hand gesture recognition by classification on sEMG bio-signal (<strong>legacy</strong>).</p></li>
+<li><p><a class="reference external" href="Speller">Speller</a>: SSVEP-based mind-typing system.</p></li>
+<li><p><a class="reference external" href="#">SignalInfo</a>: Display information of biosignal marks by <code class="docutils literal notranslate"><span class="pre">Matplotlib</span></code>.</p></li>
+<li><p><a class="reference external" href="WiFi">WiFi</a>: Search, display and connect to WiFi hotspots through WebUI (mostly used on EmBCI device).</p></li>
+</ul>
+</div>
+<div class="section" id="webui">
+<h2>WebUI<a class="headerlink" href="#webui" title="Permalink to this headline">¶</a></h2>
+<p>You see the awesome webpages of apps in EmBCI like Speller and Visualization? If you want to integrate an user interface into your application, <code class="docutils literal notranslate"><span class="pre">EmBCI</span></code> provides you a easy-extenable web-based one! Simply create a <cite>``bottle`</cite> &lt;<a class="reference external" href="https://bottlepy.org/docs/dev/">https://bottlepy.org/docs/dev/</a>&gt;`_ loadable HTTPServer to handle HTTP requests and assign this server object to a variable named <code class="docutils literal notranslate"><span class="pre">application</span></code> in <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code>. And that’s all! Just leave all other jobs to <code class="docutils literal notranslate"><span class="pre">embci.webui</span></code> apps auto-loader.</p>
+<div class="section" id="note">
+<h3>Note<a class="headerlink" href="#note" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>bottle loadable HTTPServer means:</p>
+<ul>
+<li><p>bottle built-in HTTP development servers based on <code class="docutils literal notranslate"><span class="pre">bottle.ServerAdapter</span></code></p></li>
+<li><p><a class="reference external" href="http://pythonpaste.org/">paste</a>, <a class="reference external" href="https://github.com/william-os4y/fapws3">fapws3</a>, <a class="reference external" href="https://github.com/jonashaag/bjoern">bjoern</a>, <a class="reference external" href="https://developers.google.com/appengine/">gae</a>, <a class="reference external" href="http://www.cherrypy.org/">cherrypy</a>…
+..</p>
+<blockquote>
+<div><p>run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">bottle;</span> <span class="pre">print(bottle.server_names)&quot;</span></code> to see more supported servers.</p>
+</div></blockquote>
+</li>
+<li><p>any other <a class="reference external" href="http://www.wsgi.org/">WSGI</a> capable HTTP server</p></li>
+</ul>
+</li>
+<li><p>URL of user apps will be <code class="docutils literal notranslate"><span class="pre">http://${EmBCI_WEBUI_HOST}/apps/${MyApp}</span></code>. If your server will respond “helloworld” when <code class="docutils literal notranslate"><span class="pre">index.html</span></code> is requested, you will see the “helloworld” string by <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">http://${EmBCI_WEBUI_HOST}/apps/${MyApp}/index.html</span></code></p></li>
+<li><p>Neccessary files used in web application must be added to correct folder, such as <code class="docutils literal notranslate"><span class="pre">js/*</span></code> and <code class="docutils literal notranslate"><span class="pre">css/*</span></code>. You can use either local resources or embci.webui global resources, for example:</p>
+<ul class="simple">
+<li><p>use syntax <code class="docutils literal notranslate"><span class="pre">&lt;script</span> <span class="pre">src=&quot;js/common.js&quot;&gt;&lt;/script&gt;</span></code> to access file at <code class="docutils literal notranslate"><span class="pre">${MyApp}/js/common.js</span></code>.</p></li>
+<li><p>use syntax <code class="docutils literal notranslate"><span class="pre">&lt;img</span> <span class="pre">src=&quot;/images/logo.png&quot;</span> <span class="pre">alt=&quot;EmBCI</span> <span class="pre">logo&quot;&gt;</span></code> to access file at <code class="docutils literal notranslate"><span class="pre">${embci.webui.__basedir__}/images/logo.png</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="example-of-bottle-built-in-server">
+<h3>Example of bottle built-in server<a class="headerlink" href="#example-of-bottle-built-in-server" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># content of NewApp/__init__.py</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">bottle</span>
+<span class="n">__basedir__</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+<span class="nd">@bottle.route</span><span class="p">(</span><span class="s1">&#39;/index.html&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">bottle</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">get_cookie</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;new_guest&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;new_guest&#39;</span><span class="p">:</span>
+        <span class="n">bottle</span><span class="o">.</span><span class="n">respond</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;testing&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bottle</span><span class="o">.</span><span class="n">template</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">__basedir__</span><span class="p">,</span> <span class="s1">&#39;index.html&#39;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+<span class="n">application</span> <span class="o">=</span> <span class="n">bottle</span><span class="o">.</span><span class="n">default_app</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span><span class="c">&lt;!--# content of NewApp/index.html--&gt;</span>
+<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
+    <span class="p">&lt;</span><span class="nt">meta</span> <span class="na">charset</span><span class="o">=</span><span class="s">&quot;utf-8&quot;</span><span class="p">&gt;</span>
+    <span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>example<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
+<span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>Hello {{name}}! Welcome to my WebApp!<span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+<p>Result of accessing URL <code class="docutils literal notranslate"><span class="pre">http://${EmBCI_WEBUI_HOST}/apps/newapp/index.html</span></code> will be string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">new_guest!</span> <span class="pre">Welcome</span> <span class="pre">to</span> <span class="pre">my</span> <span class="pre">WebApp!</span></code></p>
+</div>
+<div class="section" id="example-of-flask">
+<h3>Example of Flask<a class="headerlink" href="#example-of-flask" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># content of MyApp/server.py</span>
+
+<span class="c1"># content of MyApp/__init__.py</span>
+<span class="kn">from</span> <span class="nn">.server</span> <span class="kn">import</span> <span class="n">server</span> <span class="k">as</span> <span class="n">application</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="../apis/viz/index.html"
+       title="previous chapter">← Visualization</a>
+  </li>
+  <li class="next">
+    <a href="example.html"
+       title="next chapter">Example →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

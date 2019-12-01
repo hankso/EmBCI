@@ -1,6 +1,6 @@
-*******************
-Basic I/O functions
-*******************
+******************
+Basic IO Functions
+******************
 
 .. TODO: introduce and examples here
 
@@ -12,5 +12,4 @@ API
 ---
 .. automodule:: embci.io.base
     :members:
-    :inherited-members:
     :undoc-members:

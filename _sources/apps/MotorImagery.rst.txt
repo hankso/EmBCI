@@ -1,0 +1,5 @@
+*************
+Motor Imagery
+*************
+
+.. include:: ../../embci/apps/MotorImagery/README.rst

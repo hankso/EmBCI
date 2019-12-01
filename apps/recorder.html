@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Recorder</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="Streaming" href="streaming.html" />
+  <link rel="prev" title="Base Static Server" href="baseserver.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>Recorder</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="baseserver.html"
+       title="previous chapter">← Base Static Server</a>
+  </li>
+  <li class="next">
+    <a href="streaming.html"
+       title="next chapter">Streaming →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="module-embci.apps.recorder">
+<span id="recorder"></span><h1>Recorder<a class="headerlink" href="#module-embci.apps.recorder" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="why-you-need-a-recorder">
+<h2>Why you need a recorder?<a class="headerlink" href="#why-you-need-a-recorder" title="Permalink to this headline">¶</a></h2>
+<p>In technique details, readers in EmBCI are designed as realtime data streams,
+which means:</p>
+<p>1. A stream has a source, but the source may be various (there are LSLReader,
+TCPReader, SPIReader etc.)</p>
+<p>2. It is not suggested for user to fetch the same data twice - if not
+saved(recorded), data will finally flow away.</p>
+<p>Readers are just abstraction on data sources, but they don’t know when to
+start or stop saving data to files on disk. On embedded devices, storage space
+is usually small and it’s not a good idea to cache data all the time.</p>
+</div>
+<div class="section" id="develop-target">
+<h2>Develop target<a class="headerlink" href="#develop-target" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>[x] Recorder should support start, pause, resume, stop</p></li>
+<li><p>[x] Recorder should support change of username</p></li>
+<li><p>[x] Let command listener occupy main thread</p></li>
+<li><p>[x] Record both data, timestamp, and event</p></li>
+</ul>
+<p>This file will make recorder a module and provide class <code class="docutils literal notranslate"><span class="pre">Recorder</span></code></p>
+<dl class="function">
+<dt id="embci.apps.recorder.debug">
+<code class="sig-prename descclassname">embci.apps.recorder.</code><code class="sig-name descname">debug</code><span class="sig-paren">(</span><em class="sig-param">v=True</em><span class="sig-paren">)</span><a class="headerlink" href="#embci.apps.recorder.debug" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="screenshots">
+<h2>Screenshots<a class="headerlink" href="#screenshots" title="Permalink to this headline">¶</a></h2>
+<img alt="Recorder manager" src="../_images/app-recorder-list.png" />
+<img alt="Setting username" src="../_images/app-recorder-edit.png" />
+<img alt="HTML snippet" src="../_images/app-recorder-snippet.png" />
+<img alt="Setting username" src="../_images/app-recorder-username.png" />
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="baseserver.html"
+       title="previous chapter">← Base Static Server</a>
+  </li>
+  <li class="next">
+    <a href="streaming.html"
+       title="next chapter">Streaming →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

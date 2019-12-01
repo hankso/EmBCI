@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Motor Imagery</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="SSVEP Speller" href="Speller.html" />
+  <link rel="prev" title="Display Web" href="DisplayWeb.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>Motor Imagery</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="DisplayWeb.html"
+       title="previous chapter">← Display Web</a>
+  </li>
+  <li class="next">
+    <a href="Speller.html"
+       title="next chapter">SSVEP Speller →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="motor-imagery">
+<h1>Motor Imagery<a class="headerlink" href="#motor-imagery" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-is-motor-imagery">
+<h2>What is Motor Imagery?<a class="headerlink" href="#what-is-motor-imagery" title="Permalink to this headline">¶</a></h2>
+<p>A Brain-Computer Interface (BCI) based on Motor Imagery (MI) translates the subject’s motor intention(movement imagination) into a control signal. Characteristic EEG spatial patterns make MI tasks substantially discriminable. Algorithms can classify different spatial patterns of EEG which representing respective intention of movement, like <code class="docutils literal notranslate"><span class="pre">hand-move-left</span></code>, <code class="docutils literal notranslate"><span class="pre">hand-move-right</span></code>, or <code class="docutils literal notranslate"><span class="pre">foot-lift</span></code> etc.</p>
+</div>
+<div class="section" id="what-is-event-related-potential">
+<h2>What is Event-Related Potential?<a class="headerlink" href="#what-is-event-related-potential" title="Permalink to this headline">¶</a></h2>
+<p>As the result of a specific sensory, cognitive, or motor event, the measured brain signal (aka. EEG) will response according to the event. This kind of EEG pattern is Event-Related Potential (ERP).</p>
+<p>The event can be body movement or just movement intention, real-world stimulus like temperature or sudden sound, artifact flicker (for P300 and SSVEP) etc.</p>
+<p>For example, during a hand movement, the power at Mu(8-12Hz) and Beta(18-26Hz) rhythms are decreased. This suppression at specific frequency band is known as Event-Related Desynchronization (ERD).</p>
+</div>
+<div class="section" id="brief-history-of-mi">
+<h2>Brief History of MI<a class="headerlink" href="#brief-history-of-mi" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><ol class="upperalpha simple" start="7">
+<li><p>Pfurtscheller et al. first used EEG classification based on ERD during imagined motor actions for a BCI application. Adaptive AutoRegressive (AAR) was used for feature extraction <a class="footnote-reference brackets" href="#id6" id="id1">1</a>.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="26">
+<li><p>Koles etal. first employ CSP in the context of EEG to resolve the differences in the background EEG <a class="footnote-reference brackets" href="#id7" id="id2">2</a>.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="8">
+<li><p>Ramoser et al. designed spatial filters by the method of CSP for filtering single-trial EEG during imagined hand movements <a class="footnote-reference brackets" href="#id8" id="id3">3</a>.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="2">
+<li><p>Blankerz et al. significantly improved performances of MI-based BCI by classification on combined feature of ERD and LRP <a class="footnote-reference brackets" href="#id9" id="id4">4</a>.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="7">
+<li><p>Wentrup et al. implemented multiclass CSP for feature extraction <a class="footnote-reference brackets" href="#id10" id="id5">5</a>.</p></li>
+</ol>
+</li>
+</ul>
+</div>
+<div class="section" id="disadvantages">
+<h2>Disadvantages<a class="headerlink" href="#disadvantages" title="Permalink to this headline">¶</a></h2>
+<p>One of the most important factors that prevent MI from real-life application is that most available algorithms focus on analyzing multi-channel EEG signals.</p>
+<p>Which means:</p>
+<ul class="simple">
+<li><p>multi-channel recording device (EEG-hat, wires and amplifier)</p></li>
+<li><p>tedious preparation and equipments (conductive gel etc)</p></li>
+<li><p>complicated calculation (mostly means PC and long time-delay)</p></li>
+</ul>
+</div>
+<div class="section" id="feature-extraction">
+<h2>Feature extraction<a class="headerlink" href="#feature-extraction" title="Permalink to this headline">¶</a></h2>
+<p>Common Spatial Pattern (CSP) is employed to analyze spatial patterns of EEG. Significant channels are selected by calculating the maximums of spatial pattern vectors in scalp mappings. After CSP, fewer channels will be selected according to their spatial pattern vectors because these channels can best represent the changes of EEG:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">For</span> <span class="n">example</span><span class="p">,</span> <span class="n">assuming</span> <span class="n">that</span> <span class="mi">128</span> <span class="n">channels</span> <span class="n">of</span> <span class="n">EEG</span> <span class="n">data</span> <span class="n">are</span> <span class="n">recorded</span> <span class="ow">and</span> <span class="n">only</span>
+<span class="n">channel</span> <span class="n">Cz</span> <span class="ow">and</span> <span class="n">FCz</span> <span class="n">are</span> <span class="n">most</span> <span class="n">related</span> <span class="n">to</span> <span class="n">the</span> <span class="n">imagine</span> <span class="n">of</span> <span class="n">hand</span> <span class="n">movement</span><span class="p">,</span> <span class="n">CSP</span>
+<span class="n">can</span> <span class="n">be</span> <span class="n">used</span> <span class="n">to</span> <span class="n">build</span> <span class="n">spatial</span> <span class="n">filters</span> <span class="n">to</span> <span class="n">remove</span> <span class="n">the</span> <span class="n">others</span> <span class="mi">126</span> <span class="n">useless</span>
+<span class="n">channels</span><span class="o">.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<dl class="footnote brackets">
+<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>G. Pfurtscheller, C. Neuper, A, Schlogl, and K. Lugger. Separability
+of EEG signals recorded during right and left motor imagery using
+adaptive autoregressive parameters. IEEE Trans. Rehab. Eng., vol. 6,
+no. 3, pp.316-325, 1998.</p>
+</dd>
+<dt class="label" id="id7"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
+Underlying Population Differences in the Background EEG. Brain
+Topography 2(4), 275-284, 1990.</p>
+</dd>
+<dt class="label" id="id8"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>H. Ramoser, J. M. Gerking, G. Pfurtscheller. Optimal spatial filtering
+of single trial EEG during imagined hand movement. IEEE Trans. Rehab.
+Eng., vol. 8, no. 4, pp.441-446, 2000.</p>
+</dd>
+<dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id4">4</a></span></dt>
+<dd><p>Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
+Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
+Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
+2008.</p>
+</dd>
+<dt class="label" id="id10"><span class="brackets"><a class="fn-backref" href="#id5">5</a></span></dt>
+<dd><p>Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
+patterns and information theoretic feature extraction. IEEE
+Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Permalink to this headline">¶</a></h2>
+<p>mne.decoding.csp</p>
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="DisplayWeb.html"
+       title="previous chapter">← Display Web</a>
+  </li>
+  <li class="next">
+    <a href="Speller.html"
+       title="next chapter">SSVEP Speller →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

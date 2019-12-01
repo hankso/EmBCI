@@ -1,0 +1,13 @@
+***********
+Display Web
+***********
+
+.. mdinclude:: ../../embci/apps/DisplayWeb/README.md
+
+Screenshots
+-----------
+.. image:: ../images/app-displayweb-time.png
+   :alt: Time series visualization
+
+.. image:: ../images/app-displayweb-freq.png
+   :alt: Frequency domain

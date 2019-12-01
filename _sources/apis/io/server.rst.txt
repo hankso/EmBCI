@@ -51,5 +51,6 @@ API
 ---
 .. autoclass:: embci.io.commanders.SocketTCPServer
     :members:
-    :inherited-members:
     :undoc-members:
+    :exclude-members:
+    :inherited-members:

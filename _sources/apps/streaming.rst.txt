@@ -1,0 +1,5 @@
+*********
+Streaming
+*********
+
+.. automodule:: embci.apps.streaming

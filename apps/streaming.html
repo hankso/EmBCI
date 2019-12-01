@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Streaming</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="EmBCI Manager" href="system.html" />
+  <link rel="prev" title="Recorder" href="recorder.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>Streaming</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="recorder.html"
+       title="previous chapter">← Recorder</a>
+  </li>
+  <li class="next">
+    <a href="system.html"
+       title="next chapter">EmBCI Manager →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="module-embci.apps.streaming">
+<span id="streaming"></span><h1>Streaming<a class="headerlink" href="#module-embci.apps.streaming" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="task-streaming">
+<h2>Task Streaming<a class="headerlink" href="#task-streaming" title="Permalink to this headline">¶</a></h2>
+<p>Data streaming task is defined at <a class="reference internal" href="#module-embci.apps.streaming" title="embci.apps.streaming"><code class="xref py py-mod docutils literal notranslate"><span class="pre">embci.apps.streaming</span></code></a>.
+It provides a <code class="xref py py-mod docutils literal notranslate"><span class="pre">pylsl</span></code> data stream available on this machine.
+Multiple clients can connect to this stream and fetch realtime data from it
+simultaneously. The default data input of this stream is ESP32 MCU on EmBCI
+Hardware (embedded system), while fake data generator is used on PC platform.
+Because each clients may need to apply different processing algorithums on
+their fetched data, such as denoising or component analysis. This stream
+provides raw data without any pre-processing from amplifier and ADC.</p>
+</div>
+<div class="section" id="communication">
+<h2>Communication<a class="headerlink" href="#communication" title="Permalink to this headline">¶</a></h2>
+<p>Two interfaces are available for communicating with this task:</p>
+<ul class="simple">
+<li><p>JSON-RPC</p></li>
+<li><p>ZMQ + python-argparse</p></li>
+</ul>
+<p>JSON Remote Procedure Call (JSON-RPC) is an excellent protocal for
+interprocess communication both locally and through network. However, the
+second method is more suggested. In this task ZMQ and argparse are used
+cooperatively to construct a command-recieve-and-execute server.
+Comparing to JSON-RPC, ZMQ also support local or remote TCP request (and many
+more mechanisms like PGM, IPC and In-proc). Argparse can provide a neat help
+output and error handle interface, as well as support to subcommands.</p>
+<p>ZMQ is preferred if you want to interact with this task from C++/Python/Java
+or even command line. JSON-RPC is suitable for web users in case someone want
+to control the task from webpage using JavaScript.</p>
+<p>ZMQ interface is listening on <code class="docutils literal notranslate"><span class="pre">tcp://0.0.0.0:9997</span></code>, from wich users can set
+parameters of data stream at runtime. RPC server binds to <code class="docutils literal notranslate"><span class="pre">http://0.0.0.0:9996</span></code>.</p>
+</div>
+<div class="section" id="zmq-example">
+<h2>ZMQ Example<a class="headerlink" href="#zmq-example" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">zmq</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">zmq</span><span class="o">.</span><span class="n">Context</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">zmq</span><span class="o">.</span><span class="n">REQ</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;tcp://0.0.0.0:9997&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">q</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39;console@E01:$ &#39;</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+<span class="go">console@E01:$ bias_output</span>
+<span class="go">True</span>
+<span class="go">console@E01:$ bias_output False # Choose one from ON|off|False|true|1|0</span>
+<span class="go">console@E01:$ bias_output</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<p>Or you can use function <code class="xref py py-func docutils literal notranslate"><span class="pre">streaming.send_message_streaming()</span></code>, which
+accepts a string as command and return a string as result:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">embci.apps.streaming</span> <span class="k">import</span> <span class="n">send_message_streaming</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">send_message_streaming</span><span class="p">(</span><span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39;$ &#39;</span><span class="p">)))</span>
+<span class="go">$ summary</span>
+<span class="go">Status:</span>
+<span class="go">sample_rate:    499/500 Hz</span>
+<span class="go">bias_output:    enabled</span>
+<span class="go">input_source:   normal</span>
+<span class="go">stream_control: paused</span>
+<span class="go">impedance:      disabled</span>
+<span class="go">$ stream_control resume</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="rpc-example">
+<h2>RPC Example<a class="headerlink" href="#rpc-example" title="Permalink to this headline">¶</a></h2>
+<p>You can use RPC service in JavaScript like:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;system.describe&#39;</span><span class="p">,</span>  <span class="c1">// cascaded function name</span>
+    <span class="nx">params</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">],</span>            <span class="c1">// parameters are optional</span>
+    <span class="nx">id</span><span class="o">:</span> <span class="s1">&#39;0xdeadbeef&#39;</span><span class="p">,</span>           <span class="c1">// id may be omitted</span>
+    <span class="nx">jsonrpc</span><span class="o">:</span> <span class="mf">2.0</span><span class="p">,</span>               <span class="c1">// see JSON-RPC Specification for version</span>
+<span class="p">};</span>
+<span class="nx">jQuery</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;http://0.0.0.0:9996&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>                 <span class="c1">// or type: &#39;POST&#39;</span>
+    <span class="nx">crossDomain</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>              <span class="c1">// enable CORS ajax request</span>
+    <span class="nx">data</span><span class="o">:</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">request</span><span class="p">),</span>  <span class="c1">// must pass data in string</span>
+    <span class="nx">dataType</span><span class="o">:</span> <span class="s1">&#39;json&#39;</span><span class="p">,</span>               <span class="c1">// response format</span>
+    <span class="nx">success</span><span class="o">:</span> <span class="nx">obj</span> <span class="p">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Result&#39;</span><span class="p">,</span> <span class="nx">obj</span><span class="p">.</span><span class="nx">result</span> <span class="o">||</span> <span class="nx">obj</span><span class="p">.</span><span class="nx">error</span><span class="p">),</span>
+    <span class="nx">error</span><span class="o">:</span> <span class="p">(</span><span class="nx">xhr</span><span class="p">,</span> <span class="nx">status</span><span class="p">,</span> <span class="nx">error</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>In Python, you can use client class provided by embci.utils.jsonrpc.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">embci.utils</span> <span class="k">import</span> <span class="n">jsonrpc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">client</span> <span class="o">=</span> <span class="n">jsonrpc</span><span class="o">.</span><span class="n">JSONRPCClient</span><span class="p">(</span><span class="s1">&#39;http://0.0.0.0:9996&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">client</span><span class="o">.</span><span class="n">stream_control</span><span class="p">(</span><span class="s1">&#39;close&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">client</span><span class="o">.</span><span class="n">measure_impedance</span><span class="p">(</span><span class="s1">&#39;true&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<span class="go">Status:</span>
+<span class="go">sample_rate:    500/500 Hz</span>
+<span class="go">bias_output:    enabled</span>
+<span class="go">input_source:   normal</span>
+<span class="go">stream_control: closed</span>
+<span class="go">impedance:      enabled</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">jsonrpc</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>  <span class="c1"># for more help message on JSON-RPC</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="recorder.html"
+       title="previous chapter">← Recorder</a>
+  </li>
+  <li class="next">
+    <a href="system.html"
+       title="next chapter">EmBCI Manager →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

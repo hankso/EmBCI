@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>EmBCI Shield</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="ESP32 Reference" href="esp32.html" />
+  <link rel="prev" title="EmBCI Hardware Reference" href="index.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Hardware Reference</a> &raquo;</li>
+    
+    <li>EmBCI Shield</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="index.html"
+       title="previous chapter">← EmBCI Hardware Reference</a>
+  </li>
+  <li class="next">
+    <a href="esp32.html"
+       title="next chapter">ESP32 Reference →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="embci-shield">
+<h1>EmBCI Shield<a class="headerlink" href="#embci-shield" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>EmBCI Hardware is a wearable physiological signal amplifier system which can measure up to 8 channels of bio-potential data, including ECG, EEG, EMG and EOG.</p>
+</div>
+<div class="section" id="shield-features">
+<h2>Shield Features<a class="headerlink" href="#shield-features" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>8 channels of 24-bit high pricise ADC</p></li>
+<li><p>Configurable pre-processing (e.g. Notch/Bandpass filter, baseline etc.)</p></li>
+<li><p>WiFi data UDP/TCP broadcasting</p></li>
+<li><p>BLE/UART control interface</p></li>
+<li><p>3Axis accelerometer for physical information</p></li>
+<li><p>Infrared/GPIO trigger system</p></li>
+</ul>
+</div>
+<div class="section" id="platform-features">
+<h2>Platform Features<a class="headerlink" href="#platform-features" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>SPI FIFO buffer</p></li>
+<li><p>Rich calculation resources provided by Quad-A53 64bit ARM</p></li>
+<li><p>Misc digital signal processing algorithms</p></li>
+<li><p>WiFi data Lab-Streaming-Layer broadcasting</p></li>
+<li><p>Web-based user interface</p></li>
+<li><p>Websocket EventIO with &lt;1ms latency</p></li>
+</ul>
+</div>
+<div class="section" id="specifications">
+<h2>Specifications<a class="headerlink" href="#specifications" title="Permalink to this headline">¶</a></h2>
+<p>TODO: list Shield attributes by key:value</p>
+<div class="section" id="sampling">
+<h3>Sampling<a class="headerlink" href="#sampling" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="analog-input">
+<h3>Analog Input<a class="headerlink" href="#analog-input" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="accelerometer">
+<h3>Accelerometer<a class="headerlink" href="#accelerometer" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="battery">
+<h3>Battery<a class="headerlink" href="#battery" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="dimensions">
+<h3>Dimensions<a class="headerlink" href="#dimensions" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="amplifier-pinout">
+<h2>Amplifier Pinout<a class="headerlink" href="#amplifier-pinout" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="../images/Pin-Header.png"><img alt="Analog input" src="../_images/Pin-Header.png" /></a>
+<a class="reference external image-reference" href="../images/Orange-Pi-Zero-Plus.png"><img alt="OPi0+ Pin-out" src="../_images/Orange-Pi-Zero-Plus.png" /></a>
+<a class="reference external image-reference" href="../images/Orange-Pi-Zero-Plus-2.png"><img alt="OPi0+2 Pin-out" src="../_images/Orange-Pi-Zero-Plus-2.png" /></a>
+</div>
+<div class="section" id="board-connection">
+<h2>Board Connection<a class="headerlink" href="#board-connection" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Communicate with <a class="reference external" href="http://www.ti.com/product/ADS1299">ADS1299</a> through SPI
+interface on OrangePi pin <code class="docutils literal notranslate"><span class="pre">CS/PA13</span></code>, <code class="docutils literal notranslate"><span class="pre">CLK/PA14</span></code>, <code class="docutils literal notranslate"><span class="pre">MOSI/PA15</span></code> and <code class="docutils literal notranslate"><span class="pre">MISO/PA16</span></code></p></li>
+<li><p>On shield Atmega328P(Arduino Uno/Nano) connects to OrangePi by <code class="docutils literal notranslate"><span class="pre">UART2_TX/PA00</span></code>
+and <code class="docutils literal notranslate"><span class="pre">UART2_RX/PA01</span></code>. <strong>Deprecated</strong></p></li>
+<li><p>On shield ESP32 is used as Data Buffer to cache raw data from ADS1299 and send
+out preprocessed data chunk by chunk as SPI slave. Benefit from ESP32’s precise
+clock cycle and rich calculation resource, many important IO features are
+implemented.</p></li>
+<li><p>Control SSD1306 0.96’ OLED screen by SPI or ILI9325 2.3’ LCD screen through
+on shield Arduino by serial. <strong>Deprecated</strong></p></li>
+<li><p>EmBCI broadcasts collected biosignal data by two ways: Lab-streaming-layer and TCP Server. Before you fetch data through network, make sure that your device and EmBCI machine are in a same local network. You can create a hotspot for EmBCI or login your device to the hotspots created by it.</p></li>
+</ul>
+</div>
+<div class="section" id="electrodes">
+<h2>Electrodes<a class="headerlink" href="#electrodes" title="Permalink to this headline">¶</a></h2>
+<p>Passive electrodes have no inbuit circuitry. You may need paste/gel between it and subject’s skin/scalp for better signal. Electrodes can be round or needle metal things coated with special alloys, for example gold, tin and silver. Ag / AgCl are supposed to be best.</p>
+<p>Comparing to passive electrodes, active electrodes work by putting a unity-gain amplifier right next to the electrode up on the scalp. This greatly improves the signal quality and avoids the skin preparation like conductive paste and gel.</p>
+<p>A brief history of active eletrodes:</p>
+<ul class="simple">
+<li><p>Jarek Foltynski created the initial designs and prototypes. <a class="reference external" href="http://bioera.net/ae/">Bioera-AE</a></p></li>
+<li><p>Joerg Hansmann refined the v2 circuit design.</p></li>
+<li><p>Ian Vincent introduced the idea of using multiple-pin electrodes which can pass through the hair easily.</p></li>
+<li><p>Joe Street created a modified design using power cells instead of requiring power from ADC board. <a class="reference external" href="http://openeeg.sourceforge.net/doc/hw/joe_ae/">Joe-AE</a></p></li>
+<li><p>Jim Peters constructed a version of Joerg’s design. <a class="reference external" href="http://uazu.net/eeg/ae.html">EEG-AE</a></p></li>
+<li><p>Pedro Ortega created a simplified version without the shielding/guarding. <a class="reference external" href="http://www.dcc.uchile.cl/~peortega/ae/">Peortega-AE</a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="index.html"
+       title="previous chapter">← EmBCI Hardware Reference</a>
+  </li>
+  <li class="next">
+    <a href="esp32.html"
+       title="next chapter">ESP32 Reference →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

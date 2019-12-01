@@ -1,331 +1,358 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>Changelog &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Changelog</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'./',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="_static/pygments.css">
+      <link rel="stylesheet" href="_static/theme.css">
+      <link rel="stylesheet" href="_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="_static/jquery.js"></script>
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="TODOs" href="TODO.html" />
-    <link rel="prev" title="Copyrights" href="Copyrights.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="readme.html">Get Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="readme_zh.html">Get Started 中文</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="service.html">Linux Service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="update.html">Updating</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">0.2.3 [2019-10-22]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">0.2.2 [2019-09-29]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">0.2.1 [2019-09-15]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">0.2.0 [2019-09-01]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">0.1.6 [2019-07-04]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">0.1.5 [2019-5-01]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">0.1.4 [2019-3-23]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">0.1.3 [2019-3-11]</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="_static/theme-vendors.js"></script>
+      <script src="_static/theme.js" defer></script>
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
-        
-      <li>Changelog</li>
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="next" title="TODOs" href="TODO.html" />
+  <link rel="prev" title="Copyrights" href="Copyrights.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-            
-            <a href="_sources/Changelog.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 "><a href="hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 current"><a href="#" class="reference internal current">Changelog</a>
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#id1" class="reference internal">0.2.3 [2019-10-22]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id2" class="reference internal">0.2.2 [2019-09-29]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id3" class="reference internal">0.2.1 [2019-09-15]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id4" class="reference internal">0.2.0 [2019-09-01]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id5" class="reference internal">0.1.6 [2019-07-04]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id6" class="reference internal">0.1.5 [2019-5-01]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id7" class="reference internal">0.1.4 [2019-3-23]</a></li>
+                
+                  <li class="toctree-l2"><a href="#id8" class="reference internal">0.1.3 [2019-3-11]</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+    <li>Changelog</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="Copyrights.html"
+       title="previous chapter">← Copyrights</a>
+  </li>
+  <li class="next">
+    <a href="TODO.html"
+       title="next chapter">TODOs →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <div class="section" id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="id1">
 <h2>0.2.3 [2019-10-22]<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[Speller] Save user’s configurations in browser to recover the same layout at next visit. Add width &amp; height attributes to each layout. Copy recognition result to clipboard by double clicking result field. Finish all TODOs.</li>
-<li>[DisplayWeb] Add a second rendering method “scroll whole frame”. This can be enabled by one click of a toggle button. Optimize realtime render performance.</li>
-<li>[Recorder] Fix recorder command entrance multi-command bug. Provide CLI data stream recorder application at <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">embci.apps.recorder</span></code> (like a LSL LabRecorder implemented in Python) which supports stream selection, recording pause &amp; resume and data filename/username configuration.</li>
-<li>[Recorder] Add web-based recorder console at <code class="docutils literal notranslate"><span class="pre">http://${EMBCI_HOST}/app/recorder</span></code>. List and control all alive recorders in your browser.</li>
-<li>[Streaming] Add JSON-RPC interface to control ESP32 data stream and LSL outlet by Remote Procedure Call. JSON-RPC protocal support communication from C/Python/JavaScript/… See more at module doc <code class="docutils literal notranslate"><span class="pre">embci.apps.streaming.__doc__</span></code>.</li>
-<li>[WebUI] Add <code class="docutils literal notranslate"><span class="pre">webui_static_host</span></code> function to register multiple source directories for static file serving. It supports updating on exist routes.</li>
-<li>[File Manager] New feature: data files manager in subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.baseserver</span></code>.</li>
-<li>[JSONRPC] History container informatic summary output. Allow CORS POST by setting <code class="docutils literal notranslate"><span class="pre">Access-Control-Allow-Origin</span></code> in response header.</li>
-<li>Enable subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.system</span></code> to shutdown/reboot/update the EmBCI device. Use <code class="docutils literal notranslate"><span class="pre">embedded_only</span></code> decorator to avoid dangerous command on PC.</li>
+<li><p>[Speller] Save user’s configurations in browser to recover the same layout at next visit. Add width &amp; height attributes to each layout. Copy recognition result to clipboard by double clicking result field. Finish all TODOs.</p></li>
+<li><p>[DisplayWeb] Add a second rendering method “scroll whole frame”. This can be enabled by one click of a toggle button. Optimize realtime render performance.</p></li>
+<li><p>[Recorder] Fix recorder command entrance multi-command bug. Provide CLI data stream recorder application at <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">embci.apps.recorder</span></code> (like a LSL LabRecorder implemented in Python) which supports stream selection, recording pause &amp; resume and data filename/username configuration.</p></li>
+<li><p>[Recorder] Add web-based recorder console at <code class="docutils literal notranslate"><span class="pre">http://${EMBCI_HOST}/app/recorder</span></code>. List and control all alive recorders in your browser.</p></li>
+<li><p>[Streaming] Add JSON-RPC interface to control ESP32 data stream and LSL outlet by Remote Procedure Call. JSON-RPC protocal support communication from C/Python/JavaScript/… See more at module doc <code class="docutils literal notranslate"><span class="pre">embci.apps.streaming.__doc__</span></code>.</p></li>
+<li><p>[WebUI] Add <code class="docutils literal notranslate"><span class="pre">webui_static_host</span></code> function to register multiple source directories for static file serving. It supports updating on exist routes.</p></li>
+<li><p>[File Manager] New feature: data files manager in subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.baseserver</span></code>.</p></li>
+<li><p>[JSONRPC] History container informatic summary output. Allow CORS POST by setting <code class="docutils literal notranslate"><span class="pre">Access-Control-Allow-Origin</span></code> in response header.</p></li>
+<li><p>Enable subapp <code class="docutils literal notranslate"><span class="pre">embci.apps.system</span></code> to shutdown/reboot/update the EmBCI device. Use <code class="docutils literal notranslate"><span class="pre">embedded_only</span></code> decorator to avoid dangerous command on PC.</p></li>
 </ul>
 </div>
 <div class="section" id="id2">
 <h2>0.2.2 [2019-09-29]<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[logging] Use single character in logging level output. Support colorful output in shell/terminal.</li>
-<li>[IO] Add <code class="docutils literal notranslate"><span class="pre">save_chunk(append=False)</span></code> and <code class="docutils literal notranslate"><span class="pre">save_trial</span></code>.</li>
-<li>[Recorder] Subapp recorder well tested. Check <code class="docutils literal notranslate"><span class="pre">embci.apps.recorder.__doc__</span></code> for more detail about configuration and usage.</li>
+<li><p>[logging] Use single character in logging level output. Support colorful output in shell/terminal.</p></li>
+<li><p>[IO] Add <code class="docutils literal notranslate"><span class="pre">save_chunk(append=False)</span></code> and <code class="docutils literal notranslate"><span class="pre">save_trial</span></code>.</p></li>
+<li><p>[Recorder] Subapp recorder well tested. Check <code class="docutils literal notranslate"><span class="pre">embci.apps.recorder.__doc__</span></code> for more detail about configuration and usage.</p></li>
 </ul>
 </div>
 <div class="section" id="id3">
 <h2>0.2.1 [2019-09-15]<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>Add <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">__future__</span> <span class="pre">import</span> <span class="pre">absolute_import,</span> <span class="pre">division,</span> <span class="pre">print_function</span></code> to each module.</li>
-<li>Use <code class="docutils literal notranslate"><span class="pre">//</span></code> for floor division and <code class="docutils literal notranslate"><span class="pre">/</span></code> for float division (immigrating to py3).</li>
-<li>[WebUI] HTML snippets loader support keywords arguments by setting attributes like <code class="docutils literal notranslate"><span class="pre">data-foo=&quot;bar&quot;</span></code>. Add webui debug application runner and pick random port.</li>
-<li>[Drivers] Add package <code class="docutils literal notranslate"><span class="pre">embci.drivers</span></code>. Move <code class="docutils literal notranslate"><span class="pre">embci.utils.xxx_api</span></code> to <code class="docutils literal notranslate"><span class="pre">embci.drivers.xxx</span></code> as hardware APIs.</li>
-<li>[Utils] Add <code class="docutils literal notranslate"><span class="pre">get_free_port</span></code> to resolve an avaiable port number. Support event sending and receiving by EventIO system implemented at <code class="docutils literal notranslate"><span class="pre">embci.utils._event</span></code></li>
-<li>[Speller] Subapp SSVEP mind-typing constructed. Will be tested soon.</li>
-<li>[Recorder] Add snippet <code class="docutils literal notranslate"><span class="pre">div#recorder</span></code> in <code class="docutils literal notranslate"><span class="pre">recorder-box.html</span></code>.</li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">__future__</span> <span class="pre">import</span> <span class="pre">absolute_import,</span> <span class="pre">division,</span> <span class="pre">print_function</span></code> to each module.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">//</span></code> for floor division and <code class="docutils literal notranslate"><span class="pre">/</span></code> for float division (immigrating to py3).</p></li>
+<li><p>[WebUI] HTML snippets loader support keywords arguments by setting attributes like <code class="docutils literal notranslate"><span class="pre">data-foo=&quot;bar&quot;</span></code>. Add webui debug application runner and pick random port.</p></li>
+<li><p>[Drivers] Add package <code class="docutils literal notranslate"><span class="pre">embci.drivers</span></code>. Move <code class="docutils literal notranslate"><span class="pre">embci.utils.xxx_api</span></code> to <code class="docutils literal notranslate"><span class="pre">embci.drivers.xxx</span></code> as hardware APIs.</p></li>
+<li><p>[Utils] Add <code class="docutils literal notranslate"><span class="pre">get_free_port</span></code> to resolve an avaiable port number. Support event sending and receiving by EventIO system implemented at <code class="docutils literal notranslate"><span class="pre">embci.utils._event</span></code></p></li>
+<li><p>[Speller] Subapp SSVEP mind-typing constructed. Will be tested soon.</p></li>
+<li><p>[Recorder] Add snippet <code class="docutils literal notranslate"><span class="pre">div#recorder</span></code> in <code class="docutils literal notranslate"><span class="pre">recorder-box.html</span></code>.</p></li>
 </ul>
 </div>
 <div class="section" id="id4">
 <h2>0.2.0 [2019-09-01]<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[Apps] Project <code class="docutils literal notranslate"><span class="pre">DBS</span></code> is removed from EmBCI and will be maintained by a business company.</li>
-<li>[Apps] Remove <code class="docutils literal notranslate"><span class="pre">DisplaySPI</span></code> and add subapp <code class="docutils literal notranslate"><span class="pre">DisplayWeb</span></code>.</li>
-<li>[Utils] Move <code class="docutils literal notranslate"><span class="pre">minimize</span></code> as standalone function. Logger stack info py 2 &amp; 3 compatiable. Add <code class="docutils literal notranslate"><span class="pre">validate_filename</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">Namespace</span></code>.</li>
-<li>[Utils] Add <code class="docutils literal notranslate"><span class="pre">obfuscation</span></code> to distribute python code in dynamic linked library format.</li>
-<li>[JSONRPC] Add <code class="docutils literal notranslate"><span class="pre">NoExist</span></code> type and support for multiple instance registration.</li>
-<li>[WebUI] Add package <code class="docutils literal notranslate"><span class="pre">Numjs</span></code>. Rename <code class="docutils literal notranslate"><span class="pre">xxxDIR</span></code> to <code class="docutils literal notranslate"><span class="pre">DIR_xxx</span></code> and <code class="docutils literal notranslate"><span class="pre">__dir__</span></code> to <code class="docutils literal notranslate"><span class="pre">__basedir__</span></code>. Support refresh/rescan subapps at runtime.</li>
-<li>[WebUI] Support preventing subapps from loading by command line arguments <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">embci.webui</span> <span class="pre">--exclude</span> <span class="pre">app1</span> <span class="pre">app2</span></code></li>
-<li>[Tools] Move <code class="docutils literal notranslate"><span class="pre">embci_tool</span></code> to <code class="docutils literal notranslate"><span class="pre">embci.apps.system</span></code>. Add template.py for python source files.</li>
-<li>[Setup.py] Load requirements.txt from absolute path.</li>
-<li>[configs] Load from configuration files when imported and export a dict at <code class="docutils literal notranslate"><span class="pre">embci.configs.settings</span></code>. Set <code class="docutils literal notranslate"><span class="pre">ENSURE_DIR_EXIST</span> <span class="pre">=</span> <span class="pre">True</span></code> in conf files if you want to create necessary directories.</li>
-<li>[io] Readers now get new valid name automatically by searching pidfiles. Add <code class="docutils literal notranslate"><span class="pre">hook_before</span></code> and <code class="docutils literal notranslate"><span class="pre">hook_after</span></code>.</li>
+<li><p>[Apps] Project <code class="docutils literal notranslate"><span class="pre">DBS</span></code> is removed from EmBCI and will be maintained by a business company.</p></li>
+<li><p>[Apps] Remove <code class="docutils literal notranslate"><span class="pre">DisplaySPI</span></code> and add subapp <code class="docutils literal notranslate"><span class="pre">DisplayWeb</span></code>.</p></li>
+<li><p>[Utils] Move <code class="docutils literal notranslate"><span class="pre">minimize</span></code> as standalone function. Logger stack info py 2 &amp; 3 compatiable. Add <code class="docutils literal notranslate"><span class="pre">validate_filename</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">Namespace</span></code>.</p></li>
+<li><p>[Utils] Add <code class="docutils literal notranslate"><span class="pre">obfuscation</span></code> to distribute python code in dynamic linked library format.</p></li>
+<li><p>[JSONRPC] Add <code class="docutils literal notranslate"><span class="pre">NoExist</span></code> type and support for multiple instance registration.</p></li>
+<li><p>[WebUI] Add package <code class="docutils literal notranslate"><span class="pre">Numjs</span></code>. Rename <code class="docutils literal notranslate"><span class="pre">xxxDIR</span></code> to <code class="docutils literal notranslate"><span class="pre">DIR_xxx</span></code> and <code class="docutils literal notranslate"><span class="pre">__dir__</span></code> to <code class="docutils literal notranslate"><span class="pre">__basedir__</span></code>. Support refresh/rescan subapps at runtime.</p></li>
+<li><p>[WebUI] Support preventing subapps from loading by command line arguments <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">embci.webui</span> <span class="pre">--exclude</span> <span class="pre">app1</span> <span class="pre">app2</span></code></p></li>
+<li><p>[Tools] Move <code class="docutils literal notranslate"><span class="pre">embci_tool</span></code> to <code class="docutils literal notranslate"><span class="pre">embci.apps.system</span></code>. Add template_source.py for python source files.</p></li>
+<li><p>[Setup.py] Load requirements.txt from absolute path.</p></li>
+<li><p>[configs] Load from configuration files when imported and export a dict at <code class="docutils literal notranslate"><span class="pre">embci.configs.settings</span></code>. Set <code class="docutils literal notranslate"><span class="pre">ENSURE_DIR_EXIST</span> <span class="pre">=</span> <span class="pre">True</span></code> in conf files if you want to create necessary directories.</p></li>
+<li><p>[io] Readers now get new valid name automatically by searching pidfiles. Add <code class="docutils literal notranslate"><span class="pre">hook_before</span></code> and <code class="docutils literal notranslate"><span class="pre">hook_after</span></code>.</p></li>
 </ul>
 </div>
 <div class="section" id="id5">
 <h2>0.1.6 [2019-07-04]<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[WebUI] Add supports for HTML snippets &amp; navbar.html &amp; bottom.html.</li>
-<li>[WebUI] Resolve battery level from ESP32 and render it to navbar.</li>
-<li>[ESP32] Support set/get Channel/DataSource/Gain/Impedance/SampleRate/Bias.</li>
-<li>[ESP32] Add second order IIR realtime filter and use looply-level-detection instead of interrupt.</li>
-<li>[Apps] Add subapp <code class="docutils literal notranslate"><span class="pre">auth</span></code>.</li>
-<li>[DBS] Hide DBS.utils source code with <code class="docutils literal notranslate"><span class="pre">Cython</span></code> and <code class="docutils literal notranslate"><span class="pre">GCC</span></code>. Add <code class="docutils literal notranslate"><span class="pre">libdbs_&lt;py&gt;_&lt;arch&gt;.so</span></code>.</li>
-<li>[DBS] New UI composed of 8 channels realtime &amp; single channel frequency display</li>
-<li>[Record] Integrate recording interface to DBS HTML.</li>
-<li>[Streaming] Add function <code class="docutils literal notranslate"><span class="pre">send_message_streaming</span></code> for communicating from other process.</li>
+<li><p>[WebUI] Add supports for HTML snippets &amp; navbar.html &amp; bottom.html.</p></li>
+<li><p>[WebUI] Resolve battery level from ESP32 and render it to navbar.</p></li>
+<li><p>[ESP32] Support set/get Channel/DataSource/Gain/Impedance/SampleRate/Bias.</p></li>
+<li><p>[ESP32] Add second order IIR realtime filter and use looply-level-detection instead of interrupt.</p></li>
+<li><p>[Apps] Add subapp <code class="docutils literal notranslate"><span class="pre">auth</span></code>.</p></li>
+<li><p>[DBS] Hide DBS.utils source code with <code class="docutils literal notranslate"><span class="pre">Cython</span></code> and <code class="docutils literal notranslate"><span class="pre">GCC</span></code>. Add <code class="docutils literal notranslate"><span class="pre">libdbs_&lt;py&gt;_&lt;arch&gt;.so</span></code>.</p></li>
+<li><p>[DBS] New UI composed of 8 channels realtime &amp; single channel frequency display</p></li>
+<li><p>[Record] Integrate recording interface to DBS HTML.</p></li>
+<li><p>[Streaming] Add function <code class="docutils literal notranslate"><span class="pre">send_message_streaming</span></code> for communicating from other process.</p></li>
 </ul>
 </div>
 <div class="section" id="id6">
 <h2>0.1.5 [2019-5-01]<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[DBS] Hide source code of data-processing algorithms with pre-compiled binary files.</li>
-<li>[Apps] Sub-app <code class="docutils literal notranslate"><span class="pre">WiFi</span></code> implemented as a web-based client of freedesktop NetworkManager, working on wireless card <code class="docutils literal notranslate"><span class="pre">AP6212</span></code> at STA+AP mode.</li>
-<li>[Apps] Support updating OTA (On-The-Air) by simple <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code>.</li>
-<li>[WebUI] Upgrade <code class="docutils literal notranslate"><span class="pre">jQuery</span></code> to v3.4.1 and <code class="docutils literal notranslate"><span class="pre">Bootstrap</span></code> to v4.3.</li>
-<li>[WebUI] Immegrate from <code class="docutils literal notranslate"><span class="pre">glyphicon</span></code> to <code class="docutils literal notranslate"><span class="pre">font-awesome</span></code>.</li>
+<li><p>[DBS] Hide source code of data-processing algorithms with pre-compiled binary files.</p></li>
+<li><p>[Apps] Sub-app <code class="docutils literal notranslate"><span class="pre">WiFi</span></code> implemented as a web-based client of freedesktop NetworkManager, working on wireless card <code class="docutils literal notranslate"><span class="pre">AP6212</span></code> at STA+AP mode.</p></li>
+<li><p>[Apps] Support updating OTA (On-The-Air) by simple <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code>.</p></li>
+<li><p>[WebUI] Upgrade <code class="docutils literal notranslate"><span class="pre">jQuery</span></code> to v3.4.1 and <code class="docutils literal notranslate"><span class="pre">Bootstrap</span></code> to v4.3.</p></li>
+<li><p>[WebUI] Immegrate from <code class="docutils literal notranslate"><span class="pre">glyphicon</span></code> to <code class="docutils literal notranslate"><span class="pre">font-awesome</span></code>.</p></li>
 </ul>
 </div>
 <div class="section" id="id7">
 <h2>0.1.4 [2019-3-23]<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[Doc] Add basic documentations.</li>
-<li>[Apps] Rename and move lots of DisplaySPI datafiles.</li>
-<li>[Apps] Add project <code class="docutils literal notranslate"><span class="pre">Speller</span></code>.</li>
-<li>[EmBCI] Add <code class="docutils literal notranslate"><span class="pre">PytestRunner</span></code> and func <code class="docutils literal notranslate"><span class="pre">test</span></code> in each module for runtime testing.</li>
-<li>[ESP32] New feature: turn into sleep mode to reduce power consumption.</li>
+<li><p>[Doc] Add basic documentations.</p></li>
+<li><p>[Apps] Rename and move lots of DisplaySPI datafiles.</p></li>
+<li><p>[Apps] Add project <code class="docutils literal notranslate"><span class="pre">Speller</span></code>.</p></li>
+<li><p>[EmBCI] Add <code class="docutils literal notranslate"><span class="pre">PytestRunner</span></code> and func <code class="docutils literal notranslate"><span class="pre">test</span></code> in each module for runtime testing.</p></li>
+<li><p>[ESP32] New feature: turn into sleep mode to reduce power consumption.</p></li>
 </ul>
 </div>
 <div class="section" id="id8">
 <h2>0.1.3 [2019-3-11]<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>[DBS] Change from <code class="docutils literal notranslate"><span class="pre">ESP32SPIReader</span></code> to <code class="docutils literal notranslate"><span class="pre">PylslReader</span></code> in embci.apps.DBS.</li>
-<li>[DBS] Save userinfo as cache to client(browser) for accessing report PDF.</li>
-<li>[Apps] Make data-streaming an individual task &#64; <code class="docutils literal notranslate"><span class="pre">embci.apps.streaming</span></code>.</li>
-<li>[Utils] Change <code class="docutils literal notranslate"><span class="pre">find_wifi_hotspots</span></code> output to type of <code class="docutils literal notranslate"><span class="pre">AttributeDict</span></code>.</li>
-<li>[WebUI] Move GeventWebsocketServer <code class="docutils literal notranslate"><span class="pre">log</span></code> to <code class="docutils literal notranslate"><span class="pre">logger</span></code> to log requests properly.</li>
+<li><p>[DBS] Change from <code class="docutils literal notranslate"><span class="pre">ESP32SPIReader</span></code> to <code class="docutils literal notranslate"><span class="pre">PylslReader</span></code> in embci.apps.DBS.</p></li>
+<li><p>[DBS] Save userinfo as cache to client(browser) for accessing report PDF.</p></li>
+<li><p>[Apps] Make data-streaming an individual task &#64; <code class="docutils literal notranslate"><span class="pre">embci.apps.streaming</span></code>.</p></li>
+<li><p>[Utils] Change <code class="docutils literal notranslate"><span class="pre">find_wifi_hotspots</span></code> output to type of <code class="docutils literal notranslate"><span class="pre">AttributeDict</span></code>.</p></li>
+<li><p>[WebUI] Move GeventWebsocketServer <code class="docutils literal notranslate"><span class="pre">log</span></code> to <code class="docutils literal notranslate"><span class="pre">logger</span></code> to log requests properly.</p></li>
 </ul>
 </div>
 </div>
 
 
-           </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="TODO.html" class="btn btn-neutral float-right" title="TODOs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="Copyrights.html" class="btn btn-neutral float-left" title="Copyrights" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="Copyrights.html"
+       title="previous chapter">← Copyrights</a>
+  </li>
+  <li class="next">
+    <a href="TODO.html"
+       title="next chapter">TODOs →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
     
-   
-
-</body>
+    
+  </body>
 </html>

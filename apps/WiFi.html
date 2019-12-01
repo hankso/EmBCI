@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>WiFi Manager</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="EmBCI Linux Service" href="../service.html" />
+  <link rel="prev" title="SSVEP Speller" href="Speller.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>WiFi Manager</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="Speller.html"
+       title="previous chapter">← SSVEP Speller</a>
+  </li>
+  <li class="next">
+    <a href="../service.html"
+       title="next chapter">EmBCI Linux Service →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="module-embci.apps.WiFi">
+<span id="wifi-manager"></span><h1>WiFi Manager<a class="headerlink" href="#module-embci.apps.WiFi" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="network-manager-web-interface">
+<h2>Network Manager Web Interface<a class="headerlink" href="#network-manager-web-interface" title="Permalink to this headline">¶</a></h2>
+<p>This application is a web-based interface of org.freedesktop.NetworkManager.
+You can manage (add/delete/connect/disconnect) WiFi connections of the machine
+where EmBCI is running.</p>
+</div>
+<span class="target" id="module-embci.apps.WiFi.backend"></span><div class="section" id="wifi-web-based-manager">
+<h2>WiFi Web-based Manager<a class="headerlink" href="#wifi-web-based-manager" title="Permalink to this headline">¶</a></h2>
+<p>Backend API:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wifi_accesspoints</span><span class="p">([</span><span class="n">interface</span><span class="p">])</span> <span class="o">=&gt;</span>
+<span class="p">[</span>
+    <span class="c1"># python-wifi backend example</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;ssid&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;TP-Link_XXXX&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;5.805GHz&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mac_address&#39;</span><span class="p">:</span> <span class="s1">&#39;B0:F9:63:24:35:C2&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;Master&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encrypted&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;encryption_type&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;WPA2&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;signal&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">45</span><span class="p">,</span>
+        <span class="s1">&#39;quality&#39;</span><span class="p">:</span> <span class="s1">&#39;50/70&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;maxbitrate&#39;</span><span class="p">:</span> <span class="s1">&#39;54 Mb/s&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;saved&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Disconnected&#39;</span><span class="p">,</span>
+        <span class="c1"># &#39;channel&#39;: 161,</span>
+        <span class="c1"># &#39;noise&#39;: None,</span>
+        <span class="s1">&#39;obj&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">wifi</span><span class="o">.</span><span class="n">scan</span><span class="o">.</span><span class="n">Cell</span> <span class="n">at</span> <span class="mh">0x7f881501afd0</span><span class="o">&gt;</span>
+    <span class="p">},</span>
+    <span class="c1"># python-networkmanager backend example</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;ssid&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;BUAA-Mobile&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;2.462GHz&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mac_address&#39;</span><span class="p">:</span> <span class="s1">&#39;70:BA:EF:D2:49:52&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;infra&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encrypted&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;encryption_type&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;key_mgmt_psk&#39;</span><span class="p">,</span> <span class="s1">&#39;pair_ccmp&#39;</span><span class="p">]</span>
+        <span class="s1">&#39;strength&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">39</span><span class="p">,</span>
+        <span class="s1">&#39;quality&#39;</span><span class="p">:</span> <span class="s1">&#39;30/70&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;maxbitrate&#39;</span><span class="p">:</span> <span class="s1">&#39;54 Mb/s&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;saved&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Obtaining IP address&#39;</span><span class="p">,</span>
+        <span class="c1"># &#39;lastseen&#39;: 1325821,</span>
+        <span class="s1">&#39;obj&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">NetworkManager</span><span class="o">.</span><span class="n">AccessPoint</span> <span class="n">at</span> <span class="mh">0x7f8815045748</span><span class="o">&gt;</span>
+    <span class="p">},</span>
+    <span class="o">...</span>
+<span class="p">]</span>
+
+<span class="n">wifi_connect</span><span class="p">(</span><span class="n">ssid</span><span class="p">[,</span> <span class="n">psk</span><span class="p">])</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="kc">True</span><span class="o">/</span><span class="kc">False</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<span class="n">wifi_disconnect</span><span class="p">([</span><span class="n">ssid</span><span class="p">])</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="kc">True</span><span class="o">/</span><span class="kc">False</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<span class="n">wifi_enable</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="kc">True</span><span class="o">/</span><span class="kc">False</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<span class="n">wifi_disable</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="kc">True</span><span class="o">/</span><span class="kc">False</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<span class="n">wifi_forget</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="kc">True</span><span class="o">/</span><span class="kc">False</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<span class="n">wifi_status</span> <span class="o">=&gt;</span> <span class="kc">True</span><span class="o">/</span><span class="kc">False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="screenshots">
+<h2>Screenshots<a class="headerlink" href="#screenshots" title="Permalink to this headline">¶</a></h2>
+<img alt="Network Manager" src="../_images/app-wifi.png" />
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="Speller.html"
+       title="previous chapter">← SSVEP Speller</a>
+  </li>
+  <li class="next">
+    <a href="../service.html"
+       title="next chapter">EmBCI Linux Service →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

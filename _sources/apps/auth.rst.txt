@@ -1,0 +1,5 @@
+**************
+Authentication
+**************
+
+.. mdinclude:: ../../embci/apps/auth/README.md

@@ -1,183 +1,225 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>Updating Guide &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Updating Guide</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'./',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="_static/pygments.css">
+      <link rel="stylesheet" href="_static/theme.css">
+      <link rel="stylesheet" href="_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="_static/jquery.js"></script>
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Configurations" href="Configurations.html" />
-    <link rel="prev" title="EmBCI Linux Service" href="service.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="readme.html">Get Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="readme_zh.html">Get Started 中文</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="service.html">Linux Service</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Updating</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#hardware-firmware-update">Hardware firmware update</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#python-package-update">Python package update</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#preparation">Preparation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#steps">Steps</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Changelog.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="_static/theme-vendors.js"></script>
+      <script src="_static/theme.js" defer></script>
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
-        
-      <li>Updating Guide</li>
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="next" title="Configurations" href="config.html" />
+  <link rel="prev" title="EmBCI Linux Service" href="service.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-            
-            <a href="_sources/update.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 "><a href="hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 current"><a href="#" class="reference internal current">Updating</a>
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#hardware-firmware-update" class="reference internal">Hardware firmware update</a></li>
+                
+                  <li class="toctree-l2"><a href="#python-package-update" class="reference internal">Python package update</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+    <li>Updating Guide</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="service.html"
+       title="previous chapter">← EmBCI Linux Service</a>
+  </li>
+  <li class="next">
+    <a href="config.html"
+       title="next chapter">Configurations →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <div class="section" id="updating-guide">
 <h1>Updating Guide<a class="headerlink" href="#updating-guide" title="Permalink to this headline">¶</a></h1>
@@ -192,97 +234,72 @@
 <div class="section" id="preparation">
 <h3>Preparation<a class="headerlink" href="#preparation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li>Make sure your computer and EmBCI are in same network.</li>
-<li>Assume the IP address of EmBCI is 10.0.0.1 and PC is 10.0.0.100.</li>
+<li><p>Make sure your computer and EmBCI are in same network.</p></li>
+<li><p>Assume the IP address of EmBCI is 10.0.0.1 and PC is 10.0.0.100.</p></li>
 </ul>
 </div>
 <div class="section" id="steps">
 <h3>Steps<a class="headerlink" href="#steps" title="Permalink to this headline">¶</a></h3>
 <ol class="arabic simple">
-<li>On your computer, use <code class="code docutils literal notranslate"><span class="pre">SSH</span></code> to login to EmBCI.</li>
+<li><p>On your computer, use <code class="code docutils literal notranslate"><span class="pre">SSH</span></code> to login to EmBCI.</p></li>
 </ol>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ssh</span> <span class="n">root</span><span class="nd">@10</span><span class="o">.</span><span class="mf">0.0</span><span class="o">.</span><span class="mi">1</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>ssh root@10.0.0.1
 </pre></div>
 </div>
 <p>2. Then update the package.
 2.1) If you have this python package cloned on your PC, sync it from computer.</p>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># on computer</span>
-<span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span><span class="n">b</span> <span class="n">master</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">hankso</span><span class="o">/</span><span class="n">EmBCI</span><span class="o">.</span><span class="n">git</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># on computer</span>
+git clone --depth<span class="o">=</span><span class="m">1</span> -b master https://github.com/hankso/EmBCI.git
 <span class="c1"># on OrangePi</span>
-<span class="n">cd</span> <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">EmBCI</span> <span class="o">&amp;&amp;</span> <span class="n">git</span> <span class="n">pull</span> <span class="n">user</span><span class="nd">@10</span><span class="o">.</span><span class="mf">0.0</span><span class="o">.</span><span class="mi">100</span><span class="p">:</span><span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">EmBCI</span>
+<span class="nb">cd</span> /root/EmBCI <span class="o">&amp;&amp;</span> git pull user@10.0.0.100:/path/to/EmBCI
 </pre></div>
 </div>
 <p>2.2) Or you have to provide network access to OrangePi and sync EmBCI directly from Github. For example, setup your computer as a Squid proxy (<code class="docutils literal notranslate"><span class="pre">Squid&#64;Linux</span> <span class="pre">/</span> <span class="pre">SquidMan&#64;MacOS</span></code> is a caching proxy for the Web supporting HTTP, HTTPS and FTP). Also Imfirewall/Ultrasurf can be used on Windows to establish a proxy server.</p>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># on computer</span>
-<span class="n">squid</span> <span class="o">-</span><span class="n">a</span> <span class="mi">3128</span>  <span class="c1"># proxy server listening on 10.0.0.100:3128</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># on computer</span>
+squid -a <span class="m">3128</span>  <span class="c1"># proxy server listening on 10.0.0.100:3128</span>
 <span class="c1"># on OrangePi</span>
-<span class="n">cd</span> <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">EmBCI</span> <span class="o">&amp;&amp;</span> <span class="n">git</span> <span class="n">config</span> <span class="n">http</span><span class="o">.</span><span class="n">proxy</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">10.0</span><span class="o">.</span><span class="mf">0.100</span><span class="p">:</span><span class="mi">3128</span>
-<span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">github</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">hankso</span><span class="o">/</span><span class="n">EmBCI</span><span class="o">.</span><span class="n">git</span>
-<span class="n">git</span> <span class="n">pull</span> <span class="o">--</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span> <span class="n">github</span> <span class="n">master</span>
-<span class="n">git</span> <span class="n">config</span> <span class="o">--</span><span class="n">unset</span> <span class="n">http</span><span class="o">.</span><span class="n">proxy</span>  <span class="c1"># remember to reset the proxy address</span>
+<span class="nb">cd</span> /root/EmBCI <span class="o">&amp;&amp;</span> git config http.proxy http://10.0.0.100:3128
+git remote add github https://github.com/hankso/EmBCI.git
+git pull --depth<span class="o">=</span><span class="m">1</span> github master
+git config --unset http.proxy  <span class="c1"># remember to reset the proxy address</span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
-<li>Restart EmBCI program on OrangePi to check if it runs correctly.</li>
+<li><p>Restart EmBCI program on OrangePi to check if it runs correctly.</p></li>
 </ol>
-<div class="code sh highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">killall</span> <span class="n">python</span>
-<span class="n">bash</span> <span class="o">/</span><span class="n">root</span><span class="o">/</span><span class="n">autostart</span><span class="o">.</span><span class="n">sh</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>killall python
+bash /root/autostart.sh
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
-<li>Reboot the device. This time EmBCI will autostart programs.</li>
+<li><p>Reboot the device. This time EmBCI will autostart programs.</p></li>
 </ol>
 </div>
 </div>
 </div>
 
 
-           </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="Configurations.html" class="btn btn-neutral float-right" title="Configurations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="service.html" class="btn btn-neutral float-left" title="EmBCI Linux Service" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="service.html"
+       title="previous chapter">← EmBCI Linux Service</a>
+  </li>
+  <li class="next">
+    <a href="config.html"
+       title="next chapter">Configurations →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
     
-   
-
-</body>
+    
+  </body>
 </html>

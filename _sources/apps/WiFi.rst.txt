@@ -1,0 +1,12 @@
+************
+WiFi Manager
+************
+
+.. automodule:: embci.apps.WiFi
+
+.. automodule:: embci.apps.WiFi.backend
+
+Screenshots
+-----------
+.. image:: ../images/app-wifi.png
+   :alt: Network Manager

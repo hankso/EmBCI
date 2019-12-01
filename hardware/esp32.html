@@ -1,202 +1,219 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>ESP32 Reference &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>ESP32 Reference</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'../',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="../_static/jquery.js"></script>
         <script type="text/javascript" src="../_static/underscore.js"></script>
         <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="EmBCI Python API" href="../apis/index.html" />
-    <link rel="prev" title="EmBCI Shield" href="hardware.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="../index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="../readme.html">Get Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../readme_zh.html">Get Started 中文</a></li>
-</ul>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="hardware.html">EmBCI Shield</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">On-shield ESP32</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#firmware">Firmware</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#flash-firmware">Flash firmware</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#esp32-serial-monitor">ESP32 serial monitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#command-interface-deprecated-in-v0-1-4">Command Interface (Deprecated in v0.1.4)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#console-like-interface-added-in-v0-1-5">Console-like Interface (Added in v0.1.5)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#pin-out">Pin-out</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#connection">Connection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#opi0-pin-number">OPi0+ Pin Number</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#opi0-2-pin-number">OPi0+2 Pin Number</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#esp32-pin-number">ESP32 Pin Number</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/">ESP-IDF Reference</a></li>
-<li class="toctree-l2"><a class="reference external" href="https://github.com/hankso/EmBCI/blob/release/tools/ADS1299-Datasheet.pdf">ADS1299 Datasheet</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../service.html">Linux Service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../update.html">Updating</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="../_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
     
-      <li><a href="../index.html">Docs</a> &raquo;</li>
-        
-          <li><a href="index.html">EmBCI Hardware Reference</a> &raquo;</li>
-        
-      <li>ESP32 Reference</li>
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="EmBCI Python API Reference" href="../apis/index.html" />
+  <link rel="prev" title="EmBCI Shield" href="board.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/hardware/esp32.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Hardware Reference</a> &raquo;</li>
+    
+    <li>ESP32 Reference</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="board.html"
+       title="previous chapter">← EmBCI Shield</a>
+  </li>
+  <li class="next">
+    <a href="../apis/index.html"
+       title="next chapter">EmBCI Python API Reference →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <div class="section" id="esp32-reference">
 <h1>ESP32 Reference<a class="headerlink" href="#esp32-reference" title="Permalink to this headline">¶</a></h1>
@@ -205,17 +222,17 @@
 <div class="section" id="firmware">
 <h3>Firmware<a class="headerlink" href="#firmware" title="Permalink to this headline">¶</a></h3>
 <ul>
-<li><p class="first">Pre-compiled binary firmware files are in folder <code class="docutils literal notranslate"><span class="pre">firmware</span></code>.</p>
+<li><p>Pre-compiled binary firmware files are in folder <code class="docutils literal notranslate"><span class="pre">firmware</span></code>.</p>
 <ul class="simple">
-<li>boot_app0.bin</li>
-<li>bootloader.bin</li>
-<li>default.bin</li>
-<li>ESP32_Sandbox.ino.bin</li>
+<li><p>boot_app0.bin</p></li>
+<li><p>bootloader.bin</p></li>
+<li><p>default.bin</p></li>
+<li><p>ESP32_Sandbox.ino.bin</p></li>
 </ul>
 </li>
-<li><p class="first">Or you can compile from source code in <code class="docutils literal notranslate"><span class="pre">src</span></code> with <code class="docutils literal notranslate"><span class="pre">ESP-IDF</span></code> and <code class="docutils literal notranslate"><span class="pre">arduino-esp32</span></code>.</p>
+<li><p>Or you can compile from source code in <code class="docutils literal notranslate"><span class="pre">src</span></code> with <code class="docutils literal notranslate"><span class="pre">ESP-IDF</span></code> and <code class="docutils literal notranslate"><span class="pre">arduino-esp32</span></code>.</p>
 <ol class="arabic">
-<li><p class="first">Setup <a class="reference external" href="https://github.com/espressif/esp-idf">ESP-IDF</a> as described in its page (example on Debian).</p>
+<li><p>Setup <a class="reference external" href="https://github.com/espressif/esp-idf">ESP-IDF</a> as described in its page (example on Debian).</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1.1 install compiler(toolchain)</span>
 sudo apt-get install gcc git wget make libncurses-dev flex bison gperf python python-serial
 wget https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz -O xtensa-esp32.tar.gz
@@ -229,7 +246,7 @@ git clone --recursive https://github.com/espressif/esp-idf.git
 </pre></div>
 </div>
 </li>
-<li><p class="first">Setup <a class="reference external" href="https://github.com/espressif/arduino-esp32">arduino-esp32</a> as one of <code class="docutils literal notranslate"><span class="pre">ESP-IDF</span></code> components.</p>
+<li><p>Setup <a class="reference external" href="https://github.com/espressif/arduino-esp32">arduino-esp32</a> as one of <code class="docutils literal notranslate"><span class="pre">ESP-IDF</span></code> components.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 2.1 setup arduino-esp32</span>
 <span class="nb">cd</span> <span class="si">${</span><span class="nv">IDF_PATH</span><span class="si">}</span>/examples <span class="o">&amp;&amp;</span> mkdir arduino-core <span class="o">&amp;&amp;</span> <span class="nb">cd</span> arduino-core
 mkdir -p components <span class="o">&amp;&amp;</span> <span class="nb">cd</span> components <span class="o">&amp;&amp;</span> <span class="se">\</span>
@@ -244,7 +261,7 @@ ln -s ../components components
 </pre></div>
 </div>
 </li>
-<li><p class="first">Then compile with command <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">menuconfig</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">all</span></code>.</p>
+<li><p>Then compile with command <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">menuconfig</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">all</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 3.1 add access to source file</span>
 rm -rf main
 ln -s <span class="si">${</span><span class="nv">EMBCI_PATH</span><span class="si">}</span>/files/esp32/src ./main
@@ -362,140 +379,140 @@ tasks
 <p>On-shield <code class="docutils literal notranslate"><span class="pre">ESP32-WROOM-32</span></code> connection with <code class="docutils literal notranslate"><span class="pre">OrangePi</span> <span class="pre">Zero</span> <span class="pre">Plus(2)</span></code> listed as follows.</p>
 <div class="section" id="connection">
 <h3>Connection<a class="headerlink" href="#connection" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="33%" />
-<col width="33%" />
-<col width="33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">ESP32</th>
-<th class="head">OPi0+</th>
-<th class="head">OPi0+2</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>ESP32</p></th>
+<th class="head"><p>OPi0+</p></th>
+<th class="head"><p>OPi0+2</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>EN</td>
-<td>PA19</td>
-<td>PA19</td>
+<tbody>
+<tr class="row-even"><td><p>EN</p></td>
+<td><p>PA19</p></td>
+<td><p>PA19</p></td>
 </tr>
-<tr class="row-odd"><td>BOOT</td>
-<td>PA18</td>
-<td>PA18</td>
+<tr class="row-odd"><td><p>BOOT</p></td>
+<td><p>PA18</p></td>
+<td><p>PA18</p></td>
 </tr>
-<tr class="row-even"><td>DRDY</td>
-<td>PA07</td>
-<td>PD11</td>
+<tr class="row-even"><td><p>DRDY</p></td>
+<td><p>PA07</p></td>
+<td><p>PD11</p></td>
 </tr>
-<tr class="row-odd"><td>UART0</td>
-<td>UART1</td>
-<td>UART2</td>
+<tr class="row-odd"><td><p>UART0</p></td>
+<td><p>UART1</p></td>
+<td><p>UART2</p></td>
 </tr>
-<tr class="row-even"><td>UART1</td>
-<td>UART2</td>
-<td>&#160;</td>
+<tr class="row-even"><td><p>UART1</p></td>
+<td><p>UART2</p></td>
+<td></td>
 </tr>
-<tr class="row-odd"><td>HSPI</td>
-<td>SPI1</td>
-<td>SPI1</td>
+<tr class="row-odd"><td><p>HSPI</p></td>
+<td><p>SPI1</p></td>
+<td><p>SPI1</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="opi0-pin-number">
 <h3>OPi0+ Pin Number<a class="headerlink" href="#opi0-pin-number" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">num</th>
-<th class="head">UART1</th>
-<th class="head">UART2</th>
-<th class="head">SPI1</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>num</p></th>
+<th class="head"><p>UART1</p></th>
+<th class="head"><p>UART2</p></th>
+<th class="head"><p>SPI1</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>GPIO</td>
-<td>T198 R199</td>
-<td>T0   R1</td>
-<td>CS13 CLK14 MO15 MI16</td>
+<tbody>
+<tr class="row-even"><td><p>GPIO</p></td>
+<td><p>T198 R199</p></td>
+<td><p>T0   R1</p></td>
+<td><p>CS13 CLK14 MO15 MI16</p></td>
 </tr>
-<tr class="row-odd"><td>PIN</td>
-<td>PG06 PG07</td>
-<td>PA00 PA01</td>
-<td>PA13 PA14  PA15 PA16</td>
+<tr class="row-odd"><td><p>PIN</p></td>
+<td><p>PG06 PG07</p></td>
+<td><p>PA00 PA01</p></td>
+<td><p>PA13 PA14  PA15 PA16</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="opi0-2-pin-number">
 <h3>OPi0+2 Pin Number<a class="headerlink" href="#opi0-2-pin-number" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="33%" />
-<col width="33%" />
-<col width="33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">num</th>
-<th class="head">UART2</th>
-<th class="head">SPI1</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>num</p></th>
+<th class="head"><p>UART2</p></th>
+<th class="head"><p>SPI1</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>GPIO</td>
-<td>T0   R1</td>
-<td>CS13 CLK14 MO15 MI16</td>
+<tbody>
+<tr class="row-even"><td><p>GPIO</p></td>
+<td><p>T0   R1</p></td>
+<td><p>CS13 CLK14 MO15 MI16</p></td>
 </tr>
-<tr class="row-odd"><td>PIN</td>
-<td>PA00 PA01</td>
-<td>PA13 PA14  PA15 PA16</td>
+<tr class="row-odd"><td><p>PIN</p></td>
+<td><p>PA00 PA01</p></td>
+<td><p>PA13 PA14  PA15 PA16</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="esp32-pin-number">
 <h3>ESP32 Pin Number<a class="headerlink" href="#esp32-pin-number" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="14%" />
-<col width="14%" />
-<col width="14%" />
-<col width="14%" />
-<col width="14%" />
-<col width="14%" />
-<col width="14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
+<col style="width: 14%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">num</th>
-<th class="head">EN</th>
-<th class="head">BOOT</th>
-<th class="head">DRDY</th>
-<th class="head">UART0</th>
-<th class="head">UART1</th>
-<th class="head">HSPI</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>num</p></th>
+<th class="head"><p>EN</p></th>
+<th class="head"><p>BOOT</p></th>
+<th class="head"><p>DRDY</p></th>
+<th class="head"><p>UART0</p></th>
+<th class="head"><p>UART1</p></th>
+<th class="head"><p>HSPI</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>GPIO</td>
-<td>–</td>
-<td>0</td>
-<td>4</td>
-<td>T1 R3</td>
-<td>T10 R9</td>
-<td>CS15 CLK14 MI12 MO13</td>
+<tbody>
+<tr class="row-even"><td><p>GPIO</p></td>
+<td><p>–</p></td>
+<td><p>0</p></td>
+<td><p>4</p></td>
+<td><p>T1 R3</p></td>
+<td><p>T10 R9</p></td>
+<td><p>CS15 CLK14 MI12 MO13</p></td>
 </tr>
-<tr class="row-odd"><td>PIN</td>
-<td>3</td>
-<td>25</td>
-<td>26</td>
-<td>35 34</td>
-<td>18  17</td>
-<td>CS23 CLK13 MI14 MO16</td>
+<tr class="row-odd"><td><p>PIN</p></td>
+<td><p>3</p></td>
+<td><p>25</p></td>
+<td><p>26</p></td>
+<td><p>35 34</p></td>
+<td><p>18  17</p></td>
+<td><p>CS23 CLK13 MI14 MO16</p></td>
 </tr>
 </tbody>
 </table>
@@ -505,52 +522,27 @@ tasks
 </div>
 
 
-           </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="../apis/index.html" class="btn btn-neutral float-right" title="EmBCI Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="hardware.html" class="btn btn-neutral float-left" title="EmBCI Shield" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="board.html"
+       title="previous chapter">← EmBCI Shield</a>
+  </li>
+  <li class="next">
+    <a href="../apis/index.html"
+       title="next chapter">EmBCI Python API Reference →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
     
-   
-
-</body>
+    
+  </body>
 </html>

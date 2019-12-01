@@ -1,0 +1,5 @@
+*******
+Example
+*******
+
+.. mdinclude:: ../../embci/apps/example/README.md

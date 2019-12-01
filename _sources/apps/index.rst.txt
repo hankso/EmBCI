@@ -1,0 +1,24 @@
+******************
+EmBCI Applications
+******************
+
+A full list of current applications
+-----------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   Example <example>
+   Authentication <auth>
+   Base Static Server <baseserver>
+   Recorder <recorder>
+   Streaming <streaming>
+   System <system>
+   Display Web <DisplayWeb>
+   Motor Imagery <MotorImagery>
+   SSVEP Speller <Speller>
+   WiFi Manager <WiFi>
+
+----
+
+.. mdinclude:: ../../embci/apps/README.md

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>SSVEP Speller</title>
+    
+      <link rel="stylesheet" href="../_static/pygments.css">
+      <link rel="stylesheet" href="../_static/theme.css">
+      <link rel="stylesheet" href="../_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+
+      
+      <script src="../_static/theme-vendors.js"></script>
+      <script src="../_static/theme.js" defer></script>
+    
+  <link rel="index" title="Index" href="../genindex.html" />
+  <link rel="search" title="Search" href="../search.html" />
+  <link rel="next" title="WiFi Manager" href="WiFi.html" />
+  <link rel="prev" title="Motor Imagery" href="MotorImagery.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="../index.html" class="home-link">
+    
+      <span class="site-name">EmBCI</span>
+    
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="../index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="../search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../readme.html" class="reference internal ">Getting Started</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="../index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="../hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="../TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+</div>
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+    
+      <li><a href="index.html">EmBCI Applications</a> &raquo;</li>
+    
+    <li>SSVEP Speller</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="MotorImagery.html"
+       title="previous chapter">← Motor Imagery</a>
+  </li>
+  <li class="next">
+    <a href="WiFi.html"
+       title="next chapter">WiFi Manager →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
+            
+  <div class="section" id="ssvep-speller">
+<h1><a class="toc-backref" href="#contents">SSVEP Speller</a><a class="headerlink" href="#ssvep-speller" title="Permalink to this headline">¶</a></h1>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#ssvep-speller" id="id1">SSVEP Speller</a></p>
+<ul>
+<li><p><a class="reference internal" href="#what-is-a-speller-system" id="id2">What is a Speller System</a></p></li>
+<li><p><a class="reference internal" href="#embci-ssvep-speller" id="id3">EmBCI SSVEP Speller</a></p></li>
+<li><p><a class="reference internal" href="#webui-details" id="id4">WebUI details</a></p></li>
+<li><p><a class="reference internal" href="#session-workflow" id="id5">Session Workflow</a></p></li>
+<li><p><a class="reference internal" href="#module-embci.apps.Speller" id="id6">API</a></p></li>
+<li><p><a class="reference internal" href="#screenshots" id="id7">Screenshots</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="what-is-a-speller-system">
+<h2><a class="toc-backref" href="#contents">What is a Speller System</a><a class="headerlink" href="#what-is-a-speller-system" title="Permalink to this headline">¶</a></h2>
+<p>A speller system is a special system design for disabilities to spell words with brain, which is also known as <strong>Mind Typing</strong>. In EmBCI, the Speller app integrates a web user interface and some bio-signal analysis algorithms. It displays array of blocks on webpage. Each block is marked with an alphabet and will blink in a specific frequency. EEG signal of users will also be recorded simultaneously. By analyzing EEG data, we can find out which block user is gazing at, thus the alphabet of that block is <strong>typed</strong>.</p>
+<p>Users can watch the UI through computer, tablet or even mobile phone.</p>
+</div>
+<div class="section" id="embci-ssvep-speller">
+<h2><a class="toc-backref" href="#contents">EmBCI SSVEP Speller</a><a class="headerlink" href="#embci-ssvep-speller" title="Permalink to this headline">¶</a></h2>
+<p>Website User Interface based Steady State Visual Evoked Potential Speller is a demo implemented on embedded platform (ARM device + EmBCI Board).</p>
+</div>
+<div class="section" id="webui-details">
+<h2><a class="toc-backref" href="#contents">WebUI details</a><a class="headerlink" href="#webui-details" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="display-stimulus-using-html-css-js">
+<h3>Display stimulus using HTML + CSS + JS<a class="headerlink" href="#display-stimulus-using-html-css-js" title="Permalink to this headline">¶</a></h3>
+<p>The most important work of rendering stimulus on webpage is to ensure that the frequency of flickers are constant and equal to the setting value. Color changing of stimulus must be strictly evenly spaced. In this project JS is used to control the color change of blocks.</p>
+</div>
+<div class="section" id="function-settimeout-and-setinterval">
+<h3>Function setTimeout and setInterval<a class="headerlink" href="#function-settimeout-and-setinterval" title="Permalink to this headline">¶</a></h3>
+<p>Using function <code class="docutils literal notranslate"><span class="pre">setTimeout(handler[,</span> <span class="pre">timeout])</span></code> and <code class="docutils literal notranslate"><span class="pre">setInterval(handler[,</span> <span class="pre">timeout])</span></code> to render animation of flickers has two disadvantages:</p>
+<ol class="arabic simple">
+<li><p>It’s not easy to select a proper timeout. The most frequently used value is 17ms (1000ms / 60FPS), but the real display refresh rate depends on the screen and driver.</p></li>
+<li><p>setTimeout and setInterval only stack functions to be executed in a queue of browser UI process, not actually call them. If UI process is busy, functions will not be called in time.</p></li>
+</ol>
+<p>As a better choice in this project, <code class="docutils literal notranslate"><span class="pre">window.requestAnimationFrame</span></code> is used to render flickers.</p>
+</div>
+<div class="section" id="function-requestanimationframe">
+<h3>Function requestAnimationFrame<a class="headerlink" href="#function-requestanimationframe" title="Permalink to this headline">¶</a></h3>
+<p>The rAF is a relatively new API, recommended to be used for implementing interactive applications in the browser. This method ask the browser to call the callback function before the next repaint. As W3C recommended, rAF execution frequency match the real display refresh rate in most web browsers.</p>
+</div>
+<div class="section" id="html-canvas">
+<h3>HTML Canvas<a class="headerlink" href="#html-canvas" title="Permalink to this headline">¶</a></h3>
+<p>HTML &lt;canvas&gt; element is one of the most widdly used tools for rendering 2D graphics on the web. However, when websites and apps push the Canvas API to its limits (for example 60FPS), performance begins to suffer. Canvas supports many different backends including <cite>2D</cite>, <cite>webgl</cite>, <cite>bitmaprender</cite> etc. In this project <cite>2D</cite> backend with multi-offscreen canvas and <cite>WebGL</cite> backend are employed to make the best use of canvas for better render performance.</p>
+</div>
+<div class="section" id="canvas-2d-backend">
+<h3>Canvas 2D backend<a class="headerlink" href="#canvas-2d-backend" title="Permalink to this headline">¶</a></h3>
+<p>In morden browsers, whenever something happens that changes a webpage’s look or content, the browser will schedule a repaint operation soon after the changing to update page. Because repaints can be an expensive operation to CPU, it’s better and much faster to draw animation on an offscreen canvas and render the whole scene once to the onscreen canvas.</p>
+<p>For example, when you need to inverse the color of block <cite>a</cite>, <cite>c</cite> and <cite>z</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for (var blk, i = 0; i &lt; 3; i++) {
+    blk = [blockA, blockC, blockZ][i];
+    if (blk.on) ctx.fillStyle = &#39;black&#39;;
+    else        ctx.fillStyle = &#39;white&#39;;
+    blk.on = !blk.on;                         // inverse color
+    ctx.fillRect(blk.x, blk.y, blk.w, blk.h); // draw on main canvas
+}
+</pre></div>
+</div>
+<p>It needs three repaints (3 * 1000/60 = 50ms) to render this color changes, one for each block. In other words, if only one canvas is used, color changes is done in memory, but not updated to screen yet. So offscreen canvas is widely used for <cite>draw multiple items &amp; render once time</cite>. Offscreen canvas is actually a canvas element that is not included in HTML element tree:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Create</span> <span class="n">the</span> <span class="n">offscreen</span> <span class="n">canvas</span> <span class="n">after</span> <span class="n">whole</span> <span class="n">HTML</span> <span class="n">document</span> <span class="ow">is</span> <span class="n">loaded</span><span class="o">.</span>
+<span class="n">var</span> <span class="n">ctxOs</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="n">createElement</span><span class="p">(</span><span class="s1">&#39;canvas&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">getContext</span><span class="p">(</span><span class="s1">&#39;2d&#39;</span><span class="p">);</span>
+<span class="o">//</span> <span class="n">Offscreen</span> <span class="n">canvas</span> <span class="n">will</span> <span class="n">be</span> <span class="n">rendered</span> <span class="n">on</span> <span class="n">main</span> <span class="n">canvas</span> <span class="n">later</span><span class="p">,</span> <span class="n">so</span> <span class="n">must</span> <span class="n">match</span> <span class="n">size</span>
+<span class="n">ctxOs</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">mainCanvas</span><span class="o">.</span><span class="n">width</span><span class="p">;</span>
+<span class="n">ctxOs</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">mainCanvas</span><span class="o">.</span><span class="n">height</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Although we use requestAnimationFrame instead of setTimeout (multiple drawings will be handled inside one repaint), using offscreen canvas is still preferred. So, to inverse color of blocks the code will be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for (var blk, i = 0; i &lt; blocks.length; i++) {
+    blk = blocks[i];
+    if (blk.on) ctxOs.fillStyle = &#39;black&#39;;
+    else        ctxOs.fillStyle = &#39;white&#39;;
+    blk.on = !blk.on;                           // inverse color
+    ctxOs.fillRect(blk.x, blk.y, blk.w, blk.h); // draw on offscreen canvas
+}
+ctx.drawImage(ctxOs.canvas, 0, 0);              // render to onscreen canvas
+</pre></div>
+</div>
+<p>Alpha channel(transparency) of keyboard canvas is disabled to optimize the performance. And alphabets are rendered on an individual canvas above keyboard layer because this layer doesn’t need to be redrawn once initialized.</p>
+</div>
+<div class="section" id="optimization">
+<h3>Optimization<a class="headerlink" href="#optimization" title="Permalink to this headline">¶</a></h3>
+<p>Using code below to calculate the real frames per second:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>timeout = 300;  // 300ms
+function loopTask(ts) {
+    if (!starttime) starttime = ts;
+    if ((ts - starttime) &lt; timeout) {
+        requestAnimationFrame(loopTask);
+    } else taskDone = true;
+    time1 = performance.now();
+    blinkBlocks(layout)
+    time2 = performance.now();
+    fps = 1000 / (time2 - time1);
+    console.log(
+        &#39;Frame start at&#39;, ts.toFixed(2),
+        &#39;latency&#39;, (time2 - ts).toFixed(2),
+        &#39;end at&#39;, time2.toFixed(2),
+        &#39;used time&#39;, time2 - time1,
+        &#39;FPS&#39;, fps.toFixed(2)
+    );
+}
+</pre></div>
+</div>
+<p>Start session by <code class="docutils literal notranslate"><span class="pre">loopTask(performance.now())</span></code>. And the log information will be something like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TODO</span><span class="p">:</span> <span class="n">copy</span> <span class="n">log</span> <span class="n">information</span> <span class="n">here</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="session-workflow">
+<h2><a class="toc-backref" href="#contents">Session Workflow</a><a class="headerlink" href="#session-workflow" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>client send session.init event or GET /sess/start</p></li>
+<li><p>server start recording data and broadcast mark by pylsl outlet</p></li>
+<li><p>server send recorder.start event</p></li>
+<li><p>client enable flickers on receiving recorder.start</p></li>
+<li><p>client disable flickers after task done</p></li>
+<li><p>client send session.end event or GET /sess/stop</p></li>
+<li><p>server start generate result on receiving session.end</p></li>
+<li><p>server send session.result event indicating that the result is ready</p></li>
+<li><p>client fetch result when session.result or by looply GET /sess/result</p></li>
+</ol>
+<div class="graphviz"><img src="../_images/graphviz-59fad962f494c3982c3c9137dba023704366fd71.png" alt="digraph G {
+    label = &quot;Session Workflow of EmBCI Speller&quot;;
+    newrank = true;
+    color = lightgrey;
+
+    // subgraph cluster_legend {
+    //     label = &quot;Legend&quot;;
+    //     rankdir = &quot;LR&quot;;
+    //     node [style=invis];
+    //     l0 -&gt; l1 [label=&quot;HTTP GET&quot;, style=dotted, color=red];
+    //     l2 -&gt; l3 [label=&quot;EventIO&quot;];
+    //     l4 -&gt; l5 [label=&quot;Processing&quot;, style=dashed, dir=none];
+    // }
+
+    subgraph cluster_client {
+        label = &quot;Client side&quot;;
+        style = rounded;
+        node [style=filled, color=lightgrey];
+        edge [style=dashed, dir=none];
+        c0 [label=&quot;Start Request&quot;];
+        c1 [label=&quot;Start\nVisual stimulus&quot;];
+        c2 [label=&quot;Stop\nVisual stimulus&quot;];
+        c3 [label=&quot;New: wait until&quot;];
+        c4 [label=&quot;Legacy: looply GET&quot;]
+        c1 -&gt; c2 [label=&quot;Session time&quot;];
+        c2 -&gt; c3 [color=blue];
+        c2 -&gt; c4 [color=red];
+    }
+
+    subgraph cluster_server {
+        label = &quot;Server side&quot;;
+        style = rounded;
+        node [color=green];
+        edge [style=dashed, dir=none];
+        s0 [label=&quot;Establish LSL Mark Outlet&quot;];
+        s1 [label=&quot;Start recording&quot;];
+        s2 [label=&quot;Stop recording&quot;];
+        s3 [label=&quot;Generate result&quot;];
+        s4 [label=&quot;Result buffer&quot;];
+        s0 -&gt; s1 [label=&quot;Broadcast event&quot;];
+        s2 -&gt; s3 [label=&quot;Classification&quot;];
+        s3 -&gt; s4 [label=&quot;Append into&quot;];
+    }
+
+    {rank=same; s0, c0}
+    {rank=same; s1, c1}
+    {rank=same; s2, c2}
+    {rank=same; s3, c3}
+    {rank=same; s4, c4}
+
+    edge [style=solid, color=black, fontcolor=black];
+    c0 -&gt; s0 [label=&quot;session.init&quot;];
+    s1 -&gt; c1 [label=&quot;recorder.start&quot;];
+    c2 -&gt; s2 [label=&quot;session.end&quot;];
+    s3 -&gt; c3 [label=&quot;session.result&quot;];
+
+    edge [style=dotted, color=red, fontcolor=red];
+    c0 -&gt; s0 [label=&quot;/sess/start&quot;];
+    c2 -&gt; s2 [label=&quot;/sess/stop&quot;];
+    {c3, c4} -&gt; s4 [label=&quot;/sess/result&quot;];
+}" class="graphviz" /></div>
+</div>
+<div class="section" id="module-embci.apps.Speller">
+<span id="api"></span><h2><a class="toc-backref" href="#contents">API</a><a class="headerlink" href="#module-embci.apps.Speller" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="eventio">
+<h3>EventIO<a class="headerlink" href="#eventio" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><dl class="simple">
+<dt>WebSocket</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>EventIO connection point</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>POST(websocket)</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/event/ws</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Update client</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Go though connection stack and update current active client.
+Usually you don’t need to call this manually. It is executed
+automatically.</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>GET</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/event/update</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>List events</dt><dd><dl class="field-list">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>List all available events in JSON format.</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>GET</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/event/list</span></code></p>
+</dd>
+<dt class="field-even">example</dt>
+<dd class="field-even"><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span><span class="s1">&#39;code&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;recorder.start&#39;</span><span class="p">},</span>
+ <span class="p">{</span><span class="s1">&#39;code&#39;</span><span class="p">:</span> <span class="mi">201</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;recorder.close&#39;</span><span class="p">},</span>
+ <span class="o">...</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Send event</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Send event from client to server by query string</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>GET</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/event</span></code></p>
+</dd>
+<dt class="field-even">param</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+<dt class="field-odd">example</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">event?str=%7B%22code%22%3A0%2C%22name%22%3A%22hi%22%7D</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Trigger event</dt><dd><dl class="field-list">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Ask server to broadcast an event</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>POST</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/event</span></code></p>
+</dd>
+<dt class="field-even">param</dt>
+<dd class="field-even"><p>name | code</p>
+</dd>
+<dt class="field-odd">example</dt>
+<dd class="field-odd"><div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="kd">var</span> <span class="nx">eventObject</span> <span class="o">=</span> <span class="p">{</span><span class="nx">code</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;hi&#39;</span><span class="p">};</span>
+<span class="nx">jQuery</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">&#39;/event&#39;</span><span class="p">,</span>
+    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+    <span class="nx">data</span><span class="o">:</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="nx">eventObject</span><span class="p">.</span><span class="nx">name</span><span class="p">}</span> <span class="nx">or</span> <span class="p">{</span><span class="nx">code</span><span class="o">:</span> <span class="nx">eventObject</span><span class="p">.</span><span class="nx">code</span><span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="session">
+<h3>Session<a class="headerlink" href="#session" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Start session</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Legacy interface to schedule a new session</p>
+</dd>
+<dt class="field-even">event</dt>
+<dd class="field-even"><p>Send event <code class="docutils literal notranslate"><span class="pre">sess.init</span></code></p>
+</dd>
+<dt class="field-odd">method</dt>
+<dd class="field-odd"><p>GET</p>
+</dd>
+<dt class="field-even">path</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">/sess/start</span></code></p>
+</dd>
+<dt class="field-odd">param</dt>
+<dd class="field-odd"><p>ID (optional) &amp; timeout (optional, millisecond)</p>
+</dd>
+<dt class="field-even">return</dt>
+<dd class="field-even"><p>“{‘recorder.start’: ID}”</p>
+</dd>
+<dt class="field-odd">example</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/sess/start?ID=deadbeef&amp;timeout=300</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>End session</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Legacy interface to stop the session</p>
+</dd>
+<dt class="field-even">event</dt>
+<dd class="field-even"><p>Send event <code class="docutils literal notranslate"><span class="pre">sess.end</span></code></p>
+</dd>
+<dt class="field-odd">method</dt>
+<dd class="field-odd"><p>GET</p>
+</dd>
+<dt class="field-even">path</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">/sess/stop</span></code></p>
+</dd>
+<dt class="field-odd">param</dt>
+<dd class="field-odd"><p>ID (necessary) &amp; result (optional, bool)</p>
+</dd>
+<dt class="field-even">return</dt>
+<dd class="field-even"><p>“{‘recorder.stop’: ID}”</p>
+</dd>
+<dt class="field-odd">example</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/sess/stop?ID=deadbeef&amp;result=true</span></code></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Session result</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Fetch the prediction result in JSON format</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/sess/result</span></code></p>
+</dd>
+<dt class="field-even">param</dt>
+<dd class="field-even"><p>ID (optional when using EventIO)</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>“{‘index’: [1, 2, 1, 0, 1, …]}”</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="model">
+<h3>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h3>
+<p>TODO: write doc for embci.apps.speller.model</p>
+</div>
+<div class="section" id="layout">
+<h3>Layout<a class="headerlink" href="#layout" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><dl class="simple">
+<dt>List keyboards</dt><dd><dl class="field-list simple">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>List all available keyboard layout filenames</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>GET</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/layout/kbd</span></code></p>
+</dd>
+<dt class="field-even">example</dt>
+<dd class="field-even"><p></p></dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Get a keyboard</dt><dd><dl class="field-list">
+<dt class="field-odd">desc</dt>
+<dd class="field-odd"><p>Load a keyboard’s layout by name</p>
+</dd>
+<dt class="field-even">method</dt>
+<dd class="field-even"><p>GET</p>
+</dd>
+<dt class="field-odd">path</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">/layout/kbd/&lt;name&gt;</span></code></p>
+</dd>
+<dt class="field-even">param</dt>
+<dd class="field-even"><p>name (necessary, must be one in list)</p>
+</dd>
+<dt class="field-odd">example</dt>
+<dd class="field-odd"><div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/layout-filename.json&quot;</span><span class="p">,</span>
+ <span class="nt">&quot;blocks&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;alphabet&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;freq&quot;</span><span class="p">:</span> <span class="s2">&quot;frequency in Herz&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;multiple of Pi in rad&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;x&quot;</span><span class="p">:</span> <span class="s2">&quot;coordinate X in pixel&quot;</span><span class="p">,</span> <span class="nt">&quot;y&quot;</span><span class="p">:</span> <span class="s2">&quot;coordinate Y in pixel&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;w&quot;</span><span class="p">:</span> <span class="s2">&quot;width in pixel&quot;</span><span class="p">,</span> <span class="nt">&quot;h&quot;</span><span class="p">:</span> <span class="s2">&quot;height in pixel&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="p">{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="nt">&quot;x&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="nt">&quot;y&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nt">&quot;freq&quot;</span><span class="p">:</span> <span class="mf">8.0</span><span class="p">,</span> <span class="nt">&quot;phase&quot;</span><span class="p">:</span> <span class="mf">4.71238898</span><span class="p">},</span>
+<span class="p">]}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="screenshots">
+<h2><a class="toc-backref" href="#contents">Screenshots</a><a class="headerlink" href="#screenshots" title="Permalink to this headline">¶</a></h2>
+<img alt="Speller keyboard layout" src="../_images/app-speller.png" />
+<img alt="Record data for training" src="../_images/app-speller-train.png" />
+<img alt="Training with cue" src="../_images/app-speller-training.png" />
+</div>
+</div>
+
+
+          </div>
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="MotorImagery.html"
+       title="previous chapter">← Motor Imagery</a>
+  </li>
+  <li class="next">
+    <a href="WiFi.html"
+       title="next chapter">WiFi Manager →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
+    </div>
+    
+    
+  </body>
+</html>

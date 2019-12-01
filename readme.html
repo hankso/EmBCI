@@ -1,347 +1,373 @@
-
-
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>Get Started &mdash; EmBCI v0.2.3 User Guide</title>
-  
-
-  
-  
-  
-  
-
-  
-  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
-  
+<html >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Get Started</title>
     
-      <script type="text/javascript">
-          var DOCUMENTATION_OPTIONS = {
-              URL_ROOT:'./',
-              VERSION:'0.2.3',
-              LANGUAGE:'None',
-              COLLAPSE_INDEX:false,
-              FILE_SUFFIX:'.html',
-              HAS_SOURCE:  true,
-              SOURCELINK_SUFFIX: '.txt'
-          };
-      </script>
+      <link rel="stylesheet" href="_static/pygments.css">
+      <link rel="stylesheet" href="_static/theme.css">
+      <link rel="stylesheet" href="_static/sphinx_press_theme.css">
+          <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+      <!-- sphinx script_files -->
         <script type="text/javascript" src="_static/jquery.js"></script>
         <script type="text/javascript" src="_static/underscore.js"></script>
         <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="快速开始" href="readme_zh.html" />
-    <link rel="prev" title="Welcome to EmBCI’s User Guide" href="index.html" /> 
-</head>
-
-<body class="wy-body-for-nav">
-
-   
-  <div class="wy-grid-for-nav">
-    
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
-          
-
-          
-            <a href="index.html" class="icon icon-home"> EmBCI
-          
-
-          
-          </a>
-
-          
-            
-            
-              <div class="version">
-                0.2.3
-              </div>
-            
-          
-
-          
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Get Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#welcome-to-the-embci">Welcome to the EmBCI!</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#what-is-embci">What is EmBCI?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#hardware-support">Hardware support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#software-support">Software support</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#requirements">Requirements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#install-from-pypi">Install from pypi</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#install-from-source">Install from source</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#developer-mode">Developer mode</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#platform-specifics">Platform specifics</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#extra-files">Extra files</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#linux-service-interface">Linux service interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#files-outline">Files outline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#supported-gyms">Supported gyms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#plane-war-game">Plane war game</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#torcs-car-game">TORCS car game</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#license">License</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#useful-links">Useful links</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="readme_zh.html">Get Started 中文</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="hardware/index.html">Hardware Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="apis/index.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="service.html">Linux Service</a></li>
-<li class="toctree-l1"><a class="reference internal" href="update.html">Updating</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Configurations.html">Configurations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Copyrights.html">Copyrights</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Changelog.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="TODO.html">TODOs</a></li>
-</ul>
-
-            
-          
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+        <script type="text/javascript" src="_static/language_data.js"></script>
 
       
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">EmBCI</a>
-        
-      </nav>
-
-
-      <div class="wy-nav-content">
-        
-        <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
-  <ul class="wy-breadcrumbs">
+      <script src="_static/theme-vendors.js"></script>
+      <script src="_static/theme.js" defer></script>
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
-        
-      <li>Get Started</li>
+  <link rel="index" title="Index" href="genindex.html" />
+  <link rel="search" title="Search" href="search.html" />
+  <link rel="next" title="快速开始" href="readme_zh.html" />
+  <link rel="prev" title="Welcome to EmBCI’s User Guide" href="index.html" /> 
+  </head>
+
+  <body>
+    <div id="app" class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
+  <router-link to="index.html" class="home-link">
     
+      <span class="site-name">EmBCI</span>
     
-      <li class="wy-breadcrumbs-aside">
-        
-            
-            <a href="_sources/readme.rst.txt" rel="nofollow"> View page source</a>
-          
-        
-      </li>
-    
-  </ul>
+  </router-link>
+
+  <div class="links">
+    <navlinks class="can-hide">
 
   
-  <hr/>
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+    </navlinks>
+  </div>
+</navbar>
+
+      
+      <div class="sidebar-mask" @click="toggleSidebar(false)">
+      </div>
+        <sidebar @toggle-sidebar="toggleSidebar">
+          
+          <navlinks>
+            
+
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link  router-link-active">
+         Quick start
+      </a>
+    </div>
+  
+    <div class="nav-item">
+      <a href="index.html#welcome-to-embci-s-user-guide"
+         class="nav-link ">
+         Docs
+      </a>
+    </div>
+  
+
+
+
+            
+          </navlinks><div id="searchbox" class="searchbox" role="search">
+  <div class="caption"><span class="caption-text">Quick search</span>
+    <div class="searchformwrapper">
+      <form class="search" action="search.html" method="get">
+        <input type="text" name="q" />
+        <input type="submit" value="Search" />
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div><div class="sidebar-links" role="navigation" aria-label="main navigation">
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Quick start</a></span>
+      </p>
+      <ul class="current">
+        
+          <li class="toctree-l1 current"><a href="#" class="reference internal current">Getting Started</a>
+
+            
+              <ul>
+                
+                  <li class="toctree-l2"><a href="#get-started" class="reference internal">Get Started</a></li>
+                
+                  <li class="toctree-l2"><a href="#welcome-to-the-embci" class="reference internal">Welcome to the EmBCI!</a></li>
+                
+                  <li class="toctree-l2"><a href="#what-is-embci" class="reference internal">What is EmBCI?</a></li>
+                
+                  <li class="toctree-l2"><a href="#features" class="reference internal">Features</a></li>
+                
+                  <li class="toctree-l2"><a href="#hardware-support" class="reference internal">Hardware support</a></li>
+                
+                  <li class="toctree-l2"><a href="#requirements" class="reference internal">Requirements</a></li>
+                
+                  <li class="toctree-l2"><a href="#installation" class="reference internal">Installation</a></li>
+                
+                  <li class="toctree-l2"><a href="#linux-service-interface" class="reference internal">Linux service interface</a></li>
+                
+                  <li class="toctree-l2"><a href="#configuration" class="reference internal">Configuration</a></li>
+                
+                  <li class="toctree-l2"><a href="#documentation" class="reference internal">Documentation</a></li>
+                
+                  <li class="toctree-l2"><a href="#files-outline" class="reference internal">Files outline</a></li>
+                
+                  <li class="toctree-l2"><a href="#supported-gyms" class="reference internal">Supported gyms</a></li>
+                
+                  <li class="toctree-l2"><a href="#license" class="reference internal">License</a></li>
+                
+                  <li class="toctree-l2"><a href="#useful-links" class="reference internal">Useful links</a></li>
+                
+              </ul>
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="readme_zh.html" class="reference internal ">项目简介</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
+    <div class="sidebar-group">
+      <p class="caption">
+        <span class="caption-text"><a href="index.html#welcome-to-embci-s-user-guide">Docs</a></span>
+      </p>
+      <ul class="">
+        
+          <li class="toctree-l1 "><a href="hardware/index.html" class="reference internal ">Hardware Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apis/index.html" class="reference internal ">Software Reference</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="apps/index.html" class="reference internal ">Applications</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="service.html" class="reference internal ">Linux Service</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="update.html" class="reference internal ">Updating</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="config.html" class="reference internal ">Configurations</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Copyrights.html" class="reference internal ">Copyrights</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="Changelog.html" class="reference internal ">Changelog</a>
+
+            
+          </li>
+
+        
+          <li class="toctree-l1 "><a href="TODO.html" class="reference internal ">TODOs</a>
+
+            
+          </li>
+
+        
+      </ul>
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
+        </sidebar>
+
+      <page>
+          <div class="body-header" role="navigation" aria-label="navigation">
+  
+  <ul class="breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+    
+    <li>Get Started</li>
+  </ul>
+  
+
+  <ul class="page-nav">
+  <li class="prev">
+    <a href="index.html"
+       title="previous chapter">← Welcome to EmBCI’s User Guide</a>
+  </li>
+  <li class="next">
+    <a href="readme_zh.html"
+       title="next chapter">快速开始 →</a>
+  </li>
+</ul>
+  
+</div>
+<hr>
+          <div class="content" role="main">
             
   <div class="section" id="get-started">
-<h1><a class="toc-backref" href="#id7">Get Started</a><a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h1>
-<a class="reference external image-reference" href="https://hankso.github.io/EmBCI"><img alt="EmBCI LOGO" class="align-center" src="https://raw.github.com/hankso/EmBCI/master/files/images/logo-blue.png" /></a>
+<h1><a class="toc-backref" href="#contents">Get Started</a><a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="https://embci.hankso.site"><img alt="EmBCI LOGO" class="align-center" src="https://raw.github.com/hankso/EmBCI/master/files/images/logo-blue.png" /></a>
 <hr class="docutils" />
 <a class="reference external image-reference" href="https://travis-ci.org/hankso/EmBCI"><img alt="Travis CI" src="https://img.shields.io/travis/hankso/EmBCI/master.svg?label=Travis%20CI" /></a>
-<a class="reference external image-reference" href="https://hankso.github.io/EmBCI"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/hankso/EmBCI.svg" /></a>
+<a class="reference external image-reference" href="https://embci.hankso.site"><img alt="GitHub top language" src="https://img.shields.io/github/languages/top/hankso/EmBCI.svg" /></a>
 <a class="reference external image-reference" href="https://github.com/hankso/EmBCI/archive/master.zip"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/hankso/EmBCI.svg" /></a>
 <a class="reference external image-reference" href="https://opensource.org/licenses/MIT"><img alt="GitHub License" src="https://img.shields.io/github/license/hankso/EmBCI.svg" /></a>
 <a class="reference external image-reference" href="https://pypi.org/project/EmBCI/"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/EmBCI.svg" /></a>
 <a class="reference external image-reference" href="https://pypi.org/project/EmBCI/"><img alt="Python Version" src="https://img.shields.io/pypi/pyversions/EmBCI.svg" /></a>
 <a class="reference external image-reference" href="https://github.com/hankso/EmBCI/tags"><img alt="GitHub tag" src="https://img.shields.io/github/tag-date/hankso/EmBCI.svg" /></a>
+</div>
 <div class="section" id="welcome-to-the-embci">
-<h2><a class="toc-backref" href="#id8">Welcome to the EmBCI!</a><a class="headerlink" href="#welcome-to-the-embci" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Welcome to the EmBCI!</a><a class="headerlink" href="#welcome-to-the-embci" title="Permalink to this headline">¶</a></h1>
 <p>English | <a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/README_zh.md">中文</a></p>
 <p><strong>EmBCI</strong> is fully open source on Github since release v.0.2.3!</p>
-<p>This README file is only a quick start. Check out full documentation <a class="reference external" href="https://hankso.github.io/EmBCI">here</a>.</p>
+<p>This README file is only a quick start. Check out full <a class="reference external" href="https://embci.hankso.site">documentation here</a>.</p>
 <p><strong>EmBCI</strong> is still under developing. Any contributions are welcomed.</p>
 <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#get-started" id="id7">Get Started</a><ul>
-<li><a class="reference internal" href="#welcome-to-the-embci" id="id8">Welcome to the EmBCI!</a></li>
-<li><a class="reference internal" href="#what-is-embci" id="id9">What is EmBCI?</a></li>
-<li><a class="reference internal" href="#features" id="id10">Features</a></li>
-<li><a class="reference internal" href="#hardware-support" id="id11">Hardware support</a></li>
-<li><a class="reference internal" href="#software-support" id="id12">Software support</a><ul>
-<li><a class="reference internal" href="#requirements" id="id13">Requirements</a></li>
-<li><a class="reference internal" href="#installation" id="id14">Installation</a><ul>
-<li><a class="reference internal" href="#install-from-pypi" id="id15">Install from pypi</a></li>
-<li><a class="reference internal" href="#install-from-source" id="id16">Install from source</a></li>
-<li><a class="reference internal" href="#developer-mode" id="id17">Developer mode</a></li>
-<li><a class="reference internal" href="#platform-specifics" id="id18">Platform specifics</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#extra-files" id="id19">Extra files</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#linux-service-interface" id="id20">Linux service interface</a></li>
-<li><a class="reference internal" href="#configuration" id="id21">Configuration</a></li>
-<li><a class="reference internal" href="#documentation" id="id22">Documentation</a></li>
-<li><a class="reference internal" href="#files-outline" id="id23">Files outline</a></li>
-<li><a class="reference internal" href="#supported-gyms" id="id24">Supported gyms</a><ul>
-<li><a class="reference internal" href="#plane-war-game" id="id25">Plane war game</a></li>
-<li><a class="reference internal" href="#torcs-car-game" id="id26">TORCS car game</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#license" id="id27">License</a></li>
-<li><a class="reference internal" href="#useful-links" id="id28">Useful links</a></li>
-</ul>
-</li>
+<li><p><a class="reference internal" href="#get-started" id="id9">Get Started</a></p></li>
+<li><p><a class="reference internal" href="#welcome-to-the-embci" id="id10">Welcome to the EmBCI!</a></p></li>
+<li><p><a class="reference internal" href="#what-is-embci" id="id11">What is EmBCI?</a></p></li>
+<li><p><a class="reference internal" href="#features" id="id12">Features</a></p></li>
+<li><p><a class="reference internal" href="#hardware-support" id="id13">Hardware support</a></p></li>
+<li><p><a class="reference internal" href="#requirements" id="id14">Requirements</a></p></li>
+<li><p><a class="reference internal" href="#installation" id="id15">Installation</a></p></li>
+<li><p><a class="reference internal" href="#linux-service-interface" id="id16">Linux service interface</a></p></li>
+<li><p><a class="reference internal" href="#configuration" id="id17">Configuration</a></p></li>
+<li><p><a class="reference internal" href="#documentation" id="id18">Documentation</a></p></li>
+<li><p><a class="reference internal" href="#files-outline" id="id19">Files outline</a></p></li>
+<li><p><a class="reference internal" href="#supported-gyms" id="id20">Supported gyms</a></p></li>
+<li><p><a class="reference internal" href="#license" id="id21">License</a></p></li>
+<li><p><a class="reference internal" href="#useful-links" id="id22">Useful links</a></p></li>
 </ul>
 </div>
 </div>
 <div class="section" id="what-is-embci">
-<h2><a class="toc-backref" href="#id9">What is EmBCI?</a><a class="headerlink" href="#what-is-embci" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">What is EmBCI?</a><a class="headerlink" href="#what-is-embci" title="Permalink to this headline">¶</a></h1>
 <p><strong>EmBCI</strong> is the abbreviation of <strong>Embedded Brain-Computer Interface</strong>, a bio-signal acquisition and processing platform.</p>
 <p>It is composed of a high precision, wearable, 8-channel bio-signal measuring hardware and a signal processing python library optimized for embedded devices.</p>
 <p>Users can quickly develop their own applications based on EmBCI. And EmBCI comes with some interesting apps, <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/apps">check out here</a>!</p>
 </div>
 <div class="section" id="features">
-<h2><a class="toc-backref" href="#id10">Features</a><a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Features</a><a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><strong>Fast prototyping</strong>: EmBCI provide lots of data streaming and IO interfaces. Build your app within 100 lines of code!</li>
-<li><strong>Signal processing</strong>: baseline-correction, denoising, time-frequency algorithms, and many many more.</li>
-<li><strong>Multiple Biosignal</strong>: support EEG, EMG, ECG… We implemented gesture-recognition based on sEMG and SSVEP Speller based on EEG in the same platform.</li>
-<li><strong>It’s embedded</strong>: 40mm x 40mm wearable device, small but powerful, get rid of PC!</li>
-<li><strong>WiFi connection</strong>: data visualization, files management, visual stimulus keyboard and more Web UI applications are accessable by simply connect to a hotspots.</li>
+<li><p><strong>Fast prototyping</strong>: EmBCI provide lots of data streaming and IO interfaces. Build your app within 100 lines of code!</p></li>
+<li><p><strong>Signal processing</strong>: baseline-correction, denoising, time-frequency algorithms, and many many more.</p></li>
+<li><p><strong>Multiple Biosignal</strong>: support EEG, EMG, ECG… We implemented gesture-recognition based on sEMG and SSVEP Speller based on EEG in the same platform.</p></li>
+<li><p><strong>It’s embedded</strong>: 40mm x 40mm wearable device, small but powerful, get rid of PC!</p></li>
+<li><p><strong>WiFi connection</strong>: data visualization, files management, visual stimulus keyboard and more Web UI applications are accessable by simply connect to a hotspots.</p></li>
 </ul>
 </div>
 <div class="section" id="hardware-support">
-<h2><a class="toc-backref" href="#id11">Hardware support</a><a class="headerlink" href="#hardware-support" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span></code> is a PCB board designed to measure, denoise, buffer and transfer bio-signals.
-Currently, the stable version is <code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span> <span class="pre">Rev.A7</span></code>.</p>
+<h1><a class="toc-backref" href="#contents">Hardware support</a><a class="headerlink" href="#hardware-support" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span></code> is an EmBCI official release of PCB board designed to measure, denoise, buffer and transfer bio-signals. Currently, the stable version is <code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span> <span class="pre">Rev.B1</span></code>. It can also be used as an extension shield for OrangePi/RaspberryPi and other 40-Pin compatiable develop boards.</p>
 <p>It integrates:</p>
 <ul class="simple">
-<li><dl class="first docutils">
-<dt><a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/tools/ADS1299-Datasheet.pdf">ADS1299</a> from <a class="reference external" href="http://www.ti.com/product/ADS1299/description">Texas Instruments</a>:</dt>
-<dd>Low-noise 8-Channels 24-Bits ADC for Biopotential Measurements</dd>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/tools/ADS1299-Datasheet.pdf">ADS1299</a> from <a class="reference external" href="http://www.ti.com/product/ADS1299/description">Texas Instruments</a>:</dt><dd><p>Low-noise 8-Channels 24-Bits ADC for Biopotential Measurements</p>
+</dd>
 </dl>
 </li>
-<li><dl class="first docutils">
-<dt><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/esp32">ESP32</a> from <a class="reference external" href="https://www.espressif.com/en/products/hardware/esp32/overview">Espressif</a>:</dt>
-<dd>Tensilica Xtensa Dual-core 32-Bits Processor with WiFi and Bluetooth</dd>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/esp32">ESP32</a> from <a class="reference external" href="https://www.espressif.com/en/products/hardware/esp32/overview">Espressif</a>:</dt><dd><p>Tensilica Xtensa Dual-core 32-Bits Processor with WiFi and Bluetooth</p>
+</dd>
 </dl>
 </li>
-<li>Power management chips and others</li>
+<li><p>Power management chips and others</p></li>
 </ul>
-<p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/hardware">EmBCI Shield</a> can also be used as an extension shield for OrangePi/RaspberryPi and other 40-Pin compatiable develop boards.</p>
+<p>See <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/hardware">files/hardware</a> for more detail.</p>
 </div>
-<div class="section" id="software-support">
-<h2><a class="toc-backref" href="#id12">Software support</a><a class="headerlink" href="#software-support" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="requirements">
-<h3><a class="toc-backref" href="#id13">Requirements</a><a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h3>
+<h1><a class="toc-backref" href="#contents">Requirements</a><a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li>on embedded linux: wifi, serial, sysgpio, spidev</li>
-<li>on others platforms: wifi, serial/usb</li>
+<li><p>On embedded linux: WiFi, Serial, SysGPIO, SpiDev</p></li>
+<li><p>On PC/server: WiFi[, Serial, USB]</p></li>
 </ul>
 </div>
 <div class="section" id="installation">
-<h3><a class="toc-backref" href="#id14">Installation</a><a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h3>
+<h1><a class="toc-backref" href="#contents">Installation</a><a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="install-from-pypi">
-<h4><a class="toc-backref" href="#id15">Install from pypi</a><a class="headerlink" href="#install-from-pypi" title="Permalink to this headline">¶</a></h4>
+<h2>Install from PyPI<a class="headerlink" href="#install-from-pypi" title="Permalink to this headline">¶</a></h2>
+<p><strong>NOT available yet</strong></p>
 <p><code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">embci</span></code></p>
 </div>
 <div class="section" id="install-from-source">
-<h4><a class="toc-backref" href="#id16">Install from source</a><a class="headerlink" href="#install-from-source" title="Permalink to this headline">¶</a></h4>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">--</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span><span class="n">b</span> <span class="n">release</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">hankso</span><span class="o">/</span><span class="n">EmBCI</span><span class="o">.</span><span class="n">git</span>
-<span class="n">cd</span> <span class="n">EmBCI</span>
-<span class="n">sudo</span> <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="o">./</span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
-<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">build</span> <span class="o">&amp;&amp;</span> <span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+<h2>Install from source<a class="headerlink" href="#install-from-source" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/hankso/EmBCI.git <span class="o">&amp;&amp;</span> <span class="nb">cd</span> EmBCI
+sudo python -m pip install -r ./requirements.txt
+python setup.py build <span class="o">&amp;&amp;</span> sudo python setup.py install
 </pre></div>
 </div>
 </div>
-<div class="section" id="developer-mode">
-<h4><a class="toc-backref" href="#id17">Developer mode</a><a class="headerlink" href="#developer-mode" title="Permalink to this headline">¶</a></h4>
-<p>For those who want to build their applications based on EmBCI, you may want to install <code class="docutils literal notranslate"><span class="pre">embci</span></code> in developer mode with:</p>
-<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="o">-</span><span class="n">b</span> <span class="n">master</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">hankso</span><span class="o">/</span><span class="n">EmBCI</span><span class="o">.</span><span class="n">git</span> <span class="o">&amp;&amp;</span> <span class="n">cd</span> <span class="n">EmBCI</span>
-<span class="n">sudo</span> <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">editable</span> <span class="o">.</span>
+<div class="section" id="install-in-developer-mode">
+<h2>Install in developer mode<a class="headerlink" href="#install-in-developer-mode" title="Permalink to this headline">¶</a></h2>
+<p>For those who want to build their applications based on EmBCI, you may want to install <code class="docutils literal notranslate"><span class="pre">embci</span></code> in <a class="reference external" href="https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs">developer mode</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/hankso/EmBCI.git <span class="o">&amp;&amp;</span> <span class="nb">cd</span> EmBCI
+sudo python -m pip install --editable .
 </pre></div>
 </div>
-<p>Then you can code and test your app.</p>
+<p>Then you just code and test.</p>
 <p>EmBCI provides lots of useful input/output interfaces including an extendible WebUI so that one can easily implement applications. See <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/io">embci.io</a>, <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/webui">embci.webui</a> and <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/apps">embci.apps</a> for more information.</p>
 </div>
 <div class="section" id="platform-specifics">
-<h4><a class="toc-backref" href="#id18">Platform specifics</a><a class="headerlink" href="#platform-specifics" title="Permalink to this headline">¶</a></h4>
+<h2>Platform specifics<a class="headerlink" href="#platform-specifics" title="Permalink to this headline">¶</a></h2>
 <p>On <code class="docutils literal notranslate"><span class="pre">arm</span></code> and <code class="docutils literal notranslate"><span class="pre">aarch64</span></code> embedded Linux platforms, <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> will also install Linux service configuration files.</p>
 <p>To autostart EmBCI applications at boot on PC and other systems, you have to <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/service">config autorun manually</a>.</p>
 </div>
-</div>
-<div class="section" id="extra-files">
-<h3><a class="toc-backref" href="#id19">Extra files</a><a class="headerlink" href="#extra-files" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="extra-dependencies">
+<h2>Extra dependencies<a class="headerlink" href="#extra-dependencies" title="Permalink to this headline">¶</a></h2>
 <p>TODO: only install the package is not enough</p>
 </div>
 </div>
 <div class="section" id="linux-service-interface">
-<h2><a class="toc-backref" href="#id20">Linux service interface</a><a class="headerlink" href="#linux-service-interface" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Linux service interface</a><a class="headerlink" href="#linux-service-interface" title="Permalink to this headline">¶</a></h1>
 <p>EmBCI has a Linux Service interface to work properly on embedded devices.</p>
 <p>Both <code class="docutils literal notranslate"><span class="pre">System-V</span> <span class="pre">style</span></code> scripts and <code class="docutils literal notranslate"><span class="pre">System</span> <span class="pre">D</span> <span class="pre">service</span> <span class="pre">manager</span></code> scripts are provided.</p>
 <p>See <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/service">files/service</a> for more details.</p>
 </div>
 <div class="section" id="configuration">
-<h2><a class="toc-backref" href="#id21">Configuration</a><a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Configuration</a><a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
 <p>EmBCI use <a class="reference external" href="https://en.wikipedia.org/wiki/INI_file">INI-Style</a> configuration files with an extention <code class="docutils literal notranslate"><span class="pre">.conf</span></code>.</p>
 <p>Here’s an example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># File: EmBCI/files/service/embci.conf</span>
@@ -375,141 +401,131 @@ Currently, the stable version is <code class="docutils literal notranslate"><spa
    <span class="n">user</span> <span class="n">config</span> <span class="n">file</span><span class="p">:</span> <span class="s2">&quot;$</span><span class="si">{USERPROFILE}</span><span class="s2">/.embci/embci.conf&quot;</span>
 </pre></div>
 </div>
-<p>See <a class="reference external" href="https://embci.readthedocs.io/en/latest/configurations.html">docs/Configurations</a> for more details.</p>
+<p>See <code class="code docutils literal notranslate"><span class="pre">Documentation-&gt;Configurations</span></code> for more details.</p>
 </div>
 <div class="section" id="documentation">
-<h2><a class="toc-backref" href="#id22">Documentation</a><a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>Get full documentation <a class="reference external" href="https://hankso.github.io/EmBCI">here</a>.</p>
+<h1><a class="toc-backref" href="#contents">Documentation</a><a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h1>
+<p>EmBCI <a class="reference external" href="https://embci.hankso.site">documentation</a> is hosted by GitHub Pages built with <a class="reference external" href="http://www.sphinx-doc.org/en/master/">sphinx</a>. We highly welcome contributions to the docs, such as python API reference <code class="code docutils literal notranslate"><span class="pre">(in</span> <span class="pre">progress)</span></code>, code examples, applications and screenshots gallery etc. To build documentation locally, you need to clone the repo first:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/hankso/EmBCI.git <span class="o">&amp;&amp;</span> <span class="nb">cd</span> EmBCI/docs
+sudo python -m pip install requirements.txt  <span class="c1"># modules used to build docs</span>
+</pre></div>
+</div>
+<p>Make your modification or add some content under folder EmBCI/docs. Then build markdown/reStructuredText/… files into html format and view by browser:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make html <span class="o">&amp;&amp;</span> google-chrome _build/html/index.html
+</pre></div>
+</div>
+<p>Update the newest docs to GitHub Pages:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git checkout master
+<span class="nb">cd</span> /path/to/EmBCI <span class="o">&amp;&amp;</span> make -C docs html
+git checkout gh-pages
+cp -av docs/_build/html/ ./
+git add . <span class="o">&amp;&amp;</span> git commit -m <span class="s1">&#39;build doc for version X.X.X&#39;</span> <span class="o">&amp;&amp;</span> git push
+</pre></div>
+</div>
 </div>
 <div class="section" id="files-outline">
-<h2><a class="toc-backref" href="#id23">Files outline</a><a class="headerlink" href="#files-outline" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="docutils">
+<h1><a class="toc-backref" href="#contents">Files outline</a><a class="headerlink" href="#files-outline" title="Permalink to this headline">¶</a></h1>
+<table class="docutils align-default">
 <colgroup>
-<col width="26%" />
-<col width="74%" />
+<col style="width: 26%" />
+<col style="width: 74%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Folder</th>
-<th class="head">Description</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Folder</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/embci/__init__.py">embci</a></td>
-<td>Data-processing algorithms, IO, WebUI and frameworks</td>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/embci/__init__.py">embci</a></p></td>
+<td><p>Data-processing algorithms, IO, WebUI and frameworks</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/apps">embci.apps</a></td>
-<td>Basic applications and an example app project</td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/apps">embci.apps</a></p></td>
+<td><p>Basic applications and an example app project</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/gyms">embci.gyms</a></td>
-<td>Output classification result to gyms to control games</td>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/gyms">embci.gyms</a></p></td>
+<td><p>Output classification result to gyms to control games</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/io">embci.io</a></td>
-<td>Stream Readers/Commanders, data save/load functions</td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/io">embci.io</a></p></td>
+<td><p>Stream Readers/Commanders, data save/load functions</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/utils">embci.utils</a></td>
-<td>Miscellaneous tools: useful decorators and functions</td>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/utils">embci.utils</a></p></td>
+<td><p>Miscellaneous tools: useful decorators and functions</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/viz">embci.viz</a></td>
-<td>Visualization: SPIScreen, Matplotlib, and Qt</td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/viz">embci.viz</a></p></td>
+<td><p>Visualization: SPIScreen, Matplotlib, and Qt</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/webui">embci.webui</a></td>
-<td>Web-based User Interface</td>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/webui">embci.webui</a></p></td>
+<td><p>Web-based User Interface</p></td>
 </tr>
-<tr class="row-odd"><td><cite>files/avr</cite></td>
-<td>On shield <code class="docutils literal notranslate"><span class="pre">Atmega328P</span></code> firmware (<strong>Deprecated</strong>)</td>
+<tr class="row-odd"><td><p><cite>files/avr</cite></p></td>
+<td><p>On shield <code class="docutils literal notranslate"><span class="pre">Atmega328P</span></code> firmware (<strong>Deprecated</strong>)</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/esp32">files/esp32</a></td>
-<td>On shield <code class="docutils literal notranslate"><span class="pre">ESP32</span></code> firmware and burning tools</td>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/esp32">files/esp32</a></p></td>
+<td><p>On shield <code class="docutils literal notranslate"><span class="pre">ESP32</span></code> firmware and burning tools</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/cases">files/cases</a></td>
-<td>3D models files in <code class="docutils literal notranslate"><span class="pre">SolidWorks</span></code> and <code class="docutils literal notranslate"><span class="pre">STL</span></code> format</td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/cases">files/cases</a></p></td>
+<td><p>3D models files in <code class="docutils literal notranslate"><span class="pre">SolidWorks</span></code> and <code class="docutils literal notranslate"><span class="pre">STL</span></code> format</p></td>
 </tr>
-<tr class="row-even"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/hardware">files/hardware</a></td>
-<td><code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span></code> files in <code class="docutils literal notranslate"><span class="pre">Eagle</span></code> format</td>
+<tr class="row-even"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/hardware">files/hardware</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EmBCI</span> <span class="pre">Shield</span></code> files in <code class="docutils literal notranslate"><span class="pre">Eagle</span></code> format</p></td>
 </tr>
-<tr class="row-odd"><td><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/service">files/service</a></td>
-<td>Linux service configurations</td>
+<tr class="row-odd"><td><p><a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/files/service">files/service</a></p></td>
+<td><p>Linux service configurations</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="section" id="supported-gyms">
-<h2><a class="toc-backref" href="#id24">Supported gyms</a><a class="headerlink" href="#supported-gyms" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Supported gyms</a><a class="headerlink" href="#supported-gyms" title="Permalink to this headline">¶</a></h1>
 <p>Currently two environments have been implemented to use mind-control results to control movement. See <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/gyms">embci.gyms</a> for more.</p>
 <div class="section" id="plane-war-game">
-<h3><a class="toc-backref" href="#id25">Plane war game</a><a class="headerlink" href="#plane-war-game" title="Permalink to this headline">¶</a></h3>
+<h2>Plane war game<a class="headerlink" href="#plane-war-game" title="Permalink to this headline">¶</a></h2>
 <p>Written by &#64; <a class="reference external" href="https://github.com/buaawyz">buaawyz</a>.
 See game <a class="reference external" href="https://github.com/hankso/gym_plane_python">installation</a> guide.</p>
 <p>Run <code class="code docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span></code> first and then <code class="code docutils literal notranslate"><span class="pre">from</span> <span class="pre">gyms</span> <span class="pre">import</span> <span class="pre">PlaneClient</span> <span class="pre">as</span> <span class="pre">Client</span></code></p>
 </div>
 <div class="section" id="torcs-car-game">
-<h3><a class="toc-backref" href="#id26">TORCS car game</a><a class="headerlink" href="#torcs-car-game" title="Permalink to this headline">¶</a></h3>
+<h2>TORCS car game<a class="headerlink" href="#torcs-car-game" title="Permalink to this headline">¶</a></h2>
 <p>See more at <a class="reference external" href="https://github.com/ugo-nama-kun/gym_torcs">gym_torcs</a>. And <a class="reference external" href="https://github.com/hankso/EmBCI/tree/master/embci/io">embci.io</a>.TorcsCommander.</p>
 </div>
 </div>
 <div class="section" id="license">
-<h2><a class="toc-backref" href="#id27">License</a><a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">License</a><a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h1>
 <p>MIT license. See <a class="reference external" href="https://github.com/hankso/EmBCI/blob/master/LICENSE.txt">LICENSE.txt</a></p>
 </div>
 <div class="section" id="useful-links">
-<h2><a class="toc-backref" href="#id28">Useful links</a><a class="headerlink" href="#useful-links" title="Permalink to this headline">¶</a></h2>
+<h1><a class="toc-backref" href="#contents">Useful links</a><a class="headerlink" href="#useful-links" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><a class="reference external" href="https://github.com/NeuroTechX/awesome-bci">Awesome-BCI</a></li>
-<li><a class="reference external" href="https://github.com/openbci">OpenBCI</a></li>
-<li><a class="reference external" href="http://openvibe.inria.fr/">OpenViBE</a></li>
-<li><a class="reference external" href="http://sccn.ucsd.edu/eeglab/">EEGLAB</a></li>
-<li><a class="reference external" href="https://sccn.ucsd.edu/wiki/BCILAB">BCILAB</a></li>
+<li><p><a class="reference external" href="https://github.com/NeuroTechX/awesome-bci">Awesome-BCI</a></p></li>
+<li><p><a class="reference external" href="https://github.com/openbci">OpenBCI</a></p></li>
+<li><p><a class="reference external" href="http://openvibe.inria.fr/">OpenViBE</a></p></li>
+<li><p><a class="reference external" href="http://sccn.ucsd.edu/eeglab/">EEGLAB</a></p></li>
+<li><p><a class="reference external" href="https://sccn.ucsd.edu/wiki/BCILAB">BCILAB</a></p></li>
 </ul>
 </div>
-</div>
 
 
-           </div>
-           
           </div>
-          <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="readme_zh.html" class="btn btn-neutral float-right" title="快速开始" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to EmBCI’s User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+          <div class="page-nav">
+            <div class="inner"><ul class="page-nav">
+  <li class="prev">
+    <a href="index.html"
+       title="previous chapter">← Welcome to EmBCI’s User Guide</a>
+  </li>
+  <li class="next">
+    <a href="readme_zh.html"
+       title="next chapter">快速开始 →</a>
+  </li>
+</ul><div class="footer" role="contentinfo">
+      &#169; Copyright 2017-2019, Hankso and individual contributors.
+    <br>
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a>.
+</div>
+            </div>
+          </div>
+      </page>
     </div>
-  
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>
-        &copy; Copyright 2017-2019, Hankso and individual contributors
-
-    </p>
-  </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
-
-</footer>
-
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-  
-
-
-  <script type="text/javascript">
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script>
-
-  
-  
     
-   
-
-</body>
+    
+  </body>
 </html>
