@@ -122,14 +122,14 @@ def obj(request):
         'nodelay': ('nodelay', ),
     })
     cmder.start(port1, 115200)
-    slave = serial.Serial(port2, 115200)
+    subordinate = serial.Serial(port2, 115200)
 
     request.addfinalizer(flag_stop.set)
     request.addfinalizer(cmder.close)
-    request.addfinalizer(slave.close)
+    request.addfinalizer(subordinate.close)
 
     class objs:
-        serial = slave
+        serial = subordinate
         commander = cmder
     return objs
 

@@ -1312,9 +1312,9 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
         Set flag by `flag_close.set` to manually terminate the virtual
         serial connection.
     port1 : str
-        Master serial port.
+        Main serial port.
     port2 : str
-        Slave serial port.
+        Subordinate serial port.
 
     Examples
     --------
@@ -1329,9 +1329,9 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
     'hello?\\n'
     >>> flag.set()
     '''
-    master1, slave1 = os.openpty()
-    master2, slave2 = os.openpty()
-    port1, port2 = os.ttyname(slave1), os.ttyname(slave2)
+    main1, subordinate1 = os.openpty()
+    main2, subordinate2 = os.openpty()
+    port1, port2 = os.ttyname(subordinate1), os.ttyname(subordinate2)
     # RX1 TX1 RX2 TX2 counter
     count = np.zeros(4)
     logger.info('[Visual Serial] Pty opened!')
@@ -1339,19 +1339,19 @@ def virtual_serial(verbose=logging.INFO, timeout=120):
 
     def echo(flag_close):
         while not flag_close.isSet():
-            rlist = select.select([master1, master2], [], [], 2)[0]
+            rlist = select.select([main1, main2], [], [], 2)[0]
             if not rlist:
                 continue
-            for master in rlist:
-                msg = os.read(master, 1024)
-                if master == master1:
+            for main in rlist:
+                msg = os.read(main, 1024)
+                if main == main1:
                     logger.debug('[{} --> {}] {}'.format(port1, port2, msg))
                     count[1] += len(msg)
-                    count[2] += os.write(master2, msg)
-                elif master == master2:
+                    count[2] += os.write(main2, msg)
+                elif main == main2:
                     logger.debug('[{} --> {}] {}'.format(port2, port1, msg))
                     count[3] += len(msg)
-                    count[0] += os.write(master1, msg)
+                    count[0] += os.write(main1, msg)
             logger.debug('\rRX1: %s\tTX1: %s\tRX2: %s\tTX2: %s'
                          % tuple(format_size(*count)))
         logger.info('[Virtual Serial] shutdown...')
